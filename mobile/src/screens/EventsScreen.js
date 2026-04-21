@@ -1,54 +1,131 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, FlatList, StyleSheet, ActivityIndicator, TouchableOpacity
+  View, Text, FlatList, StyleSheet,
+  ActivityIndicator, TouchableOpacity, RefreshControl
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import API from '../services/api';
+import { colors } from '../theme';
 
 export default function EventsScreen({ navigation }) {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-useEffect(() => {
-  API.get('/events')
-    .then(res => setEvents(res.data))
-    .catch((err) => console.log('HATA:', err.message))
-    .finally(() => setLoading(false));
-}, []);
+  const fetchEvents = () => {
+    return API.get('/events')
+      .then(res => setEvents(res.data))
+      .catch(err => console.log('Hata:', err.message));
+  };
 
-  if (loading) return <ActivityIndicator style={{ flex: 1 }} size="large" color="#6C63FF" />;
+  useEffect(() => {
+    fetchEvents().finally(() => setLoading(false));
+  }, []);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchEvents().finally(() => setRefreshing(false));
+  };
+
+  if (loading) return (
+    <View style={styles.loadingContainer}>
+      <ActivityIndicator size="large" color={colors.primary} />
+    </View>
+  );
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>🎵 Etkinlikler</Text>
+      <LinearGradient colors={['#0F0F1A', '#1A1A2E']} style={styles.header}>
+        <Text style={styles.headerTitle}>🎵 Etkinlikler</Text>
+        <Text style={styles.headerSub}>{events.length} etkinlik bulundu</Text>
+      </LinearGradient>
+
       <FlatList
         data={events}
         keyExtractor={item => item.id.toString()}
-       renderItem={({ item }) => (
-         <TouchableOpacity
-           style={styles.card}
-           onPress={() => navigation.navigate('EventDetail', { event: item })}
-         >
-           <Text style={styles.eventName}>{item.name}</Text>
-           <Text style={styles.eventDesc}>{item.description}</Text>
-           <Text style={styles.eventDate}>
-             📅 {new Date(item.eventDate).toLocaleDateString('tr-TR')}
-           </Text>
-           {item.venueName && <Text style={styles.venue}>📍 {item.venueName} / {item.venueCity}</Text>}
-         </TouchableOpacity>
-       )}
-        ListEmptyComponent={<Text style={styles.empty}>Henüz etkinlik yok.</Text>}
+        contentContainerStyle={styles.list}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+        }
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            onPress={() => navigation.navigate('EventDetail', { event: item })}
+            activeOpacity={0.85}
+          >
+            <View style={styles.card}>
+              <View style={styles.cardLeft}>
+                <LinearGradient colors={['#E94560', '#7C3AED']} style={styles.dateBox}>
+                  <Text style={styles.dateDay}>
+                    {new Date(item.eventDate).getDate()}
+                  </Text>
+                  <Text style={styles.dateMonth}>
+                    {new Date(item.eventDate).toLocaleDateString('tr-TR', { month: 'short' })}
+                  </Text>
+                </LinearGradient>
+              </View>
+              <View style={styles.cardRight}>
+                <Text style={styles.cardName} numberOfLines={1}>{item.name}</Text>
+                <Text style={styles.cardDesc} numberOfLines={2}>{item.description}</Text>
+                <View style={styles.cardTags}>
+                  {item.artistName && (
+                    <View style={styles.tag}>
+                      <Text style={styles.tagText}>🎤 {item.artistName}</Text>
+                    </View>
+                  )}
+                  {item.venueName && (
+                    <View style={styles.tag}>
+                      <Text style={styles.tagText}>📍 {item.venueCity}</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            </View>
+          </TouchableOpacity>
+        )}
+        ListEmptyComponent={
+          <View style={styles.empty}>
+            <Text style={styles.emptyEmoji}>🎭</Text>
+            <Text style={styles.emptyText}>Henüz etkinlik yok</Text>
+          </View>
+        }
       />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5', padding: 16, paddingTop: 50 },
-  title: { fontSize: 24, fontWeight: 'bold', color: '#6C63FF', marginBottom: 16 },
-  card: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 12, elevation: 2 },
-  eventName: { fontSize: 18, fontWeight: 'bold', color: '#333' },
-  eventDesc: { color: '#666', marginTop: 4 },
-  eventDate: { color: '#6C63FF', marginTop: 8, fontWeight: '600' },
-  venue: { color: '#999', marginTop: 4 },
-  empty: { textAlign: 'center', color: '#999', marginTop: 40 },
+  container: { flex: 1, backgroundColor: colors.background },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
+  header: { paddingTop: 60, paddingBottom: 20, paddingHorizontal: 24 },
+  headerTitle: { fontSize: 24, fontWeight: 'bold', color: colors.text },
+  headerSub: { fontSize: 13, color: colors.textSecondary, marginTop: 4 },
+  list: { padding: 16, gap: 12 },
+  card: {
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: 'row',
+    gap: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  cardLeft: { alignItems: 'center' },
+  dateBox: {
+    width: 52,
+    height: 60,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dateDay: { fontSize: 22, fontWeight: 'bold', color: '#fff' },
+  dateMonth: { fontSize: 11, color: 'rgba(255,255,255,0.85)', textTransform: 'uppercase' },
+  cardRight: { flex: 1 },
+  cardName: { fontSize: 16, fontWeight: 'bold', color: colors.text, marginBottom: 4 },
+  cardDesc: { fontSize: 13, color: colors.textSecondary, marginBottom: 8 },
+  cardTags: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
+  tag: { backgroundColor: '#2A2A3E', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  tagText: { fontSize: 11, color: colors.textSecondary },
+  empty: { alignItems: 'center', marginTop: 80 },
+  emptyEmoji: { fontSize: 64, marginBottom: 16 },
+  emptyText: { color: colors.textSecondary, fontSize: 16 },
 });

@@ -18,14 +18,19 @@ function TabNavigator() {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#6C63FF',
-        tabBarInactiveTintColor: '#999',
+        tabBarActiveTintColor: '#E94560',
+        tabBarInactiveTintColor: '#A0A0B0',
         tabBarStyle: {
-          backgroundColor: '#fff',
+          backgroundColor: '#1A1A2E',
           borderTopWidth: 1,
-          borderTopColor: '#eee',
-          height: 60,
-          paddingBottom: 8,
+          borderTopColor: '#2A2A3E',
+          height: 65,
+          paddingBottom: 10,
+          paddingTop: 6,
+        },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '600',
         },
       }}
     >
