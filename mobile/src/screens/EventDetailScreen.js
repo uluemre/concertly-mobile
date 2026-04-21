@@ -1,12 +1,101 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Location from 'expo-location';
 import { colors } from '../theme';
+
+// İki nokta arasındaki mesafeyi metre cinsinden hesaplar (Haversine formülü)
+function getDistanceInMeters(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+    Math.cos((lat2 * Math.PI) / 180) *
+    Math.sin(dLon / 2) *
+    Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
 
 export default function EventDetailScreen({ route, navigation }) {
   const { event } = route.params;
+  const [verifying, setVerifying] = useState(false);
+
+  const handlePostAt = async () => {
+    // 1 — Konser günü mü?
+    const eventDate = new Date(event.eventDate);
+    const today = new Date();
+    const isSameDay =
+      eventDate.getFullYear() === today.getFullYear() &&
+      eventDate.getMonth() === today.getMonth() &&
+      eventDate.getDate() === today.getDate();
+
+    if (!isSameDay) {
+      Alert.alert(
+        '📅 Henüz değil!',
+        `Bu etkinlik ${eventDate.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })} tarihinde. Post atmak için konser gününde orada olman gerekiyor!`,
+        [{ text: 'Tamam' }]
+      );
+      return;
+    }
+
+    // 2 — Mekan koordinatları var mı?
+    if (!event.venueLatitude || !event.venueLongitude) {
+      // Mekan koordinatı yoksa direkt post ekranına geç
+      navigation.navigate('CreatePost', { event });
+      return;
+    }
+
+    // 3 — Konum izni al
+    setVerifying(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('📍 Konum İzni', 'Doğrulama için konum iznine ihtiyacımız var.', [{ text: 'Tamam' }]);
+        setVerifying(false);
+        return;
+      }
+
+      // 4 — Konumu al
+      const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      const { latitude, longitude } = location.coords;
+
+      // 5 — Mesafeyi hesapla
+      const distance = getDistanceInMeters(
+        latitude, longitude,
+        event.venueLatitude, event.venueLongitude
+      );
+
+      const distanceFormatted = distance < 1000
+        ? `${Math.round(distance)} metre`
+        : `${(distance / 1000).toFixed(1)} km`;
+
+      if (distance <= 200) {
+        // ✅ Yakın — post ekranına geç
+        Alert.alert(
+          '✅ Doğrulandı!',
+          `Mekana ${distanceFormatted} uzaklıkta tespit edildin. Post atabilirsin! 🎉`,
+          [{ text: 'Post At', onPress: () => navigation.navigate('CreatePost', { event, verified: true }) }]
+        );
+      } else {
+        // ❌ Uzak — engelle
+        Alert.alert(
+          '📍 Çok uzaktasın!',
+          `Mekana ${distanceFormatted} uzaklıktasın. Post atabilmek için mekana en az 200 metre yakın olman gerekiyor.`,
+          [{ text: 'Tamam' }]
+        );
+      }
+    } catch (err) {
+      Alert.alert('Hata', 'Konum alınamadı, tekrar dene.');
+      console.log(err.message);
+    } finally {
+      setVerifying(false);
+    }
+  };
 
   return (
     <ScrollView style={styles.container}>
@@ -59,16 +148,35 @@ export default function EventDetailScreen({ route, navigation }) {
           </View>
         )}
 
-<TouchableOpacity onPress={() => navigation.navigate('CreatePost', { event })}>
-  <LinearGradient
-    colors={['#F5A623', '#E94560']}
-    style={styles.actionButton}
-    start={{ x: 0, y: 0 }}
-    end={{ x: 1, y: 0 }}
-  >
-    <Text style={styles.actionButtonText}>🎵 Post At</Text>
-  </LinearGradient>
-</TouchableOpacity>
+        {/* KONUM DOĞRULAMA BİLGİSİ */}
+        <View style={styles.verifyInfoCard}>
+          <Text style={styles.verifyInfoEmoji}>📍</Text>
+          <View style={styles.verifyInfoText}>
+            <Text style={styles.verifyInfoTitle}>Konum Doğrulama Aktif</Text>
+            <Text style={styles.verifyInfoSub}>
+              Post atabilmek için konser günü mekana 200m yakın olman gerekiyor.
+            </Text>
+          </View>
+        </View>
+
+        {/* POST AT BUTONU */}
+        {verifying ? (
+          <View style={styles.verifyingContainer}>
+            <ActivityIndicator color={colors.primary} />
+            <Text style={styles.verifyingText}>Konumun doğrulanıyor...</Text>
+          </View>
+        ) : (
+          <TouchableOpacity onPress={handlePostAt}>
+            <LinearGradient
+              colors={['#F5A623', '#E94560']}
+              style={styles.actionButton}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            >
+              <Text style={styles.actionButtonText}>🎵 Post At</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
 
       </View>
     </ScrollView>
@@ -106,6 +214,22 @@ const styles = StyleSheet.create({
   description: { fontSize: 15, color: colors.text, lineHeight: 22 },
   infoValue: { fontSize: 16, color: colors.text, fontWeight: '600' },
   infoValueSub: { fontSize: 14, color: colors.textSecondary, marginTop: 4 },
+  verifyInfoCard: {
+    backgroundColor: '#1A2A1A',
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderWidth: 1,
+    borderColor: '#00D4AA44',
+  },
+  verifyInfoEmoji: { fontSize: 28 },
+  verifyInfoText: { flex: 1 },
+  verifyInfoTitle: { color: '#00D4AA', fontWeight: 'bold', fontSize: 14, marginBottom: 4 },
+  verifyInfoSub: { color: colors.textSecondary, fontSize: 12, lineHeight: 18 },
+  verifyingContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, padding: 16 },
+  verifyingText: { color: colors.textSecondary, fontSize: 14 },
   actionButton: { padding: 18, borderRadius: 16, alignItems: 'center', marginTop: 8, marginBottom: 32 },
   actionButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
 });
