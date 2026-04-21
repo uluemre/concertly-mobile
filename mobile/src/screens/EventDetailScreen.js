@@ -59,16 +59,16 @@ export default function EventDetailScreen({ route, navigation }) {
           </View>
         )}
 
-        <TouchableOpacity>
-          <LinearGradient
-            colors={['#F5A623', '#E94560']}
-            style={styles.actionButton}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-          >
-            <Text style={styles.actionButtonText}>🎟️ Etkinliğe Katıl</Text>
-          </LinearGradient>
-        </TouchableOpacity>
+<TouchableOpacity onPress={() => navigation.navigate('CreatePost', { event })}>
+  <LinearGradient
+    colors={['#F5A623', '#E94560']}
+    style={styles.actionButton}
+    start={{ x: 0, y: 0 }}
+    end={{ x: 1, y: 0 }}
+  >
+    <Text style={styles.actionButtonText}>🎵 Post At</Text>
+  </LinearGradient>
+</TouchableOpacity>
 
       </View>
     </ScrollView>

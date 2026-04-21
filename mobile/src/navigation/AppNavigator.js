@@ -9,6 +9,7 @@ import HomeScreen from '../screens/HomeScreen';
 import EventsScreen from '../screens/EventsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import EventDetailScreen from '../screens/EventDetailScreen';
+import CreatePostScreen from '../screens/CreatePostScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -70,6 +71,7 @@ export default function AppNavigator() {
         <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="MainApp" component={TabNavigator} />
         <Stack.Screen name="EventDetail" component={EventDetailScreen} />
+        <Stack.Screen name="CreatePost" component={CreatePostScreen} />
 
       </Stack.Navigator>
     </NavigationContainer>
