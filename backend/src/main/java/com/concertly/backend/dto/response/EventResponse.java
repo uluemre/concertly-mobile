@@ -23,6 +23,10 @@ public class EventResponse {
     private String venueCity;
     private String venueCountry;
 
+    // 🔥 YENİ EKLENENLER
+    private Double venueLatitude;
+    private Double venueLongitude;
+
     // Oluşturan kullanıcı
     private Long createdByUserId;
     private String createdByUsername;
@@ -46,6 +50,13 @@ public class EventResponse {
             dto.venueName    = event.getVenue().getName();
             dto.venueCity    = event.getVenue().getCity();
             dto.venueCountry = event.getVenue().getCountry();
+
+            // 🔥 YENİ EKLENENLER
+            dto.venueLatitude  = event.getVenue().getLatitude();
+            dto.venueLongitude = event.getVenue().getLongitude();
+        } else {
+            dto.venueLatitude  = null;
+            dto.venueLongitude = null;
         }
 
         if (event.getCreatedBy() != null) {
@@ -68,6 +79,11 @@ public class EventResponse {
     public String getVenueName()         { return venueName; }
     public String getVenueCity()         { return venueCity; }
     public String getVenueCountry()      { return venueCountry; }
+
+    // 🔥 YENİ GETTER'LAR
+    public Double getVenueLatitude()     { return venueLatitude; }
+    public Double getVenueLongitude()   { return venueLongitude; }
+
     public Long getCreatedByUserId()     { return createdByUserId; }
     public String getCreatedByUsername() { return createdByUsername; }
 }

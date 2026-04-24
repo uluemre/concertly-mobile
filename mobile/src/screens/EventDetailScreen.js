@@ -34,14 +34,14 @@ export default function EventDetailScreen({ route, navigation }) {
       eventDate.getMonth() === today.getMonth() &&
       eventDate.getDate() === today.getDate();
 
-    if (!isSameDay) {
-      Alert.alert(
-        '📅 Henüz değil!',
-        `Bu etkinlik ${eventDate.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })} tarihinde. Post atmak için konser gününde orada olman gerekiyor!`,
-        [{ text: 'Tamam' }]
-      );
-      return;
-    }
+   // if (!isSameDay) {
+   //   Alert.alert(
+   //     '📅 Henüz değil!',
+   //     `Bu etkinlik ${eventDate.toLocaleDateString...`,
+   //     [{ text: 'Tamam' }]
+   //   );
+   //   return;
+   // }
 
     // 2 — Mekan koordinatları var mı?
     if (!event.venueLatitude || !event.venueLongitude) {
