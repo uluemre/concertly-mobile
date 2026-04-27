@@ -50,6 +50,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET,  "/api/posts/feed/trending").permitAll()
                         .requestMatchers(HttpMethod.GET,  "/api/users/*/profile").permitAll()
                         .requestMatchers(HttpMethod.GET,  "/api/posts/*/comments").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/events/sync").permitAll()
                         .requestMatchers(HttpMethod.PATCH, "/api/events/*/approve").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
