@@ -13,6 +13,8 @@ import ProfileScreen from '../screens/ProfileScreen';
 import UserProfileScreen from '../screens/UserProfileScreen';
 import EventDetailScreen from '../screens/EventDetailScreen';
 import CreatePostScreen from '../screens/CreatePostScreen';
+import CommunitiesScreen from '../screens/CommunitiesScreen';
+import CommunityDetailScreen from '../screens/CommunityDetailScreen';
 import { useTheme } from '../theme';
 
 const Stack = createNativeStackNavigator();
@@ -53,8 +55,8 @@ function TabNavigator() {
         name="Explore"
         component={ExploreScreen}
         options={{
-          tabBarLabel: 'Keşfet',
-          tabBarIcon: () => <Text style={{ fontSize: 20 }}>🧭</Text>,
+          tabBarLabel: 'Menü',
+          tabBarIcon: () => <Text style={{ fontSize: 20 }}>☰</Text>,
         }}
       />
       <Tab.Screen
@@ -86,6 +88,8 @@ export default function AppNavigator() {
         <Stack.Screen name="Events"       component={EventsScreen} />
         <Stack.Screen name="FeedTab"      component={FeedScreen} />
         <Stack.Screen name="UserProfile"  component={UserProfileScreen} />
+        <Stack.Screen name="Communities"  component={CommunitiesScreen} />
+        <Stack.Screen name="CommunityDetail" component={CommunityDetailScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
