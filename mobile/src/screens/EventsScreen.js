@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ActivityIndicator,
   TouchableOpacity, RefreshControl, FlatList, Dimensions, Image
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import API from '../services/api';
-import { colors } from '../theme';
+import { useTheme } from '../theme';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2;
@@ -20,6 +20,8 @@ const gradientSets = [
 const eventEmojis = ['🎸', '🎤', '🥁', '🎹', '🎺', '🎻', '🎪', '🎭'];
 
 export default function EventsScreen({ navigation }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -47,7 +49,7 @@ export default function EventsScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#0F0F1A', '#1A1A2E']} style={styles.header}>
+      <LinearGradient colors={colors.headerGradient} style={styles.header}>
         <Text style={styles.headerTitle}>🎟️ Etkinlikler</Text>
         <Text style={styles.headerSub}>{events.length} etkinlik bulundu</Text>
       </LinearGradient>
@@ -108,7 +110,7 @@ export default function EventsScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
   header: { paddingTop: 60, paddingBottom: 20, paddingHorizontal: 24 },

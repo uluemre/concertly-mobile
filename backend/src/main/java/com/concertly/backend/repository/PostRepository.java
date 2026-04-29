@@ -19,4 +19,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     // 🔥 TRENDING FEED
     List<Post> findAllByOrderByLikeCountDescCreatedAtDesc();
+
+    // 🔥 KULLANICININ POSTLARİ
+    List<Post> findByUserIdOrderByCreatedAtDesc(Long userId);
 }

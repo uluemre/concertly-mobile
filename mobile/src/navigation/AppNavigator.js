@@ -6,25 +6,31 @@ import { Text } from 'react-native';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import HomeScreen from '../screens/HomeScreen';
+import ExploreScreen from '../screens/ExploreScreen';
 import EventsScreen from '../screens/EventsScreen';
+import FeedScreen from '../screens/FeedScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import UserProfileScreen from '../screens/UserProfileScreen';
 import EventDetailScreen from '../screens/EventDetailScreen';
 import CreatePostScreen from '../screens/CreatePostScreen';
+import { useTheme } from '../theme';
 
 const Stack = createNativeStackNavigator();
-const Tab = createBottomTabNavigator();
+const Tab   = createBottomTabNavigator();
 
 function TabNavigator() {
+  const { colors } = useTheme();
+
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#E94560',
-        tabBarInactiveTintColor: '#A0A0B0',
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textSecondary,
         tabBarStyle: {
-          backgroundColor: '#1A1A2E',
+          backgroundColor: colors.card,
           borderTopWidth: 1,
-          borderTopColor: '#2A2A3E',
+          borderTopColor: colors.border,
           height: 65,
           paddingBottom: 10,
           paddingTop: 6,
@@ -40,15 +46,15 @@ function TabNavigator() {
         component={HomeScreen}
         options={{
           tabBarLabel: 'Ana Sayfa',
-          tabBarIcon: ({ color }) => <Text style={{ fontSize: 20 }}>🏠</Text>,
+          tabBarIcon: () => <Text style={{ fontSize: 20 }}>🏠</Text>,
         }}
       />
       <Tab.Screen
-        name="Events"
-        component={EventsScreen}
+        name="Explore"
+        component={ExploreScreen}
         options={{
-          tabBarLabel: 'Etkinlikler',
-          tabBarIcon: ({ color }) => <Text style={{ fontSize: 20 }}>🎵</Text>,
+          tabBarLabel: 'Keşfet',
+          tabBarIcon: () => <Text style={{ fontSize: 20 }}>🧭</Text>,
         }}
       />
       <Tab.Screen
@@ -56,7 +62,7 @@ function TabNavigator() {
         component={ProfileScreen}
         options={{
           tabBarLabel: 'Profil',
-          tabBarIcon: ({ color }) => <Text style={{ fontSize: 20 }}>👤</Text>,
+          tabBarIcon: () => <Text style={{ fontSize: 20 }}>👤</Text>,
         }}
       />
     </Tab.Navigator>
@@ -67,12 +73,19 @@ export default function AppNavigator() {
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Login" component={LoginScreen} />
+        {/* AUTH */}
+        <Stack.Screen name="Login"    component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
-        <Stack.Screen name="MainApp" component={TabNavigator} />
-        <Stack.Screen name="EventDetail" component={EventDetailScreen} />
-        <Stack.Screen name="CreatePost" component={CreatePostScreen} />
 
+        {/* ANA UYGULAMA */}
+        <Stack.Screen name="MainApp"  component={TabNavigator} />
+
+        {/* STACK EKRANLAR */}
+        <Stack.Screen name="EventDetail"  component={EventDetailScreen} />
+        <Stack.Screen name="CreatePost"   component={CreatePostScreen} />
+        <Stack.Screen name="Events"       component={EventsScreen} />
+        <Stack.Screen name="FeedTab"      component={FeedScreen} />
+        <Stack.Screen name="UserProfile"  component={UserProfileScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

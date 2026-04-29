@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ActivityIndicator,
   TouchableOpacity, RefreshControl, ScrollView,
@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import API from '../services/api';
-import { colors } from '../theme';
+import { useTheme } from '../theme';
 
 const { width } = Dimensions.get('window');
 
@@ -29,6 +29,8 @@ const categories = [
 const eventEmojis = ['🎸', '🎤', '🥁', '🎹', '🎺', '🎻', '🎪', '🎭'];
 
 export default function HomeScreen({ navigation }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [events, setEvents] = useState([]);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -75,7 +77,7 @@ export default function HomeScreen({ navigation }) {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
     >
       {/* HEADER */}
-      <LinearGradient colors={['#0F0F1A', '#1A1A2E']} style={styles.header}>
+      <LinearGradient colors={colors.headerGradient} style={styles.header}>
         <View style={styles.headerTop}>
           <View>
             <Text style={styles.headerGreeting}>Merhaba 👋</Text>
@@ -254,7 +256,7 @@ export default function HomeScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
 
@@ -267,7 +269,7 @@ const styles = StyleSheet.create({
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#2A2A3E',
+    backgroundColor: colors.input,
     borderRadius: 14,
     paddingHorizontal: 14,
     paddingVertical: 10,

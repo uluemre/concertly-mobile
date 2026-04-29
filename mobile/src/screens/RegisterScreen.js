@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, Alert, ActivityIndicator, KeyboardAvoidingView, Platform
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import API from '../services/api';
-import { colors } from '../theme';
+import { useTheme } from '../theme';
 
 export default function RegisterScreen({ navigation }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -32,7 +34,7 @@ export default function RegisterScreen({ navigation }) {
   };
 
   return (
-    <LinearGradient colors={['#0F0F1A', '#1A1A2E', '#16213E']} style={styles.container}>
+    <LinearGradient colors={[colors.background, colors.card, colors.cardAlt]} style={styles.container}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.inner}>
 
         <View style={styles.logoArea}>
@@ -88,7 +90,7 @@ export default function RegisterScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   container: { flex: 1 },
   inner: { flex: 1, justifyContent: 'center', padding: 24 },
   logoArea: { alignItems: 'center', marginBottom: 48 },
@@ -97,7 +99,7 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 14, color: colors.textSecondary, marginTop: 6 },
   form: { gap: 12 },
   input: {
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 12,

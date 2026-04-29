@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
-import { colors } from '../theme';
+import { useTheme } from '../theme';
 
 // İki nokta arasındaki mesafeyi metre cinsinden hesaplar (Haversine formülü)
 function getDistanceInMeters(lat1, lon1, lat2, lon2) {
@@ -22,6 +22,8 @@ function getDistanceInMeters(lat1, lon1, lat2, lon2) {
 }
 
 export default function EventDetailScreen({ route, navigation }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { event } = route.params;
   const [verifying, setVerifying] = useState(false);
 
@@ -183,7 +185,7 @@ export default function EventDetailScreen({ route, navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   heroSection: {
     paddingTop: 60,

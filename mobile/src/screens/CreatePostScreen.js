@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, TextInput,
   TouchableOpacity, ActivityIndicator,
@@ -6,9 +6,11 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import API from '../services/api';
-import { colors } from '../theme';
+import { useTheme } from '../theme';
 
 export default function CreatePostScreen({ route, navigation }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { event } = route.params;
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(false);
@@ -114,7 +116,7 @@ export default function CreatePostScreen({ route, navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   header: { paddingTop: 60, paddingBottom: 24, paddingHorizontal: 24 },
   backButton: { marginBottom: 16 },

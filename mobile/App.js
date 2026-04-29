@@ -1,5 +1,10 @@
 import AppNavigator from './src/navigation/AppNavigator';
+import { ThemeProvider } from './src/theme';
 
 export default function App() {
-  return <AppNavigator />;
+  return (
+    <ThemeProvider>
+      <AppNavigator />
+    </ThemeProvider>
+  );
 }

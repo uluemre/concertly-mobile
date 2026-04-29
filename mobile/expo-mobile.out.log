@@ -1,0 +1,9 @@
+
+> mobile@1.0.0 start
+> expo start --offline --port 8090
+
+Networking has been disabled
+Starting project at C:\Users\EMRE\Desktop\concertly-mobile\mobile
+Starting Metro Bundler
+Waiting on http://localhost:8090
+Logs for your project will appear below.
