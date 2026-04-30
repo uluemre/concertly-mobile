@@ -1,6 +1,7 @@
 package com.concertly.backend.dto.response;
 
 import com.concertly.backend.model.User;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class UserSummaryResponse {
 
@@ -9,6 +10,9 @@ public class UserSummaryResponse {
     private String profileImageUrl;
     private long followerCount;
     private long followingCount;
+
+    // ✅ Mobil 'isFollowedByCurrentUser' bekliyor, Jackson bunu 'followedByCurrentUser' yapıyor
+    @JsonProperty("isFollowedByCurrentUser")
     private boolean isFollowedByCurrentUser;
 
     public static UserSummaryResponse from(User user,
@@ -25,10 +29,10 @@ public class UserSummaryResponse {
         return dto;
     }
 
-    public Long getId()                        { return id; }
-    public String getUsername()                { return username; }
-    public String getProfileImageUrl()         { return profileImageUrl; }
-    public long getFollowerCount()             { return followerCount; }
-    public long getFollowingCount()            { return followingCount; }
-    public boolean isFollowedByCurrentUser()   { return isFollowedByCurrentUser; }
+    public Long getId() { return id; }
+    public String getUsername() { return username; }
+    public String getProfileImageUrl() { return profileImageUrl; }
+    public long getFollowerCount() { return followerCount; }
+    public long getFollowingCount() { return followingCount; }
+    public boolean isFollowedByCurrentUser() { return isFollowedByCurrentUser; }
 }

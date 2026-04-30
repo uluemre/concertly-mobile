@@ -31,6 +31,13 @@ public class PostService {
         this.commentRepository  = commentRepository;
     }
 
+    // 🔥 CORE: Post → Response dönüşüm
+    private PostResponse toResponse(Post post) {
+        long likes = likeRepository.countByPostId(post.getId());
+        long comments = commentRepository.countByPostId(post.getId());
+        return PostResponse.from(post, likes, comments);
+    }
+
     // ✅ POST OLUŞTUR
     public PostResponse createPost(CreatePostRequest request) {
         User user = userRepository.findById(request.getUserId())
@@ -46,14 +53,14 @@ public class PostService {
         post.setUser(user);
         post.setEvent(event);
 
-        return PostResponse.from(postRepository.save(post));
+        return toResponse(postRepository.save(post));
     }
 
     // ✅ TRENDING FEED
     public List<PostResponse> getTrendingFeed() {
-        return postRepository.findAllByOrderByLikeCountDescCreatedAtDesc()
+        return postRepository.findAll()
                 .stream()
-                .map(PostResponse::from)
+                .map(this::toResponse)
                 .toList();
     }
 
@@ -62,9 +69,10 @@ public class PostService {
         if (!userRepository.existsById(userId)) {
             throw new ResourceNotFoundException("Kullanıcı bulunamadı: " + userId);
         }
+
         return postRepository.getFollowingFeed(userId)
                 .stream()
-                .map(PostResponse::from)
+                .map(this::toResponse)
                 .toList();
     }
 
@@ -85,15 +93,15 @@ public class PostService {
         Like like = new Like();
         like.setUser(user);
         like.setPost(post);
+
         likeRepository.save(like);
 
-        post.setLikeCount((post.getLikeCount() != null ? post.getLikeCount() : 0) + 1);
-        postRepository.save(post);
+        // ❌ likeCount yok artık
     }
 
     // ✅ UNLIKE
     public void unlikePost(Long userId, Long postId) {
-        Post post = postRepository.findById(postId)
+        postRepository.findById(postId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Post bulunamadı: " + postId));
 
@@ -103,8 +111,6 @@ public class PostService {
 
         likeRepository.delete(like);
 
-        int current = post.getLikeCount() != null ? post.getLikeCount() : 0;
-        post.setLikeCount(Math.max(0, current - 1));
-        postRepository.save(post);
+        // ❌ likeCount yok artık
     }
 }

@@ -5,8 +5,11 @@ import com.concertly.backend.dto.response.EventResponse;
 import com.concertly.backend.dto.response.PostResponse;
 import com.concertly.backend.dto.response.UserResponse;
 import com.concertly.backend.exception.ResourceNotFoundException;
+import com.concertly.backend.model.Post;
 import com.concertly.backend.model.User;
+import com.concertly.backend.repository.CommentRepository;
 import com.concertly.backend.repository.EventRepository;
+import com.concertly.backend.repository.LikeRepository;
 import com.concertly.backend.repository.PostRepository;
 import com.concertly.backend.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -21,12 +24,27 @@ public class UserService {
     private final PostRepository postRepository;
     private final EventRepository eventRepository;
 
+    // 🔥 YENİ EKLEDİK (çok kritik)
+    private final LikeRepository likeRepository;
+    private final CommentRepository commentRepository;
+
     public UserService(UserRepository userRepository,
                        PostRepository postRepository,
-                       EventRepository eventRepository) {
+                       EventRepository eventRepository,
+                       LikeRepository likeRepository,
+                       CommentRepository commentRepository) {
         this.userRepository = userRepository;
         this.postRepository = postRepository;
         this.eventRepository = eventRepository;
+        this.likeRepository = likeRepository;
+        this.commentRepository = commentRepository;
+    }
+
+    // 🔥 CORE METHOD (eksik olan buydu)
+    private PostResponse toResponse(Post post) {
+        long likes = likeRepository.countByPostId(post.getId());
+        long comments = commentRepository.countByPostId(post.getId());
+        return PostResponse.from(post, likes, comments);
     }
 
     public List<UserResponse> getUsers() {
@@ -43,7 +61,7 @@ public class UserService {
         return new UserResponse(user.getId(), user.getUsername(), user.getEmail());
     }
 
-    // ✅ PROFİL GÜNCELLE (bio + profileImageUrl)
+    // ✅ PROFİL GÜNCELLE
     @Transactional
     public UserResponse updateProfile(Long id, UpdateProfileRequest request) {
         User user = userRepository.findById(id)
@@ -61,25 +79,27 @@ public class UserService {
         return new UserResponse(saved.getId(), saved.getUsername(), saved.getEmail());
     }
 
-    // ✅ KULLANICININ POSTLARİNİ GETİR
+    // ✅ KULLANICININ POSTLARI
     public List<PostResponse> getUserPosts(Long userId) {
         if (!userRepository.existsById(userId)) {
             throw new ResourceNotFoundException("Kullanıcı bulunamadı: " + userId);
         }
+
         return postRepository.findByUserIdOrderByCreatedAtDesc(userId)
                 .stream()
-                .map(PostResponse::from)
+                .map(this::toResponse)
                 .toList();
     }
 
-    // ✅ KULLANICININ GİTTİĞİ ETKİNLİKLER (post attığı etkinlikler)
+    // ✅ KULLANICININ ETKİNLİKLERİ
     public List<EventResponse> getUserEvents(Long userId) {
         if (!userRepository.existsById(userId)) {
             throw new ResourceNotFoundException("Kullanıcı bulunamadı: " + userId);
         }
+
         return postRepository.findByUserIdOrderByCreatedAtDesc(userId)
                 .stream()
-                .map(post -> post.getEvent())
+                .map(Post::getEvent)
                 .filter(event -> event != null)
                 .distinct()
                 .map(EventResponse::from)

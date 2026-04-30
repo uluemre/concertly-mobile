@@ -31,7 +31,7 @@ public class Event {
     private Venue venue;
 
     @ManyToOne
-    @JoinColumn(name = "created_by_user_id")
+    @JoinColumn(name = "created_by_user_id", nullable = true)  // ✅ nullable
     private User createdBy;
 
     public Long getId()                        { return id; }

@@ -50,8 +50,11 @@ export default function UserProfileScreen({ route, navigation }) {
       ]);
 
       setProfile(profileRes.data);
-      setFollowing(profileRes.data.followedByCurrentUser || false);
+      setFollowing(profileRes.data.isFollowedByCurrentUser || false);
+
       setPosts(postsRes.data);
+
+
       setEvents(eventsRes.data);
 
       Animated.parallel([

@@ -8,7 +8,7 @@ import java.util.List;
 
 public interface PostRepository extends JpaRepository<Post, Long> {
 
-    // 🔥 FOLLOWING FEED
+    // ✅ FOLLOWING FEED
     @Query("""
         SELECT p FROM Post p
         JOIN Follow f ON p.user.id = f.following.id
@@ -17,9 +17,14 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     """)
     List<Post> getFollowingFeed(Long userId);
 
-    // 🔥 TRENDING FEED
-    List<Post> findAllByOrderByLikeCountDescCreatedAtDesc();
+    // 🔥 TRENDING (like sayısına göre)
+    @Query("""
+        SELECT p FROM Post p
+        ORDER BY (SELECT COUNT(l) FROM Like l WHERE l.post = p) DESC,
+                 p.createdAt DESC
+    """)
+    List<Post> findAllOrderByLikeCountDesc();
 
-    // 🔥 KULLANICININ POSTLARİ
+    // ✅ USER POSTS
     List<Post> findByUserIdOrderByCreatedAtDesc(Long userId);
 }

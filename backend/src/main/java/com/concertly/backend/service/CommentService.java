@@ -1,32 +1,29 @@
 package com.concertly.backend.service;
 
-import com.concertly.backend.dto.request.CreateCommentRequest;
-import com.concertly.backend.dto.response.CommentResponse;
-import com.concertly.backend.exception.ResourceNotFoundException;
-import com.concertly.backend.model.Comment;
-import com.concertly.backend.model.Post;
-import com.concertly.backend.model.User;
-import com.concertly.backend.repository.CommentRepository;
-import com.concertly.backend.repository.PostRepository;
-import com.concertly.backend.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+import com.concertly.backend.model.*;
+import com.concertly.backend.repository.*;
+import com.concertly.backend.dto.request.CreateCommentRequest;
+import com.concertly.backend.dto.response.CommentResponse;
+import com.concertly.backend.exception.*;
+
 @Service
 public class CommentService {
 
     private final CommentRepository commentRepository;
-    private final PostRepository    postRepository;
-    private final UserRepository    userRepository;
+    private final PostRepository postRepository;
+    private final UserRepository userRepository;
 
     public CommentService(CommentRepository commentRepository,
                           PostRepository postRepository,
                           UserRepository userRepository) {
         this.commentRepository = commentRepository;
-        this.postRepository    = postRepository;
-        this.userRepository    = userRepository;
+        this.postRepository = postRepository;
+        this.userRepository = userRepository;
     }
 
     // ✅ YORUM EKLE
@@ -52,10 +49,6 @@ public class CommentService {
 
         Comment saved = commentRepository.save(comment);
 
-        // commentCount'u güncelle
-        post.setCommentCount((post.getCommentCount() != null ? post.getCommentCount() : 0) + 1);
-        postRepository.save(post);
-
         return CommentResponse.from(saved);
     }
 
@@ -64,6 +57,7 @@ public class CommentService {
         if (!postRepository.existsById(postId)) {
             throw new ResourceNotFoundException("Post bulunamadı: " + postId);
         }
+
         return commentRepository.findByPostIdOrderByCreatedAtDesc(postId)
                 .stream()
                 .map(CommentResponse::from)
@@ -73,23 +67,15 @@ public class CommentService {
     // ✅ YORUM SİL
     @Transactional
     public void deleteComment(Long commentId, Long userId) {
+
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Yorum bulunamadı: " + commentId));
 
-        // Sadece yorumun sahibi silebilir
         if (!comment.getUser().getId().equals(userId)) {
             throw new IllegalArgumentException("Bu yorumu silme yetkiniz yok.");
         }
 
-        Post post = comment.getPost();
         commentRepository.delete(comment);
-
-        // commentCount'u güncelle
-        if (post != null) {
-            int current = post.getCommentCount() != null ? post.getCommentCount() : 0;
-            post.setCommentCount(Math.max(0, current - 1));
-            postRepository.save(post);
-        }
     }
 }

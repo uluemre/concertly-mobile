@@ -1,7 +1,6 @@
 package com.concertly.backend.dto.response;
 
 import com.concertly.backend.model.Comment;
-
 import java.time.LocalDateTime;
 
 public class CommentResponse {
@@ -15,25 +14,27 @@ public class CommentResponse {
 
     public static CommentResponse from(Comment comment) {
         CommentResponse dto = new CommentResponse();
-        dto.id        = comment.getId();
-        dto.content   = comment.getContent();
+
+        dto.id = comment.getId();
+        dto.content = comment.getContent();
         dto.createdAt = comment.getCreatedAt();
 
         if (comment.getPost() != null) {
             dto.postId = comment.getPost().getId();
         }
+
         if (comment.getUser() != null) {
-            dto.userId   = comment.getUser().getId();
+            dto.userId = comment.getUser().getId();
             dto.username = comment.getUser().getUsername();
         }
 
         return dto;
     }
 
-    public Long getId()                  { return id; }
-    public String getContent()           { return content; }
-    public LocalDateTime getCreatedAt()  { return createdAt; }
-    public Long getPostId()              { return postId; }
-    public Long getUserId()              { return userId; }
-    public String getUsername()          { return username; }
+    public Long getId() { return id; }
+    public String getContent() { return content; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public Long getPostId() { return postId; }
+    public Long getUserId() { return userId; }
+    public String getUsername() { return username; }
 }

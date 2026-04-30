@@ -52,7 +52,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET,  "/api/posts/*/comments").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/events/sync").permitAll()
                         .requestMatchers(HttpMethod.PATCH, "/api/events/*/approve").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET,  "/api/events/*/attendance").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/events/*/attendance").authenticated()
                         .anyRequest().authenticated()
+
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .authenticationProvider(authenticationProvider());
