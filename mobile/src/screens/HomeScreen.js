@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ActivityIndicator,
   TouchableOpacity, RefreshControl, ScrollView,
-  TextInput, Dimensions
+  TextInput, Dimensions, Image
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import API from '../services/api';
@@ -31,6 +31,7 @@ const eventEmojis = ['🎸', '🎤', '🥁', '🎹', '🎺', '🎻', '🎪', '�
 export default function HomeScreen({ navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const [showAllEvents, setShowAllEvents] = useState(false);
   const [events, setEvents] = useState([]);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -38,17 +39,15 @@ export default function HomeScreen({ navigation }) {
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState(1);
 
-  const fetchEvents = () => {
-    return API.get('/events')
+  const fetchEvents = () =>
+    API.get('/events')
       .then(res => setEvents(res.data))
       .catch(err => console.log('Hata:', err.message));
-  };
 
-  const fetchPosts = () => {
-    return API.get('/posts/feed/trending')
+  const fetchPosts = () =>
+    API.get('/posts/feed/trending')
       .then(res => setPosts(res.data))
       .catch(err => console.log('Post hatası:', err.message));
-  };
 
   useEffect(() => {
     Promise.all([fetchEvents(), fetchPosts()]).finally(() => setLoading(false));
@@ -74,16 +73,27 @@ export default function HomeScreen({ navigation }) {
   return (
     <ScrollView
       style={styles.container}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor={colors.primary}
+        />
+      }
     >
-      {/* HEADER */}
+      {/* ── HEADER ───────────────────────────────────────────────────────── */}
       <LinearGradient colors={colors.headerGradient} style={styles.header}>
         <View style={styles.headerTop}>
           <View>
             <Text style={styles.headerGreeting}>Merhaba 👋</Text>
             <Text style={styles.headerTitle}>Concertly</Text>
           </View>
-          <Text style={styles.headerEmoji}>🎪</Text>
+          {/* 🎪 yerine logo ✅ */}
+          <Image
+            source={require('../../assets/icon.png')}
+            style={styles.headerLogo}
+            resizeMode="contain"
+          />
         </View>
 
         {/* ARAMA */}
@@ -104,9 +114,13 @@ export default function HomeScreen({ navigation }) {
         </View>
       </LinearGradient>
 
-      {/* KATEGORİLER */}
+      {/* ── KATEGORİLER ──────────────────────────────────────────────────── */}
       <View style={styles.section}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoriesList}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoriesList}
+        >
           {categories.map(cat => (
             <TouchableOpacity
               key={cat.id}
@@ -114,7 +128,12 @@ export default function HomeScreen({ navigation }) {
               style={styles.categoryWrapper}
             >
               {activeCategory === cat.id ? (
-                <LinearGradient colors={['#E94560', '#7C3AED']} style={styles.categoryActive} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                <LinearGradient
+                  colors={['#E94560', '#7C3AED']}
+                  style={styles.categoryActive}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                >
                   <Text style={styles.categoryEmoji}>{cat.emoji}</Text>
                   <Text style={styles.categoryLabelActive}>{cat.label}</Text>
                 </LinearGradient>
@@ -129,7 +148,7 @@ export default function HomeScreen({ navigation }) {
         </ScrollView>
       </View>
 
-      {/* ÖNE ÇIKANLAR — yatay */}
+      {/* ── ÖNE ÇIKANLAR ─────────────────────────────────────────────────── */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>🔥 Öne Çıkanlar</Text>
@@ -138,7 +157,11 @@ export default function HomeScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.horizontalList}
+        >
           {filteredEvents.slice(0, 6).map((item, index) => (
             <TouchableOpacity
               key={item.id}
@@ -151,14 +174,20 @@ export default function HomeScreen({ navigation }) {
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
               >
-                <Text style={styles.featuredEmoji}>{eventEmojis[index % eventEmojis.length]}</Text>
+                <Text style={styles.featuredEmoji}>
+                  {eventEmojis[index % eventEmojis.length]}
+                </Text>
                 <Text style={styles.featuredName} numberOfLines={2}>{item.name}</Text>
                 {item.artistName && (
-                  <Text style={styles.featuredArtist} numberOfLines={1}>🎤 {item.artistName}</Text>
+                  <Text style={styles.featuredArtist} numberOfLines={1}>
+                    🎤 {item.artistName}
+                  </Text>
                 )}
                 <View style={styles.featuredFooter}>
                   <Text style={styles.featuredDate}>
-                    📅 {new Date(item.eventDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
+                    📅 {new Date(item.eventDate).toLocaleDateString('tr-TR', {
+                      day: 'numeric', month: 'short',
+                    })}
                   </Text>
                   {item.venueCity && (
                     <Text style={styles.featuredCity}>📍 {item.venueCity}</Text>
@@ -167,19 +196,25 @@ export default function HomeScreen({ navigation }) {
               </LinearGradient>
             </TouchableOpacity>
           ))}
+
           {filteredEvents.length === 0 && (
             <Text style={styles.noResult}>Sonuç bulunamadı</Text>
           )}
         </ScrollView>
       </View>
 
-      {/* TÜM ETKİNLİKLER — liste */}
+      {/* ── TÜM ETKİNLİKLER ──────────────────────────────────────────────── */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>📋 Tüm Etkinlikler</Text>
+
+          {/* 🔥 BURASI ÖNEMLİ */}
+          <TouchableOpacity onPress={() => navigation.navigate('Events')}>
+            <Text style={styles.seeAll}>Tümünü gör →</Text>
+          </TouchableOpacity>
         </View>
 
-        {filteredEvents.map((item, index) => (
+        {filteredEvents.slice(0, 3).map((item, index) => (
           <TouchableOpacity
             key={item.id}
             onPress={() => navigation.navigate('EventDetail', { event: item })}
@@ -190,15 +225,28 @@ export default function HomeScreen({ navigation }) {
               colors={gradientSets[index % gradientSets.length]}
               style={styles.listCardLeft}
             >
-              <Text style={styles.listCardEmoji}>{eventEmojis[index % eventEmojis.length]}</Text>
+              <Text style={styles.listCardEmoji}>
+                {eventEmojis[index % eventEmojis.length]}
+              </Text>
             </LinearGradient>
+
             <View style={styles.listCardRight}>
-              <Text style={styles.listCardName} numberOfLines={1}>{item.name}</Text>
-              {item.artistName && <Text style={styles.listCardSub}>🎤 {item.artistName}</Text>}
+              <Text style={styles.listCardName} numberOfLines={1}>
+                {item.name}
+              </Text>
+
+              {item.artistName && (
+                <Text style={styles.listCardSub}>
+                  🎤 {item.artistName}
+                </Text>
+              )}
+
               <Text style={styles.listCardSub}>
-                📅 {new Date(item.eventDate).toLocaleDateString('tr-TR')} {item.venueCity ? `· 📍 ${item.venueCity}` : ''}
+                📅 {new Date(item.eventDate).toLocaleDateString('tr-TR')}
+                {item.venueCity ? ` · 📍 ${item.venueCity}` : ''}
               </Text>
             </View>
+
             <Text style={styles.listCardArrow}>›</Text>
           </TouchableOpacity>
         ))}
@@ -211,7 +259,7 @@ export default function HomeScreen({ navigation }) {
         )}
       </View>
 
-      {/* TRENDING POSTLAR */}
+      {/* ── TRENDING POSTLAR ─────────────────────────────────────────────── */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>🔥 Trending Postlar</Text>
@@ -258,42 +306,65 @@ export default function HomeScreen({ navigation }) {
 
 const createStyles = (colors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
+  loadingContainer: {
+    flex: 1, justifyContent: 'center',
+    alignItems: 'center', backgroundColor: colors.background,
+  },
 
+  // HEADER
   header: { paddingTop: 60, paddingBottom: 20, paddingHorizontal: 20 },
-  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  headerTop: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'center', marginBottom: 16,
+  },
   headerGreeting: { fontSize: 13, color: colors.textSecondary },
   headerTitle: { fontSize: 28, fontWeight: 'bold', color: colors.text },
-  headerEmoji: { fontSize: 40 },
+  headerLogo: { width: 48, height: 48 }, // ✅ emoji yerine logo
 
+  // ARAMA
   searchBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'row', alignItems: 'center',
     backgroundColor: colors.input,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    gap: 8,
+    borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, gap: 8,
   },
   searchIcon: { fontSize: 16 },
   searchInput: { flex: 1, color: colors.text, fontSize: 14 },
   searchClear: { color: colors.textSecondary, fontSize: 16 },
 
+  // BÖLÜMLER
   section: { marginTop: 24, paddingHorizontal: 20 },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+  sectionHeader: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'center', marginBottom: 14,
+  },
   sectionTitle: { fontSize: 17, fontWeight: 'bold', color: colors.text },
   seeAll: { fontSize: 13, color: colors.primary, fontWeight: '600' },
 
+  // KATEGORİLER
   categoriesList: { gap: 10, paddingBottom: 4 },
   categoryWrapper: { marginRight: 2 },
-  categoryActive: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, gap: 6 },
-  categoryInactive: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, gap: 6 },
+  categoryActive: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 14, paddingVertical: 8,
+    borderRadius: 20, gap: 6,
+  },
+  categoryInactive: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 14, paddingVertical: 8,
+    borderRadius: 20, backgroundColor: colors.card,
+    borderWidth: 1, borderColor: colors.border, gap: 6,
+  },
   categoryEmoji: { fontSize: 16 },
   categoryLabel: { fontSize: 13, color: colors.textSecondary, fontWeight: '600' },
   categoryLabelActive: { fontSize: 13, color: '#fff', fontWeight: '600' },
 
+  // ÖNE ÇIKANLAR
   horizontalList: { gap: 14, paddingBottom: 4 },
-  featuredCard: { width: 200, height: 160, borderRadius: 18, padding: 16, justifyContent: 'space-between' },
+  featuredCard: {
+    width: 200, height: 160,
+    borderRadius: 18, padding: 16,
+    justifyContent: 'space-between',
+  },
   featuredEmoji: { fontSize: 32 },
   featuredName: { fontSize: 15, fontWeight: 'bold', color: '#fff' },
   featuredArtist: { fontSize: 12, color: 'rgba(255,255,255,0.8)' },
@@ -301,7 +372,14 @@ const createStyles = (colors) => StyleSheet.create({
   featuredDate: { fontSize: 11, color: 'rgba(255,255,255,0.9)', fontWeight: '600' },
   featuredCity: { fontSize: 11, color: 'rgba(255,255,255,0.9)' },
 
-  listCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: 14, marginBottom: 10, overflow: 'hidden', borderWidth: 1, borderColor: colors.border },
+  // LİSTE KARTI
+  listCard: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: colors.card,
+    borderRadius: 14, marginBottom: 10,
+    overflow: 'hidden',
+    borderWidth: 1, borderColor: colors.border,
+  },
   listCardLeft: { width: 64, height: 64, justifyContent: 'center', alignItems: 'center' },
   listCardEmoji: { fontSize: 28 },
   listCardRight: { flex: 1, padding: 12, gap: 3 },
@@ -309,21 +387,39 @@ const createStyles = (colors) => StyleSheet.create({
   listCardSub: { fontSize: 12, color: colors.textSecondary },
   listCardArrow: { fontSize: 22, color: colors.textSecondary, paddingRight: 12 },
 
+  // POST KARTI
   postCard: {
     backgroundColor: colors.card,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderRadius: 16, padding: 16, marginBottom: 12,
+    borderWidth: 1, borderColor: colors.border,
   },
-  postHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 10 },
-  postAvatar: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
+  postHeader: {
+    flexDirection: 'row', alignItems: 'center',
+    marginBottom: 12, gap: 10,
+  },
+  postAvatar: {
+    width: 40, height: 40, borderRadius: 20,
+    justifyContent: 'center', alignItems: 'center',
+  },
   postAvatarText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
   postHeaderInfo: { flex: 1 },
   postUsername: { color: colors.text, fontWeight: 'bold', fontSize: 14 },
   postEvent: { color: colors.textSecondary, fontSize: 12, marginTop: 2 },
-  postContent: { color: colors.text, fontSize: 14, lineHeight: 20, marginBottom: 12 },
+  postContent: {
+    fontSize: 14, color: colors.text,
+    lineHeight: 20, marginBottom: 12,
+
+  },
+  seeAllButton: {
+    marginTop: 10,
+    alignItems: 'center',
+  },
+
+  seeAllText: {
+    color: colors.primary,
+    fontWeight: '600',
+    fontSize: 14,
+  },
   postFooter: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   postStat: { color: colors.textSecondary, fontSize: 13 },
   postDate: { color: colors.textSecondary, fontSize: 12, marginLeft: 'auto' },

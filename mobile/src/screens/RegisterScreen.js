@@ -23,9 +23,11 @@ export default function RegisterScreen({ navigation }) {
     setLoading(true);
     try {
       await API.post('/auth/register', { username, email, password });
-      Alert.alert('🎉 Başarılı', 'Hesabın oluşturuldu!', [
-        { text: 'Giriş Yap', onPress: () => navigation.replace('Login') }
-      ]);
+      // Kayıt sonrası otomatik login
+      const loginRes = await API.post('/auth/login', { email, password });
+      global.authToken = loginRes.data.accessToken;
+      global.userId = loginRes.data.userId;
+      navigation.replace('Welcome', { username });
     } catch (err) {
       Alert.alert('Hata', 'Bu email veya kullanıcı adı zaten kullanılıyor.');
     } finally {

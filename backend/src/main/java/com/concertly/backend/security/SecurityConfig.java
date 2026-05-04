@@ -54,6 +54,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PATCH, "/api/events/*/approve").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET,  "/api/events/*/attendance").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/events/*/attendance").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/artists/*/attendance").permitAll()
                         .anyRequest().authenticated()
 
                 )

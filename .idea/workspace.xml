@@ -5,34 +5,16 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="67b500ac-01c2-46cd-b47b-7bd0d89af48d" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/concertly/backend/controller/EventAttendanceController.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/concertly/backend/dto/response/AttendanceResponse.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/concertly/backend/dto/response/NotificationResponse.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/concertly/backend/model/ArtistFollow.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/concertly/backend/model/AttendanceStatus.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/concertly/backend/model/EventAttendance.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/concertly/backend/model/Notification.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/concertly/backend/repository/ArtistFollowRepository.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/concertly/backend/repository/EventAttendanceRepository.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/concertly/backend/repository/NotificationRepository.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/concertly/backend/service/EventAttendanceService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/concertly/backend/controller/ArtistController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/concertly/backend/dto/response/ArtistResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/concertly/backend/service/ArtistService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/mobile/src/screens/ArtistProfileScreen.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/concertly/backend/dto/request/CreateCommentRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/concertly/backend/dto/request/CreateCommentRequest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/concertly/backend/dto/response/CommentResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/concertly/backend/dto/response/CommentResponse.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/concertly/backend/dto/response/PostResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/concertly/backend/dto/response/PostResponse.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/concertly/backend/dto/response/UserSummaryResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/concertly/backend/dto/response/UserSummaryResponse.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/concertly/backend/model/Event.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/concertly/backend/model/Event.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/concertly/backend/model/Media.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/concertly/backend/model/Media.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/concertly/backend/model/Post.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/concertly/backend/model/Post.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/concertly/backend/repository/LikeRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/concertly/backend/repository/LikeRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/concertly/backend/repository/EventRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/concertly/backend/repository/EventRepository.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/concertly/backend/repository/PostRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/concertly/backend/repository/PostRepository.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/concertly/backend/security/SecurityConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/concertly/backend/security/SecurityConfig.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/concertly/backend/service/CommentService.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/concertly/backend/service/CommentService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/concertly/backend/service/PostService.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/concertly/backend/service/PostService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/concertly/backend/service/UserService.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/concertly/backend/service/UserService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mobile/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/mobile/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mobile/src/navigation/AppNavigator.js" beforeDir="false" afterPath="$PROJECT_DIR$/mobile/src/navigation/AppNavigator.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/mobile/src/screens/EventDetailScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/mobile/src/screens/EventDetailScreen.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mobile/src/screens/UserProfileScreen.js" beforeDir="false" afterPath="$PROJECT_DIR$/mobile/src/screens/UserProfileScreen.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

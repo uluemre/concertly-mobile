@@ -15,10 +15,13 @@ import EventDetailScreen from '../screens/EventDetailScreen';
 import CreatePostScreen from '../screens/CreatePostScreen';
 import CommunitiesScreen from '../screens/CommunitiesScreen';
 import CommunityDetailScreen from '../screens/CommunityDetailScreen';
+import ArtistProfileScreen from '../screens/ArtistProfileScreen';
+import WelcomeScreen from '../screens/WelcomeScreen';
+
 import { useTheme } from '../theme';
 
 const Stack = createNativeStackNavigator();
-const Tab   = createBottomTabNavigator();
+const Tab = createBottomTabNavigator();
 
 function TabNavigator() {
   const { colors } = useTheme();
@@ -76,20 +79,24 @@ export default function AppNavigator() {
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {/* AUTH */}
-        <Stack.Screen name="Login"    component={LoginScreen} />
+        <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
 
         {/* ANA UYGULAMA */}
-        <Stack.Screen name="MainApp"  component={TabNavigator} />
+        <Stack.Screen name="MainApp" component={TabNavigator} />
 
         {/* STACK EKRANLAR */}
-        <Stack.Screen name="EventDetail"  component={EventDetailScreen} />
-        <Stack.Screen name="CreatePost"   component={CreatePostScreen} />
-        <Stack.Screen name="Events"       component={EventsScreen} />
-        <Stack.Screen name="FeedTab"      component={FeedScreen} />
-        <Stack.Screen name="UserProfile"  component={UserProfileScreen} />
-        <Stack.Screen name="Communities"  component={CommunitiesScreen} />
+        <Stack.Screen name="EventDetail" component={EventDetailScreen} />
+        <Stack.Screen name="CreatePost" component={CreatePostScreen} />
+        <Stack.Screen name="Events" component={EventsScreen} />
+        <Stack.Screen name="FeedTab" component={FeedScreen} />
+        <Stack.Screen name="UserProfile" component={UserProfileScreen} />
+        <Stack.Screen name="Communities" component={CommunitiesScreen} />
         <Stack.Screen name="CommunityDetail" component={CommunityDetailScreen} />
+        <Stack.Screen name="ArtistProfile" component={ArtistProfileScreen} />
+        <Stack.Screen name="Welcome" component={WelcomeScreen} />
+
+
       </Stack.Navigator>
     </NavigationContainer>
   );

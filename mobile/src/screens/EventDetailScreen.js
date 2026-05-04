@@ -27,8 +27,8 @@ export default function EventDetailScreen({ route, navigation }) {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { event } = route.params;
 
-  const [verifying, setVerifying]   = useState(false);
-  const [attendance, setAttendance] = useState(null); // 'GOING' | 'INTERESTED' | null
+  const [verifying, setVerifying] = useState(false);
+  const [attendance, setAttendance] = useState(null);
   const [attendLoading, setAttendLoading] = useState(false);
 
   // ── Katılım ──────────────────────────────────────────────────────────────
@@ -36,12 +36,9 @@ export default function EventDetailScreen({ route, navigation }) {
     if (attendLoading) return;
     setAttendLoading(true);
 
-    // Aynı butona tekrar basılırsa katılımı kaldır
     if (attendance === status) {
       try {
-        await API.delete(
-          `/events/${event.id}/attendance?userId=${global.userId}`
-        );
+        await API.delete(`/events/${event.id}/attendance?userId=${global.userId}`);
         setAttendance(null);
       } catch (err) {
         Alert.alert('Hata', 'İşlem gerçekleştirilemedi.');
@@ -67,7 +64,6 @@ export default function EventDetailScreen({ route, navigation }) {
 
   // ── Konum doğrula & post at ───────────────────────────────────────────────
   const handlePostAt = async () => {
-    // Mekan koordinatı yoksa direkt post ekranına geç
     if (!event.venueLatitude || !event.venueLongitude) {
       navigation.navigate('CreatePost', { event });
       return;
@@ -124,7 +120,6 @@ export default function EventDetailScreen({ route, navigation }) {
     }
   };
 
-  // ── JSX ──────────────────────────────────────────────────────────────────
   return (
     <ScrollView style={styles.container}>
       {/* HERO */}
@@ -146,51 +141,33 @@ export default function EventDetailScreen({ route, navigation }) {
         {/* KATILIM BUTONLARI */}
         <View style={styles.attendanceRow}>
           <TouchableOpacity
-            style={[
-              styles.attendBtn,
-              attendance === 'GOING' && styles.attendBtnActive,
-            ]}
+            style={[styles.attendBtn, attendance === 'GOING' && styles.attendBtnActive]}
             onPress={() => handleAttend('GOING')}
             disabled={attendLoading}
             activeOpacity={0.8}
           >
-            {attendLoading && attendance !== 'GOING' ? (
-              <ActivityIndicator size="small" color={colors.accent} />
-            ) : (
-              <>
-                <Text style={styles.attendBtnEmoji}>✅</Text>
-                <Text style={[
-                  styles.attendBtnText,
-                  attendance === 'GOING' && styles.attendBtnTextActive,
-                ]}>
-                  Gidiyorum
-                </Text>
-              </>
-            )}
+            <Text style={styles.attendBtnEmoji}>✅</Text>
+            <Text style={[
+              styles.attendBtnText,
+              attendance === 'GOING' && styles.attendBtnTextActive,
+            ]}>
+              Gidiyorum
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[
-              styles.attendBtn,
-              attendance === 'INTERESTED' && styles.attendBtnActiveYellow,
-            ]}
+            style={[styles.attendBtn, attendance === 'INTERESTED' && styles.attendBtnActiveYellow]}
             onPress={() => handleAttend('INTERESTED')}
             disabled={attendLoading}
             activeOpacity={0.8}
           >
-            {attendLoading && attendance !== 'INTERESTED' ? (
-              <ActivityIndicator size="small" color={colors.secondary} />
-            ) : (
-              <>
-                <Text style={styles.attendBtnEmoji}>⭐</Text>
-                <Text style={[
-                  styles.attendBtnText,
-                  attendance === 'INTERESTED' && styles.attendBtnTextActiveYellow,
-                ]}>
-                  İlgileniyorum
-                </Text>
-              </>
-            )}
+            <Text style={styles.attendBtnEmoji}>⭐</Text>
+            <Text style={[
+              styles.attendBtnText,
+              attendance === 'INTERESTED' && styles.attendBtnTextActiveYellow,
+            ]}>
+              İlgileniyorum
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -215,12 +192,22 @@ export default function EventDetailScreen({ route, navigation }) {
           </Text>
         </View>
 
-        {/* SANATÇI */}
+        {/* SANATÇI — tıklanabilir ✅ */}
         {event.artistName && (
-          <View style={styles.infoCard}>
+          <TouchableOpacity
+            style={styles.infoCard}
+            onPress={() => navigation.navigate('ArtistProfile', {
+              artistId: event.artistId,
+              artistName: event.artistName,
+            })}
+            activeOpacity={0.8}
+          >
             <Text style={styles.sectionTitle}>🎤 Sanatçı</Text>
-            <Text style={styles.infoValue}>{event.artistName}</Text>
-          </View>
+            <View style={styles.artistRow}>
+              <Text style={styles.infoValue}>{event.artistName}</Text>
+              <Text style={styles.chevron}>›</Text>
+            </View>
+          </TouchableOpacity>
         )}
 
         {/* MEKAN */}
@@ -273,10 +260,8 @@ const createStyles = (colors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
 
   heroSection: {
-    paddingTop: 60,
-    paddingBottom: 40,
-    paddingHorizontal: 24,
-    alignItems: 'center',
+    paddingTop: 60, paddingBottom: 40,
+    paddingHorizontal: 24, alignItems: 'center',
   },
   backButton: { alignSelf: 'flex-start', marginBottom: 20 },
   backText: { fontSize: 16, color: 'rgba(255,255,255,0.9)', fontWeight: '600' },
@@ -294,30 +279,16 @@ const createStyles = (colors) => StyleSheet.create({
   content: { padding: 16, gap: 12 },
 
   // KATILIM
-  attendanceRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
+  attendanceRow: { flexDirection: 'row', gap: 10 },
   attendBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 14,
-    borderRadius: 14,
+    flex: 1, flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'center', gap: 6,
+    paddingVertical: 14, borderRadius: 14,
     backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderWidth: 1, borderColor: colors.border,
   },
-  attendBtnActive: {
-    backgroundColor: '#00D4AA22',
-    borderColor: '#00D4AA',
-  },
-  attendBtnActiveYellow: {
-    backgroundColor: '#F5A62322',
-    borderColor: '#F5A623',
-  },
+  attendBtnActive: { backgroundColor: '#00D4AA22', borderColor: '#00D4AA' },
+  attendBtnActiveYellow: { backgroundColor: '#F5A62322', borderColor: '#F5A623' },
   attendBtnEmoji: { fontSize: 16 },
   attendBtnText: { fontSize: 14, fontWeight: '700', color: colors.textSecondary },
   attendBtnTextActive: { color: '#00D4AA' },
@@ -337,6 +308,14 @@ const createStyles = (colors) => StyleSheet.create({
   description: { fontSize: 15, color: colors.text, lineHeight: 22 },
   infoValue: { fontSize: 16, color: colors.text, fontWeight: '600' },
   infoValueSub: { fontSize: 14, color: colors.textSecondary, marginTop: 4 },
+
+  // SANATÇI SATIRI
+  artistRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  chevron: { fontSize: 24, color: colors.textSecondary },
 
   // KONUM DOĞRULAMA
   verifyInfoCard: {

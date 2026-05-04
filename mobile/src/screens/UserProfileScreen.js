@@ -18,26 +18,33 @@ const gradientSets = [
   ['#7C3AED', '#F5A623'],
 ];
 
+const eventEmojis = ['🎸', '🎤', '🥁', '🎹', '🎺', '🎻', '🎪', '🎭'];
+
 export default function UserProfileScreen({ route, navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { userId } = route.params;
 
-  const [profile, setProfile]       = useState(null);
-  const [posts, setPosts]           = useState([]);
-  const [events, setEvents]         = useState([]);
-  const [loading, setLoading]       = useState(true);
-  const [following, setFollowing]   = useState(false);
+  const [profile, setProfile] = useState(null);
+  const [posts, setPosts] = useState([]);
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [following, setFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
-  const [activeTab, setActiveTab]   = useState('posts');
+  const [activeTab, setActiveTab] = useState('posts');
 
-  const fadeAnim  = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
+  const tabAnim = useRef(new Animated.Value(0)).current;
 
-  // Kendi profilimse ProfileScreen'e yönlendir
   const isOwnProfile = global.userId === userId;
 
   useEffect(() => {
+    // Kendi profilimse ProfileScreen'e yönlendir
+    if (isOwnProfile) {
+      navigation.replace('MainApp', { screen: 'Profile' });
+      return;
+    }
     fetchAll();
   }, [userId]);
 
@@ -51,23 +58,15 @@ export default function UserProfileScreen({ route, navigation }) {
 
       setProfile(profileRes.data);
       setFollowing(profileRes.data.isFollowedByCurrentUser || false);
-
       setPosts(postsRes.data);
-
-
       setEvents(eventsRes.data);
 
       Animated.parallel([
         Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 350,
-          useNativeDriver: true,
+          toValue: 1, duration: 350, useNativeDriver: true,
         }),
         Animated.spring(scaleAnim, {
-          toValue: 1,
-          tension: 60,
-          friction: 8,
-          useNativeDriver: true,
+          toValue: 1, tension: 60, friction: 8, useNativeDriver: true,
         }),
       ]).start();
     } catch (err) {
@@ -82,9 +81,8 @@ export default function UserProfileScreen({ route, navigation }) {
   const handleFollowToggle = async () => {
     if (followLoading) return;
     setFollowLoading(true);
-
     const wasFollowing = following;
-    setFollowing(!wasFollowing); // Optimistic update
+    setFollowing(!wasFollowing);
 
     try {
       if (wasFollowing) {
@@ -101,12 +99,25 @@ export default function UserProfileScreen({ route, navigation }) {
         }));
       }
     } catch (err) {
-      setFollowing(wasFollowing); // Geri al
+      setFollowing(wasFollowing);
       Alert.alert('Hata', 'İşlem gerçekleştirilemedi.');
     } finally {
       setFollowLoading(false);
     }
   };
+
+  const switchTab = (tab) => {
+    setActiveTab(tab);
+    Animated.spring(tabAnim, {
+      toValue: tab === 'posts' ? 0 : 1,
+      tension: 70, friction: 10, useNativeDriver: false,
+    }).start();
+  };
+
+  const tabIndicatorLeft = tabAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0%', '50%'],
+  });
 
   if (loading) return (
     <View style={styles.loadingContainer}>
@@ -119,28 +130,18 @@ export default function UserProfileScreen({ route, navigation }) {
       style={[styles.container, { opacity: fadeAnim }]}
       showsVerticalScrollIndicator={false}
     >
-      {/* HERO */}
-      <LinearGradient
-        colors={['#1A1A2E', '#0F0F1A']}
-        style={styles.hero}
-      >
-        {/* GERİ BUTONU */}
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
+      {/* ── HERO ──────────────────────────────────────────────────────────── */}
+      <LinearGradient colors={colors.headerGradient} style={styles.hero}>
+
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Text style={styles.backText}>← Geri</Text>
         </TouchableOpacity>
 
-        <Animated.View
-          style={[styles.heroInner, { transform: [{ scale: scaleAnim }] }]}
-        >
+        <Animated.View style={[styles.heroInner, { transform: [{ scale: scaleAnim }] }]}>
+
           {/* AVATAR */}
           {profile?.profileImageUrl ? (
-            <Image
-              source={{ uri: profile.profileImageUrl }}
-              style={styles.avatar}
-            />
+            <Image source={{ uri: profile.profileImageUrl }} style={styles.avatar} />
           ) : (
             <LinearGradient
               colors={['#E94560', '#7C3AED']}
@@ -184,59 +185,57 @@ export default function UserProfileScreen({ route, navigation }) {
           </View>
 
           {/* TAKİP BUTONU */}
-          {!isOwnProfile && (
-            <TouchableOpacity
-              onPress={handleFollowToggle}
-              disabled={followLoading}
-              style={styles.followButtonWrapper}
-            >
-              {following ? (
-                <View style={styles.followingButton}>
-                  {followLoading
-                    ? <ActivityIndicator size="small" color={colors.primary} />
-                    : <Text style={styles.followingText}>✓ Takip Ediliyor</Text>
-                  }
-                </View>
-              ) : (
-                <LinearGradient
-                  colors={['#E94560', '#7C3AED']}
-                  style={styles.followButton}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                >
-                  {followLoading
-                    ? <ActivityIndicator size="small" color="#fff" />
-                    : <Text style={styles.followText}>+ Takip Et</Text>
-                  }
-                </LinearGradient>
-              )}
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            onPress={handleFollowToggle}
+            disabled={followLoading}
+            style={styles.followButtonWrapper}
+            activeOpacity={0.85}
+          >
+            {following ? (
+              <View style={styles.followingButton}>
+                {followLoading
+                  ? <ActivityIndicator size="small" color={colors.primary} />
+                  : <Text style={styles.followingText}>✓ Takip Ediliyor</Text>
+                }
+              </View>
+            ) : (
+              <LinearGradient
+                colors={['#E94560', '#7C3AED']}
+                style={styles.followButton}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              >
+                {followLoading
+                  ? <ActivityIndicator size="small" color="#fff" />
+                  : <Text style={styles.followText}>+ Takip Et</Text>
+                }
+              </LinearGradient>
+            )}
+          </TouchableOpacity>
+
         </Animated.View>
       </LinearGradient>
 
-      {/* SEKMELER */}
-      <View style={styles.tabs}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'posts' && styles.tabActive]}
-          onPress={() => setActiveTab('posts')}
-        >
-          <Text style={[styles.tabText, activeTab === 'posts' && styles.tabTextActive]}>
-            🎵 Postlar ({posts.length})
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'events' && styles.tabActive]}
-          onPress={() => setActiveTab('events')}
-        >
-          <Text style={[styles.tabText, activeTab === 'events' && styles.tabTextActive]}>
-            🎪 Etkinlikler ({events.length})
-          </Text>
-        </TouchableOpacity>
+      {/* ── ANİMASYONLU SEKMELER ─────────────────────────────────────────── */}
+      <View style={styles.tabBarWrapper}>
+        <View style={styles.tabBar}>
+          <Animated.View style={[styles.tabIndicator, { left: tabIndicatorLeft }]} />
+          <TouchableOpacity style={styles.tabBtn} onPress={() => switchTab('posts')}>
+            <Text style={[styles.tabText, activeTab === 'posts' && styles.tabTextActive]}>
+              🎵 Postlar ({posts.length})
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.tabBtn} onPress={() => switchTab('events')}>
+            <Text style={[styles.tabText, activeTab === 'events' && styles.tabTextActive]}>
+              🎪 Etkinlikler ({events.length})
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
-      {/* İÇERİK */}
+      {/* ── İÇERİK ───────────────────────────────────────────────────────── */}
       <View style={styles.content}>
+
         {activeTab === 'posts' ? (
           posts.length === 0 ? (
             <View style={styles.empty}>
@@ -245,19 +244,43 @@ export default function UserProfileScreen({ route, navigation }) {
             </View>
           ) : (
             posts.map((item, index) => (
-              <View key={item.id} style={styles.postCard}>
+              <TouchableOpacity
+                key={item.id}
+                style={styles.postCard}
+                onPress={() => navigation.navigate('EventDetail', { event: { id: item.eventId, name: item.eventName } })}
+                activeOpacity={0.85}
+              >
+                {/* POST BAŞLIĞI */}
                 <View style={styles.postHeader}>
-                  <Text style={styles.postEventName}>🎵 {item.eventName || 'Etkinlik'}</Text>
-                  <Text style={styles.postDate}>
-                    {new Date(item.createdAt).toLocaleDateString('tr-TR')}
-                  </Text>
+                  <LinearGradient
+                    colors={gradientSets[index % gradientSets.length]}
+                    style={styles.postAvatar}
+                  >
+                    <Text style={styles.postAvatarText}>
+                      {profile?.username?.charAt(0).toUpperCase() || '?'}
+                    </Text>
+                  </LinearGradient>
+                  <View style={styles.postHeaderInfo}>
+                    <Text style={styles.postEventName} numberOfLines={1}>
+                      🎵 {item.eventName || 'Etkinlik'}
+                    </Text>
+                    <Text style={styles.postDate}>
+                      {new Date(item.createdAt).toLocaleDateString('tr-TR', {
+                        day: 'numeric', month: 'short', year: 'numeric',
+                      })}
+                    </Text>
+                  </View>
                 </View>
+
+                {/* İÇERİK */}
                 <Text style={styles.postContent}>{item.content}</Text>
+
+                {/* ALT KISIM */}
                 <View style={styles.postFooter}>
                   <Text style={styles.postStat}>❤️ {item.likeCount || 0}</Text>
                   <Text style={styles.postStat}>💬 {item.commentCount || 0}</Text>
                 </View>
-              </View>
+              </TouchableOpacity>
             ))
           )
         ) : (
@@ -281,22 +304,38 @@ export default function UserProfileScreen({ route, navigation }) {
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                   >
-                    <Text style={styles.eventEmoji}>🎪</Text>
-                    <Text style={styles.eventName} numberOfLines={2}>{item.name}</Text>
-                    {item.artistName && (
-                      <Text style={styles.eventArtist}>🎤 {item.artistName}</Text>
-                    )}
-                    <Text style={styles.eventDate}>
-                      📅 {new Date(item.eventDate).toLocaleDateString('tr-TR', {
-                        day: 'numeric', month: 'short'
-                      })}
+                    <Text style={styles.eventEmoji}>
+                      {eventEmojis[index % eventEmojis.length]}
                     </Text>
+                    <View style={styles.eventCardBody}>
+                      <Text style={styles.eventName} numberOfLines={2}>{item.name}</Text>
+                      {/* Sanatçıya tıklayınca ArtistProfile'a git ✅ */}
+                      {item.artistName && (
+                        <TouchableOpacity
+                          onPress={(e) => {
+                            e.stopPropagation?.();
+                            navigation.navigate('ArtistProfile', {
+                              artistId: item.artistId,
+                              artistName: item.artistName,
+                            });
+                          }}
+                        >
+                          <Text style={styles.eventArtist}>🎤 {item.artistName}</Text>
+                        </TouchableOpacity>
+                      )}
+                      <Text style={styles.eventDate}>
+                        📅 {new Date(item.eventDate).toLocaleDateString('tr-TR', {
+                          day: 'numeric', month: 'short',
+                        })}
+                      </Text>
+                    </View>
                   </LinearGradient>
                 </TouchableOpacity>
               ))}
             </View>
           )
         )}
+
       </View>
     </Animated.ScrollView>
   );
@@ -311,26 +350,21 @@ const createStyles = (colors) => StyleSheet.create({
 
   // HERO
   hero: {
-    paddingTop: 56,
-    paddingBottom: 28,
-    paddingHorizontal: 24,
+    paddingTop: 56, paddingBottom: 28, paddingHorizontal: 24,
   },
   backButton: { marginBottom: 20 },
   backText: { color: colors.textSecondary, fontSize: 15, fontWeight: '600' },
-
   heroInner: { alignItems: 'center' },
 
   avatar: {
-    width: 96, height: 96, borderRadius: 48,
-    borderWidth: 3, borderColor: colors.border,
-    marginBottom: 14,
+    width: 100, height: 100, borderRadius: 50,
+    borderWidth: 3, borderColor: colors.border, marginBottom: 14,
   },
   avatarPlaceholder: {
-    width: 96, height: 96, borderRadius: 48,
-    justifyContent: 'center', alignItems: 'center',
-    marginBottom: 14,
+    width: 100, height: 100, borderRadius: 50,
+    justifyContent: 'center', alignItems: 'center', marginBottom: 14,
   },
-  avatarLetter: { fontSize: 40, fontWeight: 'bold', color: '#fff' },
+  avatarLetter: { fontSize: 42, fontWeight: 'bold', color: '#fff' },
 
   username: {
     fontSize: 22, fontWeight: 'bold',
@@ -342,91 +376,102 @@ const createStyles = (colors) => StyleSheet.create({
     marginBottom: 20, paddingHorizontal: 16,
   },
   bioEmpty: {
-    fontSize: 13, color: '#3A3A5A',
+    fontSize: 13, color: colors.textSecondary,
     marginBottom: 20, fontStyle: 'italic',
   },
 
   // STATS
   statsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'row', alignItems: 'center',
     backgroundColor: colors.card,
-    borderRadius: 16,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    gap: 16,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderRadius: 16, paddingVertical: 14, paddingHorizontal: 20,
+    gap: 16, marginBottom: 20,
+    borderWidth: 1, borderColor: colors.border, width: '100%',
   },
-  stat: { alignItems: 'center' },
+  stat: { alignItems: 'center', flex: 1 },
   statNumber: { fontSize: 20, fontWeight: 'bold', color: colors.text },
   statLabel: { fontSize: 11, color: colors.textSecondary, marginTop: 2 },
   statDivider: { width: 1, height: 32, backgroundColor: colors.border },
 
   // TAKİP BUTONU
   followButtonWrapper: { width: '100%' },
-  followButton: {
-    paddingVertical: 13,
-    borderRadius: 14,
-    alignItems: 'center',
-  },
+  followButton: { paddingVertical: 14, borderRadius: 14, alignItems: 'center' },
   followText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
   followingButton: {
-    paddingVertical: 13,
-    borderRadius: 14,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: colors.primary,
-    backgroundColor: 'transparent',
+    paddingVertical: 14, borderRadius: 14, alignItems: 'center',
+    borderWidth: 2, borderColor: colors.primary,
   },
   followingText: { color: colors.primary, fontWeight: 'bold', fontSize: 15 },
 
-  // SEKMELER
-  tabs: {
-    flexDirection: 'row',
+  // ANİMASYONLU SEKMELER
+  tabBarWrapper: {
     backgroundColor: colors.card,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomWidth: 1, borderBottomColor: colors.border,
+    paddingHorizontal: 16, paddingVertical: 10,
   },
-  tab: {
-    flex: 1, paddingVertical: 14,
-    alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
+  tabBar: {
+    flexDirection: 'row',
+    backgroundColor: colors.cardAlt,
+    borderRadius: 12, padding: 4,
+    position: 'relative', overflow: 'hidden',
   },
-  tabActive: { borderBottomColor: colors.primary },
-  tabText: { fontSize: 13, color: colors.textSecondary, fontWeight: '600' },
-  tabTextActive: { color: colors.primary },
+  tabIndicator: {
+    position: 'absolute',
+    top: 4, bottom: 4, width: '50%',
+    backgroundColor: colors.primary,
+    borderRadius: 8,
+  },
+  tabBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', zIndex: 1 },
+  tabText: { fontSize: 13, fontWeight: '600', color: colors.textSecondary },
+  tabTextActive: { color: '#fff' },
 
   // İÇERİK
   content: { padding: 16, paddingBottom: 32 },
 
-  // POST
+  // POST KARTI
   postCard: {
     backgroundColor: colors.card,
-    borderRadius: 16, padding: 16,
-    marginBottom: 12,
+    borderRadius: 16, padding: 16, marginBottom: 12,
     borderWidth: 1, borderColor: colors.border,
   },
   postHeader: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', marginBottom: 8,
+    flexDirection: 'row', alignItems: 'center',
+    marginBottom: 12, gap: 10,
   },
-  postEventName: { fontSize: 13, color: colors.primary, fontWeight: '700', flex: 1 },
-  postDate: { fontSize: 11, color: colors.textSecondary },
-  postContent: { fontSize: 14, color: colors.text, lineHeight: 20, marginBottom: 12 },
+  postAvatar: {
+    width: 40, height: 40, borderRadius: 20,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  postAvatarText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+  postHeaderInfo: { flex: 1 },
+  postEventName: { fontSize: 13, color: colors.primary, fontWeight: '700' },
+  postDate: { fontSize: 11, color: colors.textSecondary, marginTop: 2 },
+  postContent: {
+    fontSize: 14, color: colors.text,
+    lineHeight: 20, marginBottom: 12,
+  },
   postFooter: { flexDirection: 'row', gap: 14 },
   postStat: { fontSize: 13, color: colors.textSecondary },
 
   // ETKİNLİK GRİD
   eventGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   eventCard: { width: CARD_WIDTH, borderRadius: 16, overflow: 'hidden' },
-  eventCardGradient: { padding: 14, minHeight: 140, justifyContent: 'flex-end' },
+  eventCardGradient: {
+    padding: 14, minHeight: 150, justifyContent: 'space-between',
+  },
   eventEmoji: { fontSize: 28, marginBottom: 8 },
-  eventName: { fontSize: 13, fontWeight: 'bold', color: '#fff', marginBottom: 4 },
-  eventArtist: { fontSize: 11, color: 'rgba(255,255,255,0.8)', marginBottom: 4 },
-  eventDate: { fontSize: 11, color: 'rgba(255,255,255,0.9)', fontWeight: '600' },
+  eventCardBody: { flex: 1 },
+  eventName: {
+    fontSize: 13, fontWeight: 'bold',
+    color: '#fff', marginBottom: 6,
+  },
+  eventArtist: {
+    fontSize: 11, color: 'rgba(255,255,255,0.9)',
+    marginBottom: 4, textDecorationLine: 'underline',
+  },
+  eventDate: {
+    fontSize: 11, color: 'rgba(255,255,255,0.9)', fontWeight: '600',
+  },
 
   // BOŞ
   empty: { alignItems: 'center', paddingVertical: 48 },
