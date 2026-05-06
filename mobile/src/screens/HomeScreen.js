@@ -18,6 +18,15 @@ const gradientSets = [
   ['#7C3AED', '#F5A623'],
 ];
 
+// Kategori → genre eşleşmesi
+const categoryGenreMap = {
+  'Konser': ['pop', 'rock', 'indie', 'alternative', 'classical', 'R&B', 'hip-hop', 'country', 'undefined'],
+  'Festival': ['festival', 'world', 'folk'],
+  'DJ': ['electronic', 'house', 'techno', 'dance', 'edm', 'dj'],
+  'Caz': ['jazz', 'blues', 'soul', 'funk'],
+  'Elektronik': ['electronic', 'house', 'techno', 'dance', 'edm', 'trance'],
+};
+
 const categories = [
   { id: 1, label: 'Tümü', emoji: '🎪' },
   { id: 2, label: 'Konser', emoji: '🎸' },
@@ -29,9 +38,19 @@ const categories = [
 
 const eventEmojis = ['🎸', '🎤', '🥁', '🎹', '🎺', '🎻', '🎪', '🎭'];
 
+// Bir etkinlik kategoriye uyuyor mu?
+function matchesCategory(event, categoryLabel) {
+  if (categoryLabel === 'Tümü') return true;
+  const genres = categoryGenreMap[categoryLabel] || [];
+  const eventGenre = (event.genre || '').toLowerCase();
+  const eventName = (event.name || '').toLowerCase();
+  return genres.some(g => eventGenre.includes(g) || eventName.includes(g));
+}
+
 export default function HomeScreen({ navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+
   const [events, setEvents] = useState([]);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -44,7 +63,7 @@ export default function HomeScreen({ navigation }) {
     const url = city ? `/events?city=${encodeURIComponent(city)}` : '/events';
     return API.get(url)
       .then(res => setEvents(res.data))
-      .catch(err => console.log('Hata:', err.message));
+      .catch(err => console.log('Events hatası:', err.message));
   };
 
   const fetchPosts = () =>
@@ -61,11 +80,30 @@ export default function HomeScreen({ navigation }) {
     Promise.all([fetchEvents(), fetchPosts()]).finally(() => setRefreshing(false));
   };
 
-  const filteredEvents = events.filter(e =>
-    e.name?.toLowerCase().includes(search.toLowerCase()) ||
-    e.artistName?.toLowerCase().includes(search.toLowerCase()) ||
-    e.venueCity?.toLowerCase().includes(search.toLowerCase())
-  );
+  // Aktif kategorinin label'ı
+  const activeCategoryLabel = categories.find(c => c.id === activeCategory)?.label || 'Tümü';
+
+  // Arama + kategori filtresi — event'lere uygulanır
+  const filteredEvents = events.filter(e => {
+    const matchSearch =
+      !search.trim() ||
+      e.name?.toLowerCase().includes(search.toLowerCase()) ||
+      e.artistName?.toLowerCase().includes(search.toLowerCase()) ||
+      e.venueCity?.toLowerCase().includes(search.toLowerCase());
+
+    const matchCat = matchesCategory(e, activeCategoryLabel);
+    return matchSearch && matchCat;
+  });
+
+  // Arama — post'lara da uygulanır
+  const filteredPosts = posts.filter(p => {
+    if (!search.trim()) return true;
+    return (
+      p.content?.toLowerCase().includes(search.toLowerCase()) ||
+      p.username?.toLowerCase().includes(search.toLowerCase()) ||
+      p.eventName?.toLowerCase().includes(search.toLowerCase())
+    );
+  });
 
   if (loading) return (
     <View style={styles.loadingContainer}>
@@ -84,7 +122,7 @@ export default function HomeScreen({ navigation }) {
         />
       }
     >
-      {/* ── HEADER ───────────────────────────────────────────────────────── */}
+      {/* ── HEADER ─────────────────────────────────────────────────────── */}
       <LinearGradient colors={colors.headerGradient} style={styles.header}>
         <View style={styles.headerTop}>
           <View>
@@ -103,7 +141,7 @@ export default function HomeScreen({ navigation }) {
           <Text style={styles.searchIcon}>🔍</Text>
           <TextInput
             style={styles.searchInput}
-            placeholder="Etkinlik, sanatçı veya şehir ara..."
+            placeholder="Etkinlik, sanatçı, şehir veya post ara..."
             placeholderTextColor={colors.textSecondary}
             value={search}
             onChangeText={setSearch}
@@ -116,7 +154,7 @@ export default function HomeScreen({ navigation }) {
         </View>
       </LinearGradient>
 
-      {/* ── KATEGORİLER ──────────────────────────────────────────────────── */}
+      {/* ── KATEGORİLER ─────────────────────────────────────────────────── */}
       <View style={styles.section}>
         <ScrollView
           horizontal
@@ -150,7 +188,7 @@ export default function HomeScreen({ navigation }) {
         </ScrollView>
       </View>
 
-      {/* ── ÖNE ÇIKANLAR ─────────────────────────────────────────────────── */}
+      {/* ── ÖNE ÇIKANLAR ──────────────────────────────────────────────── */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>🔥 Öne Çıkanlar</Text>
@@ -171,49 +209,46 @@ export default function HomeScreen({ navigation }) {
               activeOpacity={0.85}
             >
               {item.imageUrl || item.artistImageUrl ? (
-                <View>
+                // ── Fotoğraflı kart ──────────────────────────────────────
+                <View style={styles.featuredImageWrapper}>
                   <Image
                     source={{ uri: item.imageUrl || item.artistImageUrl }}
                     style={styles.featuredImage}
                     contentFit="cover"
                     placeholder={require('../../assets/icon.png')}
-                    onError={(error) => console.log('Home featured expo image error:', error, 'URL:', item.imageUrl || item.artistImageUrl)}
                     cachePolicy="memory-disk"
                     transition={200}
                   />
-
-                  <View style={styles.featuredOverlay}>
+                  {/* Gradient overlay görsel üzerinde */}
+                  <LinearGradient
+                    colors={['transparent', 'rgba(0,0,0,0.78)']}
+                    style={styles.featuredImageOverlay}
+                  >
                     <Text style={styles.featuredName} numberOfLines={2}>
                       {item.name}
                     </Text>
                     {item.genre && (
-                      <Text style={styles.genreChip}>
-                        🎵 {item.genre}
-                      </Text>
+                      <Text style={styles.genreChip}>🎵 {item.genre}</Text>
                     )}
-
                     {item.artistName && (
                       <Text style={styles.featuredArtist} numberOfLines={1}>
                         🎤 {item.artistName}
                       </Text>
                     )}
-
                     <View style={styles.featuredFooter}>
                       <Text style={styles.featuredDate}>
                         📅 {new Date(item.eventDate).toLocaleDateString('tr-TR', {
                           day: 'numeric', month: 'short',
                         })}
                       </Text>
-
                       {item.venueCity && (
-                        <Text style={styles.featuredCity}>
-                          📍 {item.venueCity}
-                        </Text>
+                        <Text style={styles.featuredCity}>📍 {item.venueCity}</Text>
                       )}
                     </View>
-                  </View>
+                  </LinearGradient>
                 </View>
               ) : (
+                // ── Gradient kart ─────────────────────────────────────────
                 <LinearGradient
                   colors={gradientSets[index % gradientSets.length]}
                   style={styles.featuredCard}
@@ -223,33 +258,25 @@ export default function HomeScreen({ navigation }) {
                   <Text style={styles.featuredEmoji}>
                     {eventEmojis[index % eventEmojis.length]}
                   </Text>
-
                   <Text style={styles.featuredName} numberOfLines={2}>
                     {item.name}
                   </Text>
                   {item.genre && (
-                    <Text style={styles.genreChip}>
-                      🎵 {item.genre}
-                    </Text>
+                    <Text style={styles.genreChip}>🎵 {item.genre}</Text>
                   )}
-
                   {item.artistName && (
                     <Text style={styles.featuredArtist} numberOfLines={1}>
                       🎤 {item.artistName}
                     </Text>
                   )}
-
                   <View style={styles.featuredFooter}>
                     <Text style={styles.featuredDate}>
                       📅 {new Date(item.eventDate).toLocaleDateString('tr-TR', {
                         day: 'numeric', month: 'short',
                       })}
                     </Text>
-
                     {item.venueCity && (
-                      <Text style={styles.featuredCity}>
-                        📍 {item.venueCity}
-                      </Text>
+                      <Text style={styles.featuredCity}>📍 {item.venueCity}</Text>
                     )}
                   </View>
                 </LinearGradient>
@@ -257,12 +284,18 @@ export default function HomeScreen({ navigation }) {
             </TouchableOpacity>
           ))}
         </ScrollView>
+
         {filteredEvents.length === 0 && (
-          <Text style={styles.noResult}>Sonuç bulunamadı</Text>
+          <View style={styles.empty}>
+            <Text style={styles.emptyEmoji}>🎭</Text>
+            <Text style={styles.emptyText}>
+              {search ? `"${search}" için sonuç bulunamadı` : 'Bu kategoride etkinlik yok'}
+            </Text>
+          </View>
         )}
       </View>
 
-      {/* ── TÜM ETKİNLİKLER ──────────────────────────────────────────────── */}
+      {/* ── TÜM ETKİNLİKLER ──────────────────────────────────────────── */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>📋 Tüm Etkinlikler</Text>
@@ -271,96 +304,94 @@ export default function HomeScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        {
-          filteredEvents.slice(0, 3).map((item, index) => (
-            <TouchableOpacity
-              key={item.id}
-              onPress={() => navigation.navigate('EventDetail', { event: item })}
-              activeOpacity={0.85}
-              style={styles.listCard}
+        {filteredEvents.slice(0, 3).map((item, index) => (
+          <TouchableOpacity
+            key={item.id}
+            onPress={() => navigation.navigate('EventDetail', { event: item })}
+            activeOpacity={0.85}
+            style={styles.listCard}
+          >
+            <LinearGradient
+              colors={gradientSets[index % gradientSets.length]}
+              style={styles.listCardLeft}
             >
-              <LinearGradient
-                colors={gradientSets[index % gradientSets.length]}
-                style={styles.listCardLeft}
-              >
-                <Text style={styles.listCardEmoji}>
-                  {eventEmojis[index % eventEmojis.length]}
-                </Text>
-              </LinearGradient>
-
-              <View style={styles.listCardRight}>
-                <Text style={styles.listCardName} numberOfLines={1}>
-                  {item.name}
-                </Text>
-
-                {item.artistName && (
-                  <Text style={styles.listCardSub}>
-                    🎤 {item.artistName}
-                  </Text>
-                )}
-
-                <Text style={styles.listCardSub}>
-                  📅 {new Date(item.eventDate).toLocaleDateString('tr-TR')}
-                  {item.venueCity ? ` · 📍 ${item.venueCity}` : ''}
-                </Text>
-              </View>
-
-              <Text style={styles.listCardArrow}>›</Text>
-            </TouchableOpacity>
-          ))
-        }
-
-        {
-          filteredEvents.length === 0 && (
-            <View style={styles.empty}>
-              <Text style={styles.emptyEmoji}>🎭</Text>
-              <Text style={styles.emptyText}>Sonuç bulunamadı</Text>
+              <Text style={styles.listCardEmoji}>
+                {eventEmojis[index % eventEmojis.length]}
+              </Text>
+            </LinearGradient>
+            <View style={styles.listCardRight}>
+              <Text style={styles.listCardName} numberOfLines={1}>{item.name}</Text>
+              {item.artistName && (
+                <Text style={styles.listCardSub}>🎤 {item.artistName}</Text>
+              )}
+              <Text style={styles.listCardSub}>
+                📅 {new Date(item.eventDate).toLocaleDateString('tr-TR')}
+                {item.venueCity ? ` · 📍 ${item.venueCity}` : ''}
+              </Text>
             </View>
-          )
-        }
+            <Text style={styles.listCardArrow}>›</Text>
+          </TouchableOpacity>
+        ))}
+
+        {filteredEvents.length === 0 && (
+          <View style={styles.empty}>
+            <Text style={styles.emptyEmoji}>🎭</Text>
+            <Text style={styles.emptyText}>Sonuç bulunamadı</Text>
+          </View>
+        )}
       </View>
 
-      {/* ── TRENDING POSTLAR ─────────────────────────────────────────────── */}
+      {/* ── TRENDING POSTLAR ─────────────────────────────────────────── */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>🔥 Trending Postlar</Text>
+          {search.length > 0 && (
+            <Text style={styles.searchResultCount}>
+              {filteredPosts.length} sonuç
+            </Text>
+          )}
         </View>
 
-        {
-          posts.length === 0 ? (
-            <View style={styles.empty}>
-              <Text style={styles.emptyEmoji}>📭</Text>
-              <Text style={styles.emptyText}>Henüz post yok</Text>
-            </View>
-          ) : (
-            posts.map((post, index) => (
-              <View key={post.id} style={styles.postCard}>
-                <View style={styles.postHeader}>
-                  <LinearGradient
-                    colors={gradientSets[index % gradientSets.length]}
-                    style={styles.postAvatar}
-                  >
-                    <Text style={styles.postAvatarText}>
-                      {post.username?.charAt(0).toUpperCase() || '?'}
-                    </Text>
-                  </LinearGradient>
-                  <View style={styles.postHeaderInfo}>
-                    <Text style={styles.postUsername}>@{post.username}</Text>
-                    <Text style={styles.postEvent}>🎵 {post.eventName}</Text>
-                  </View>
-                </View>
-                <Text style={styles.postContent}>{post.content}</Text>
-                <View style={styles.postFooter}>
-                  <Text style={styles.postStat}>❤️ {post.likeCount || 0}</Text>
-                  <Text style={styles.postStat}>💬 {post.commentCount || 0}</Text>
-                  <Text style={styles.postDate}>
-                    {new Date(post.createdAt).toLocaleDateString('tr-TR')}
+        {filteredPosts.length === 0 ? (
+          <View style={styles.empty}>
+            <Text style={styles.emptyEmoji}>📭</Text>
+            <Text style={styles.emptyText}>
+              {search ? `"${search}" için post bulunamadı` : 'Henüz post yok'}
+            </Text>
+          </View>
+        ) : (
+          filteredPosts.map((post, index) => (
+            <View key={post.id} style={styles.postCard}>
+              <View style={styles.postHeader}>
+                <LinearGradient
+                  colors={gradientSets[index % gradientSets.length]}
+                  style={styles.postAvatar}
+                >
+                  <Text style={styles.postAvatarText}>
+                    {post.username?.charAt(0).toUpperCase() || '?'}
                   </Text>
+                </LinearGradient>
+                <View style={styles.postHeaderInfo}>
+                  <Text style={styles.postUsername}>@{post.username}</Text>
+                  <Text style={styles.postEvent}>🎵 {post.eventName}</Text>
                 </View>
               </View>
-            ))
-          )
-        }
+              <Text style={styles.postContent}>{post.content}</Text>
+              <View style={styles.postFooter}>
+                {/* likeCount ve commentCount backend'den geldiği gibi göster */}
+                <Text style={styles.postStat}>
+                  ❤️ {post.likeCount ?? 0}
+                </Text>
+                <Text style={styles.postStat}>
+                  💬 {post.commentCount ?? 0}
+                </Text>
+                <Text style={styles.postDate}>
+                  {new Date(post.createdAt).toLocaleDateString('tr-TR')}
+                </Text>
+              </View>
+            </View>
+          ))
+        )}
       </View>
     </ScrollView>
   );
@@ -372,11 +403,6 @@ function createStyles(colors) {
     loadingContainer: {
       flex: 1, justifyContent: 'center',
       alignItems: 'center', backgroundColor: colors.background,
-    },
-    featuredImage: {
-      width: 200,
-      height: 160,
-      borderRadius: 18,
     },
 
     // HEADER
@@ -407,6 +433,7 @@ function createStyles(colors) {
     },
     sectionTitle: { fontSize: 17, fontWeight: 'bold', color: colors.text },
     seeAll: { fontSize: 13, color: colors.primary, fontWeight: '600' },
+    searchResultCount: { fontSize: 13, color: colors.textSecondary },
 
     // KATEGORİLER
     categoriesList: { gap: 10, paddingBottom: 4 },
@@ -428,23 +455,38 @@ function createStyles(colors) {
 
     // ÖNE ÇIKANLAR
     horizontalList: { gap: 14, paddingBottom: 4 },
+
+    // Fotoğraflı kart — overlay düzeltildi
+    featuredImageWrapper: {
+      width: 200,
+      height: 160,
+      borderRadius: 18,
+      overflow: 'hidden',
+    },
+    featuredImage: {
+      width: 200,
+      height: 160,
+    },
+    featuredImageOverlay: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      padding: 12,
+      paddingTop: 24,
+    },
+
+    // Gradient kart
     featuredCard: {
       width: 200, height: 160,
       borderRadius: 18, padding: 16,
       justifyContent: 'space-between',
     },
     featuredEmoji: { fontSize: 32 },
-    featuredName: { fontSize: 15, fontWeight: 'bold', color: '#fff' },
-    genreChip: { fontSize: 12, color: 'rgba(255,255,255,0.9)', marginTop: 2 },
-    featuredOverlay: {
-      position: 'absolute',
-      bottom: 0,
-      left: 0,
-      right: 0,
-      padding: 12,
-    },
-    featuredArtist: { fontSize: 12, color: 'rgba(255,255,255,0.8)' },
-    featuredFooter: { gap: 2 },
+    featuredName: { fontSize: 14, fontWeight: 'bold', color: '#fff' },
+    genreChip: { fontSize: 11, color: 'rgba(255,255,255,0.85)', marginTop: 2 },
+    featuredArtist: { fontSize: 11, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
+    featuredFooter: { gap: 2, marginTop: 4 },
     featuredDate: { fontSize: 11, color: 'rgba(255,255,255,0.9)', fontWeight: '600' },
     featuredCity: { fontSize: 11, color: 'rgba(255,255,255,0.9)' },
 
@@ -489,9 +531,9 @@ function createStyles(colors) {
     postStat: { color: colors.textSecondary, fontSize: 13 },
     postDate: { color: colors.textSecondary, fontSize: 12, marginLeft: 'auto' },
 
-    noResult: { color: colors.textSecondary, fontSize: 14, padding: 20 },
+    // BOŞ
     empty: { alignItems: 'center', marginTop: 40, marginBottom: 40 },
     emptyEmoji: { fontSize: 48, marginBottom: 12 },
-    emptyText: { color: colors.textSecondary, fontSize: 15 },
+    emptyText: { color: colors.textSecondary, fontSize: 15, textAlign: 'center' },
   });
 }
