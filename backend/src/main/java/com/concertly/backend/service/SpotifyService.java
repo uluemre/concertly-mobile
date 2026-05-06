@@ -68,12 +68,10 @@ public class SpotifyService {
             headers.set("Authorization", "Bearer " + token);
             HttpEntity<Void> entity = new HttpEntity<>(headers);
             System.out.println("Searching artist: " + artistName);
-            String url = "https://api.spotify.com/v1/search?q="
-                    + artistName.replace(" ", "%20")
-                    + "&type=artist&limit=1&market=TR";
+            String url = "https://api.spotify.com/v1/search?q={query}&type=artist&limit=1&market=TR";
 
             ResponseEntity<Map> response = restTemplate.exchange(
-                    url, HttpMethod.GET, entity, Map.class);
+                    url, HttpMethod.GET, entity, Map.class, artistName);
 
             Map body = response.getBody();
             if (body == null)

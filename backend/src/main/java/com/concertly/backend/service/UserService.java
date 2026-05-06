@@ -77,6 +77,15 @@ public class UserService {
         if (request.getCity() != null) {
             user.setCity(request.getCity());
         }
+        if (request.getUsername() != null && !request.getUsername().isEmpty()) {
+            user.setUsername(request.getUsername());
+        }
+        if (request.getEmail() != null && !request.getEmail().isEmpty()) {
+            user.setEmail(request.getEmail());
+        }
+        if (request.getPhone() != null) {
+            user.setPhone(request.getPhone());
+        }
 
         User saved = userRepository.save(user);
         return new UserResponse(saved.getId(), saved.getUsername(), saved.getEmail(), saved.getCity());

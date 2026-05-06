@@ -11,6 +11,9 @@ public class UserSummaryResponse {
     private long followerCount;
     private long followingCount;
     private String city;
+    private String bio;
+    private String email;
+    private String phone;
 
     // ✅ Mobil 'isFollowedByCurrentUser' bekliyor, Jackson bunu
     // 'followedByCurrentUser' yapıyor
@@ -26,11 +29,18 @@ public class UserSummaryResponse {
         dto.username = user.getUsername();
         dto.profileImageUrl = user.getProfileImageUrl();
         dto.city = user.getCity();
+        dto.bio = user.getBio();
+        dto.email = user.getEmail();
+        dto.phone = user.getPhone();
         dto.followerCount = followerCount;
         dto.followingCount = followingCount;
         dto.isFollowedByCurrentUser = isFollowedByCurrentUser;
         return dto;
     }
+
+    public String getBio() { return bio; }
+    public String getEmail() { return email; }
+    public String getPhone() { return phone; }
 
     public Long getId() {
         return id;

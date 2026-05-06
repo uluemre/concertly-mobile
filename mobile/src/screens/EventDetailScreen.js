@@ -190,18 +190,6 @@ export default function EventDetailScreen({ route, navigation }) {
           <Text style={styles.heroTitle}>{event.name}</Text>
         </LinearGradient>
       )}
-      {/* GENRE */}
-      {event.genre && (
-        <View style={styles.genreBadge}>
-          <Text style={styles.genreText}>🎵 {event.genre}</Text>
-        </View>
-      )}
-
-      <View style={styles.approvedBadge}>
-        <Text style={styles.approvedText}>
-          {event.isApproved ? '✅ Onaylandı' : '⏳ Onay Bekliyor'}
-        </Text>
-      </View>
 
       <View style={styles.content}>
 
@@ -282,9 +270,6 @@ export default function EventDetailScreen({ route, navigation }) {
           <View style={styles.infoCard}>
             <Text style={styles.sectionTitle}>📍 Mekan</Text>
             <Text style={styles.infoValue}>{event.venueName}</Text>
-            <Text style={styles.infoValueSub}>
-              {event.venueCity}, {event.venueCountry}
-            </Text>
             {event.venueCity && event.venueCountry && (
               <Text style={styles.infoValueSub}>
                 {event.venueCity}, {event.venueCountry}

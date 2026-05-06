@@ -12,6 +12,8 @@ public interface ArtistRepository extends JpaRepository<Artist, Long> {
 
     Optional<Artist> findByExternalId(String externalId);
 
+    Optional<Artist> findByNameIgnoreCase(String name);
+
     @Query("""
                 SELECT a FROM Artist a
                 WHERE LOWER(a.name) LIKE LOWER(CONCAT('%', :q, '%'))

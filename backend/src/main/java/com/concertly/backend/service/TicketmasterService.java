@@ -120,10 +120,16 @@ public class TicketmasterService {
                 // ── MEKAN ────────────────────────────────────────────────
                 Venue venue = extractOrCreateVenue(emb);
 
+                // ── ETKİNLİK AÇIKLAMASI ──────────────────────────────────
+                String description = (String) e.get("info");
+                if (description == null) description = (String) e.get("description");
+                if (description == null) description = (String) e.get("pleaseNote");
+                if (description == null) description = name + " etkinliği için biletler satışta!";
+
                 // ── ETKİNLİĞİ KAYDET ─────────────────────────────────────
                 Event event = new Event();
                 event.setName(name);
-                event.setDescription("Ticketmaster'dan alınan etkinlik");
+                event.setDescription(description);
                 event.setEventDate(eventDate);
                 event.setExternalId(externalId);
                 event.setIsApproved(true);
@@ -190,9 +196,16 @@ public class TicketmasterService {
         return null;
     }
 
+    // ── İSİM TEMİZLEME ───────────────────────────────────────────────────
+    private String cleanArtistName(String rawName) {
+        if (rawName == null) return "Bilinmeyen Sanatçı";
+        // İsimdeki gereksiz ekleri (- BKM, (Live), | 2024, Konseri vb.) temizle
+        return rawName.replaceAll("(?i)\\s*( - | \\(| \\| |Konseri|Live|Tour|Turnesi|Festivali).*", "").trim();
+    }
+
     // ── SANATÇI OLUŞTUR / BUL ────────────────────────────────────────────
     private Artist extractOrCreateArtist(Map emb, String eventExternalId, String eventName) {
-        String artistName = eventName; // fallback
+        String rawArtistName = eventName; // fallback
         String artistExternalId = eventExternalId + "_artist"; // fallback
         String artistImageUrl = null;
         String artistGenre = null;
@@ -201,7 +214,7 @@ public class TicketmasterService {
             List<Map> attractions = (List<Map>) emb.get("attractions");
             Map attraction = attractions.get(0);
 
-            artistName = (String) attraction.get("name");
+            rawArtistName = (String) attraction.get("name");
             if (attraction.get("id") != null) {
                 artistExternalId = (String) attraction.get("id");
             }
@@ -215,11 +228,17 @@ public class TicketmasterService {
                 artistGenre = tmGenre;
         }
 
+        String artistName = cleanArtistName(rawArtistName);
+
+        // Önce ID ile ara, bulamazsan TEMİZ İSİM ile ara (Çoklamayı önler)
         Artist artist = artistRepository.findByExternalId(artistExternalId)
-                .orElseGet(Artist::new);
+                .orElseGet(() -> artistRepository.findByNameIgnoreCase(artistName)
+                        .orElseGet(Artist::new));
 
         artist.setName(artistName);
-        artist.setExternalId(artistExternalId);
+        if (artist.getExternalId() == null) {
+            artist.setExternalId(artistExternalId);
+        }
 
         if (artist.getImageUrl() == null && artistImageUrl != null) {
             artist.setImageUrl(artistImageUrl);

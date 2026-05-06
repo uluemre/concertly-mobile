@@ -1,9 +1,10 @@
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ActivityIndicator, ScrollView, TextInput,
-  Alert, Image, FlatList, Animated, Dimensions
+  ActivityIndicator, ScrollView,
+  Alert, Image, Animated, Dimensions
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import API from '../services/api';
@@ -25,25 +26,21 @@ const cities = [
 ];
 
 export default function ProfileScreen({ navigation }) {
-  const { colors, themeMode, setThemeMode } = useTheme();
+  const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('posts'); // 'posts' | 'events'
-  const [editing, setEditing] = useState(false);
-  const [bio, setBio] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [savingCity, setSavingCity] = useState(false);
-  const [selectedCity, setSelectedCity] = useState('');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
-
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => {
-    fetchAll();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchAll();
+    }, [])
+  );
 
   const fetchAll = async () => {
     if (!global.userId) return;
@@ -54,8 +51,6 @@ export default function ProfileScreen({ navigation }) {
         API.get(`/users/${global.userId}/events`),
       ]);
       setProfile(profileRes.data);
-      setSelectedCity(profileRes.data.city || '');
-      setBio(profileRes.data.bio || '');
       setPosts(postsRes.data);
       setEvents(eventsRes.data);
 
@@ -71,22 +66,7 @@ export default function ProfileScreen({ navigation }) {
     }
   };
 
-  const handleCitySelect = async (city) => {
-    if (city === selectedCity) return;
-    setSavingCity(true);
-    try {
-      await API.put(`/users/${global.userId}/profile`, { city });
-      setSelectedCity(city);
-      setProfile(prev => ({ ...prev, city }));
-      global.userCity = city;
-      Alert.alert('✅ Şehir kaydedildi', `${city} seçildi.`);
-    } catch (err) {
-      Alert.alert('Hata', 'Şehir kaydedilemedi.');
-      console.log(err.message);
-    } finally {
-      setSavingCity(false);
-    }
-  };
+
 
   // 📷 GALERİDEN FOTOĞRAF SEÇ
   const handlePickPhoto = async () => {
@@ -123,20 +103,7 @@ export default function ProfileScreen({ navigation }) {
     }
   };
 
-  // 💾 BİO KAYDET
-  const handleSaveBio = async () => {
-    setSaving(true);
-    try {
-      await API.put(`/users/${global.userId}/profile`, { bio });
-      setProfile(prev => ({ ...prev, bio }));
-      setEditing(false);
-      Alert.alert('✅ Kaydedildi', 'Bion güncellendi!');
-    } catch (err) {
-      Alert.alert('Hata', 'Bio kaydedilemedi.');
-    } finally {
-      setSaving(false);
-    }
-  };
+
 
   const handleLogout = () => {
     Alert.alert('Çıkış Yap', 'Emin misin?', [
@@ -201,21 +168,10 @@ export default function ProfileScreen({ navigation }) {
     <Animated.ScrollView style={[styles.container, { opacity: fadeAnim }]}>
 
       {/* HERO */}
-      <LinearGradient colors={['#7C3AED', '#E94560']} style={styles.hero}>
-        <View style={styles.themeToggle}>
-          <TouchableOpacity
-            onPress={() => setThemeMode('dark')}
-            style={[styles.themeToggleOption, themeMode === 'dark' && styles.themeToggleOptionActive]}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.themeToggleIcon}>🌙</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setThemeMode('light')}
-            style={[styles.themeToggleOption, themeMode === 'light' && styles.themeToggleOptionActive]}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.themeToggleIcon}>☀️</Text>
+      <LinearGradient colors={['#1E1B4B', '#09090B']} style={styles.hero}>
+        <View style={styles.topActions}>
+          <TouchableOpacity onPress={() => navigation.navigate('Settings')} style={styles.settingsButton} activeOpacity={0.8}>
+            <Text style={styles.settingsIcon}>⚙️</Text>
           </TouchableOpacity>
         </View>
 
@@ -239,64 +195,13 @@ export default function ProfileScreen({ navigation }) {
         <Text style={styles.username}>@{profile?.username || 'Kullanıcı'}</Text>
 
         {/* BIO */}
-        {editing ? (
-          <View style={styles.bioEditContainer}>
-            <TextInput
-              style={styles.bioInput}
-              value={bio}
-              onChangeText={setBio}
-              placeholder="Kendini tanıt... 🎸"
-              placeholderTextColor="rgba(255,255,255,0.5)"
-              multiline
-              maxLength={150}
-            />
-            <View style={styles.bioEditButtons}>
-              <TouchableOpacity onPress={() => setEditing(false)} style={styles.bioCancel}>
-                <Text style={styles.bioCancelText}>İptal</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={handleSaveBio} style={styles.bioSave} disabled={saving}>
-                {saving
-                  ? <ActivityIndicator size="small" color="#fff" />
-                  : <Text style={styles.bioSaveText}>Kaydet ✓</Text>
-                }
-              </TouchableOpacity>
-            </View>
-          </View>
-        ) : (
-          <TouchableOpacity onPress={() => setEditing(true)} style={styles.bioContainer}>
-            <Text style={styles.bioText}>
-              {profile?.bio ? profile.bio : '+ Bio ekle'}
-            </Text>
-            <Text style={styles.bioEditIcon}>✏️</Text>
-          </TouchableOpacity>
-        )}
-
-        <View style={styles.citySection}>
-          <Text style={styles.cityTitle}>Şehrin</Text>
-          <View style={styles.cityOptions}>
-            {cities.map(city => (
-              <TouchableOpacity
-                key={city}
-                style={[
-                  styles.cityOption,
-                  selectedCity === city && styles.cityOptionActive,
-                ]}
-                onPress={() => handleCitySelect(city)}
-                disabled={savingCity}
-              >
-                <Text style={[
-                  styles.cityOptionText,
-                  selectedCity === city && styles.cityOptionTextActive,
-                ]}>
-                  {city}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          {savingCity && (
-            <Text style={styles.citySavingText}>Kaydediliyor...</Text>
-          )}
+        <View style={styles.bioContainer}>
+          <Text style={styles.bioText}>
+            {profile?.bio ? profile.bio : 'Kendinden bahsetmek için Ayarlar\'a git'}
+          </Text>
         </View>
+
+
 
         {/* STATS */}
         <View style={styles.statsRow}>
@@ -321,6 +226,8 @@ export default function ProfileScreen({ navigation }) {
           </View>
         </View>
       </LinearGradient>
+
+
 
       {/* SEKMELER */}
       <View style={styles.tabs}>
@@ -402,212 +309,135 @@ function createStyles(colors) {
 
     // HERO
     hero: {
-      paddingTop: 64,
-      paddingBottom: 28,
+      paddingTop: 68,
+      paddingBottom: 36,
       alignItems: 'center',
       paddingHorizontal: 24,
       position: 'relative',
     },
-    themeToggle: {
+    topActions: {
       position: 'absolute',
-      top: 52,
-      right: 16,
+      top: 56,
+      right: 20,
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: 'rgba(255,255,255,0.18)',
-      borderRadius: 18,
-      padding: 3,
-      borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.25)',
+      gap: 16,
     },
-    themeToggleOption: {
-      width: 30,
-      height: 30,
-      borderRadius: 15,
+
+    settingsButton: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor: 'rgba(255,255,255,0.08)',
       alignItems: 'center',
       justifyContent: 'center',
     },
-    themeToggleOptionActive: {
-      backgroundColor: 'rgba(255,255,255,0.92)',
-    },
-    themeToggleIcon: {
-      fontSize: 14,
+    settingsIcon: {
+      fontSize: 20,
     },
     avatarWrapper: {
       position: 'relative',
-      marginBottom: 14,
+      marginBottom: 18,
+      shadowColor: '#E94560',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.5,
+      shadowRadius: 18,
+      elevation: 12,
     },
     avatarImage: {
-      width: 96,
-      height: 96,
-      borderRadius: 48,
-      borderWidth: 3,
-      borderColor: 'rgba(255,255,255,0.4)',
+      width: 110,
+      height: 110,
+      borderRadius: 55,
+      borderWidth: 2,
+      borderColor: 'rgba(255,255,255,0.9)',
     },
     avatarPlaceholder: {
-      width: 96,
-      height: 96,
-      borderRadius: 48,
-      backgroundColor: 'rgba(255,255,255,0.15)',
-      justifyContent: 'center',
-      alignItems: 'center',
-      borderWidth: 3,
-      borderColor: 'rgba(255,255,255,0.3)',
-    },
-    avatarEmoji: { fontSize: 44 },
-    avatarEditBadge: {
-      position: 'absolute',
-      bottom: 0,
-      right: 0,
-      width: 28,
-      height: 28,
-      borderRadius: 14,
-      backgroundColor: colors.card,
+      width: 110,
+      height: 110,
+      borderRadius: 55,
+      backgroundColor: 'rgba(255,255,255,0.08)',
       justifyContent: 'center',
       alignItems: 'center',
       borderWidth: 2,
-      borderColor: 'rgba(255,255,255,0.3)',
+      borderColor: 'rgba(255,255,255,0.2)',
     },
-    avatarEditText: { fontSize: 14 },
+    avatarEmoji: { fontSize: 48 },
+    avatarEditBadge: {
+      position: 'absolute',
+      bottom: 2,
+      right: 2,
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      backgroundColor: '#E94560',
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 3,
+      borderColor: '#09090B',
+    },
+    avatarEditText: { fontSize: 15 },
 
     username: {
-      fontSize: 20,
-      fontWeight: 'bold',
+      fontSize: 24,
+      fontWeight: '800',
       color: '#fff',
-      marginBottom: 10,
+      marginBottom: 8,
+      letterSpacing: 0.5,
     },
 
     // BIO
     bioContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-      marginBottom: 20,
-      paddingHorizontal: 16,
+      paddingHorizontal: 32,
+      marginBottom: 32,
     },
     bioText: {
-      color: 'rgba(255,255,255,0.85)',
-      fontSize: 14,
+      color: 'rgba(255,255,255,0.65)',
+      fontSize: 15,
       textAlign: 'center',
-      lineHeight: 20,
+      lineHeight: 22,
+      fontStyle: 'italic',
     },
-    bioEditIcon: { fontSize: 14 },
-    bioEditContainer: {
-      width: '100%',
-      marginBottom: 20,
-    },
-    bioInput: {
-      backgroundColor: 'rgba(255,255,255,0.15)',
-      borderRadius: 12,
-      padding: 12,
-      color: '#fff',
-      fontSize: 14,
-      minHeight: 70,
-      textAlignVertical: 'top',
-      borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.25)',
-    },
-    bioEditButtons: {
-      flexDirection: 'row',
-      gap: 10,
-      marginTop: 10,
-      justifyContent: 'flex-end',
-    },
-    bioCancel: {
-      paddingHorizontal: 16,
-      paddingVertical: 8,
-      borderRadius: 10,
-      backgroundColor: 'rgba(255,255,255,0.15)',
-    },
-    bioCancelText: { color: '#fff', fontSize: 14 },
-    bioSave: {
-      paddingHorizontal: 16,
-      paddingVertical: 8,
-      borderRadius: 10,
-      backgroundColor: 'rgba(255,255,255,0.3)',
-    },
-    bioSaveText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
 
-    citySection: {
-      width: '100%',
-      marginBottom: 18,
-    },
-    cityTitle: {
-      color: '#fff',
-      fontSize: 13,
-      fontWeight: '700',
-      marginBottom: 10,
-    },
-    cityOptions: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 10,
-    },
-    cityOption: {
-      paddingVertical: 8,
-      paddingHorizontal: 14,
-      borderRadius: 18,
-      backgroundColor: 'rgba(255,255,255,0.14)',
-      borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.2)',
-    },
-    cityOptionActive: {
-      backgroundColor: '#fff',
-      borderColor: 'rgba(255,255,255,0.5)',
-    },
-    cityOptionText: {
-      color: '#fff',
-      fontSize: 12,
-      fontWeight: '600',
-    },
-    cityOptionTextActive: {
-      color: '#000',
-    },
-    citySavingText: {
-      color: 'rgba(255,255,255,0.85)',
-      fontSize: 12,
-      marginTop: 8,
-    },
 
     // STATS
     statsRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: 'rgba(255,255,255,0.12)',
-      borderRadius: 16,
-      paddingVertical: 14,
-      paddingHorizontal: 20,
-      gap: 16,
+      justifyContent: 'center',
+      gap: 32,
+      width: '100%',
     },
     stat: { alignItems: 'center' },
-    statNumber: { fontSize: 20, fontWeight: 'bold', color: '#fff' },
-    statLabel: { fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
-    statDivider: { width: 1, height: 32, backgroundColor: 'rgba(255,255,255,0.25)' },
+    statNumber: { fontSize: 24, fontWeight: '900', color: '#fff', letterSpacing: 0.5 },
+    statLabel: { fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 6, textTransform: 'uppercase', letterSpacing: 1.2, fontWeight: '700' },
+    statDivider: { width: 1, height: 28, backgroundColor: 'rgba(255,255,255,0.15)' },
 
     // SEKMELER
     tabs: {
       flexDirection: 'row',
-      backgroundColor: colors.card,
+      backgroundColor: colors.background,
       borderBottomWidth: 1,
-      borderBottomColor: colors.border,
+      borderBottomColor: 'rgba(255,255,255,0.05)',
+      paddingTop: 8,
     },
     tab: {
       flex: 1,
-      paddingVertical: 14,
+      paddingVertical: 16,
       alignItems: 'center',
-      borderBottomWidth: 2,
+      borderBottomWidth: 3,
       borderBottomColor: 'transparent',
     },
     tabActive: {
-      borderBottomColor: colors.primary,
+      borderBottomColor: '#E94560',
     },
     tabText: {
-      fontSize: 13,
+      fontSize: 14,
       color: colors.textSecondary,
       fontWeight: '600',
     },
     tabTextActive: {
-      color: colors.primary,
+      color: '#fff',
+      fontWeight: '700',
     },
 
     // İÇERİK
