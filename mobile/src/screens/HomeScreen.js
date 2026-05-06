@@ -123,7 +123,7 @@ export default function HomeScreen({ navigation }) {
       }
     >
       {/* ── HEADER ─────────────────────────────────────────────────────── */}
-      <LinearGradient colors={colors.headerGradient} style={styles.header}>
+      <LinearGradient colors={['#1E1B4B', '#09090B']} style={styles.header}>
         <View style={styles.headerTop}>
           <View>
             <Text style={styles.headerGreeting}>Merhaba 👋</Text>
@@ -406,52 +406,53 @@ function createStyles(colors) {
     },
 
     // HEADER
-    header: { paddingTop: 60, paddingBottom: 20, paddingHorizontal: 20 },
+    header: { paddingTop: 64, paddingBottom: 24, paddingHorizontal: 24 },
     headerTop: {
       flexDirection: 'row', justifyContent: 'space-between',
-      alignItems: 'center', marginBottom: 16,
+      alignItems: 'center', marginBottom: 20,
     },
-    headerGreeting: { fontSize: 13, color: colors.textSecondary },
-    headerTitle: { fontSize: 28, fontWeight: 'bold', color: colors.text },
-    headerLogo: { width: 48, height: 48 },
+    headerGreeting: { fontSize: 14, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.5 },
+    headerTitle: { fontSize: 30, fontWeight: '900', color: '#fff', letterSpacing: 0.5 },
+    headerLogo: { width: 52, height: 52 },
 
     // ARAMA
     searchBox: {
       flexDirection: 'row', alignItems: 'center',
-      backgroundColor: colors.input,
-      borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, gap: 8,
+      backgroundColor: 'rgba(255,255,255,0.08)',
+      borderRadius: 18, paddingHorizontal: 16, paddingVertical: 12, gap: 10,
+      borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
     },
     searchIcon: { fontSize: 16 },
-    searchInput: { flex: 1, color: colors.text, fontSize: 14 },
-    searchClear: { color: colors.textSecondary, fontSize: 16 },
+    searchInput: { flex: 1, color: '#fff', fontSize: 15 },
+    searchClear: { color: 'rgba(255,255,255,0.5)', fontSize: 16 },
 
     // BÖLÜMLER
-    section: { marginTop: 24, paddingHorizontal: 20 },
+    section: { marginTop: 28, paddingHorizontal: 24 },
     sectionHeader: {
       flexDirection: 'row', justifyContent: 'space-between',
-      alignItems: 'center', marginBottom: 14,
+      alignItems: 'center', marginBottom: 16,
     },
-    sectionTitle: { fontSize: 17, fontWeight: 'bold', color: colors.text },
-    seeAll: { fontSize: 13, color: colors.primary, fontWeight: '600' },
+    sectionTitle: { fontSize: 18, fontWeight: '800', color: colors.text, letterSpacing: 0.5 },
+    seeAll: { fontSize: 13, color: '#E94560', fontWeight: '700' },
     searchResultCount: { fontSize: 13, color: colors.textSecondary },
 
     // KATEGORİLER
-    categoriesList: { gap: 10, paddingBottom: 4 },
-    categoryWrapper: { marginRight: 2 },
+    categoriesList: { gap: 10, paddingBottom: 6 },
+    categoryWrapper: { marginRight: 4 },
     categoryActive: {
       flexDirection: 'row', alignItems: 'center',
-      paddingHorizontal: 14, paddingVertical: 8,
-      borderRadius: 20, gap: 6,
+      paddingHorizontal: 16, paddingVertical: 10,
+      borderRadius: 22, gap: 6,
     },
     categoryInactive: {
       flexDirection: 'row', alignItems: 'center',
-      paddingHorizontal: 14, paddingVertical: 8,
-      borderRadius: 20, backgroundColor: colors.card,
-      borderWidth: 1, borderColor: colors.border, gap: 6,
+      paddingHorizontal: 16, paddingVertical: 10,
+      borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)',
+      borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', gap: 6,
     },
     categoryEmoji: { fontSize: 16 },
-    categoryLabel: { fontSize: 13, color: colors.textSecondary, fontWeight: '600' },
-    categoryLabelActive: { fontSize: 13, color: '#fff', fontWeight: '600' },
+    categoryLabel: { fontSize: 13, color: 'rgba(255,255,255,0.6)', fontWeight: '600' },
+    categoryLabelActive: { fontSize: 13, color: '#fff', fontWeight: '700' },
 
     // ÖNE ÇIKANLAR
     horizontalList: { gap: 14, paddingBottom: 4 },
@@ -493,23 +494,23 @@ function createStyles(colors) {
     // LİSTE KARTI
     listCard: {
       flexDirection: 'row', alignItems: 'center',
-      backgroundColor: colors.card,
-      borderRadius: 14, marginBottom: 10,
+      backgroundColor: 'rgba(255,255,255,0.03)',
+      borderRadius: 16, marginBottom: 12,
       overflow: 'hidden',
-      borderWidth: 1, borderColor: colors.border,
+      borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
     },
-    listCardLeft: { width: 64, height: 64, justifyContent: 'center', alignItems: 'center' },
+    listCardLeft: { width: 68, height: 68, justifyContent: 'center', alignItems: 'center' },
     listCardEmoji: { fontSize: 28 },
-    listCardRight: { flex: 1, padding: 12, gap: 3 },
-    listCardName: { fontSize: 14, fontWeight: 'bold', color: colors.text },
-    listCardSub: { fontSize: 12, color: colors.textSecondary },
-    listCardArrow: { fontSize: 22, color: colors.textSecondary, paddingRight: 12 },
+    listCardRight: { flex: 1, padding: 12, gap: 4 },
+    listCardName: { fontSize: 15, fontWeight: 'bold', color: colors.text, letterSpacing: 0.3 },
+    listCardSub: { fontSize: 12, color: 'rgba(255,255,255,0.6)' },
+    listCardArrow: { fontSize: 24, color: 'rgba(255,255,255,0.3)', paddingRight: 16 },
 
     // POST KARTI
     postCard: {
-      backgroundColor: colors.card,
-      borderRadius: 16, padding: 16, marginBottom: 12,
-      borderWidth: 1, borderColor: colors.border,
+      backgroundColor: 'rgba(255,255,255,0.03)',
+      borderRadius: 18, padding: 20, marginBottom: 14,
+      borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
     },
     postHeader: {
       flexDirection: 'row', alignItems: 'center',

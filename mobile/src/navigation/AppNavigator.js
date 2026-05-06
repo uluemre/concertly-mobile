@@ -18,6 +18,7 @@ import CommunityDetailScreen from '../screens/CommunityDetailScreen';
 import ArtistProfileScreen from '../screens/ArtistProfileScreen';
 import WelcomeScreen from '../screens/WelcomeScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import MapScreen from '../screens/MapScreen';
 
 import { useTheme } from '../theme';
 
@@ -97,6 +98,7 @@ export default function AppNavigator() {
         <Stack.Screen name="ArtistProfile" component={ArtistProfileScreen} />
         <Stack.Screen name="Welcome" component={WelcomeScreen} />
         <Stack.Screen name="Settings" component={SettingsScreen} />
+        <Stack.Screen name="Map" component={MapScreen} />
 
 
       </Stack.Navigator>

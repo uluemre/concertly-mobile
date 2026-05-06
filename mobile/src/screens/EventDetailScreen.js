@@ -160,13 +160,15 @@ export default function EventDetailScreen({ route, navigation }) {
             </View>
           )}
 
-          <View style={styles.heroOverlay}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-            >
-              <Text style={styles.backText}>← Geri</Text>
-            </TouchableOpacity>
+          <LinearGradient colors={['transparent', 'rgba(0,0,0,0.9)']} style={styles.heroOverlay}>
+            <View style={styles.heroTopActions}>
+              <TouchableOpacity
+                style={styles.backButton}
+                onPress={() => navigation.goBack()}
+              >
+                <Text style={styles.backText}>← Geri</Text>
+              </TouchableOpacity>
+            </View>
 
             <Text style={styles.heroTitle}>{event.name}</Text>
 
@@ -175,10 +177,10 @@ export default function EventDetailScreen({ route, navigation }) {
                 <Text style={styles.genreText}>🎵 {event.genre}</Text>
               </View>
             )}
-          </View>
+          </LinearGradient>
         </View>
       ) : (
-        <LinearGradient colors={['#E94560', '#7C3AED']} style={styles.heroSection}>
+        <LinearGradient colors={['#1E1B4B', '#09090B']} style={styles.heroSection}>
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
@@ -335,7 +337,7 @@ function createStyles(colors) {
   return StyleSheet.create({
     heroImage: {
       width: '100%',
-      height: 220,
+      height: 320,
     },
 
     heroOverlay: {
@@ -343,36 +345,55 @@ function createStyles(colors) {
       top: 0,
       left: 0,
       right: 0,
-      height: 220,
-      justifyContent: 'center',
-      alignItems: 'center',
+      height: 320,
+      justifyContent: 'flex-end',
+      alignItems: 'flex-start',
+      paddingBottom: 24,
+      paddingHorizontal: 24,
+    },
+    heroTopActions: {
+      position: 'absolute',
+      top: 56,
+      left: 20,
     },
 
     genreBadge: {
-      backgroundColor: 'rgba(0,0,0,0.4)',
-      paddingHorizontal: 12,
-      paddingVertical: 4,
-      borderRadius: 12,
-      marginTop: 8,
+      backgroundColor: 'rgba(255,255,255,0.15)',
+      paddingHorizontal: 14,
+      paddingVertical: 6,
+      borderRadius: 16,
+      marginTop: 10,
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.3)',
     },
 
     genreText: {
       color: '#fff',
       fontSize: 13,
-      fontWeight: '600',
+      fontWeight: '700',
+      letterSpacing: 0.5,
     },
     container: { flex: 1, backgroundColor: colors.background },
 
     heroSection: {
-      paddingTop: 60, paddingBottom: 40,
+      paddingTop: 64, paddingBottom: 40,
       paddingHorizontal: 24, alignItems: 'center',
     },
-    backButton: { alignSelf: 'flex-start', marginBottom: 20 },
-    backText: { fontSize: 16, color: 'rgba(255,255,255,0.9)', fontWeight: '600' },
+    backButton: { 
+      backgroundColor: 'rgba(255,255,255,0.15)', 
+      paddingHorizontal: 16, paddingVertical: 8, 
+      borderRadius: 20,
+      borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)'
+    },
+    backText: { fontSize: 14, color: '#fff', fontWeight: '700' },
     heroEmoji: { fontSize: 64, marginBottom: 12 },
     heroTitle: {
-      fontSize: 26, fontWeight: 'bold',
-      color: '#fff', textAlign: 'center', marginBottom: 12,
+      fontSize: 32, fontWeight: '900',
+      color: '#fff', textAlign: 'left', marginBottom: 4,
+      letterSpacing: 0.5,
+      textShadowColor: 'rgba(0,0,0,0.5)',
+      textShadowOffset: { width: 0, height: 2 },
+      textShadowRadius: 4,
     },
     approvedBadge: {
       backgroundColor: 'rgba(255,255,255,0.2)',
@@ -380,38 +401,38 @@ function createStyles(colors) {
     },
     approvedText: { color: '#fff', fontWeight: '600', fontSize: 13 },
 
-    content: { padding: 16, gap: 12 },
+    content: { padding: 20, gap: 16 },
 
     // KATILIM
-    attendanceRow: { flexDirection: 'row', gap: 10 },
+    attendanceRow: { flexDirection: 'row', gap: 12 },
     attendBtn: {
       flex: 1, flexDirection: 'row', alignItems: 'center',
-      justifyContent: 'center', gap: 6,
-      paddingVertical: 14, borderRadius: 14,
-      backgroundColor: colors.card,
-      borderWidth: 1, borderColor: colors.border,
+      justifyContent: 'center', gap: 8,
+      paddingVertical: 16, borderRadius: 16,
+      backgroundColor: 'rgba(255,255,255,0.05)',
+      borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
     },
-    attendBtnActive: { backgroundColor: '#00D4AA22', borderColor: '#00D4AA' },
-    attendBtnActiveYellow: { backgroundColor: '#F5A62322', borderColor: '#F5A623' },
-    attendBtnEmoji: { fontSize: 16 },
-    attendBtnText: { fontSize: 14, fontWeight: '700', color: colors.textSecondary },
+    attendBtnActive: { backgroundColor: 'rgba(0,212,170,0.15)', borderColor: '#00D4AA' },
+    attendBtnActiveYellow: { backgroundColor: 'rgba(245,166,35,0.15)', borderColor: '#F5A623' },
+    attendBtnEmoji: { fontSize: 18 },
+    attendBtnText: { fontSize: 14, fontWeight: '800', color: colors.textSecondary },
     attendBtnTextActive: { color: '#00D4AA' },
     attendBtnTextActiveYellow: { color: '#F5A623' },
 
     // INFO KARTLARI
     infoCard: {
-      backgroundColor: colors.card,
-      borderRadius: 16, padding: 18,
-      borderWidth: 1, borderColor: colors.border,
+      backgroundColor: 'rgba(255,255,255,0.05)',
+      borderRadius: 20, padding: 20,
+      borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
     },
     sectionTitle: {
-      fontSize: 13, color: colors.textSecondary,
-      marginBottom: 8, fontWeight: '600',
-      textTransform: 'uppercase', letterSpacing: 1,
+      fontSize: 13, color: 'rgba(255,255,255,0.5)',
+      marginBottom: 10, fontWeight: '700',
+      textTransform: 'uppercase', letterSpacing: 1.2,
     },
-    description: { fontSize: 15, color: colors.text, lineHeight: 22 },
-    infoValue: { fontSize: 16, color: colors.text, fontWeight: '600' },
-    infoValueSub: { fontSize: 14, color: colors.textSecondary, marginTop: 4 },
+    description: { fontSize: 15, color: '#fff', lineHeight: 24 },
+    infoValue: { fontSize: 17, color: '#fff', fontWeight: '700', letterSpacing: 0.3 },
+    infoValueSub: { fontSize: 14, color: 'rgba(255,255,255,0.6)', marginTop: 6 },
 
     // SANATÇI SATIRI
     artistRow: {
@@ -419,37 +440,42 @@ function createStyles(colors) {
       justifyContent: 'space-between',
       alignItems: 'center',
     },
-    chevron: { fontSize: 24, color: colors.textSecondary },
+    chevron: { fontSize: 24, color: 'rgba(255,255,255,0.4)' },
 
     // KONUM DOĞRULAMA
     verifyInfoCard: {
-      backgroundColor: '#1A2A1A',
-      borderRadius: 16, padding: 16,
-      flexDirection: 'row', alignItems: 'center', gap: 12,
-      borderWidth: 1, borderColor: '#00D4AA44',
+      backgroundColor: 'rgba(0,212,170,0.08)',
+      borderRadius: 20, padding: 18,
+      flexDirection: 'row', alignItems: 'center', gap: 14,
+      borderWidth: 1, borderColor: 'rgba(0,212,170,0.3)',
     },
-    verifyInfoEmoji: { fontSize: 28 },
+    verifyInfoEmoji: { fontSize: 32 },
     verifyInfoText: { flex: 1 },
-    verifyInfoTitle: { color: '#00D4AA', fontWeight: 'bold', fontSize: 14, marginBottom: 4 },
-    verifyInfoSub: { color: colors.textSecondary, fontSize: 12, lineHeight: 18 },
+    verifyInfoTitle: { color: '#00D4AA', fontWeight: '800', fontSize: 15, marginBottom: 6 },
+    verifyInfoSub: { color: 'rgba(255,255,255,0.7)', fontSize: 13, lineHeight: 20 },
 
     verifyingContainer: {
       flexDirection: 'row', alignItems: 'center',
-      justifyContent: 'center', gap: 10, padding: 16,
+      justifyContent: 'center', gap: 12, padding: 20,
     },
-    verifyingText: { color: colors.textSecondary, fontSize: 14 },
+    verifyingText: { color: 'rgba(255,255,255,0.7)', fontSize: 15 },
 
     actionButton: {
-      padding: 18, borderRadius: 16,
-      alignItems: 'center', marginTop: 8, marginBottom: 32,
+      padding: 18, borderRadius: 20,
+      alignItems: 'center', marginTop: 12, marginBottom: 36,
+      shadowColor: '#E94560', shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.4, shadowRadius: 12, elevation: 8,
     },
-    actionButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+    actionButtonText: { color: '#fff', fontSize: 17, fontWeight: '900', letterSpacing: 0.5 },
+    
     ticketButton: {
-      backgroundColor: '#F5A623',
+      backgroundColor: '#E94560',
       padding: 18,
-      borderRadius: 16,
+      borderRadius: 20,
       alignItems: 'center',
-      marginTop: 8,
+      marginTop: 12,
+      shadowColor: '#E94560', shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.4, shadowRadius: 8, elevation: 6,
     },
 
     ticketButtonText: {

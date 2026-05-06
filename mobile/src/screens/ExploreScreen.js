@@ -38,6 +38,15 @@ const menuItems = [
     available: true,
   },
   {
+    id: 7,
+    title: 'Harita',
+    subtitle: 'Etkinlikleri konumda gör',
+    emoji: '🗺️',
+    gradient: ['#00D4AA', '#00A8FF'],
+    screen: 'Map',
+    available: true,
+  },
+  {
     id: 4,
     title: 'Konser Ekipleri',
     subtitle: 'Aynı konsere gidenleri bul',
@@ -64,6 +73,7 @@ const menuItems = [
     screen: null,
     available: false,
   },
+
 ];
 
 function AnimatedCard({ item, index, navigation, styles, colors }) {
