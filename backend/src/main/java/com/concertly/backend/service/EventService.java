@@ -24,13 +24,13 @@ public class EventService {
     private final UserRepository userRepository;
 
     public EventService(EventRepository eventRepository,
-                        ArtistRepository artistRepository,
-                        VenueRepository venueRepository,
-                        UserRepository userRepository) {
-        this.eventRepository  = eventRepository;
+            ArtistRepository artistRepository,
+            VenueRepository venueRepository,
+            UserRepository userRepository) {
+        this.eventRepository = eventRepository;
         this.artistRepository = artistRepository;
-        this.venueRepository  = venueRepository;
-        this.userRepository   = userRepository;
+        this.venueRepository = venueRepository;
+        this.userRepository = userRepository;
     }
 
     // ✅ ETKİNLİK OLUŞTUR
@@ -61,9 +61,12 @@ public class EventService {
     }
 
     // ✅ TÜM ETKİNLİKLERİ LİSTELE
-    public List<EventResponse> getAllEvents() {
-        return eventRepository.findAll()
-                .stream()
+    public List<EventResponse> getAllEvents(String city) {
+        List<Event> events = (city == null || city.isBlank())
+                ? eventRepository.findAll()
+                : eventRepository.findByVenue_CityIgnoreCase(city);
+
+        return events.stream()
                 .map(EventResponse::from)
                 .toList();
     }

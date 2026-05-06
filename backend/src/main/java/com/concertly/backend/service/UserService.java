@@ -29,10 +29,10 @@ public class UserService {
     private final CommentRepository commentRepository;
 
     public UserService(UserRepository userRepository,
-                       PostRepository postRepository,
-                       EventRepository eventRepository,
-                       LikeRepository likeRepository,
-                       CommentRepository commentRepository) {
+            PostRepository postRepository,
+            EventRepository eventRepository,
+            LikeRepository likeRepository,
+            CommentRepository commentRepository) {
         this.userRepository = userRepository;
         this.postRepository = postRepository;
         this.eventRepository = eventRepository;
@@ -74,9 +74,12 @@ public class UserService {
         if (request.getProfileImageUrl() != null) {
             user.setProfileImageUrl(request.getProfileImageUrl());
         }
+        if (request.getCity() != null) {
+            user.setCity(request.getCity());
+        }
 
         User saved = userRepository.save(user);
-        return new UserResponse(saved.getId(), saved.getUsername(), saved.getEmail());
+        return new UserResponse(saved.getId(), saved.getUsername(), saved.getEmail(), saved.getCity());
     }
 
     // ✅ KULLANICININ POSTLARI

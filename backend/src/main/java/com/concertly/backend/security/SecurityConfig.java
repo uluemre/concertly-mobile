@@ -31,7 +31,7 @@ public class SecurityConfig {
     private final UserDetailsServiceImpl userDetailsService;
 
     public SecurityConfig(JwtFilter jwtFilter, UserDetailsServiceImpl userDetailsService) {
-        this.jwtFilter          = jwtFilter;
+        this.jwtFilter = jwtFilter;
         this.userDetailsService = userDetailsService;
     }
 
@@ -45,16 +45,17 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/register").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/users/register").permitAll()
-                        .requestMatchers(HttpMethod.GET,  "/api/events").permitAll()
-                        .requestMatchers(HttpMethod.GET,  "/api/events/**").permitAll()
-                        .requestMatchers(HttpMethod.GET,  "/api/posts/feed/trending").permitAll()
-                        .requestMatchers(HttpMethod.GET,  "/api/users/*/profile").permitAll()
-                        .requestMatchers(HttpMethod.GET,  "/api/posts/*/comments").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/events").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/events/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/posts/feed/trending").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/users/*/profile").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/posts/*/comments").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/events/sync").permitAll()
                         .requestMatchers(HttpMethod.PATCH, "/api/events/*/approve").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET,  "/api/events/*/attendance").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/events/*/attendance").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/events/*/attendance").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/artists/*/attendance").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/search").permitAll()
                         .anyRequest().authenticated()
 
                 )

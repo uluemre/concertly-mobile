@@ -28,8 +28,8 @@ public class EventController {
     }
 
     @GetMapping
-    public List<EventResponse> getEvents() {
-        return eventService.getAllEvents();
+    public List<EventResponse> getEvents(@RequestParam(value = "city", required = false) String city) {
+        return eventService.getAllEvents(city);
     }
 
     @GetMapping("/{id}")
@@ -42,7 +42,7 @@ public class EventController {
         return eventService.approveEvent(id);
     }
 
-    @PostMapping("/sync")
+    @RequestMapping(value = "/sync", method = { RequestMethod.GET, RequestMethod.POST })
     public String syncEvents() {
         int count = ticketmasterService.syncTurkeyEvents();
         return count + " etkinlik eklendi.";

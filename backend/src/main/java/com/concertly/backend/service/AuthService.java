@@ -18,18 +18,18 @@ import org.springframework.stereotype.Service;
 @Service
 public class AuthService {
 
-    private final UserRepository        userRepository;
-    private final PasswordEncoder       passwordEncoder;
-    private final JwtUtil               jwtUtil;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
 
     public AuthService(UserRepository userRepository,
-                       PasswordEncoder passwordEncoder,
-                       JwtUtil jwtUtil,
-                       AuthenticationManager authenticationManager) {
-        this.userRepository        = userRepository;
-        this.passwordEncoder       = passwordEncoder;
-        this.jwtUtil               = jwtUtil;
+            PasswordEncoder passwordEncoder,
+            JwtUtil jwtUtil,
+            AuthenticationManager authenticationManager) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.jwtUtil = jwtUtil;
         this.authenticationManager = authenticationManager;
     }
 
@@ -49,11 +49,12 @@ public class AuthService {
         User user = new User();
         user.setUsername(request.getUsername());
         user.setEmail(request.getEmail());
+        user.setCity(request.getCity());
         // ✅ Plain text yerine BCrypt hash
         user.setPassword(passwordEncoder.encode(request.getPassword()));
 
         User saved = userRepository.save(user);
-        return new UserResponse(saved.getId(), saved.getUsername(), saved.getEmail());
+        return new UserResponse(saved.getId(), saved.getUsername(), saved.getEmail(), saved.getCity());
     }
 
     // ✅ GİRİŞ — kimlik doğrula, JWT üret
@@ -64,9 +65,7 @@ public class AuthService {
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             request.getEmail(),
-                            request.getPassword()
-                    )
-            );
+                            request.getPassword()));
         } catch (BadCredentialsException e) {
             throw new BadCredentialsException("Email veya şifre hatalı.");
         }
@@ -81,7 +80,7 @@ public class AuthService {
                 token,
                 user.getId(),
                 user.getUsername(),
-                user.getEmail()
-        );
+                user.getEmail(),
+                user.getCity());
     }
 }

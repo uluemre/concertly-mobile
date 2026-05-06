@@ -10,29 +10,53 @@ public class UserSummaryResponse {
     private String profileImageUrl;
     private long followerCount;
     private long followingCount;
+    private String city;
 
-    // ✅ Mobil 'isFollowedByCurrentUser' bekliyor, Jackson bunu 'followedByCurrentUser' yapıyor
+    // ✅ Mobil 'isFollowedByCurrentUser' bekliyor, Jackson bunu
+    // 'followedByCurrentUser' yapıyor
     @JsonProperty("isFollowedByCurrentUser")
     private boolean isFollowedByCurrentUser;
 
     public static UserSummaryResponse from(User user,
-                                           long followerCount,
-                                           long followingCount,
-                                           boolean isFollowedByCurrentUser) {
+            long followerCount,
+            long followingCount,
+            boolean isFollowedByCurrentUser) {
         UserSummaryResponse dto = new UserSummaryResponse();
-        dto.id                      = user.getId();
-        dto.username                = user.getUsername();
-        dto.profileImageUrl         = user.getProfileImageUrl();
-        dto.followerCount           = followerCount;
-        dto.followingCount          = followingCount;
+        dto.id = user.getId();
+        dto.username = user.getUsername();
+        dto.profileImageUrl = user.getProfileImageUrl();
+        dto.city = user.getCity();
+        dto.followerCount = followerCount;
+        dto.followingCount = followingCount;
         dto.isFollowedByCurrentUser = isFollowedByCurrentUser;
         return dto;
     }
 
-    public Long getId() { return id; }
-    public String getUsername() { return username; }
-    public String getProfileImageUrl() { return profileImageUrl; }
-    public long getFollowerCount() { return followerCount; }
-    public long getFollowingCount() { return followingCount; }
-    public boolean isFollowedByCurrentUser() { return isFollowedByCurrentUser; }
+    public Long getId() {
+        return id;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public String getProfileImageUrl() {
+        return profileImageUrl;
+    }
+
+    public long getFollowerCount() {
+        return followerCount;
+    }
+
+    public long getFollowingCount() {
+        return followingCount;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public boolean isFollowedByCurrentUser() {
+        return isFollowedByCurrentUser;
+    }
 }

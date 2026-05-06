@@ -25,17 +25,17 @@ export default function ArtistProfileScreen({ route, navigation }) {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { artistId, artistName } = route.params;
 
-  const [artist, setArtist]           = useState(null);
-  const [events, setEvents]           = useState([]);
-  const [posts, setPosts]             = useState([]);
-  const [loading, setLoading]         = useState(true);
-  const [following, setFollowing]     = useState(false);
+  const [artist, setArtist] = useState(null);
+  const [events, setEvents] = useState([]);
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [following, setFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
-  const [activeTab, setActiveTab]     = useState('events');
+  const [activeTab, setActiveTab] = useState('events');
 
-  const fadeAnim  = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.96)).current;
-  const tabAnim   = useRef(new Animated.Value(0)).current;
+  const tabAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     fetchAll();
@@ -306,176 +306,178 @@ export default function ArtistProfileScreen({ route, navigation }) {
   );
 }
 
-const createStyles = (colors) => StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  loadingContainer: {
-    flex: 1, justifyContent: 'center',
-    alignItems: 'center', backgroundColor: colors.background,
-  },
+function createStyles(colors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    loadingContainer: {
+      flex: 1, justifyContent: 'center',
+      alignItems: 'center', backgroundColor: colors.background,
+    },
 
-  // HERO
-  hero: {
-    paddingTop: 56,
-    paddingBottom: 32,
-    paddingHorizontal: 24,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  heroBgCircle: {
-    position: 'absolute',
-    width: 300, height: 300,
-    borderRadius: 150,
-    backgroundColor: '#E9456015',
-    top: -80, right: -80,
-  },
-  backButton: { marginBottom: 24 },
-  backText: { color: colors.textSecondary, fontSize: 15, fontWeight: '600' },
+    // HERO
+    hero: {
+      paddingTop: 56,
+      paddingBottom: 32,
+      paddingHorizontal: 24,
+      overflow: 'hidden',
+      position: 'relative',
+    },
+    heroBgCircle: {
+      position: 'absolute',
+      width: 300, height: 300,
+      borderRadius: 150,
+      backgroundColor: '#E9456015',
+      top: -80, right: -80,
+    },
+    backButton: { marginBottom: 24 },
+    backText: { color: colors.textSecondary, fontSize: 15, fontWeight: '600' },
 
-  heroInner: { alignItems: 'center' },
+    heroInner: { alignItems: 'center' },
 
-  avatar: {
-    width: 110, height: 110, borderRadius: 55,
-    borderWidth: 3, borderColor: colors.border,
-    marginBottom: 6,
-  },
-  avatarPlaceholder: {
-    width: 110, height: 110, borderRadius: 55,
-    justifyContent: 'center', alignItems: 'center',
-    marginBottom: 6,
-  },
-  avatarLetter: { fontSize: 46, fontWeight: 'bold', color: '#fff' },
+    avatar: {
+      width: 110, height: 110, borderRadius: 55,
+      borderWidth: 3, borderColor: colors.border,
+      marginBottom: 6,
+    },
+    avatarPlaceholder: {
+      width: 110, height: 110, borderRadius: 55,
+      justifyContent: 'center', alignItems: 'center',
+      marginBottom: 6,
+    },
+    avatarLetter: { fontSize: 46, fontWeight: 'bold', color: '#fff' },
 
-  micBadge: {
-    width: 32, height: 32, borderRadius: 16,
-    backgroundColor: colors.card,
-    justifyContent: 'center', alignItems: 'center',
-    borderWidth: 2, borderColor: colors.border,
-    marginBottom: 12,
-    marginTop: -16,
-  },
-  micEmoji: { fontSize: 14 },
+    micBadge: {
+      width: 32, height: 32, borderRadius: 16,
+      backgroundColor: colors.card,
+      justifyContent: 'center', alignItems: 'center',
+      borderWidth: 2, borderColor: colors.border,
+      marginBottom: 12,
+      marginTop: -16,
+    },
+    micEmoji: { fontSize: 14 },
 
-  artistName: {
-    fontSize: 26, fontWeight: 'bold',
-    color: colors.text, marginBottom: 20,
-    textAlign: 'center',
-  },
+    artistName: {
+      fontSize: 26, fontWeight: 'bold',
+      color: colors.text, marginBottom: 20,
+      textAlign: 'center',
+    },
 
-  // STATS
-  statsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.card,
-    borderRadius: 16,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    gap: 20,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: colors.border,
-    width: '100%',
-  },
-  stat: { alignItems: 'center', flex: 1 },
-  statNumber: { fontSize: 20, fontWeight: 'bold', color: colors.text },
-  statLabel: { fontSize: 11, color: colors.textSecondary, marginTop: 3 },
-  statDivider: { width: 1, height: 32, backgroundColor: colors.border },
+    // STATS
+    statsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.card,
+      borderRadius: 16,
+      paddingVertical: 14,
+      paddingHorizontal: 24,
+      gap: 20,
+      marginBottom: 20,
+      borderWidth: 1,
+      borderColor: colors.border,
+      width: '100%',
+    },
+    stat: { alignItems: 'center', flex: 1 },
+    statNumber: { fontSize: 20, fontWeight: 'bold', color: colors.text },
+    statLabel: { fontSize: 11, color: colors.textSecondary, marginTop: 3 },
+    statDivider: { width: 1, height: 32, backgroundColor: colors.border },
 
-  // TAKİP BUTONU
-  followWrapper: { width: '100%' },
-  followButton: {
-    paddingVertical: 14, borderRadius: 14, alignItems: 'center',
-  },
-  followText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
-  followingButton: {
-    paddingVertical: 14, borderRadius: 14, alignItems: 'center',
-    borderWidth: 2, borderColor: colors.primary,
-  },
-  followingText: { color: colors.primary, fontWeight: 'bold', fontSize: 15 },
+    // TAKİP BUTONU
+    followWrapper: { width: '100%' },
+    followButton: {
+      paddingVertical: 14, borderRadius: 14, alignItems: 'center',
+    },
+    followText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
+    followingButton: {
+      paddingVertical: 14, borderRadius: 14, alignItems: 'center',
+      borderWidth: 2, borderColor: colors.primary,
+    },
+    followingText: { color: colors.primary, fontWeight: 'bold', fontSize: 15 },
 
-  // SEKMELER
-  tabBarWrapper: {
-    backgroundColor: colors.card,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  tabBar: {
-    flexDirection: 'row',
-    backgroundColor: colors.cardAlt,
-    borderRadius: 12,
-    padding: 4,
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  tabIndicator: {
-    position: 'absolute',
-    top: 4, bottom: 4,
-    width: '50%',
-    backgroundColor: colors.primary,
-    borderRadius: 8,
-  },
-  tabBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', zIndex: 1 },
-  tabText: { fontSize: 13, fontWeight: '600', color: colors.textSecondary },
-  tabTextActive: { color: '#fff' },
+    // SEKMELER
+    tabBarWrapper: {
+      backgroundColor: colors.card,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+    },
+    tabBar: {
+      flexDirection: 'row',
+      backgroundColor: colors.cardAlt,
+      borderRadius: 12,
+      padding: 4,
+      position: 'relative',
+      overflow: 'hidden',
+    },
+    tabIndicator: {
+      position: 'absolute',
+      top: 4, bottom: 4,
+      width: '50%',
+      backgroundColor: colors.primary,
+      borderRadius: 8,
+    },
+    tabBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', zIndex: 1 },
+    tabText: { fontSize: 13, fontWeight: '600', color: colors.textSecondary },
+    tabTextActive: { color: '#fff' },
 
-  // İÇERİK
-  content: { padding: 16, paddingBottom: 32 },
+    // İÇERİK
+    content: { padding: 16, paddingBottom: 32 },
 
-  // ETKİNLİK GRİD
-  eventGrid: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: 12,
-  },
-  eventCard: {
-    width: CARD_WIDTH, borderRadius: 18, overflow: 'hidden',
-  },
-  eventCardGradient: {
-    padding: 14, minHeight: 160,
-    justifyContent: 'space-between',
-    position: 'relative',
-  },
-  eventEmoji: { fontSize: 32, marginBottom: 8 },
-  eventCardBody: { flex: 1 },
-  eventName: {
-    fontSize: 13, fontWeight: 'bold',
-    color: '#fff', marginBottom: 6,
-  },
-  eventDate: { fontSize: 11, color: 'rgba(255,255,255,0.9)', marginBottom: 3 },
-  eventCity: { fontSize: 11, color: 'rgba(255,255,255,0.8)' },
-  approvedDot: {
-    position: 'absolute', top: 10, right: 10,
-    width: 8, height: 8, borderRadius: 4,
-  },
+    // ETKİNLİK GRİD
+    eventGrid: {
+      flexDirection: 'row', flexWrap: 'wrap', gap: 12,
+    },
+    eventCard: {
+      width: CARD_WIDTH, borderRadius: 18, overflow: 'hidden',
+    },
+    eventCardGradient: {
+      padding: 14, minHeight: 160,
+      justifyContent: 'space-between',
+      position: 'relative',
+    },
+    eventEmoji: { fontSize: 32, marginBottom: 8 },
+    eventCardBody: { flex: 1 },
+    eventName: {
+      fontSize: 13, fontWeight: 'bold',
+      color: '#fff', marginBottom: 6,
+    },
+    eventDate: { fontSize: 11, color: 'rgba(255,255,255,0.9)', marginBottom: 3 },
+    eventCity: { fontSize: 11, color: 'rgba(255,255,255,0.8)' },
+    approvedDot: {
+      position: 'absolute', top: 10, right: 10,
+      width: 8, height: 8, borderRadius: 4,
+    },
 
-  // POST KARTI
-  postCard: {
-    backgroundColor: colors.card,
-    borderRadius: 16, padding: 16,
-    marginBottom: 12,
-    borderWidth: 1, borderColor: colors.border,
-  },
-  postHeader: {
-    flexDirection: 'row', alignItems: 'center',
-    marginBottom: 12, gap: 10,
-  },
-  postAvatar: {
-    width: 40, height: 40, borderRadius: 20,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  postAvatarText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
-  postHeaderInfo: { flex: 1 },
-  postUsername: { fontSize: 14, fontWeight: 'bold', color: colors.text },
-  postEvent: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
-  postDate: { fontSize: 11, color: colors.textSecondary },
-  postContent: {
-    fontSize: 14, color: colors.text,
-    lineHeight: 20, marginBottom: 12,
-  },
-  postFooter: { flexDirection: 'row', gap: 14 },
-  postStat: { fontSize: 13, color: colors.textSecondary },
+    // POST KARTI
+    postCard: {
+      backgroundColor: colors.card,
+      borderRadius: 16, padding: 16,
+      marginBottom: 12,
+      borderWidth: 1, borderColor: colors.border,
+    },
+    postHeader: {
+      flexDirection: 'row', alignItems: 'center',
+      marginBottom: 12, gap: 10,
+    },
+    postAvatar: {
+      width: 40, height: 40, borderRadius: 20,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    postAvatarText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+    postHeaderInfo: { flex: 1 },
+    postUsername: { fontSize: 14, fontWeight: 'bold', color: colors.text },
+    postEvent: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
+    postDate: { fontSize: 11, color: colors.textSecondary },
+    postContent: {
+      fontSize: 14, color: colors.text,
+      lineHeight: 20, marginBottom: 12,
+    },
+    postFooter: { flexDirection: 'row', gap: 14 },
+    postStat: { fontSize: 13, color: colors.textSecondary },
 
-  // BOŞ
-  empty: { alignItems: 'center', paddingVertical: 56 },
-  emptyEmoji: { fontSize: 52, marginBottom: 14 },
-  emptyText: { color: colors.textSecondary, fontSize: 15 },
-});
+    // BOŞ
+    empty: { alignItems: 'center', paddingVertical: 56 },
+    emptyEmoji: { fontSize: 52, marginBottom: 14 },
+    emptyText: { color: colors.textSecondary, fontSize: 15 },
+  });
+}

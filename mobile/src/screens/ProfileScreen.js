@@ -19,17 +19,24 @@ const gradientSets = [
   ['#7C3AED', '#F5A623'],
 ];
 
+const cities = [
+  'İstanbul', 'Ankara', 'İzmir', 'Antalya',
+  'Bursa', 'Adana', 'Eskişehir', 'Gaziantep'
+];
+
 export default function ProfileScreen({ navigation }) {
   const { colors, themeMode, setThemeMode } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const [profile, setProfile]     = useState(null);
-  const [posts, setPosts]         = useState([]);
-  const [events, setEvents]       = useState([]);
-  const [loading, setLoading]     = useState(true);
+  const [profile, setProfile] = useState(null);
+  const [posts, setPosts] = useState([]);
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('posts'); // 'posts' | 'events'
-  const [editing, setEditing]     = useState(false);
-  const [bio, setBio]             = useState('');
-  const [saving, setSaving]       = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [bio, setBio] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [savingCity, setSavingCity] = useState(false);
+  const [selectedCity, setSelectedCity] = useState('');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -47,6 +54,7 @@ export default function ProfileScreen({ navigation }) {
         API.get(`/users/${global.userId}/events`),
       ]);
       setProfile(profileRes.data);
+      setSelectedCity(profileRes.data.city || '');
       setBio(profileRes.data.bio || '');
       setPosts(postsRes.data);
       setEvents(eventsRes.data);
@@ -60,6 +68,23 @@ export default function ProfileScreen({ navigation }) {
       console.log('Profil hatası:', err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCitySelect = async (city) => {
+    if (city === selectedCity) return;
+    setSavingCity(true);
+    try {
+      await API.put(`/users/${global.userId}/profile`, { city });
+      setSelectedCity(city);
+      setProfile(prev => ({ ...prev, city }));
+      global.userCity = city;
+      Alert.alert('✅ Şehir kaydedildi', `${city} seçildi.`);
+    } catch (err) {
+      Alert.alert('Hata', 'Şehir kaydedilemedi.');
+      console.log(err.message);
+    } finally {
+      setSavingCity(false);
     }
   };
 
@@ -246,6 +271,33 @@ export default function ProfileScreen({ navigation }) {
           </TouchableOpacity>
         )}
 
+        <View style={styles.citySection}>
+          <Text style={styles.cityTitle}>Şehrin</Text>
+          <View style={styles.cityOptions}>
+            {cities.map(city => (
+              <TouchableOpacity
+                key={city}
+                style={[
+                  styles.cityOption,
+                  selectedCity === city && styles.cityOptionActive,
+                ]}
+                onPress={() => handleCitySelect(city)}
+                disabled={savingCity}
+              >
+                <Text style={[
+                  styles.cityOptionText,
+                  selectedCity === city && styles.cityOptionTextActive,
+                ]}>
+                  {city}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          {savingCity && (
+            <Text style={styles.citySavingText}>Kaydediliyor...</Text>
+          )}
+        </View>
+
         {/* STATS */}
         <View style={styles.statsRow}>
           <View style={styles.stat}>
@@ -343,234 +395,277 @@ export default function ProfileScreen({ navigation }) {
   );
 }
 
-const createStyles = (colors) => StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
+function createStyles(colors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
 
-  // HERO
-  hero: {
-    paddingTop: 64,
-    paddingBottom: 28,
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    position: 'relative',
-  },
-  themeToggle: {
-    position: 'absolute',
-    top: 52,
-    right: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    borderRadius: 18,
-    padding: 3,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.25)',
-  },
-  themeToggleOption: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  themeToggleOptionActive: {
-    backgroundColor: 'rgba(255,255,255,0.92)',
-  },
-  themeToggleIcon: {
-    fontSize: 14,
-  },
-  avatarWrapper: {
-    position: 'relative',
-    marginBottom: 14,
-  },
-  avatarImage: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    borderWidth: 3,
-    borderColor: 'rgba(255,255,255,0.4)',
-  },
-  avatarPlaceholder: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: 'rgba(255,255,255,0.3)',
-  },
-  avatarEmoji: { fontSize: 44 },
-  avatarEditBadge: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: colors.card,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.3)',
-  },
-  avatarEditText: { fontSize: 14 },
+    // HERO
+    hero: {
+      paddingTop: 64,
+      paddingBottom: 28,
+      alignItems: 'center',
+      paddingHorizontal: 24,
+      position: 'relative',
+    },
+    themeToggle: {
+      position: 'absolute',
+      top: 52,
+      right: 16,
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: 'rgba(255,255,255,0.18)',
+      borderRadius: 18,
+      padding: 3,
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.25)',
+    },
+    themeToggleOption: {
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    themeToggleOptionActive: {
+      backgroundColor: 'rgba(255,255,255,0.92)',
+    },
+    themeToggleIcon: {
+      fontSize: 14,
+    },
+    avatarWrapper: {
+      position: 'relative',
+      marginBottom: 14,
+    },
+    avatarImage: {
+      width: 96,
+      height: 96,
+      borderRadius: 48,
+      borderWidth: 3,
+      borderColor: 'rgba(255,255,255,0.4)',
+    },
+    avatarPlaceholder: {
+      width: 96,
+      height: 96,
+      borderRadius: 48,
+      backgroundColor: 'rgba(255,255,255,0.15)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 3,
+      borderColor: 'rgba(255,255,255,0.3)',
+    },
+    avatarEmoji: { fontSize: 44 },
+    avatarEditBadge: {
+      position: 'absolute',
+      bottom: 0,
+      right: 0,
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      backgroundColor: colors.card,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 2,
+      borderColor: 'rgba(255,255,255,0.3)',
+    },
+    avatarEditText: { fontSize: 14 },
 
-  username: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 10,
-  },
+    username: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: '#fff',
+      marginBottom: 10,
+    },
 
-  // BIO
-  bioContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 20,
-    paddingHorizontal: 16,
-  },
-  bioText: {
-    color: 'rgba(255,255,255,0.85)',
-    fontSize: 14,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  bioEditIcon: { fontSize: 14 },
-  bioEditContainer: {
-    width: '100%',
-    marginBottom: 20,
-  },
-  bioInput: {
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 12,
-    padding: 12,
-    color: '#fff',
-    fontSize: 14,
-    minHeight: 70,
-    textAlignVertical: 'top',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.25)',
-  },
-  bioEditButtons: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 10,
-    justifyContent: 'flex-end',
-  },
-  bioCancel: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-  },
-  bioCancelText: { color: '#fff', fontSize: 14 },
-  bioSave: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-  },
-  bioSaveText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
+    // BIO
+    bioContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginBottom: 20,
+      paddingHorizontal: 16,
+    },
+    bioText: {
+      color: 'rgba(255,255,255,0.85)',
+      fontSize: 14,
+      textAlign: 'center',
+      lineHeight: 20,
+    },
+    bioEditIcon: { fontSize: 14 },
+    bioEditContainer: {
+      width: '100%',
+      marginBottom: 20,
+    },
+    bioInput: {
+      backgroundColor: 'rgba(255,255,255,0.15)',
+      borderRadius: 12,
+      padding: 12,
+      color: '#fff',
+      fontSize: 14,
+      minHeight: 70,
+      textAlignVertical: 'top',
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.25)',
+    },
+    bioEditButtons: {
+      flexDirection: 'row',
+      gap: 10,
+      marginTop: 10,
+      justifyContent: 'flex-end',
+    },
+    bioCancel: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 10,
+      backgroundColor: 'rgba(255,255,255,0.15)',
+    },
+    bioCancelText: { color: '#fff', fontSize: 14 },
+    bioSave: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 10,
+      backgroundColor: 'rgba(255,255,255,0.3)',
+    },
+    bioSaveText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
 
-  // STATS
-  statsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderRadius: 16,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    gap: 16,
-  },
-  stat: { alignItems: 'center' },
-  statNumber: { fontSize: 20, fontWeight: 'bold', color: '#fff' },
-  statLabel: { fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
-  statDivider: { width: 1, height: 32, backgroundColor: 'rgba(255,255,255,0.25)' },
+    citySection: {
+      width: '100%',
+      marginBottom: 18,
+    },
+    cityTitle: {
+      color: '#fff',
+      fontSize: 13,
+      fontWeight: '700',
+      marginBottom: 10,
+    },
+    cityOptions: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 10,
+    },
+    cityOption: {
+      paddingVertical: 8,
+      paddingHorizontal: 14,
+      borderRadius: 18,
+      backgroundColor: 'rgba(255,255,255,0.14)',
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.2)',
+    },
+    cityOptionActive: {
+      backgroundColor: '#fff',
+      borderColor: 'rgba(255,255,255,0.5)',
+    },
+    cityOptionText: {
+      color: '#fff',
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    cityOptionTextActive: {
+      color: '#000',
+    },
+    citySavingText: {
+      color: 'rgba(255,255,255,0.85)',
+      fontSize: 12,
+      marginTop: 8,
+    },
 
-  // SEKMELER
-  tabs: {
-    flexDirection: 'row',
-    backgroundColor: colors.card,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 14,
-    alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  tabActive: {
-    borderBottomColor: colors.primary,
-  },
-  tabText: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    fontWeight: '600',
-  },
-  tabTextActive: {
-    color: colors.primary,
-  },
+    // STATS
+    statsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: 'rgba(255,255,255,0.12)',
+      borderRadius: 16,
+      paddingVertical: 14,
+      paddingHorizontal: 20,
+      gap: 16,
+    },
+    stat: { alignItems: 'center' },
+    statNumber: { fontSize: 20, fontWeight: 'bold', color: '#fff' },
+    statLabel: { fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
+    statDivider: { width: 1, height: 32, backgroundColor: 'rgba(255,255,255,0.25)' },
 
-  // İÇERİK
-  content: { padding: 16, paddingBottom: 8 },
+    // SEKMELER
+    tabs: {
+      flexDirection: 'row',
+      backgroundColor: colors.card,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    tab: {
+      flex: 1,
+      paddingVertical: 14,
+      alignItems: 'center',
+      borderBottomWidth: 2,
+      borderBottomColor: 'transparent',
+    },
+    tabActive: {
+      borderBottomColor: colors.primary,
+    },
+    tabText: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      fontWeight: '600',
+    },
+    tabTextActive: {
+      color: colors.primary,
+    },
 
-  // POST KARTI
-  postCard: {
-    backgroundColor: colors.card,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  postHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  postEventName: { fontSize: 13, color: colors.primary, fontWeight: '700', flex: 1 },
-  postDate: { fontSize: 11, color: colors.textSecondary },
-  postContent: { fontSize: 14, color: colors.text, lineHeight: 20, marginBottom: 12 },
-  postFooter: { flexDirection: 'row', gap: 14 },
-  postStat: { fontSize: 13, color: colors.textSecondary },
+    // İÇERİK
+    content: { padding: 16, paddingBottom: 8 },
 
-  // ETKİNLİK GRİD
-  eventGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  eventGridItem: {
-    width: CARD_WIDTH,
-  },
-  eventCard: {
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  eventCardGradient: {
-    padding: 14,
-    minHeight: 140,
-    justifyContent: 'flex-end',
-  },
-  eventEmoji: { fontSize: 28, marginBottom: 8 },
-  eventName: { fontSize: 13, fontWeight: 'bold', color: '#fff', marginBottom: 4 },
-  eventArtist: { fontSize: 11, color: 'rgba(255,255,255,0.8)', marginBottom: 4 },
-  eventDate: { fontSize: 11, color: 'rgba(255,255,255,0.9)', fontWeight: '600' },
+    // POST KARTI
+    postCard: {
+      backgroundColor: colors.card,
+      borderRadius: 16,
+      padding: 16,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    postHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    postEventName: { fontSize: 13, color: colors.primary, fontWeight: '700', flex: 1 },
+    postDate: { fontSize: 11, color: colors.textSecondary },
+    postContent: { fontSize: 14, color: colors.text, lineHeight: 20, marginBottom: 12 },
+    postFooter: { flexDirection: 'row', gap: 14 },
+    postStat: { fontSize: 13, color: colors.textSecondary },
 
-  // BOŞ DURUM
-  empty: { alignItems: 'center', paddingVertical: 48 },
-  emptyEmoji: { fontSize: 52, marginBottom: 14 },
-  emptyText: { color: colors.text, fontSize: 16, fontWeight: '600', marginBottom: 6 },
-  emptySubText: { color: colors.textSecondary, fontSize: 13, textAlign: 'center' },
+    // ETKİNLİK GRİD
+    eventGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 12,
+    },
+    eventGridItem: {
+      width: CARD_WIDTH,
+    },
+    eventCard: {
+      borderRadius: 16,
+      overflow: 'hidden',
+    },
+    eventCardGradient: {
+      padding: 14,
+      minHeight: 140,
+      justifyContent: 'flex-end',
+    },
+    eventEmoji: { fontSize: 28, marginBottom: 8 },
+    eventName: { fontSize: 13, fontWeight: 'bold', color: '#fff', marginBottom: 4 },
+    eventArtist: { fontSize: 11, color: 'rgba(255,255,255,0.8)', marginBottom: 4 },
+    eventDate: { fontSize: 11, color: 'rgba(255,255,255,0.9)', fontWeight: '600' },
 
-  // ÇIKIŞ
-  logoutArea: { padding: 16, paddingBottom: 32 },
-  logoutButton: { padding: 16, borderRadius: 16, alignItems: 'center' },
-  logoutText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-});
+    // BOŞ DURUM
+    empty: { alignItems: 'center', paddingVertical: 48 },
+    emptyEmoji: { fontSize: 52, marginBottom: 14 },
+    emptyText: { color: colors.text, fontSize: 16, fontWeight: '600', marginBottom: 6 },
+    emptySubText: { color: colors.textSecondary, fontSize: 13, textAlign: 'center' },
+
+    // ÇIKIŞ
+    logoutArea: { padding: 16, paddingBottom: 32 },
+    logoutButton: { padding: 16, borderRadius: 16, alignItems: 'center' },
+    logoutText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  });
+}

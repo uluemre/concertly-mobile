@@ -2,8 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ActivityIndicator,
   TouchableOpacity, RefreshControl, ScrollView,
-  TextInput, Dimensions, Image
+  TextInput, Dimensions
 } from 'react-native';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import API from '../services/api';
 import { useTheme } from '../theme';
@@ -31,7 +32,6 @@ const eventEmojis = ['🎸', '🎤', '🥁', '🎹', '🎺', '🎻', '🎪', '�
 export default function HomeScreen({ navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const [showAllEvents, setShowAllEvents] = useState(false);
   const [events, setEvents] = useState([]);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -39,10 +39,13 @@ export default function HomeScreen({ navigation }) {
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState(1);
 
-  const fetchEvents = () =>
-    API.get('/events')
+  const fetchEvents = () => {
+    const city = global.userCity;
+    const url = city ? `/events?city=${encodeURIComponent(city)}` : '/events';
+    return API.get(url)
       .then(res => setEvents(res.data))
       .catch(err => console.log('Hata:', err.message));
+  };
 
   const fetchPosts = () =>
     API.get('/posts/feed/trending')
@@ -88,7 +91,6 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.headerGreeting}>Merhaba 👋</Text>
             <Text style={styles.headerTitle}>Concertly</Text>
           </View>
-          {/* 🎪 yerine logo ✅ */}
           <Image
             source={require('../../assets/icon.png')}
             style={styles.headerLogo}
@@ -168,95 +170,154 @@ export default function HomeScreen({ navigation }) {
               onPress={() => navigation.navigate('EventDetail', { event: item })}
               activeOpacity={0.85}
             >
-              <LinearGradient
-                colors={gradientSets[index % gradientSets.length]}
-                style={styles.featuredCard}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                <Text style={styles.featuredEmoji}>
-                  {eventEmojis[index % eventEmojis.length]}
-                </Text>
-                <Text style={styles.featuredName} numberOfLines={2}>{item.name}</Text>
-                {item.artistName && (
-                  <Text style={styles.featuredArtist} numberOfLines={1}>
-                    🎤 {item.artistName}
-                  </Text>
-                )}
-                <View style={styles.featuredFooter}>
-                  <Text style={styles.featuredDate}>
-                    📅 {new Date(item.eventDate).toLocaleDateString('tr-TR', {
-                      day: 'numeric', month: 'short',
-                    })}
-                  </Text>
-                  {item.venueCity && (
-                    <Text style={styles.featuredCity}>📍 {item.venueCity}</Text>
-                  )}
+              {item.imageUrl || item.artistImageUrl ? (
+                <View>
+                  <Image
+                    source={{ uri: item.imageUrl || item.artistImageUrl }}
+                    style={styles.featuredImage}
+                    contentFit="cover"
+                    placeholder={require('../../assets/icon.png')}
+                    onError={(error) => console.log('Home featured expo image error:', error, 'URL:', item.imageUrl || item.artistImageUrl)}
+                    cachePolicy="memory-disk"
+                    transition={200}
+                  />
+
+                  <View style={styles.featuredOverlay}>
+                    <Text style={styles.featuredName} numberOfLines={2}>
+                      {item.name}
+                    </Text>
+                    {item.genre && (
+                      <Text style={styles.genreChip}>
+                        🎵 {item.genre}
+                      </Text>
+                    )}
+
+                    {item.artistName && (
+                      <Text style={styles.featuredArtist} numberOfLines={1}>
+                        🎤 {item.artistName}
+                      </Text>
+                    )}
+
+                    <View style={styles.featuredFooter}>
+                      <Text style={styles.featuredDate}>
+                        📅 {new Date(item.eventDate).toLocaleDateString('tr-TR', {
+                          day: 'numeric', month: 'short',
+                        })}
+                      </Text>
+
+                      {item.venueCity && (
+                        <Text style={styles.featuredCity}>
+                          📍 {item.venueCity}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
                 </View>
-              </LinearGradient>
+              ) : (
+                <LinearGradient
+                  colors={gradientSets[index % gradientSets.length]}
+                  style={styles.featuredCard}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <Text style={styles.featuredEmoji}>
+                    {eventEmojis[index % eventEmojis.length]}
+                  </Text>
+
+                  <Text style={styles.featuredName} numberOfLines={2}>
+                    {item.name}
+                  </Text>
+                  {item.genre && (
+                    <Text style={styles.genreChip}>
+                      🎵 {item.genre}
+                    </Text>
+                  )}
+
+                  {item.artistName && (
+                    <Text style={styles.featuredArtist} numberOfLines={1}>
+                      🎤 {item.artistName}
+                    </Text>
+                  )}
+
+                  <View style={styles.featuredFooter}>
+                    <Text style={styles.featuredDate}>
+                      📅 {new Date(item.eventDate).toLocaleDateString('tr-TR', {
+                        day: 'numeric', month: 'short',
+                      })}
+                    </Text>
+
+                    {item.venueCity && (
+                      <Text style={styles.featuredCity}>
+                        📍 {item.venueCity}
+                      </Text>
+                    )}
+                  </View>
+                </LinearGradient>
+              )}
             </TouchableOpacity>
           ))}
-
-          {filteredEvents.length === 0 && (
-            <Text style={styles.noResult}>Sonuç bulunamadı</Text>
-          )}
         </ScrollView>
+        {filteredEvents.length === 0 && (
+          <Text style={styles.noResult}>Sonuç bulunamadı</Text>
+        )}
       </View>
 
       {/* ── TÜM ETKİNLİKLER ──────────────────────────────────────────────── */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>📋 Tüm Etkinlikler</Text>
-
-          {/* 🔥 BURASI ÖNEMLİ */}
           <TouchableOpacity onPress={() => navigation.navigate('Events')}>
             <Text style={styles.seeAll}>Tümünü gör →</Text>
           </TouchableOpacity>
         </View>
 
-        {filteredEvents.slice(0, 3).map((item, index) => (
-          <TouchableOpacity
-            key={item.id}
-            onPress={() => navigation.navigate('EventDetail', { event: item })}
-            activeOpacity={0.85}
-            style={styles.listCard}
-          >
-            <LinearGradient
-              colors={gradientSets[index % gradientSets.length]}
-              style={styles.listCardLeft}
+        {
+          filteredEvents.slice(0, 3).map((item, index) => (
+            <TouchableOpacity
+              key={item.id}
+              onPress={() => navigation.navigate('EventDetail', { event: item })}
+              activeOpacity={0.85}
+              style={styles.listCard}
             >
-              <Text style={styles.listCardEmoji}>
-                {eventEmojis[index % eventEmojis.length]}
-              </Text>
-            </LinearGradient>
-
-            <View style={styles.listCardRight}>
-              <Text style={styles.listCardName} numberOfLines={1}>
-                {item.name}
-              </Text>
-
-              {item.artistName && (
-                <Text style={styles.listCardSub}>
-                  🎤 {item.artistName}
+              <LinearGradient
+                colors={gradientSets[index % gradientSets.length]}
+                style={styles.listCardLeft}
+              >
+                <Text style={styles.listCardEmoji}>
+                  {eventEmojis[index % eventEmojis.length]}
                 </Text>
-              )}
+              </LinearGradient>
 
-              <Text style={styles.listCardSub}>
-                📅 {new Date(item.eventDate).toLocaleDateString('tr-TR')}
-                {item.venueCity ? ` · 📍 ${item.venueCity}` : ''}
-              </Text>
+              <View style={styles.listCardRight}>
+                <Text style={styles.listCardName} numberOfLines={1}>
+                  {item.name}
+                </Text>
+
+                {item.artistName && (
+                  <Text style={styles.listCardSub}>
+                    🎤 {item.artistName}
+                  </Text>
+                )}
+
+                <Text style={styles.listCardSub}>
+                  📅 {new Date(item.eventDate).toLocaleDateString('tr-TR')}
+                  {item.venueCity ? ` · 📍 ${item.venueCity}` : ''}
+                </Text>
+              </View>
+
+              <Text style={styles.listCardArrow}>›</Text>
+            </TouchableOpacity>
+          ))
+        }
+
+        {
+          filteredEvents.length === 0 && (
+            <View style={styles.empty}>
+              <Text style={styles.emptyEmoji}>🎭</Text>
+              <Text style={styles.emptyText}>Sonuç bulunamadı</Text>
             </View>
-
-            <Text style={styles.listCardArrow}>›</Text>
-          </TouchableOpacity>
-        ))}
-
-        {filteredEvents.length === 0 && (
-          <View style={styles.empty}>
-            <Text style={styles.emptyEmoji}>🎭</Text>
-            <Text style={styles.emptyText}>Sonuç bulunamadı</Text>
-          </View>
-        )}
+          )
+        }
       </View>
 
       {/* ── TRENDING POSTLAR ─────────────────────────────────────────────── */}
@@ -265,167 +326,172 @@ export default function HomeScreen({ navigation }) {
           <Text style={styles.sectionTitle}>🔥 Trending Postlar</Text>
         </View>
 
-        {posts.length === 0 ? (
-          <View style={styles.empty}>
-            <Text style={styles.emptyEmoji}>📭</Text>
-            <Text style={styles.emptyText}>Henüz post yok</Text>
-          </View>
-        ) : (
-          posts.map((post, index) => (
-            <View key={post.id} style={styles.postCard}>
-              <View style={styles.postHeader}>
-                <LinearGradient
-                  colors={gradientSets[index % gradientSets.length]}
-                  style={styles.postAvatar}
-                >
-                  <Text style={styles.postAvatarText}>
-                    {post.username?.charAt(0).toUpperCase() || '?'}
+        {
+          posts.length === 0 ? (
+            <View style={styles.empty}>
+              <Text style={styles.emptyEmoji}>📭</Text>
+              <Text style={styles.emptyText}>Henüz post yok</Text>
+            </View>
+          ) : (
+            posts.map((post, index) => (
+              <View key={post.id} style={styles.postCard}>
+                <View style={styles.postHeader}>
+                  <LinearGradient
+                    colors={gradientSets[index % gradientSets.length]}
+                    style={styles.postAvatar}
+                  >
+                    <Text style={styles.postAvatarText}>
+                      {post.username?.charAt(0).toUpperCase() || '?'}
+                    </Text>
+                  </LinearGradient>
+                  <View style={styles.postHeaderInfo}>
+                    <Text style={styles.postUsername}>@{post.username}</Text>
+                    <Text style={styles.postEvent}>🎵 {post.eventName}</Text>
+                  </View>
+                </View>
+                <Text style={styles.postContent}>{post.content}</Text>
+                <View style={styles.postFooter}>
+                  <Text style={styles.postStat}>❤️ {post.likeCount || 0}</Text>
+                  <Text style={styles.postStat}>💬 {post.commentCount || 0}</Text>
+                  <Text style={styles.postDate}>
+                    {new Date(post.createdAt).toLocaleDateString('tr-TR')}
                   </Text>
-                </LinearGradient>
-                <View style={styles.postHeaderInfo}>
-                  <Text style={styles.postUsername}>@{post.username}</Text>
-                  <Text style={styles.postEvent}>🎵 {post.eventName}</Text>
                 </View>
               </View>
-              <Text style={styles.postContent}>{post.content}</Text>
-              <View style={styles.postFooter}>
-                <Text style={styles.postStat}>❤️ {post.likeCount || 0}</Text>
-                <Text style={styles.postStat}>💬 {post.commentCount || 0}</Text>
-                <Text style={styles.postDate}>
-                  {new Date(post.createdAt).toLocaleDateString('tr-TR')}
-                </Text>
-              </View>
-            </View>
-          ))
-        )}
+            ))
+          )
+        }
       </View>
-
     </ScrollView>
   );
 }
 
-const createStyles = (colors) => StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  loadingContainer: {
-    flex: 1, justifyContent: 'center',
-    alignItems: 'center', backgroundColor: colors.background,
-  },
+function createStyles(colors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    loadingContainer: {
+      flex: 1, justifyContent: 'center',
+      alignItems: 'center', backgroundColor: colors.background,
+    },
+    featuredImage: {
+      width: 200,
+      height: 160,
+      borderRadius: 18,
+    },
 
-  // HEADER
-  header: { paddingTop: 60, paddingBottom: 20, paddingHorizontal: 20 },
-  headerTop: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', marginBottom: 16,
-  },
-  headerGreeting: { fontSize: 13, color: colors.textSecondary },
-  headerTitle: { fontSize: 28, fontWeight: 'bold', color: colors.text },
-  headerLogo: { width: 48, height: 48 }, // ✅ emoji yerine logo
+    // HEADER
+    header: { paddingTop: 60, paddingBottom: 20, paddingHorizontal: 20 },
+    headerTop: {
+      flexDirection: 'row', justifyContent: 'space-between',
+      alignItems: 'center', marginBottom: 16,
+    },
+    headerGreeting: { fontSize: 13, color: colors.textSecondary },
+    headerTitle: { fontSize: 28, fontWeight: 'bold', color: colors.text },
+    headerLogo: { width: 48, height: 48 },
 
-  // ARAMA
-  searchBox: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: colors.input,
-    borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, gap: 8,
-  },
-  searchIcon: { fontSize: 16 },
-  searchInput: { flex: 1, color: colors.text, fontSize: 14 },
-  searchClear: { color: colors.textSecondary, fontSize: 16 },
+    // ARAMA
+    searchBox: {
+      flexDirection: 'row', alignItems: 'center',
+      backgroundColor: colors.input,
+      borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, gap: 8,
+    },
+    searchIcon: { fontSize: 16 },
+    searchInput: { flex: 1, color: colors.text, fontSize: 14 },
+    searchClear: { color: colors.textSecondary, fontSize: 16 },
 
-  // BÖLÜMLER
-  section: { marginTop: 24, paddingHorizontal: 20 },
-  sectionHeader: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', marginBottom: 14,
-  },
-  sectionTitle: { fontSize: 17, fontWeight: 'bold', color: colors.text },
-  seeAll: { fontSize: 13, color: colors.primary, fontWeight: '600' },
+    // BÖLÜMLER
+    section: { marginTop: 24, paddingHorizontal: 20 },
+    sectionHeader: {
+      flexDirection: 'row', justifyContent: 'space-between',
+      alignItems: 'center', marginBottom: 14,
+    },
+    sectionTitle: { fontSize: 17, fontWeight: 'bold', color: colors.text },
+    seeAll: { fontSize: 13, color: colors.primary, fontWeight: '600' },
 
-  // KATEGORİLER
-  categoriesList: { gap: 10, paddingBottom: 4 },
-  categoryWrapper: { marginRight: 2 },
-  categoryActive: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 14, paddingVertical: 8,
-    borderRadius: 20, gap: 6,
-  },
-  categoryInactive: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 14, paddingVertical: 8,
-    borderRadius: 20, backgroundColor: colors.card,
-    borderWidth: 1, borderColor: colors.border, gap: 6,
-  },
-  categoryEmoji: { fontSize: 16 },
-  categoryLabel: { fontSize: 13, color: colors.textSecondary, fontWeight: '600' },
-  categoryLabelActive: { fontSize: 13, color: '#fff', fontWeight: '600' },
+    // KATEGORİLER
+    categoriesList: { gap: 10, paddingBottom: 4 },
+    categoryWrapper: { marginRight: 2 },
+    categoryActive: {
+      flexDirection: 'row', alignItems: 'center',
+      paddingHorizontal: 14, paddingVertical: 8,
+      borderRadius: 20, gap: 6,
+    },
+    categoryInactive: {
+      flexDirection: 'row', alignItems: 'center',
+      paddingHorizontal: 14, paddingVertical: 8,
+      borderRadius: 20, backgroundColor: colors.card,
+      borderWidth: 1, borderColor: colors.border, gap: 6,
+    },
+    categoryEmoji: { fontSize: 16 },
+    categoryLabel: { fontSize: 13, color: colors.textSecondary, fontWeight: '600' },
+    categoryLabelActive: { fontSize: 13, color: '#fff', fontWeight: '600' },
 
-  // ÖNE ÇIKANLAR
-  horizontalList: { gap: 14, paddingBottom: 4 },
-  featuredCard: {
-    width: 200, height: 160,
-    borderRadius: 18, padding: 16,
-    justifyContent: 'space-between',
-  },
-  featuredEmoji: { fontSize: 32 },
-  featuredName: { fontSize: 15, fontWeight: 'bold', color: '#fff' },
-  featuredArtist: { fontSize: 12, color: 'rgba(255,255,255,0.8)' },
-  featuredFooter: { gap: 2 },
-  featuredDate: { fontSize: 11, color: 'rgba(255,255,255,0.9)', fontWeight: '600' },
-  featuredCity: { fontSize: 11, color: 'rgba(255,255,255,0.9)' },
+    // ÖNE ÇIKANLAR
+    horizontalList: { gap: 14, paddingBottom: 4 },
+    featuredCard: {
+      width: 200, height: 160,
+      borderRadius: 18, padding: 16,
+      justifyContent: 'space-between',
+    },
+    featuredEmoji: { fontSize: 32 },
+    featuredName: { fontSize: 15, fontWeight: 'bold', color: '#fff' },
+    genreChip: { fontSize: 12, color: 'rgba(255,255,255,0.9)', marginTop: 2 },
+    featuredOverlay: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      padding: 12,
+    },
+    featuredArtist: { fontSize: 12, color: 'rgba(255,255,255,0.8)' },
+    featuredFooter: { gap: 2 },
+    featuredDate: { fontSize: 11, color: 'rgba(255,255,255,0.9)', fontWeight: '600' },
+    featuredCity: { fontSize: 11, color: 'rgba(255,255,255,0.9)' },
 
-  // LİSTE KARTI
-  listCard: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: colors.card,
-    borderRadius: 14, marginBottom: 10,
-    overflow: 'hidden',
-    borderWidth: 1, borderColor: colors.border,
-  },
-  listCardLeft: { width: 64, height: 64, justifyContent: 'center', alignItems: 'center' },
-  listCardEmoji: { fontSize: 28 },
-  listCardRight: { flex: 1, padding: 12, gap: 3 },
-  listCardName: { fontSize: 14, fontWeight: 'bold', color: colors.text },
-  listCardSub: { fontSize: 12, color: colors.textSecondary },
-  listCardArrow: { fontSize: 22, color: colors.textSecondary, paddingRight: 12 },
+    // LİSTE KARTI
+    listCard: {
+      flexDirection: 'row', alignItems: 'center',
+      backgroundColor: colors.card,
+      borderRadius: 14, marginBottom: 10,
+      overflow: 'hidden',
+      borderWidth: 1, borderColor: colors.border,
+    },
+    listCardLeft: { width: 64, height: 64, justifyContent: 'center', alignItems: 'center' },
+    listCardEmoji: { fontSize: 28 },
+    listCardRight: { flex: 1, padding: 12, gap: 3 },
+    listCardName: { fontSize: 14, fontWeight: 'bold', color: colors.text },
+    listCardSub: { fontSize: 12, color: colors.textSecondary },
+    listCardArrow: { fontSize: 22, color: colors.textSecondary, paddingRight: 12 },
 
-  // POST KARTI
-  postCard: {
-    backgroundColor: colors.card,
-    borderRadius: 16, padding: 16, marginBottom: 12,
-    borderWidth: 1, borderColor: colors.border,
-  },
-  postHeader: {
-    flexDirection: 'row', alignItems: 'center',
-    marginBottom: 12, gap: 10,
-  },
-  postAvatar: {
-    width: 40, height: 40, borderRadius: 20,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  postAvatarText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
-  postHeaderInfo: { flex: 1 },
-  postUsername: { color: colors.text, fontWeight: 'bold', fontSize: 14 },
-  postEvent: { color: colors.textSecondary, fontSize: 12, marginTop: 2 },
-  postContent: {
-    fontSize: 14, color: colors.text,
-    lineHeight: 20, marginBottom: 12,
+    // POST KARTI
+    postCard: {
+      backgroundColor: colors.card,
+      borderRadius: 16, padding: 16, marginBottom: 12,
+      borderWidth: 1, borderColor: colors.border,
+    },
+    postHeader: {
+      flexDirection: 'row', alignItems: 'center',
+      marginBottom: 12, gap: 10,
+    },
+    postAvatar: {
+      width: 40, height: 40, borderRadius: 20,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    postAvatarText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+    postHeaderInfo: { flex: 1 },
+    postUsername: { color: colors.text, fontWeight: 'bold', fontSize: 14 },
+    postEvent: { color: colors.textSecondary, fontSize: 12, marginTop: 2 },
+    postContent: {
+      fontSize: 14, color: colors.text,
+      lineHeight: 20, marginBottom: 12,
+    },
+    postFooter: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    postStat: { color: colors.textSecondary, fontSize: 13 },
+    postDate: { color: colors.textSecondary, fontSize: 12, marginLeft: 'auto' },
 
-  },
-  seeAllButton: {
-    marginTop: 10,
-    alignItems: 'center',
-  },
-
-  seeAllText: {
-    color: colors.primary,
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  postFooter: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  postStat: { color: colors.textSecondary, fontSize: 13 },
-  postDate: { color: colors.textSecondary, fontSize: 12, marginLeft: 'auto' },
-
-  noResult: { color: colors.textSecondary, fontSize: 14, padding: 20 },
-  empty: { alignItems: 'center', marginTop: 40, marginBottom: 40 },
-  emptyEmoji: { fontSize: 48, marginBottom: 12 },
-  emptyText: { color: colors.textSecondary, fontSize: 15 },
-});
+    noResult: { color: colors.textSecondary, fontSize: 14, padding: 20 },
+    empty: { alignItems: 'center', marginTop: 40, marginBottom: 40 },
+    emptyEmoji: { fontSize: 48, marginBottom: 12 },
+    emptyText: { color: colors.textSecondary, fontSize: 15 },
+  });
+}

@@ -116,53 +116,56 @@ export default function CreatePostScreen({ route, navigation }) {
   );
 }
 
-const createStyles = (colors) => StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  header: { paddingTop: 60, paddingBottom: 24, paddingHorizontal: 24 },
-  backButton: { marginBottom: 16 },
-  backText: { color: 'rgba(255,255,255,0.8)', fontSize: 15 },
-  headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#fff' },
-  headerSub: { fontSize: 13, color: 'rgba(255,255,255,0.8)', marginTop: 4 },
+function createStyles(colors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    header: { paddingTop: 60, paddingBottom: 24, paddingHorizontal: 24 },
+    backButton: { marginBottom: 16 },
+    backText: { color: 'rgba(255,255,255,0.8)', fontSize: 15 },
+    headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#fff' },
+    headerSub: { fontSize: 13, color: 'rgba(255,255,255,0.8)', marginTop: 4 },
 
-  content: { padding: 16, gap: 14 },
+    content: { padding: 16, gap: 14 },
 
-  eventCard: {
-    backgroundColor: colors.card,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  eventCardLabel: { fontSize: 10, color: colors.textSecondary, fontWeight: '700', letterSpacing: 1, marginBottom: 6 },
-  eventCardName: { fontSize: 16, fontWeight: 'bold', color: colors.text, marginBottom: 4 },
-  eventCardSub: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
+    eventCard: {
+      backgroundColor: colors.card,
+      borderRadius: 16,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    eventCardLabel: { fontSize: 10, color: colors.textSecondary, fontWeight: '700', letterSpacing: 1, marginBottom: 6 },
+    eventCardName: { fontSize: 16, fontWeight: 'bold', color: colors.text, marginBottom: 4 },
+    eventCardSub: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
 
-  inputCard: {
-    backgroundColor: colors.card,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  inputLabel: { fontSize: 13, color: colors.textSecondary, marginBottom: 10, fontWeight: '600' },
-  textInput: {
-    color: colors.text,
-    fontSize: 15,
-    minHeight: 120,
-    lineHeight: 22,
-  },
-  charCount: { textAlign: 'right', color: colors.textSecondary, fontSize: 12, marginTop: 8 },
+    inputCard: {
+      backgroundColor: colors.card,
+      borderRadius: 16,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    inputLabel: { fontSize: 13, color: colors.textSecondary, marginBottom: 10, fontWeight: '600' },
+    textInput: {
+      color: colors.text,
+      fontSize: 15,
+      minHeight: 120,
+      lineHeight: 22,
+    },
+    charCount: { textAlign: 'right', color: colors.textSecondary, fontSize: 12, marginTop: 8 },
 
-  emojiRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
-  emojiBtn: {
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  emojiText: { fontSize: 20 },
+    emojiRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+    emojiBtn: {
+      backgroundColor: colors.card,
+      borderRadius: 12,
+      padding: 10,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    emojiText: { fontSize: 20 },
 
-  submitButton: { padding: 18, borderRadius: 16, alignItems: 'center' },
-  submitText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-});
+    submitButton: { padding: 18, borderRadius: 16, alignItems: 'center' },
+    submitText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  });
+}
+

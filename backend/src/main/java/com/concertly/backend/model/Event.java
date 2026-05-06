@@ -13,6 +13,33 @@ public class Event {
     private Long id;
 
     private String name;
+    private String genre;
+    private String imageUrl;
+    private String ticketUrl;
+
+    public String getGenre() {
+        return genre;
+    }
+
+    public void setGenre(String genre) {
+        this.genre = genre;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
+    }
+
+    public String getTicketUrl() {
+        return ticketUrl;
+    }
+
+    public void setTicketUrl(String ticketUrl) {
+        this.ticketUrl = ticketUrl;
+    }
 
     private String description;
 
@@ -31,32 +58,74 @@ public class Event {
     private Venue venue;
 
     @ManyToOne
-    @JoinColumn(name = "created_by_user_id", nullable = true)  // ✅ nullable
+    @JoinColumn(name = "created_by_user_id", nullable = true) // ✅ nullable
     private User createdBy;
 
-    public Long getId()                        { return id; }
+    public Long getId() {
+        return id;
+    }
 
-    public String getName()                    { return name; }
-    public void setName(String name)           { this.name = name; }
+    public String getName() {
+        return name;
+    }
 
-    public String getDescription()             { return description; }
-    public void setDescription(String desc)    { this.description = desc; }
+    public void setName(String name) {
+        this.name = name;
+    }
 
-    public LocalDateTime getEventDate()        { return eventDate; }
-    public void setEventDate(LocalDateTime d)  { this.eventDate = d; }
+    public String getDescription() {
+        return description;
+    }
 
-    public String getExternalId()              { return externalId; }
-    public void setExternalId(String id)       { this.externalId = id; }
+    public void setDescription(String desc) {
+        this.description = desc;
+    }
 
-    public Boolean getIsApproved()             { return isApproved; }
-    public void setIsApproved(Boolean val)     { this.isApproved = val; }
+    public LocalDateTime getEventDate() {
+        return eventDate;
+    }
 
-    public Artist getArtist()                  { return artist; }
-    public void setArtist(Artist artist)       { this.artist = artist; }
+    public void setEventDate(LocalDateTime d) {
+        this.eventDate = d;
+    }
 
-    public Venue getVenue()                    { return venue; }
-    public void setVenue(Venue venue)          { this.venue = venue; }
+    public String getExternalId() {
+        return externalId;
+    }
 
-    public User getCreatedBy()                 { return createdBy; }
-    public void setCreatedBy(User user)        { this.createdBy = user; }
+    public void setExternalId(String id) {
+        this.externalId = id;
+    }
+
+    public Boolean getIsApproved() {
+        return isApproved;
+    }
+
+    public void setIsApproved(Boolean val) {
+        this.isApproved = val;
+    }
+
+    public Artist getArtist() {
+        return artist;
+    }
+
+    public void setArtist(Artist artist) {
+        this.artist = artist;
+    }
+
+    public Venue getVenue() {
+        return venue;
+    }
+
+    public void setVenue(Venue venue) {
+        this.venue = venue;
+    }
+
+    public User getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(User user) {
+        this.createdBy = user;
+    }
 }

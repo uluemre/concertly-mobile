@@ -341,140 +341,142 @@ export default function UserProfileScreen({ route, navigation }) {
   );
 }
 
-const createStyles = (colors) => StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  loadingContainer: {
-    flex: 1, justifyContent: 'center',
-    alignItems: 'center', backgroundColor: colors.background,
-  },
+function createStyles(colors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    loadingContainer: {
+      flex: 1, justifyContent: 'center',
+      alignItems: 'center', backgroundColor: colors.background,
+    },
 
-  // HERO
-  hero: {
-    paddingTop: 56, paddingBottom: 28, paddingHorizontal: 24,
-  },
-  backButton: { marginBottom: 20 },
-  backText: { color: colors.textSecondary, fontSize: 15, fontWeight: '600' },
-  heroInner: { alignItems: 'center' },
+    // HERO
+    hero: {
+      paddingTop: 56, paddingBottom: 28, paddingHorizontal: 24,
+    },
+    backButton: { marginBottom: 20 },
+    backText: { color: colors.textSecondary, fontSize: 15, fontWeight: '600' },
+    heroInner: { alignItems: 'center' },
 
-  avatar: {
-    width: 100, height: 100, borderRadius: 50,
-    borderWidth: 3, borderColor: colors.border, marginBottom: 14,
-  },
-  avatarPlaceholder: {
-    width: 100, height: 100, borderRadius: 50,
-    justifyContent: 'center', alignItems: 'center', marginBottom: 14,
-  },
-  avatarLetter: { fontSize: 42, fontWeight: 'bold', color: '#fff' },
+    avatar: {
+      width: 100, height: 100, borderRadius: 50,
+      borderWidth: 3, borderColor: colors.border, marginBottom: 14,
+    },
+    avatarPlaceholder: {
+      width: 100, height: 100, borderRadius: 50,
+      justifyContent: 'center', alignItems: 'center', marginBottom: 14,
+    },
+    avatarLetter: { fontSize: 42, fontWeight: 'bold', color: '#fff' },
 
-  username: {
-    fontSize: 22, fontWeight: 'bold',
-    color: colors.text, marginBottom: 8,
-  },
-  bio: {
-    fontSize: 14, color: colors.textSecondary,
-    textAlign: 'center', lineHeight: 20,
-    marginBottom: 20, paddingHorizontal: 16,
-  },
-  bioEmpty: {
-    fontSize: 13, color: colors.textSecondary,
-    marginBottom: 20, fontStyle: 'italic',
-  },
+    username: {
+      fontSize: 22, fontWeight: 'bold',
+      color: colors.text, marginBottom: 8,
+    },
+    bio: {
+      fontSize: 14, color: colors.textSecondary,
+      textAlign: 'center', lineHeight: 20,
+      marginBottom: 20, paddingHorizontal: 16,
+    },
+    bioEmpty: {
+      fontSize: 13, color: colors.textSecondary,
+      marginBottom: 20, fontStyle: 'italic',
+    },
 
-  // STATS
-  statsRow: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: colors.card,
-    borderRadius: 16, paddingVertical: 14, paddingHorizontal: 20,
-    gap: 16, marginBottom: 20,
-    borderWidth: 1, borderColor: colors.border, width: '100%',
-  },
-  stat: { alignItems: 'center', flex: 1 },
-  statNumber: { fontSize: 20, fontWeight: 'bold', color: colors.text },
-  statLabel: { fontSize: 11, color: colors.textSecondary, marginTop: 2 },
-  statDivider: { width: 1, height: 32, backgroundColor: colors.border },
+    // STATS
+    statsRow: {
+      flexDirection: 'row', alignItems: 'center',
+      backgroundColor: colors.card,
+      borderRadius: 16, paddingVertical: 14, paddingHorizontal: 20,
+      gap: 16, marginBottom: 20,
+      borderWidth: 1, borderColor: colors.border, width: '100%',
+    },
+    stat: { alignItems: 'center', flex: 1 },
+    statNumber: { fontSize: 20, fontWeight: 'bold', color: colors.text },
+    statLabel: { fontSize: 11, color: colors.textSecondary, marginTop: 2 },
+    statDivider: { width: 1, height: 32, backgroundColor: colors.border },
 
-  // TAKİP BUTONU
-  followButtonWrapper: { width: '100%' },
-  followButton: { paddingVertical: 14, borderRadius: 14, alignItems: 'center' },
-  followText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
-  followingButton: {
-    paddingVertical: 14, borderRadius: 14, alignItems: 'center',
-    borderWidth: 2, borderColor: colors.primary,
-  },
-  followingText: { color: colors.primary, fontWeight: 'bold', fontSize: 15 },
+    // TAKİP BUTONU
+    followButtonWrapper: { width: '100%' },
+    followButton: { paddingVertical: 14, borderRadius: 14, alignItems: 'center' },
+    followText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
+    followingButton: {
+      paddingVertical: 14, borderRadius: 14, alignItems: 'center',
+      borderWidth: 2, borderColor: colors.primary,
+    },
+    followingText: { color: colors.primary, fontWeight: 'bold', fontSize: 15 },
 
-  // ANİMASYONLU SEKMELER
-  tabBarWrapper: {
-    backgroundColor: colors.card,
-    borderBottomWidth: 1, borderBottomColor: colors.border,
-    paddingHorizontal: 16, paddingVertical: 10,
-  },
-  tabBar: {
-    flexDirection: 'row',
-    backgroundColor: colors.cardAlt,
-    borderRadius: 12, padding: 4,
-    position: 'relative', overflow: 'hidden',
-  },
-  tabIndicator: {
-    position: 'absolute',
-    top: 4, bottom: 4, width: '50%',
-    backgroundColor: colors.primary,
-    borderRadius: 8,
-  },
-  tabBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', zIndex: 1 },
-  tabText: { fontSize: 13, fontWeight: '600', color: colors.textSecondary },
-  tabTextActive: { color: '#fff' },
+    // ANİMASYONLU SEKMELER
+    tabBarWrapper: {
+      backgroundColor: colors.card,
+      borderBottomWidth: 1, borderBottomColor: colors.border,
+      paddingHorizontal: 16, paddingVertical: 10,
+    },
+    tabBar: {
+      flexDirection: 'row',
+      backgroundColor: colors.cardAlt,
+      borderRadius: 12, padding: 4,
+      position: 'relative', overflow: 'hidden',
+    },
+    tabIndicator: {
+      position: 'absolute',
+      top: 4, bottom: 4, width: '50%',
+      backgroundColor: colors.primary,
+      borderRadius: 8,
+    },
+    tabBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', zIndex: 1 },
+    tabText: { fontSize: 13, fontWeight: '600', color: colors.textSecondary },
+    tabTextActive: { color: '#fff' },
 
-  // İÇERİK
-  content: { padding: 16, paddingBottom: 32 },
+    // İÇERİK
+    content: { padding: 16, paddingBottom: 32 },
 
-  // POST KARTI
-  postCard: {
-    backgroundColor: colors.card,
-    borderRadius: 16, padding: 16, marginBottom: 12,
-    borderWidth: 1, borderColor: colors.border,
-  },
-  postHeader: {
-    flexDirection: 'row', alignItems: 'center',
-    marginBottom: 12, gap: 10,
-  },
-  postAvatar: {
-    width: 40, height: 40, borderRadius: 20,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  postAvatarText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
-  postHeaderInfo: { flex: 1 },
-  postEventName: { fontSize: 13, color: colors.primary, fontWeight: '700' },
-  postDate: { fontSize: 11, color: colors.textSecondary, marginTop: 2 },
-  postContent: {
-    fontSize: 14, color: colors.text,
-    lineHeight: 20, marginBottom: 12,
-  },
-  postFooter: { flexDirection: 'row', gap: 14 },
-  postStat: { fontSize: 13, color: colors.textSecondary },
+    // POST KARTI
+    postCard: {
+      backgroundColor: colors.card,
+      borderRadius: 16, padding: 16, marginBottom: 12,
+      borderWidth: 1, borderColor: colors.border,
+    },
+    postHeader: {
+      flexDirection: 'row', alignItems: 'center',
+      marginBottom: 12, gap: 10,
+    },
+    postAvatar: {
+      width: 40, height: 40, borderRadius: 20,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    postAvatarText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+    postHeaderInfo: { flex: 1 },
+    postEventName: { fontSize: 13, color: colors.primary, fontWeight: '700' },
+    postDate: { fontSize: 11, color: colors.textSecondary, marginTop: 2 },
+    postContent: {
+      fontSize: 14, color: colors.text,
+      lineHeight: 20, marginBottom: 12,
+    },
+    postFooter: { flexDirection: 'row', gap: 14 },
+    postStat: { fontSize: 13, color: colors.textSecondary },
 
-  // ETKİNLİK GRİD
-  eventGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  eventCard: { width: CARD_WIDTH, borderRadius: 16, overflow: 'hidden' },
-  eventCardGradient: {
-    padding: 14, minHeight: 150, justifyContent: 'space-between',
-  },
-  eventEmoji: { fontSize: 28, marginBottom: 8 },
-  eventCardBody: { flex: 1 },
-  eventName: {
-    fontSize: 13, fontWeight: 'bold',
-    color: '#fff', marginBottom: 6,
-  },
-  eventArtist: {
-    fontSize: 11, color: 'rgba(255,255,255,0.9)',
-    marginBottom: 4, textDecorationLine: 'underline',
-  },
-  eventDate: {
-    fontSize: 11, color: 'rgba(255,255,255,0.9)', fontWeight: '600',
-  },
+    // ETKİNLİK GRİD
+    eventGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+    eventCard: { width: CARD_WIDTH, borderRadius: 16, overflow: 'hidden' },
+    eventCardGradient: {
+      padding: 14, minHeight: 150, justifyContent: 'space-between',
+    },
+    eventEmoji: { fontSize: 28, marginBottom: 8 },
+    eventCardBody: { flex: 1 },
+    eventName: {
+      fontSize: 13, fontWeight: 'bold',
+      color: '#fff', marginBottom: 6,
+    },
+    eventArtist: {
+      fontSize: 11, color: 'rgba(255,255,255,0.9)',
+      marginBottom: 4, textDecorationLine: 'underline',
+    },
+    eventDate: {
+      fontSize: 11, color: 'rgba(255,255,255,0.9)', fontWeight: '600',
+    },
 
-  // BOŞ
-  empty: { alignItems: 'center', paddingVertical: 48 },
-  emptyEmoji: { fontSize: 52, marginBottom: 14 },
-  emptyText: { color: colors.textSecondary, fontSize: 15 },
-});
+    // BOŞ
+    empty: { alignItems: 'center', paddingVertical: 48 },
+    emptyEmoji: { fontSize: 52, marginBottom: 14 },
+    emptyText: { color: colors.textSecondary, fontSize: 15 },
+  });
+}

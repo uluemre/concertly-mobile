@@ -7,6 +7,32 @@ import { LinearGradient } from 'expo-linear-gradient';
 import API from '../services/api';
 import { useTheme } from '../theme';
 
+function createStyles(colors) {
+  return StyleSheet.create({
+    container: { flex: 1 },
+    inner: { flex: 1, justifyContent: 'center', padding: 24 },
+    logoArea: { alignItems: 'center', marginBottom: 48 },
+    emoji: { fontSize: 64, marginBottom: 12 },
+    title: { fontSize: 36, fontWeight: 'bold', color: colors.text, letterSpacing: 2 },
+    subtitle: { fontSize: 14, color: colors.textSecondary, marginTop: 6 },
+    form: { gap: 12 },
+    input: {
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 12,
+      padding: 16,
+      fontSize: 16,
+      color: colors.text,
+    },
+    button: { padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 8 },
+    buttonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+    linkArea: { alignItems: 'center', marginTop: 16 },
+    link: { color: colors.textSecondary, fontSize: 14 },
+    linkBold: { color: colors.secondary, fontWeight: 'bold' },
+  });
+}
+
 export default function RegisterScreen({ navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -27,6 +53,7 @@ export default function RegisterScreen({ navigation }) {
       const loginRes = await API.post('/auth/login', { email, password });
       global.authToken = loginRes.data.accessToken;
       global.userId = loginRes.data.userId;
+      global.userCity = loginRes.data.city;
       navigation.replace('Welcome', { username });
     } catch (err) {
       Alert.alert('Hata', 'Bu email veya kullanıcı adı zaten kullanılıyor.');
@@ -91,27 +118,3 @@ export default function RegisterScreen({ navigation }) {
     </LinearGradient>
   );
 }
-
-const createStyles = (colors) => StyleSheet.create({
-  container: { flex: 1 },
-  inner: { flex: 1, justifyContent: 'center', padding: 24 },
-  logoArea: { alignItems: 'center', marginBottom: 48 },
-  emoji: { fontSize: 64, marginBottom: 12 },
-  title: { fontSize: 36, fontWeight: 'bold', color: colors.text, letterSpacing: 2 },
-  subtitle: { fontSize: 14, color: colors.textSecondary, marginTop: 6 },
-  form: { gap: 12 },
-  input: {
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    color: colors.text,
-  },
-  button: { padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 8 },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  linkArea: { alignItems: 'center', marginTop: 16 },
-  link: { color: colors.textSecondary, fontSize: 14 },
-  linkBold: { color: colors.secondary, fontWeight: 'bold' },
-});

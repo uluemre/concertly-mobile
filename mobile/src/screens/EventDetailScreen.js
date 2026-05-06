@@ -1,8 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  TouchableOpacity, Alert, ActivityIndicator
+  TouchableOpacity, Alert, ActivityIndicator,
+  Linking
 } from 'react-native';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import API from '../services/api';
@@ -28,8 +30,10 @@ export default function EventDetailScreen({ route, navigation }) {
   const { event } = route.params;
 
   const [verifying, setVerifying] = useState(false);
-  const [attendance, setAttendance] = useState(null);
   const [attendLoading, setAttendLoading] = useState(false);
+  const [attendance, setAttendance] = useState(null);
+  const [imageError, setImageError] = useState(false);
+  const [imageLoading, setImageLoading] = useState(true);
 
   // ── Katılım ──────────────────────────────────────────────────────────────
   const handleAttend = async (status) => {
@@ -123,18 +127,81 @@ export default function EventDetailScreen({ route, navigation }) {
   return (
     <ScrollView style={styles.container}>
       {/* HERO */}
-      <LinearGradient colors={['#E94560', '#7C3AED']} style={styles.heroSection}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backText}>← Geri</Text>
-        </TouchableOpacity>
-        <Text style={styles.heroEmoji}>🎪</Text>
-        <Text style={styles.heroTitle}>{event.name}</Text>
-        <View style={styles.approvedBadge}>
-          <Text style={styles.approvedText}>
-            {event.isApproved ? '✅ Onaylandı' : '⏳ Onay Bekliyor'}
-          </Text>
+      {event.imageUrl ? (
+        <View>
+          <Image
+            source={{ uri: event.imageUrl }}
+            style={styles.heroImage}
+            contentFit="cover"
+            placeholder={require('../../assets/icon.png')}
+            onError={(error) => {
+              console.log('Expo Image load error for URL:', event.imageUrl, error);
+              setImageError(true);
+              setImageLoading(false);
+            }}
+            onLoad={() => {
+              console.log('Expo Image loaded successfully:', event.imageUrl);
+              setImageLoading(false);
+            }}
+            onLoadStart={() => setImageLoading(true)}
+            cachePolicy="memory-disk"
+            transition={300}
+          />
+
+          {imageLoading && !imageError && (
+            <View style={styles.imageLoadingOverlay}>
+              <ActivityIndicator size="large" color="#fff" />
+            </View>
+          )}
+
+          {imageError && (
+            <View style={styles.imageErrorOverlay}>
+              <Text style={styles.imageErrorText}>Resim yüklenemedi</Text>
+            </View>
+          )}
+
+          <View style={styles.heroOverlay}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
+            >
+              <Text style={styles.backText}>← Geri</Text>
+            </TouchableOpacity>
+
+            <Text style={styles.heroTitle}>{event.name}</Text>
+
+            {event.genre && (
+              <View style={styles.genreBadge}>
+                <Text style={styles.genreText}>🎵 {event.genre}</Text>
+              </View>
+            )}
+          </View>
         </View>
-      </LinearGradient>
+      ) : (
+        <LinearGradient colors={['#E94560', '#7C3AED']} style={styles.heroSection}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.backText}>← Geri</Text>
+          </TouchableOpacity>
+
+          <Text style={styles.heroEmoji}>🎪</Text>
+          <Text style={styles.heroTitle}>{event.name}</Text>
+        </LinearGradient>
+      )}
+      {/* GENRE */}
+      {event.genre && (
+        <View style={styles.genreBadge}>
+          <Text style={styles.genreText}>🎵 {event.genre}</Text>
+        </View>
+      )}
+
+      <View style={styles.approvedBadge}>
+        <Text style={styles.approvedText}>
+          {event.isApproved ? '✅ Onaylandı' : '⏳ Onay Bekliyor'}
+        </Text>
+      </View>
 
       <View style={styles.content}>
 
@@ -218,6 +285,11 @@ export default function EventDetailScreen({ route, navigation }) {
             <Text style={styles.infoValueSub}>
               {event.venueCity}, {event.venueCountry}
             </Text>
+            {event.venueCity && event.venueCountry && (
+              <Text style={styles.infoValueSub}>
+                {event.venueCity}, {event.venueCountry}
+              </Text>
+            )}
           </View>
         )}
 
@@ -231,8 +303,26 @@ export default function EventDetailScreen({ route, navigation }) {
             </Text>
           </View>
         </View>
+        {/* BİLET BUTONU */}
+        {event.ticketUrl && (
+          <TouchableOpacity
+            onPress={async () => {
+              const supported = await Linking.canOpenURL(event.ticketUrl);
 
+              if (supported) {
+                await Linking.openURL(event.ticketUrl);
+              } else {
+                Alert.alert('Hata', 'Bu link açılamıyor');
+              }
+            }} style={styles.ticketButton}
+          >
+            <Text style={styles.ticketButtonText}>
+              🎫 Bilet Al
+            </Text>
+          </TouchableOpacity>
+        )}
         {/* POST AT BUTONU */}
+
         {verifying ? (
           <View style={styles.verifyingContainer}>
             <ActivityIndicator color={colors.primary} />
@@ -256,88 +346,159 @@ export default function EventDetailScreen({ route, navigation }) {
   );
 }
 
-const createStyles = (colors) => StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
+function createStyles(colors) {
+  return StyleSheet.create({
+    heroImage: {
+      width: '100%',
+      height: 220,
+    },
 
-  heroSection: {
-    paddingTop: 60, paddingBottom: 40,
-    paddingHorizontal: 24, alignItems: 'center',
-  },
-  backButton: { alignSelf: 'flex-start', marginBottom: 20 },
-  backText: { fontSize: 16, color: 'rgba(255,255,255,0.9)', fontWeight: '600' },
-  heroEmoji: { fontSize: 64, marginBottom: 12 },
-  heroTitle: {
-    fontSize: 26, fontWeight: 'bold',
-    color: '#fff', textAlign: 'center', marginBottom: 12,
-  },
-  approvedBadge: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20,
-  },
-  approvedText: { color: '#fff', fontWeight: '600', fontSize: 13 },
+    heroOverlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      height: 220,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
 
-  content: { padding: 16, gap: 12 },
+    genreBadge: {
+      backgroundColor: 'rgba(0,0,0,0.4)',
+      paddingHorizontal: 12,
+      paddingVertical: 4,
+      borderRadius: 12,
+      marginTop: 8,
+    },
 
-  // KATILIM
-  attendanceRow: { flexDirection: 'row', gap: 10 },
-  attendBtn: {
-    flex: 1, flexDirection: 'row', alignItems: 'center',
-    justifyContent: 'center', gap: 6,
-    paddingVertical: 14, borderRadius: 14,
-    backgroundColor: colors.card,
-    borderWidth: 1, borderColor: colors.border,
-  },
-  attendBtnActive: { backgroundColor: '#00D4AA22', borderColor: '#00D4AA' },
-  attendBtnActiveYellow: { backgroundColor: '#F5A62322', borderColor: '#F5A623' },
-  attendBtnEmoji: { fontSize: 16 },
-  attendBtnText: { fontSize: 14, fontWeight: '700', color: colors.textSecondary },
-  attendBtnTextActive: { color: '#00D4AA' },
-  attendBtnTextActiveYellow: { color: '#F5A623' },
+    genreText: {
+      color: '#fff',
+      fontSize: 13,
+      fontWeight: '600',
+    },
+    container: { flex: 1, backgroundColor: colors.background },
 
-  // INFO KARTLARI
-  infoCard: {
-    backgroundColor: colors.card,
-    borderRadius: 16, padding: 18,
-    borderWidth: 1, borderColor: colors.border,
-  },
-  sectionTitle: {
-    fontSize: 13, color: colors.textSecondary,
-    marginBottom: 8, fontWeight: '600',
-    textTransform: 'uppercase', letterSpacing: 1,
-  },
-  description: { fontSize: 15, color: colors.text, lineHeight: 22 },
-  infoValue: { fontSize: 16, color: colors.text, fontWeight: '600' },
-  infoValueSub: { fontSize: 14, color: colors.textSecondary, marginTop: 4 },
+    heroSection: {
+      paddingTop: 60, paddingBottom: 40,
+      paddingHorizontal: 24, alignItems: 'center',
+    },
+    backButton: { alignSelf: 'flex-start', marginBottom: 20 },
+    backText: { fontSize: 16, color: 'rgba(255,255,255,0.9)', fontWeight: '600' },
+    heroEmoji: { fontSize: 64, marginBottom: 12 },
+    heroTitle: {
+      fontSize: 26, fontWeight: 'bold',
+      color: '#fff', textAlign: 'center', marginBottom: 12,
+    },
+    approvedBadge: {
+      backgroundColor: 'rgba(255,255,255,0.2)',
+      paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20,
+    },
+    approvedText: { color: '#fff', fontWeight: '600', fontSize: 13 },
 
-  // SANATÇI SATIRI
-  artistRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  chevron: { fontSize: 24, color: colors.textSecondary },
+    content: { padding: 16, gap: 12 },
 
-  // KONUM DOĞRULAMA
-  verifyInfoCard: {
-    backgroundColor: '#1A2A1A',
-    borderRadius: 16, padding: 16,
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    borderWidth: 1, borderColor: '#00D4AA44',
-  },
-  verifyInfoEmoji: { fontSize: 28 },
-  verifyInfoText: { flex: 1 },
-  verifyInfoTitle: { color: '#00D4AA', fontWeight: 'bold', fontSize: 14, marginBottom: 4 },
-  verifyInfoSub: { color: colors.textSecondary, fontSize: 12, lineHeight: 18 },
+    // KATILIM
+    attendanceRow: { flexDirection: 'row', gap: 10 },
+    attendBtn: {
+      flex: 1, flexDirection: 'row', alignItems: 'center',
+      justifyContent: 'center', gap: 6,
+      paddingVertical: 14, borderRadius: 14,
+      backgroundColor: colors.card,
+      borderWidth: 1, borderColor: colors.border,
+    },
+    attendBtnActive: { backgroundColor: '#00D4AA22', borderColor: '#00D4AA' },
+    attendBtnActiveYellow: { backgroundColor: '#F5A62322', borderColor: '#F5A623' },
+    attendBtnEmoji: { fontSize: 16 },
+    attendBtnText: { fontSize: 14, fontWeight: '700', color: colors.textSecondary },
+    attendBtnTextActive: { color: '#00D4AA' },
+    attendBtnTextActiveYellow: { color: '#F5A623' },
 
-  verifyingContainer: {
-    flexDirection: 'row', alignItems: 'center',
-    justifyContent: 'center', gap: 10, padding: 16,
-  },
-  verifyingText: { color: colors.textSecondary, fontSize: 14 },
+    // INFO KARTLARI
+    infoCard: {
+      backgroundColor: colors.card,
+      borderRadius: 16, padding: 18,
+      borderWidth: 1, borderColor: colors.border,
+    },
+    sectionTitle: {
+      fontSize: 13, color: colors.textSecondary,
+      marginBottom: 8, fontWeight: '600',
+      textTransform: 'uppercase', letterSpacing: 1,
+    },
+    description: { fontSize: 15, color: colors.text, lineHeight: 22 },
+    infoValue: { fontSize: 16, color: colors.text, fontWeight: '600' },
+    infoValueSub: { fontSize: 14, color: colors.textSecondary, marginTop: 4 },
 
-  actionButton: {
-    padding: 18, borderRadius: 16,
-    alignItems: 'center', marginTop: 8, marginBottom: 32,
-  },
-  actionButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-});
+    // SANATÇI SATIRI
+    artistRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    chevron: { fontSize: 24, color: colors.textSecondary },
+
+    // KONUM DOĞRULAMA
+    verifyInfoCard: {
+      backgroundColor: '#1A2A1A',
+      borderRadius: 16, padding: 16,
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      borderWidth: 1, borderColor: '#00D4AA44',
+    },
+    verifyInfoEmoji: { fontSize: 28 },
+    verifyInfoText: { flex: 1 },
+    verifyInfoTitle: { color: '#00D4AA', fontWeight: 'bold', fontSize: 14, marginBottom: 4 },
+    verifyInfoSub: { color: colors.textSecondary, fontSize: 12, lineHeight: 18 },
+
+    verifyingContainer: {
+      flexDirection: 'row', alignItems: 'center',
+      justifyContent: 'center', gap: 10, padding: 16,
+    },
+    verifyingText: { color: colors.textSecondary, fontSize: 14 },
+
+    actionButton: {
+      padding: 18, borderRadius: 16,
+      alignItems: 'center', marginTop: 8, marginBottom: 32,
+    },
+    actionButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+    ticketButton: {
+      backgroundColor: '#F5A623',
+      padding: 18,
+      borderRadius: 16,
+      alignItems: 'center',
+      marginTop: 8,
+    },
+
+    ticketButtonText: {
+      color: '#fff',
+      fontSize: 16,
+      fontWeight: 'bold',
+    },
+
+    imageLoadingOverlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+
+    imageErrorOverlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.7)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+
+    imageErrorText: {
+      color: '#fff',
+      fontSize: 16,
+      fontWeight: 'bold',
+    },
+  });
+}

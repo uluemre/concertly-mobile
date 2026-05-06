@@ -28,6 +28,8 @@ public class User {
 
     private String profileImageUrl;
 
+    private String city;
+
     private Boolean isVerified = false;
 
     private Boolean isActive = true;
@@ -91,6 +93,14 @@ public class User {
 
     public void setProfileImageUrl(String profileImageUrl) {
         this.profileImageUrl = profileImageUrl;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
     }
 
     public Boolean getIsVerified() {

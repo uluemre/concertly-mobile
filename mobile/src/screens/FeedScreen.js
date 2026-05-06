@@ -20,13 +20,13 @@ const gradientSets = [
 
 // ── Tek Post Kartı ──────────────────────────────────────────────────────────
 function PostCard({ item, index, currentUserId, navigation, styles, colors, onLike, onUnlike }) {
-  const scaleAnim  = useRef(new Animated.Value(1)).current;
-  const heartAnim  = useRef(new Animated.Value(0)).current;
-  const slideAnim  = useRef(new Animated.Value(40)).current;
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const heartAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(40)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
-  const [liked, setLiked]           = useState(false);
-  const [likeCount, setLikeCount]   = useState(item.likeCount || 0);
+  const [liked, setLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(item.likeCount || 0);
   const [likeLoading, setLikeLoading] = useState(false);
   const [showComments, setShowComments] = useState(false);
 
@@ -177,10 +177,10 @@ function PostCard({ item, index, currentUserId, navigation, styles, colors, onLi
 
 // ── Yorum Modali ────────────────────────────────────────────────────────────
 function CommentModal({ visible, postId, currentUserId, onClose, styles, colors }) {
-  const [comments, setComments]   = useState([]);
-  const [loading, setLoading]     = useState(false);
-  const [text, setText]           = useState('');
-  const [sending, setSending]     = useState(false);
+  const [comments, setComments] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [text, setText] = useState('');
+  const [sending, setSending] = useState(false);
   const slideAnim = useRef(new Animated.Value(600)).current;
 
   useEffect(() => {
@@ -318,9 +318,9 @@ function formatTime(dateStr) {
 export default function FeedScreen({ navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const [activeTab, setActiveTab]   = useState('trending');
-  const [posts, setPosts]           = useState([]);
-  const [loading, setLoading]       = useState(true);
+  const [activeTab, setActiveTab] = useState('trending');
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const tabIndicator = useRef(new Animated.Value(0)).current;
 
@@ -441,217 +441,219 @@ export default function FeedScreen({ navigation }) {
 }
 
 // ── STİLLER ─────────────────────────────────────────────────────────────────
-const createStyles = (colors) => StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
+function createStyles(colors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
 
-  // HEADER
-  header: {
-    paddingTop: 60,
-    paddingBottom: 16,
-    paddingHorizontal: 20,
-  },
-  headerTitle: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 16,
-    letterSpacing: -0.5,
-  },
+    // HEADER
+    header: {
+      paddingTop: 60,
+      paddingBottom: 16,
+      paddingHorizontal: 20,
+    },
+    headerTitle: {
+      fontSize: 26,
+      fontWeight: 'bold',
+      color: colors.text,
+      marginBottom: 16,
+      letterSpacing: -0.5,
+    },
 
-  // TAB BAR
-  tabBar: {
-    flexDirection: 'row',
-    backgroundColor: colors.cardAlt,
-    borderRadius: 14,
-    padding: 4,
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  tabIndicator: {
-    position: 'absolute',
-    top: 4,
-    width: '50%',
-    bottom: 4,
-    backgroundColor: colors.primary,
-    borderRadius: 10,
-  },
-  tabBtn: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: 'center',
-    zIndex: 1,
-  },
-  tabBtnText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.textSecondary,
-  },
-  tabBtnTextActive: {
-    color: '#fff',
-  },
+    // TAB BAR
+    tabBar: {
+      flexDirection: 'row',
+      backgroundColor: colors.cardAlt,
+      borderRadius: 14,
+      padding: 4,
+      position: 'relative',
+      overflow: 'hidden',
+    },
+    tabIndicator: {
+      position: 'absolute',
+      top: 4,
+      width: '50%',
+      bottom: 4,
+      backgroundColor: colors.primary,
+      borderRadius: 10,
+    },
+    tabBtn: {
+      flex: 1,
+      paddingVertical: 10,
+      alignItems: 'center',
+      zIndex: 1,
+    },
+    tabBtnText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.textSecondary,
+    },
+    tabBtnTextActive: {
+      color: '#fff',
+    },
 
-  // LOADING
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
-  loadingText: { color: colors.textSecondary, fontSize: 14 },
+    // LOADING
+    loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
+    loadingText: { color: colors.textSecondary, fontSize: 14 },
 
-  // LIST
-  listContent: { padding: 16, paddingBottom: 32 },
+    // LIST
+    listContent: { padding: 16, paddingBottom: 32 },
 
-  // POST KARTI
-  postCard: {
-    backgroundColor: colors.card,
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: colors.border,
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  floatingHeart: {
-    position: 'absolute',
-    top: '40%',
-    alignSelf: 'center',
-    fontSize: 48,
-    zIndex: 10,
-  },
+    // POST KARTI
+    postCard: {
+      backgroundColor: colors.card,
+      borderRadius: 20,
+      padding: 16,
+      marginBottom: 14,
+      borderWidth: 1,
+      borderColor: colors.border,
+      position: 'relative',
+      overflow: 'hidden',
+    },
+    floatingHeart: {
+      position: 'absolute',
+      top: '40%',
+      alignSelf: 'center',
+      fontSize: 48,
+      zIndex: 10,
+    },
 
-  // POST HEADER
-  postHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    gap: 10,
-  },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-  },
-  avatarImage: { width: 44, height: 44, borderRadius: 22 },
-  avatarText: { color: '#fff', fontWeight: 'bold', fontSize: 18 },
-  headerInfo: { flex: 1 },
-  username: { fontSize: 14, fontWeight: 'bold', color: colors.text },
-  eventTag: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
-  postTime: { fontSize: 11, color: colors.textSecondary },
+    // POST HEADER
+    postHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 12,
+      gap: 10,
+    },
+    avatar: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      justifyContent: 'center',
+      alignItems: 'center',
+      overflow: 'hidden',
+    },
+    avatarImage: { width: 44, height: 44, borderRadius: 22 },
+    avatarText: { color: '#fff', fontWeight: 'bold', fontSize: 18 },
+    headerInfo: { flex: 1 },
+    username: { fontSize: 14, fontWeight: 'bold', color: colors.text },
+    eventTag: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
+    postTime: { fontSize: 11, color: colors.textSecondary },
 
-  // POST İÇERİK
-  postContent: {
-    fontSize: 15,
-    color: colors.text,
-    lineHeight: 22,
-    marginBottom: 14,
-  },
+    // POST İÇERİK
+    postContent: {
+      fontSize: 15,
+      color: colors.text,
+      lineHeight: 22,
+      marginBottom: 14,
+    },
 
-  // AKSİYONLAR
-  actions: {
-    flexDirection: 'row',
-    gap: 20,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  actionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  actionIcon: { fontSize: 20 },
-  actionCount: { fontSize: 13, color: colors.textSecondary, fontWeight: '600' },
-  actionCountActive: { color: colors.primary },
+    // AKSİYONLAR
+    actions: {
+      flexDirection: 'row',
+      gap: 20,
+      paddingTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+    },
+    actionBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    actionIcon: { fontSize: 20 },
+    actionCount: { fontSize: 13, color: colors.textSecondary, fontWeight: '600' },
+    actionCountActive: { color: colors.primary },
 
-  // YORUM MODALI
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  modalSheet: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: colors.card,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '75%',
-    paddingBottom: Platform.OS === 'ios' ? 34 : 16,
-  },
-  sheetHandle: {
-    width: 40, height: 4, borderRadius: 2,
-    backgroundColor: colors.border,
-    alignSelf: 'center',
-    marginTop: 12, marginBottom: 4,
-  },
-  sheetHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  sheetTitle: { fontSize: 16, fontWeight: 'bold', color: colors.text },
-  sheetClose: { fontSize: 18, color: colors.textSecondary, padding: 4 },
+    // YORUM MODALI
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+    },
+    modalSheet: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      backgroundColor: colors.card,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      maxHeight: '75%',
+      paddingBottom: Platform.OS === 'ios' ? 34 : 16,
+    },
+    sheetHandle: {
+      width: 40, height: 4, borderRadius: 2,
+      backgroundColor: colors.border,
+      alignSelf: 'center',
+      marginTop: 12, marginBottom: 4,
+    },
+    sheetHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+      paddingVertical: 14,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    sheetTitle: { fontSize: 16, fontWeight: 'bold', color: colors.text },
+    sheetClose: { fontSize: 18, color: colors.textSecondary, padding: 4 },
 
-  noComments: { alignItems: 'center', paddingVertical: 40 },
-  noCommentsEmoji: { fontSize: 40, marginBottom: 10 },
-  noCommentsText: { color: colors.textSecondary, fontSize: 14 },
+    noComments: { alignItems: 'center', paddingVertical: 40 },
+    noCommentsEmoji: { fontSize: 40, marginBottom: 10 },
+    noCommentsText: { color: colors.textSecondary, fontSize: 14 },
 
-  commentList: { maxHeight: 320, paddingHorizontal: 16 },
-  commentItem: {
-    flexDirection: 'row',
-    gap: 10,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  commentAvatar: {
-    width: 34, height: 34, borderRadius: 17,
-    backgroundColor: colors.primary,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  commentAvatarText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
-  commentBody: { flex: 1 },
-  commentUsername: { fontSize: 13, fontWeight: 'bold', color: colors.text, marginBottom: 3 },
-  commentContent: { fontSize: 14, color: colors.text, lineHeight: 19 },
-  commentTime: { fontSize: 11, color: colors.textSecondary, marginTop: 4 },
+    commentList: { maxHeight: 320, paddingHorizontal: 16 },
+    commentItem: {
+      flexDirection: 'row',
+      gap: 10,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    commentAvatar: {
+      width: 34, height: 34, borderRadius: 17,
+      backgroundColor: colors.primary,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    commentAvatarText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
+    commentBody: { flex: 1 },
+    commentUsername: { fontSize: 13, fontWeight: 'bold', color: colors.text, marginBottom: 3 },
+    commentContent: { fontSize: 14, color: colors.text, lineHeight: 19 },
+    commentTime: { fontSize: 11, color: colors.textSecondary, marginTop: 4 },
 
-  commentInputRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  commentInput: {
-    flex: 1,
-    backgroundColor: '#252538',
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    color: colors.text,
-    fontSize: 14,
-    maxHeight: 100,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  sendBtn: {
-    width: 42, height: 42, borderRadius: 21,
-    backgroundColor: colors.primary,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  sendBtnDisabled: { backgroundColor: colors.border },
-  sendBtnText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+    commentInputRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      gap: 10,
+      paddingHorizontal: 16,
+      paddingTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+    },
+    commentInput: {
+      flex: 1,
+      backgroundColor: '#252538',
+      borderRadius: 14,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      color: colors.text,
+      fontSize: 14,
+      maxHeight: 100,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    sendBtn: {
+      width: 42, height: 42, borderRadius: 21,
+      backgroundColor: colors.primary,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    sendBtnDisabled: { backgroundColor: colors.border },
+    sendBtnText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
 
-  // BOŞ DURUM
-  empty: { alignItems: 'center', paddingVertical: 60, paddingHorizontal: 32 },
-  emptyEmoji: { fontSize: 56, marginBottom: 16 },
-  emptyTitle: { fontSize: 17, fontWeight: 'bold', color: colors.text, marginBottom: 8, textAlign: 'center' },
-  emptySubtext: { fontSize: 13, color: colors.textSecondary, textAlign: 'center', lineHeight: 20 },
-});
+    // BOŞ DURUM
+    empty: { alignItems: 'center', paddingVertical: 60, paddingHorizontal: 32 },
+    emptyEmoji: { fontSize: 56, marginBottom: 16 },
+    emptyTitle: { fontSize: 17, fontWeight: 'bold', color: colors.text, marginBottom: 8, textAlign: 'center' },
+    emptySubtext: { fontSize: 13, color: colors.textSecondary, textAlign: 'center', lineHeight: 20 },
+  });
+}
