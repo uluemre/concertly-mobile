@@ -5,6 +5,7 @@ import {
   ActivityIndicator, Modal, FlatList
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import API from '../services/api';
 import { useTheme } from '../theme';
 
@@ -216,8 +217,14 @@ export default function SettingsScreen({ navigation, route }) {
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={styles.cityListItem}
-                  onPress={() => {
+                  onPress={async () => {
+
                     setFormData({ ...formData, city: item });
+
+                    global.userCity = item;
+
+                    await AsyncStorage.setItem('selectedCity', item);
+
                     setCityModalVisible(false);
                   }}
                 >

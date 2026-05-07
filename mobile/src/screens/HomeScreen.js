@@ -269,13 +269,30 @@ export default function HomeScreen({ navigation }) {
   const searchWidth = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+
+
+
+
     Animated.parallel([
-      Animated.spring(headerAnim, { toValue: 0, tension: 50, friction: 8, useNativeDriver: true }),
-      Animated.timing(headerOpacity, { toValue: 1, duration: 500, useNativeDriver: true }),
+      Animated.spring(headerAnim, {
+        toValue: 0,
+        tension: 50,
+        friction: 8,
+        useNativeDriver: true
+      }),
+
+      Animated.timing(headerOpacity, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true
+      }),
     ]).start();
 
     const city = global.userCity;
-    const url = city ? `/events?city=${encodeURIComponent(city)}` : '/events';
+
+    const url = city
+      ? `/events?city=${encodeURIComponent(city)}`
+      : '/events';
 
     Promise.all([
       API.get(url),
@@ -285,8 +302,11 @@ export default function HomeScreen({ navigation }) {
         setEvents(evRes.data);
         setPosts(postRes.data);
       })
-      .catch(err => console.log('HomeScreen fetch error:', err.message))
+      .catch(err =>
+        console.log('HomeScreen fetch error:', err.message)
+      )
       .finally(() => setLoading(false));
+
   }, []);
 
   const activeCategoryLabel = categories.find(c => c.id === activeCategory)?.label || 'Tümü';
@@ -319,6 +339,9 @@ export default function HomeScreen({ navigation }) {
 
   return (
     <View style={styles.screen}>
+
+
+
       <StatusBar barStyle="light-content" />
 
       <ScrollView

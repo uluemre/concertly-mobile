@@ -2,10 +2,11 @@ import React, { useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
   TouchableOpacity, Alert, ActivityIndicator,
-  Linking
+  Linking, Platform
 } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import API from '../services/api';
 import { useTheme } from '../theme';
@@ -24,6 +25,26 @@ function getDistanceInMeters(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 
+// Haritaya tıklanınca Google Maps / Apple Maps aç
+function openMapsApp(latitude, longitude, venueName) {
+  const label = encodeURIComponent(venueName || 'Mekan');
+  const url = Platform.select({
+    ios: `maps:0,0?q=${label}@${latitude},${longitude}`,
+    android: `geo:${latitude},${longitude}?q=${latitude},${longitude}(${label})`,
+  });
+
+  Linking.canOpenURL(url).then(supported => {
+    if (supported) {
+      Linking.openURL(url);
+    } else {
+      // Fallback: Google Maps web
+      Linking.openURL(
+        `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`
+      );
+    }
+  });
+}
+
 export default function EventDetailScreen({ route, navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -34,6 +55,9 @@ export default function EventDetailScreen({ route, navigation }) {
   const [attendance, setAttendance] = useState(null);
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
+
+  const hasCoordinates =
+    event.venueLatitude != null && event.venueLongitude != null;
 
   // ── Katılım ──────────────────────────────────────────────────────────────
   const handleAttend = async (status) => {
@@ -68,7 +92,7 @@ export default function EventDetailScreen({ route, navigation }) {
 
   // ── Konum doğrula & post at ───────────────────────────────────────────────
   const handlePostAt = async () => {
-    if (!event.venueLatitude || !event.venueLongitude) {
+    if (!hasCoordinates) {
       navigation.navigate('CreatePost', { event });
       return;
     }
@@ -134,15 +158,8 @@ export default function EventDetailScreen({ route, navigation }) {
             style={styles.heroImage}
             contentFit="cover"
             placeholder={require('../../assets/icon.png')}
-            onError={(error) => {
-              console.log('Expo Image load error for URL:', event.imageUrl, error);
-              setImageError(true);
-              setImageLoading(false);
-            }}
-            onLoad={() => {
-              console.log('Expo Image loaded successfully:', event.imageUrl);
-              setImageLoading(false);
-            }}
+            onError={() => { setImageError(true); setImageLoading(false); }}
+            onLoad={() => setImageLoading(false)}
             onLoadStart={() => setImageLoading(true)}
             cachePolicy="memory-disk"
             transition={300}
@@ -162,16 +179,11 @@ export default function EventDetailScreen({ route, navigation }) {
 
           <LinearGradient colors={['transparent', 'rgba(0,0,0,0.9)']} style={styles.heroOverlay}>
             <View style={styles.heroTopActions}>
-              <TouchableOpacity
-                style={styles.backButton}
-                onPress={() => navigation.goBack()}
-              >
+              <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
                 <Text style={styles.backText}>← Geri</Text>
               </TouchableOpacity>
             </View>
-
             <Text style={styles.heroTitle}>{event.name}</Text>
-
             {event.genre && (
               <View style={styles.genreBadge}>
                 <Text style={styles.genreText}>🎵 {event.genre}</Text>
@@ -181,13 +193,9 @@ export default function EventDetailScreen({ route, navigation }) {
         </View>
       ) : (
         <LinearGradient colors={['#1E1B4B', '#09090B']} style={styles.heroSection}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
             <Text style={styles.backText}>← Geri</Text>
           </TouchableOpacity>
-
           <Text style={styles.heroEmoji}>🎪</Text>
           <Text style={styles.heroTitle}>{event.name}</Text>
         </LinearGradient>
@@ -204,10 +212,7 @@ export default function EventDetailScreen({ route, navigation }) {
             activeOpacity={0.8}
           >
             <Text style={styles.attendBtnEmoji}>✅</Text>
-            <Text style={[
-              styles.attendBtnText,
-              attendance === 'GOING' && styles.attendBtnTextActive,
-            ]}>
+            <Text style={[styles.attendBtnText, attendance === 'GOING' && styles.attendBtnTextActive]}>
               Gidiyorum
             </Text>
           </TouchableOpacity>
@@ -219,10 +224,7 @@ export default function EventDetailScreen({ route, navigation }) {
             activeOpacity={0.8}
           >
             <Text style={styles.attendBtnEmoji}>⭐</Text>
-            <Text style={[
-              styles.attendBtnText,
-              attendance === 'INTERESTED' && styles.attendBtnTextActiveYellow,
-            ]}>
+            <Text style={[styles.attendBtnText, attendance === 'INTERESTED' && styles.attendBtnTextActiveYellow]}>
               İlgileniyorum
             </Text>
           </TouchableOpacity>
@@ -249,7 +251,7 @@ export default function EventDetailScreen({ route, navigation }) {
           </Text>
         </View>
 
-        {/* SANATÇI — tıklanabilir ✅ */}
+        {/* SANATÇI */}
         {event.artistName && (
           <TouchableOpacity
             style={styles.infoCard}
@@ -267,7 +269,7 @@ export default function EventDetailScreen({ route, navigation }) {
           </TouchableOpacity>
         )}
 
-        {/* MEKAN */}
+        {/* MEKAN + INLINE HARİTA */}
         {event.venueName && (
           <View style={styles.infoCard}>
             <Text style={styles.sectionTitle}>📍 Mekan</Text>
@@ -276,6 +278,49 @@ export default function EventDetailScreen({ route, navigation }) {
               <Text style={styles.infoValueSub}>
                 {event.venueCity}, {event.venueCountry}
               </Text>
+            )}
+            {event.venueAddress && (
+              <Text style={styles.venueAddress}>{event.venueAddress}</Text>
+            )}
+
+            {/* ── INLINE HARİTA ── */}
+            {hasCoordinates && (
+              <TouchableOpacity
+                style={styles.mapWrapper}
+                onPress={() => openMapsApp(event.venueLatitude, event.venueLongitude, event.venueName)}
+                activeOpacity={0.9}
+              >
+                <MapView
+                  style={styles.map}
+                  initialRegion={{
+                    latitude: event.venueLatitude,
+                    longitude: event.venueLongitude,
+                    latitudeDelta: 0.005,
+                    longitudeDelta: 0.005,
+                  }}
+                  scrollEnabled={false}
+                  zoomEnabled={false}
+                  pitchEnabled={false}
+                  rotateEnabled={false}
+                  userInterfaceStyle="dark"
+                  pointerEvents="none"
+                >
+                  <Marker
+                    coordinate={{
+                      latitude: event.venueLatitude,
+                      longitude: event.venueLongitude,
+                    }}
+                    title={event.venueName}
+                  />
+                </MapView>
+
+                {/* Harita üstü overlay — tıklanabilirlik ipucu */}
+                <View style={styles.mapOverlay}>
+                  <View style={styles.mapOverlayBadge}>
+                    <Text style={styles.mapOverlayText}>🗺️ Haritada Aç</Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
             )}
           </View>
         )}
@@ -290,26 +335,25 @@ export default function EventDetailScreen({ route, navigation }) {
             </Text>
           </View>
         </View>
+
         {/* BİLET BUTONU */}
         {event.ticketUrl && (
           <TouchableOpacity
             onPress={async () => {
               const supported = await Linking.canOpenURL(event.ticketUrl);
-
               if (supported) {
                 await Linking.openURL(event.ticketUrl);
               } else {
                 Alert.alert('Hata', 'Bu link açılamıyor');
               }
-            }} style={styles.ticketButton}
+            }}
+            style={styles.ticketButton}
           >
-            <Text style={styles.ticketButtonText}>
-              🎫 Bilet Al
-            </Text>
+            <Text style={styles.ticketButtonText}>🎫 Bilet Al</Text>
           </TouchableOpacity>
         )}
-        {/* POST AT BUTONU */}
 
+        {/* POST AT BUTONU */}
         {verifying ? (
           <View style={styles.verifyingContainer}>
             <ActivityIndicator color={colors.primary} />
@@ -335,71 +379,37 @@ export default function EventDetailScreen({ route, navigation }) {
 
 function createStyles(colors) {
   return StyleSheet.create({
-    heroImage: {
-      width: '100%',
-      height: 320,
-    },
-
+    heroImage: { width: '100%', height: 320 },
     heroOverlay: {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      height: 320,
-      justifyContent: 'flex-end',
-      alignItems: 'flex-start',
-      paddingBottom: 24,
-      paddingHorizontal: 24,
+      position: 'absolute', top: 0, left: 0, right: 0, height: 320,
+      justifyContent: 'flex-end', alignItems: 'flex-start',
+      paddingBottom: 24, paddingHorizontal: 24,
     },
-    heroTopActions: {
-      position: 'absolute',
-      top: 56,
-      left: 20,
-    },
-
+    heroTopActions: { position: 'absolute', top: 56, left: 20 },
     genreBadge: {
       backgroundColor: 'rgba(255,255,255,0.15)',
-      paddingHorizontal: 14,
-      paddingVertical: 6,
-      borderRadius: 16,
-      marginTop: 10,
-      borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.3)',
+      paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16, marginTop: 10,
+      borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)',
     },
-
-    genreText: {
-      color: '#fff',
-      fontSize: 13,
-      fontWeight: '700',
-      letterSpacing: 0.5,
-    },
+    genreText: { color: '#fff', fontSize: 13, fontWeight: '700', letterSpacing: 0.5 },
     container: { flex: 1, backgroundColor: colors.background },
-
     heroSection: {
       paddingTop: 64, paddingBottom: 40,
       paddingHorizontal: 24, alignItems: 'center',
     },
-    backButton: { 
-      backgroundColor: 'rgba(255,255,255,0.15)', 
-      paddingHorizontal: 16, paddingVertical: 8, 
-      borderRadius: 20,
-      borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)'
+    backButton: {
+      backgroundColor: 'rgba(255,255,255,0.15)',
+      paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20,
+      borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
     },
     backText: { fontSize: 14, color: '#fff', fontWeight: '700' },
     heroEmoji: { fontSize: 64, marginBottom: 12 },
     heroTitle: {
-      fontSize: 32, fontWeight: '900',
-      color: '#fff', textAlign: 'left', marginBottom: 4,
-      letterSpacing: 0.5,
+      fontSize: 32, fontWeight: '900', color: '#fff',
+      textAlign: 'left', marginBottom: 4, letterSpacing: 0.5,
       textShadowColor: 'rgba(0,0,0,0.5)',
-      textShadowOffset: { width: 0, height: 2 },
-      textShadowRadius: 4,
+      textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 4,
     },
-    approvedBadge: {
-      backgroundColor: 'rgba(255,255,255,0.2)',
-      paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20,
-    },
-    approvedText: { color: '#fff', fontWeight: '600', fontSize: 13 },
 
     content: { padding: 20, gap: 16 },
 
@@ -433,14 +443,46 @@ function createStyles(colors) {
     description: { fontSize: 15, color: '#fff', lineHeight: 24 },
     infoValue: { fontSize: 17, color: '#fff', fontWeight: '700', letterSpacing: 0.3 },
     infoValueSub: { fontSize: 14, color: 'rgba(255,255,255,0.6)', marginTop: 6 },
+    venueAddress: { fontSize: 13, color: 'rgba(255,255,255,0.45)', marginTop: 4 },
 
     // SANATÇI SATIRI
-    artistRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-    },
+    artistRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     chevron: { fontSize: 24, color: 'rgba(255,255,255,0.4)' },
+
+    // ── INLINE HARİTA ──
+    mapWrapper: {
+      marginTop: 16,
+      borderRadius: 14,
+      overflow: 'hidden',
+      height: 180,
+      position: 'relative',
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.12)',
+    },
+    map: {
+      width: '100%',
+      height: '100%',
+    },
+    mapOverlay: {
+      position: 'absolute',
+      top: 0, left: 0, right: 0, bottom: 0,
+      justifyContent: 'flex-end',
+      alignItems: 'flex-end',
+      padding: 10,
+    },
+    mapOverlayBadge: {
+      backgroundColor: 'rgba(0,0,0,0.65)',
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.15)',
+    },
+    mapOverlayText: {
+      color: '#fff',
+      fontSize: 12,
+      fontWeight: '700',
+    },
 
     // KONUM DOĞRULAMA
     verifyInfoCard: {
@@ -461,55 +503,31 @@ function createStyles(colors) {
     verifyingText: { color: 'rgba(255,255,255,0.7)', fontSize: 15 },
 
     actionButton: {
-      padding: 18, borderRadius: 20,
-      alignItems: 'center', marginTop: 12, marginBottom: 36,
+      padding: 18, borderRadius: 20, alignItems: 'center',
+      marginTop: 12, marginBottom: 36,
       shadowColor: '#E94560', shadowOffset: { width: 0, height: 8 },
       shadowOpacity: 0.4, shadowRadius: 12, elevation: 8,
     },
     actionButtonText: { color: '#fff', fontSize: 17, fontWeight: '900', letterSpacing: 0.5 },
-    
+
     ticketButton: {
-      backgroundColor: '#E94560',
-      padding: 18,
-      borderRadius: 20,
-      alignItems: 'center',
-      marginTop: 12,
+      backgroundColor: '#E94560', padding: 18, borderRadius: 20,
+      alignItems: 'center', marginTop: 12,
       shadowColor: '#E94560', shadowOffset: { width: 0, height: 6 },
       shadowOpacity: 0.4, shadowRadius: 8, elevation: 6,
     },
-
-    ticketButtonText: {
-      color: '#fff',
-      fontSize: 16,
-      fontWeight: 'bold',
-    },
+    ticketButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
 
     imageLoadingOverlay: {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
+      position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
       backgroundColor: 'rgba(0,0,0,0.5)',
-      justifyContent: 'center',
-      alignItems: 'center',
+      justifyContent: 'center', alignItems: 'center',
     },
-
     imageErrorOverlay: {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
+      position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
       backgroundColor: 'rgba(0,0,0,0.7)',
-      justifyContent: 'center',
-      alignItems: 'center',
+      justifyContent: 'center', alignItems: 'center',
     },
-
-    imageErrorText: {
-      color: '#fff',
-      fontSize: 16,
-      fontWeight: 'bold',
-    },
+    imageErrorText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   });
 }
