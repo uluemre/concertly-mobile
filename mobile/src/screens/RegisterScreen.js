@@ -1,3 +1,4 @@
+//register screen - kullanıcı adı, email, şifre ile kayıt olma
 import React, { useMemo, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
@@ -54,7 +55,9 @@ export default function RegisterScreen({ navigation }) {
       global.authToken = loginRes.data.accessToken;
       global.userId = loginRes.data.userId;
       global.userCity = loginRes.data.city;
-      navigation.replace('Welcome', { username });
+
+      // Yeni kullanıcı → Onboarding'e yönlendir
+      navigation.replace('Onboarding');
     } catch (err) {
       Alert.alert('Hata', 'Bu email veya kullanıcı adı zaten kullanılıyor.');
     } finally {
