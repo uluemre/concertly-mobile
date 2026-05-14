@@ -1,124 +1,76 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  TouchableOpacity, TextInput
+  TouchableOpacity, TextInput, ActivityIndicator
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../theme';
-
-export const communities = [
-  {
-    id: 'istanbul-rock',
-    name: 'Istanbul Rock Sahnesi',
-    type: 'Rock',
-    city: 'Istanbul',
-    emoji: '🎸',
-    members: 1840,
-    posts: 128,
-    live: true,
-    gradient: ['#E94560', '#7C3AED'],
-    description: 'Rock konserleri, mekan önerileri ve konser sonrası yorumlar.',
-    nextEvent: 'Dorock XL buluşması',
-    tags: ['Rock', 'Metal', 'Istanbul'],
-  },
-  {
-    id: 'festivalciler',
-    name: 'Festivalciler',
-    type: 'Festival',
-    city: 'Turkiye',
-    emoji: '🎪',
-    members: 3120,
-    posts: 246,
-    live: true,
-    gradient: ['#F5A623', '#E94560'],
-    description: 'Festival planları, kamp tavsiyeleri ve line-up sohbetleri.',
-    nextEvent: 'Yaz festivali hazırlıkları',
-    tags: ['Festival', 'Kamp', 'Line-up'],
-  },
-  {
-    id: 'elektronik-gece',
-    name: 'Elektronik Gece',
-    type: 'Elektronik',
-    city: 'Istanbul',
-    emoji: '🎧',
-    members: 2210,
-    posts: 176,
-    live: false,
-    gradient: ['#00D4AA', '#0066FF'],
-    description: 'DJ setleri, after party duyuruları ve elektronik müzik kültürleri.',
-    nextEvent: 'Gece setleri listesi',
-    tags: ['DJ', 'Techno', 'House'],
-  },
-  {
-    id: 'ankara-konser',
-    name: 'Ankara Konser Grubu',
-    type: 'Şehir',
-    city: 'Ankara',
-    emoji: '📍',
-    members: 940,
-    posts: 64,
-    live: false,
-    gradient: ['#7C3AED', '#E94560'],
-    description: 'Ankara konserleri, bilet paylaşımları ve etkinlik öncesi buluşmalar.',
-    nextEvent: 'Haftanin Ankara konserleri',
-    tags: ['Ankara', 'Bulusma', 'Konser'],
-  },
-  {
-    id: 'caz-severler',
-    name: 'Caz Severler',
-    type: 'Caz',
-    city: 'Turkiye',
-    emoji: '🎷',
-    members: 780,
-    posts: 52,
-    live: false,
-    gradient: ['#16213E', '#F5A623'],
-    description: 'Caz kulübü önerileri, konser notları ve sakin performanslar.',
-    nextEvent: 'Caz kulübü rotası',
-    tags: ['Caz', 'Akustik', 'Kulup'],
-  },
-];
+import API from '../services/api';
 
 const filters = ['Tümü', 'Rock', 'Festival', 'Elektronik', 'Şehir', 'Caz'];
-
-function getJoinedCommunities() {
-  if (!global.joinedCommunities) {
-    global.joinedCommunities = {};
-  }
-  return global.joinedCommunities;
-}
 
 export default function CommunitiesScreen({ navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [activeFilter, setActiveFilter] = useState('Tümü');
   const [query, setQuery] = useState('');
-  const [, setJoinedVersion] = useState(0);
+  const [communities, setCommunities] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const debounceRef = useRef(null);
 
-  const joinedCommunities = getJoinedCommunities();
+  const fetchCommunities = useCallback(async (type, q) => {
+    try {
+      setLoading(true);
+      const params = {};
+      if (type && type !== 'Tümü') params.type = type;
+      if (q && q.trim()) params.q = q.trim();
+      const res = await API.get('/communities', { params });
+      setCommunities(res.data);
+    } catch (err) {
+      console.error('Communities fetch error:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
+  // Fetch on mount and when filters change
   useFocusEffect(
     useCallback(() => {
-      setJoinedVersion(prev => prev + 1);
-    }, [])
+      fetchCommunities(activeFilter, query);
+    }, [activeFilter]) // eslint-disable-line react-hooks/exhaustive-deps
   );
 
-  const filteredCommunities = communities.filter((community) => {
-    const matchesFilter = activeFilter === 'Tümü' || community.type === activeFilter;
-    const search = query.trim().toLowerCase();
-    const matchesSearch = !search ||
-      community.name.toLowerCase().includes(search) ||
-      community.city.toLowerCase().includes(search) ||
-      community.tags.some(tag => tag.toLowerCase().includes(search));
-    return matchesFilter && matchesSearch;
-  });
+  // Debounced search
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      fetchCommunities(activeFilter, query);
+    }, 300);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [query]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const joinedCount = communities.filter(item => joinedCommunities[item.id]).length;
+  const joinedCount = communities.filter(c => c.isJoinedByCurrentUser).length;
 
-  const toggleJoin = (communityId) => {
-    joinedCommunities[communityId] = !joinedCommunities[communityId];
-    setJoinedVersion(prev => prev + 1);
+  const toggleJoin = async (community) => {
+    try {
+      if (community.isJoinedByCurrentUser) {
+        await API.delete(`/communities/${community.id}/join`);
+      } else {
+        await API.post(`/communities/${community.id}/join`);
+      }
+      setCommunities(prev => prev.map(c =>
+        c.id === community.id
+          ? {
+              ...c,
+              isJoinedByCurrentUser: !c.isJoinedByCurrentUser,
+              memberCount: c.memberCount + (c.isJoinedByCurrentUser ? -1 : 1),
+            }
+          : c
+      ));
+    } catch (err) {
+      console.error('Join toggle error:', err);
+    }
   };
 
   return (
@@ -170,18 +122,23 @@ export default function CommunitiesScreen({ navigation }) {
         ))}
       </ScrollView>
 
-      <View style={styles.list}>
-        {filteredCommunities.map((community) => {
-          const joined = !!joinedCommunities[community.id];
-
-          return (
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      ) : (
+        <View style={styles.list}>
+          {communities.map((community) => (
             <TouchableOpacity
               key={community.id}
               activeOpacity={0.88}
-              onPress={() => navigation.navigate('CommunityDetail', { community })}
+              onPress={() => navigation.navigate('CommunityDetail', { communityId: community.id })}
               style={styles.communityCard}
             >
-              <LinearGradient colors={community.gradient} style={styles.communityArt}>
+              <LinearGradient
+                colors={[community.gradientStart, community.gradientEnd]}
+                style={styles.communityArt}
+              >
                 <Text style={styles.communityEmoji}>{community.emoji}</Text>
                 {community.live && (
                   <View style={styles.liveBadge}>
@@ -197,11 +154,11 @@ export default function CommunitiesScreen({ navigation }) {
                     <Text style={styles.communityMeta}>{community.city} · {community.type}</Text>
                   </View>
                   <TouchableOpacity
-                    onPress={() => toggleJoin(community.id)}
-                    style={[styles.joinButton, joined && styles.joinButtonActive]}
+                    onPress={() => toggleJoin(community)}
+                    style={[styles.joinButton, community.isJoinedByCurrentUser && styles.joinButtonActive]}
                   >
-                    <Text style={[styles.joinText, joined && styles.joinTextActive]}>
-                      {joined ? 'Katıldın' : 'Katıl'}
+                    <Text style={[styles.joinText, community.isJoinedByCurrentUser && styles.joinTextActive]}>
+                      {community.isJoinedByCurrentUser ? 'Katıldın' : 'Katıl'}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -211,15 +168,15 @@ export default function CommunitiesScreen({ navigation }) {
                 </Text>
 
                 <View style={styles.communityFooter}>
-                  <Text style={styles.footerMetric}>{community.members.toLocaleString('tr-TR')} üye</Text>
-                  <Text style={styles.footerMetric}>{community.posts} post</Text>
+                  <Text style={styles.footerMetric}>{community.memberCount.toLocaleString('tr-TR')} üye</Text>
+                  <Text style={styles.footerMetric}>{community.postCount} post</Text>
                   <Text style={styles.footerMetric}>→</Text>
                 </View>
               </View>
             </TouchableOpacity>
-          );
-        })}
-      </View>
+          ))}
+        </View>
+      )}
     </ScrollView>
   );
 }
@@ -272,6 +229,7 @@ function createStyles(colors) {
     filterChipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
     filterText: { color: colors.textSecondary, fontSize: 13, fontWeight: '700' },
     filterTextActive: { color: '#fff' },
+    loadingContainer: { paddingVertical: 60, alignItems: 'center' },
     list: { paddingHorizontal: 16, paddingTop: 14, gap: 12 },
     communityCard: {
       flexDirection: 'row',
@@ -321,4 +279,3 @@ function createStyles(colors) {
     footerMetric: { color: colors.textSecondary, fontSize: 11, fontWeight: '700' },
   });
 }
-

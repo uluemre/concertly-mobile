@@ -28,15 +28,15 @@ public class CommentService {
 
     // ✅ YORUM EKLE
     @Transactional
-    public CommentResponse addComment(Long postId, CreateCommentRequest request) {
+    public CommentResponse addComment(Long userId, Long postId, CreateCommentRequest request) {
 
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Post bulunamadı: " + postId));
 
-        User user = userRepository.findById(request.getUserId())
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Kullanıcı bulunamadı: " + request.getUserId()));
+                        "Kullanıcı bulunamadı: " + userId));
 
         if (request.getContent() == null || request.getContent().isBlank()) {
             throw new IllegalArgumentException("Yorum içeriği boş olamaz.");

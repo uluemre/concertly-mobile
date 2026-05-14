@@ -1,6 +1,7 @@
 package com.concertly.backend.controller;
 
 import com.concertly.backend.dto.response.SearchResponse;
+import com.concertly.backend.security.JwtUtil;
 import com.concertly.backend.service.SearchService;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,11 +15,9 @@ public class SearchController {
         this.searchService = searchService;
     }
 
-    // GET /api/search?q=tarkan&currentUserId=5
     @GetMapping
-    public SearchResponse search(
-            @RequestParam String q,
-            @RequestParam(required = false) Long currentUserId) {
+    public SearchResponse search(@RequestParam String q) {
+        Long currentUserId = JwtUtil.getCurrentUserId();
         return searchService.search(q, currentUserId);
     }
 }

@@ -1,6 +1,6 @@
 package com.concertly.backend.dto.request;
 
-public class CreateCommentRequest {
+public class CreateCommunityPostRequest {
 
     private String content;
 

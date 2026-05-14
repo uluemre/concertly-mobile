@@ -39,10 +39,10 @@ public class PostService {
     }
 
     // ✅ POST OLUŞTUR
-    public PostResponse createPost(CreatePostRequest request) {
-        User user = userRepository.findById(request.getUserId())
+    public PostResponse createPost(Long userId, CreatePostRequest request) {
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Kullanıcı bulunamadı: " + request.getUserId()));
+                        "Kullanıcı bulunamadı: " + userId));
 
         Event event = eventRepository.findById(request.getEventId())
                 .orElseThrow(() -> new ResourceNotFoundException(

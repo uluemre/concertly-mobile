@@ -3,6 +3,7 @@ package com.concertly.backend.security;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
@@ -19,27 +20,25 @@ public class JwtUtil {
             @Value("${jwt.secret}") String secret,
             @Value("${jwt.expiration.ms}") long expirationMs
     ) {
-        // HMAC-SHA256 için key üretiyoruz — secret en az 32 karakter olmalı
         this.secretKey   = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.expirationMs = expirationMs;
     }
 
-    // ✅ Token üret — subject olarak email kullanıyoruz
-    public String generateToken(String email) {
+    public String generateToken(Long userId, String email) {
         return Jwts.builder()
-                .subject(email)
+                .subject(userId + ":" + email)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expirationMs))
                 .signWith(secretKey)
                 .compact();
     }
 
-    // ✅ Token'dan email çek
     public String extractEmail(String token) {
-        return parseClaims(token).getSubject();
+        String subject = parseClaims(token).getSubject();
+        int colonIndex = subject.indexOf(':');
+        return colonIndex > 0 ? subject.substring(colonIndex + 1) : subject;
     }
 
-    // ✅ Token geçerli mi?
     public boolean isTokenValid(String token) {
         try {
             parseClaims(token);
@@ -49,7 +48,17 @@ public class JwtUtil {
         }
     }
 
-    // ── İç yardımcı ──────────────────────────────────────────
+    public static Long getCurrentUserId() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) return null;
+        String name = auth.getName();
+        int colonIndex = name.indexOf(':');
+        if (colonIndex > 0) {
+            return Long.parseLong(name.substring(0, colonIndex));
+        }
+        return null;
+    }
+
     private Claims parseClaims(String token) {
         return Jwts.parser()
                 .verifyWith(secretKey)

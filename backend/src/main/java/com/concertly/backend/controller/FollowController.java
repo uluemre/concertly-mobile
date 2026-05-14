@@ -1,6 +1,7 @@
 package com.concertly.backend.controller;
 
 import com.concertly.backend.dto.response.UserSummaryResponse;
+import com.concertly.backend.security.JwtUtil;
 import com.concertly.backend.service.FollowService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -15,34 +16,23 @@ public class FollowController {
         this.followService = followService;
     }
 
-    // POST /api/users/{id}/follow?followerId=2
-    // Faz 2'de followerId JWT'den okunacak
     @PostMapping("/{id}/follow")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void follow(
-            @PathVariable Long id,          // takip edilecek
-            @RequestParam Long followerId   // takip eden
-    ) {
+    public void follow(@PathVariable Long id) {
+        Long followerId = JwtUtil.getCurrentUserId();
         followService.follow(followerId, id);
     }
 
-    // DELETE /api/users/{id}/follow?followerId=2
     @DeleteMapping("/{id}/follow")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void unfollow(
-            @PathVariable Long id,
-            @RequestParam Long followerId
-    ) {
+    public void unfollow(@PathVariable Long id) {
+        Long followerId = JwtUtil.getCurrentUserId();
         followService.unfollow(followerId, id);
     }
 
-    // GET /api/users/{id}/profile?currentUserId=2
-    // currentUserId — hangi kullanıcı bakıyor (takip durumu için), opsiyonel
     @GetMapping("/{id}/profile")
-    public UserSummaryResponse getProfile(
-            @PathVariable Long id,
-            @RequestParam(required = false) Long currentUserId
-    ) {
+    public UserSummaryResponse getProfile(@PathVariable Long id) {
+        Long currentUserId = JwtUtil.getCurrentUserId();
         return followService.getUserProfile(id, currentUserId);
     }
 }

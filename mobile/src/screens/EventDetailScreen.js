@@ -66,7 +66,7 @@ export default function EventDetailScreen({ route, navigation }) {
 
     if (attendance === status) {
       try {
-        await API.delete(`/events/${event.id}/attendance?userId=${global.userId}`);
+        await API.delete(`/events/${event.id}/attendance`);
         setAttendance(null);
       } catch (err) {
         Alert.alert('Hata', 'İşlem gerçekleştirilemedi.');

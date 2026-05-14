@@ -1,0 +1,59 @@
+package com.concertly.backend.dto.response;
+
+import com.concertly.backend.model.CommunityPost;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import java.time.LocalDateTime;
+
+public class CommunityPostResponse {
+
+    private Long id;
+    private String content;
+    private LocalDateTime createdAt;
+    private long likeCount;
+
+    private Long userId;
+    private String username;
+    private String userProfileImageUrl;
+
+    private Long communityId;
+    private String communityName;
+
+    @JsonProperty("isLikedByCurrentUser")
+    private boolean isLikedByCurrentUser;
+
+    public static CommunityPostResponse from(CommunityPost post,
+                                              long likeCount,
+                                              boolean isLikedByCurrentUser) {
+        CommunityPostResponse dto = new CommunityPostResponse();
+        dto.id = post.getId();
+        dto.content = post.getContent();
+        dto.createdAt = post.getCreatedAt();
+        dto.likeCount = likeCount;
+        dto.isLikedByCurrentUser = isLikedByCurrentUser;
+
+        if (post.getUser() != null) {
+            dto.userId = post.getUser().getId();
+            dto.username = post.getUser().getUsername();
+            dto.userProfileImageUrl = post.getUser().getProfileImageUrl();
+        }
+
+        if (post.getCommunity() != null) {
+            dto.communityId = post.getCommunity().getId();
+            dto.communityName = post.getCommunity().getName();
+        }
+
+        return dto;
+    }
+
+    public Long getId() { return id; }
+    public String getContent() { return content; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public long getLikeCount() { return likeCount; }
+    public Long getUserId() { return userId; }
+    public String getUsername() { return username; }
+    public String getUserProfileImageUrl() { return userProfileImageUrl; }
+    public Long getCommunityId() { return communityId; }
+    public String getCommunityName() { return communityName; }
+    public boolean isLikedByCurrentUser() { return isLikedByCurrentUser; }
+}

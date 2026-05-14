@@ -2,6 +2,7 @@ package com.concertly.backend.controller;
 
 import com.concertly.backend.dto.request.CreatePostRequest;
 import com.concertly.backend.dto.response.PostResponse;
+import com.concertly.backend.security.JwtUtil;
 import com.concertly.backend.service.PostService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -21,7 +22,8 @@ public class PostController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public PostResponse createPost(@RequestBody CreatePostRequest request) {
-        return postService.createPost(request);
+        Long userId = JwtUtil.getCurrentUserId();
+        return postService.createPost(userId, request);
     }
 
     @GetMapping("/feed/trending")
@@ -30,25 +32,22 @@ public class PostController {
     }
 
     @GetMapping("/feed/following")
-    public List<PostResponse> getFollowingFeed(@RequestParam Long userId) {
+    public List<PostResponse> getFollowingFeed() {
+        Long userId = JwtUtil.getCurrentUserId();
         return postService.getFollowingFeed(userId);
     }
 
     @PostMapping("/{postId}/like")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void likePost(
-            @PathVariable Long postId,
-            @RequestParam Long userId
-    ) {
+    public void likePost(@PathVariable Long postId) {
+        Long userId = JwtUtil.getCurrentUserId();
         postService.likePost(userId, postId);
     }
 
     @DeleteMapping("/{postId}/like")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void unlikePost(
-            @PathVariable Long postId,
-            @RequestParam Long userId
-    ) {
+    public void unlikePost(@PathVariable Long postId) {
+        Long userId = JwtUtil.getCurrentUserId();
         postService.unlikePost(userId, postId);
     }
 }

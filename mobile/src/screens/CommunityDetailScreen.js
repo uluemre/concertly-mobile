@@ -1,73 +1,139 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  TouchableOpacity, TextInput
+  TouchableOpacity, TextInput, ActivityIndicator, Image
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../theme';
+import API from '../services/api';
 
-const samplePosts = [
-  {
-    id: 1,
-    username: 'melis',
-    content: 'Bu hafta sonu aynı etkinliğe giden var mı? Konser öncesi buluşma yapalım.',
-    time: '12dk',
-    likes: 18,
-  },
-  {
-    id: 2,
-    username: 'kaan',
-    content: 'Son setlist çok iyi duruyor. Özellikle kapanış parçası efsane olur.',
-    time: '1sa',
-    likes: 31,
-  },
-  {
-    id: 3,
-    username: 'deniz',
-    content: 'Mekan girişi için erken gitmek lazım, geçen sefer kuyruk çok uzundu.',
-    time: '3sa',
-    likes: 9,
-  },
-];
+function formatRelativeTime(isoString) {
+  const now = Date.now();
+  const then = new Date(isoString).getTime();
+  const diffMin = Math.floor((now - then) / 60000);
 
-function getJoinedCommunities() {
-  if (!global.joinedCommunities) {
-    global.joinedCommunities = {};
-  }
-  return global.joinedCommunities;
+  if (diffMin < 1) return 'şimdi';
+  if (diffMin < 60) return diffMin + 'dk';
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return diffHr + 'sa';
+  const diffDay = Math.floor(diffHr / 24);
+  if (diffDay < 7) return diffDay + 'g';
+  return Math.floor(diffDay / 7) + 'h';
 }
 
 export default function CommunityDetailScreen({ route, navigation }) {
-  const { community } = route.params;
+  const { communityId } = route.params;
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const joinedCommunities = getJoinedCommunities();
-  const [joined, setJoined] = useState(!!joinedCommunities[community.id]);
-  const [draft, setDraft] = useState('');
-  const [localPosts, setLocalPosts] = useState(samplePosts);
 
-  const toggleJoin = () => {
-    joinedCommunities[community.id] = !joined;
-    setJoined(!joined);
+  const [community, setCommunity] = useState(null);
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [joined, setJoined] = useState(false);
+  const [draft, setDraft] = useState('');
+  const [publishing, setPublishing] = useState(false);
+
+  const fetchData = useCallback(async () => {
+    try {
+      const [commRes, postsRes] = await Promise.all([
+        API.get(`/communities/${communityId}`),
+        API.get(`/communities/${communityId}/posts`),
+      ]);
+      setCommunity(commRes.data);
+      setJoined(commRes.data.isJoinedByCurrentUser);
+      setPosts(postsRes.data);
+    } catch (err) {
+      console.error('Community detail fetch error:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [communityId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [fetchData])
+  );
+
+  const toggleJoin = async () => {
+    try {
+      if (joined) {
+        await API.delete(`/communities/${communityId}/join`);
+      } else {
+        await API.post(`/communities/${communityId}/join`);
+      }
+      const newJoined = !joined;
+      setJoined(newJoined);
+      setCommunity(prev => prev ? {
+        ...prev,
+        isJoinedByCurrentUser: newJoined,
+        memberCount: prev.memberCount + (newJoined ? 1 : -1),
+      } : prev);
+    } catch (err) {
+      console.error('Join toggle error:', err);
+    }
   };
 
-  const publishPost = () => {
+  const publishPost = async () => {
     const content = draft.trim();
     if (!content) return;
-
-    setLocalPosts(prev => [{
-      id: Date.now(),
-      username: 'sen',
-      content,
-      time: 'şimdi',
-      likes: 0,
-    }, ...prev]);
-    setDraft('');
+    setPublishing(true);
+    try {
+      const res = await API.post(`/communities/${communityId}/posts`, { content });
+      setPosts(prev => [res.data, ...prev]);
+      setDraft('');
+      setCommunity(prev => prev ? { ...prev, postCount: prev.postCount + 1 } : prev);
+    } catch (err) {
+      console.error('Publish post error:', err);
+    } finally {
+      setPublishing(false);
+    }
   };
+
+  const toggleLike = async (post) => {
+    try {
+      if (post.isLikedByCurrentUser) {
+        await API.delete(`/communities/${communityId}/posts/${post.id}/like`);
+      } else {
+        await API.post(`/communities/${communityId}/posts/${post.id}/like`);
+      }
+      setPosts(prev => prev.map(p =>
+        p.id === post.id
+          ? {
+              ...p,
+              likeCount: p.likeCount + (post.isLikedByCurrentUser ? -1 : 1),
+              isLikedByCurrentUser: !post.isLikedByCurrentUser,
+            }
+          : p
+      ));
+    } catch (err) {
+      console.error('Like toggle error:', err);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.loadingContainer]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (!community) {
+    return (
+      <View style={[styles.container, styles.loadingContainer]}>
+        <Text style={styles.errorText}>Topluluk yüklenemedi.</Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
-      <LinearGradient colors={community.gradient} style={styles.hero}>
+      <LinearGradient
+        colors={[community.gradientStart, community.gradientEnd]}
+        style={styles.hero}
+      >
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Text style={styles.backText}>← Geri</Text>
         </TouchableOpacity>
@@ -77,12 +143,12 @@ export default function CommunityDetailScreen({ route, navigation }) {
 
         <View style={styles.heroStats}>
           <View style={styles.heroStat}>
-            <Text style={styles.heroStatNumber}>{community.members.toLocaleString('tr-TR')}</Text>
+            <Text style={styles.heroStatNumber}>{community.memberCount.toLocaleString('tr-TR')}</Text>
             <Text style={styles.heroStatLabel}>Üye</Text>
           </View>
           <View style={styles.heroDivider} />
           <View style={styles.heroStat}>
-            <Text style={styles.heroStatNumber}>{community.posts + localPosts.length}</Text>
+            <Text style={styles.heroStatNumber}>{community.postCount}</Text>
             <Text style={styles.heroStatLabel}>Post</Text>
           </View>
           <View style={styles.heroDivider} />
@@ -125,34 +191,47 @@ export default function CommunityDetailScreen({ route, navigation }) {
           />
           <TouchableOpacity
             onPress={publishPost}
-            disabled={!joined || !draft.trim()}
-            style={[styles.publishButton, (!joined || !draft.trim()) && styles.publishButtonDisabled]}
+            disabled={!joined || !draft.trim() || publishing}
+            style={[styles.publishButton, (!joined || !draft.trim() || publishing) && styles.publishButtonDisabled]}
           >
-            <Text style={styles.publishText}>Paylaş</Text>
+            <Text style={styles.publishText}>{publishing ? '...' : 'Paylaş'}</Text>
           </TouchableOpacity>
         </View>
       </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Topluluk Akışı</Text>
-        {localPosts.map(post => (
+        {posts.map(post => (
           <View key={post.id} style={styles.postCard}>
             <View style={styles.postHeader}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>{post.username.charAt(0).toUpperCase()}</Text>
-              </View>
+              {post.userProfileImageUrl ? (
+                <Image source={{ uri: post.userProfileImageUrl }} style={styles.avatar} />
+              ) : (
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarText}>
+                    {(post.username || '?').charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+              )}
               <View style={styles.postHeaderText}>
                 <Text style={styles.username}>@{post.username}</Text>
-                <Text style={styles.postTime}>{post.time}</Text>
+                <Text style={styles.postTime}>{formatRelativeTime(post.createdAt)}</Text>
               </View>
             </View>
             <Text style={styles.postContent}>{post.content}</Text>
             <View style={styles.postFooter}>
-              <Text style={styles.postAction}>♥ {post.likes}</Text>
+              <TouchableOpacity onPress={() => toggleLike(post)}>
+                <Text style={[styles.postAction, post.isLikedByCurrentUser && styles.postActionLiked]}>
+                  ♥ {post.likeCount}
+                </Text>
+              </TouchableOpacity>
               <Text style={styles.postAction}>Yanıtla</Text>
             </View>
           </View>
         ))}
+        {posts.length === 0 && (
+          <Text style={styles.emptyText}>Henüz post yok. Topluluğa katılıp ilk postu sen at!</Text>
+        )}
       </View>
     </ScrollView>
   );
@@ -162,6 +241,8 @@ function createStyles(colors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
     scrollContent: { paddingBottom: 32 },
+    loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    errorText: { color: colors.textSecondary, fontSize: 14 },
     hero: {
       paddingTop: 56,
       paddingBottom: 28,
@@ -256,6 +337,7 @@ function createStyles(colors) {
       backgroundColor: colors.cardAlt,
       borderWidth: 1,
       borderColor: colors.border,
+      overflow: 'hidden',
     },
     avatarText: { color: colors.primary, fontSize: 14, fontWeight: '900' },
     postHeaderText: { flex: 1 },
@@ -264,6 +346,7 @@ function createStyles(colors) {
     postContent: { color: colors.text, fontSize: 14, lineHeight: 20 },
     postFooter: { flexDirection: 'row', gap: 14, marginTop: 12 },
     postAction: { color: colors.textSecondary, fontSize: 12, fontWeight: '700' },
+    postActionLiked: { color: colors.primary },
+    emptyText: { color: colors.textSecondary, fontSize: 13, textAlign: 'center', marginTop: 20 },
   });
 }
-

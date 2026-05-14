@@ -2,6 +2,7 @@ package com.concertly.backend.controller;
 
 import com.concertly.backend.dto.response.AttendanceResponse;
 import com.concertly.backend.model.AttendanceStatus;
+import com.concertly.backend.security.JwtUtil;
 import com.concertly.backend.service.EventAttendanceService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -16,23 +17,19 @@ public class EventAttendanceController {
         this.attendanceService = attendanceService;
     }
 
-    // POST /api/events/{eventId}/attendance?userId=1&status=GOING
     @PostMapping
     public AttendanceResponse attend(
             @PathVariable Long eventId,
-            @RequestParam Long userId,
             @RequestParam AttendanceStatus status
     ) {
+        Long userId = JwtUtil.getCurrentUserId();
         return attendanceService.setAttendance(userId, eventId, status);
     }
 
-    // DELETE /api/events/{eventId}/attendance?userId=1
     @DeleteMapping
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void unattend(
-            @PathVariable Long eventId,
-            @RequestParam Long userId
-    ) {
+    public void unattend(@PathVariable Long eventId) {
+        Long userId = JwtUtil.getCurrentUserId();
         attendanceService.removeAttendance(userId, eventId);
     }
 }

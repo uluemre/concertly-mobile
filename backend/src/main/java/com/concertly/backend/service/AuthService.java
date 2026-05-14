@@ -74,7 +74,7 @@ public class AuthService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Kullanıcı bulunamadı: " + request.getEmail()));
 
-        String token = jwtUtil.generateToken(user.getEmail());
+        String token = jwtUtil.generateToken(user.getId(), user.getEmail());
 
         return new AuthResponse(
                 token,
