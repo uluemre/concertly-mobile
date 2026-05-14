@@ -72,7 +72,8 @@ export default function SettingsScreen({ navigation, route }) {
         { text: 'Tamam', onPress: () => navigation.goBack() }
       ]);
     } catch (err) {
-      Alert.alert('Hata', 'Ayarlar kaydedilirken bir sorun oluştu. Email veya kullanıcı adı başkası tarafından kullanılıyor olabilir.');
+      const msg = err?.response?.data?.message || 'Ayarlar kaydedilirken bir sorun oluştu.';
+      Alert.alert('Hata', msg);
     } finally {
       setSaving(false);
     }

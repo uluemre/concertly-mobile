@@ -33,20 +33,19 @@ public class EventService {
         this.userRepository = userRepository;
     }
 
-    // ✅ ETKİNLİK OLUŞTUR
     public EventResponse createEvent(CreateEventRequest request) {
 
         Artist artist = artistRepository.findById(request.getArtistId())
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Artist bulunamadı: " + request.getArtistId()));
+                        "Artist bulunamadi: " + request.getArtistId()));
 
         Venue venue = venueRepository.findById(request.getVenueId())
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Venue bulunamadı: " + request.getVenueId()));
+                        "Venue bulunamadi: " + request.getVenueId()));
 
         User createdBy = userRepository.findById(request.getCreatedByUserId())
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Kullanıcı bulunamadı: " + request.getCreatedByUserId()));
+                        "Kullanici bulunamadi: " + request.getCreatedByUserId()));
 
         Event event = new Event();
         event.setName(request.getName());
@@ -55,12 +54,10 @@ public class EventService {
         event.setArtist(artist);
         event.setVenue(venue);
         event.setCreatedBy(createdBy);
-        // isApproved varsayılan olarak false — admin onayı gerekir
 
         return EventResponse.from(eventRepository.save(event));
     }
 
-    // ✅ TÜM ETKİNLİKLERİ LİSTELE
     public List<EventResponse> getAllEvents(String city) {
         List<Event> events = (city == null || city.isBlank())
                 ? eventRepository.findAll()
@@ -71,22 +68,48 @@ public class EventService {
                 .toList();
     }
 
-    // ✅ ID İLE ETKİNLİK GETİR
+    public List<EventResponse> getRecommendedEvents(String city, List<String> genres) {
+        if (genres == null || genres.isEmpty()) {
+            return getAllEvents(city);
+        }
+        List<String> lowerGenres = genres.stream()
+                .map(String::toLowerCase)
+                .toList();
+        String queryCity = (city == null || city.isBlank()) ? "Istanbul" : city;
+
+        List<Event> matching = eventRepository.findByVenueCityAndGenreIn(queryCity, lowerGenres);
+        List<Event> all = (city == null || city.isBlank())
+                ? eventRepository.findAll()
+                : eventRepository.findByVenue_CityIgnoreCase(city);
+
+        // Matching events first, then remaining ones — so feed never feels empty
+        java.util.Set<Long> matchingIds = matching.stream().map(Event::getId).collect(java.util.stream.Collectors.toSet());
+        java.util.List<Event> sorted = new java.util.ArrayList<>(matching);
+        for (Event e : all) {
+            if (!matchingIds.contains(e.getId())) {
+                sorted.add(e);
+            }
+        }
+
+        return sorted.stream()
+                .map(EventResponse::from)
+                .toList();
+    }
+
     public EventResponse getEventById(Long id) {
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Etkinlik bulunamadı: " + id));
+                        "Etkinlik bulunamadi: " + id));
         return EventResponse.from(event);
     }
 
-    // ✅ ETKİNLİK ONAYLA (admin işlemi — Faz 2'de role kontrolü eklenecek)
     public EventResponse approveEvent(Long id) {
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Etkinlik bulunamadı: " + id));
+                        "Etkinlik bulunamadi: " + id));
 
         if (Boolean.TRUE.equals(event.getIsApproved())) {
-            throw new IllegalArgumentException("Etkinlik zaten onaylanmış: " + id);
+            throw new IllegalArgumentException("Etkinlik zaten onaylanmis: " + id);
         }
 
         event.setIsApproved(true);

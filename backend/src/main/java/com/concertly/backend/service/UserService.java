@@ -8,13 +8,13 @@ import com.concertly.backend.exception.ResourceNotFoundException;
 import com.concertly.backend.model.Post;
 import com.concertly.backend.model.User;
 import com.concertly.backend.repository.CommentRepository;
-import com.concertly.backend.repository.EventRepository;
 import com.concertly.backend.repository.LikeRepository;
 import com.concertly.backend.repository.PostRepository;
 import com.concertly.backend.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -22,20 +22,15 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PostRepository postRepository;
-    private final EventRepository eventRepository;
-
-    // 🔥 YENİ EKLEDİK (çok kritik)
     private final LikeRepository likeRepository;
     private final CommentRepository commentRepository;
 
     public UserService(UserRepository userRepository,
             PostRepository postRepository,
-            EventRepository eventRepository,
             LikeRepository likeRepository,
             CommentRepository commentRepository) {
         this.userRepository = userRepository;
         this.postRepository = postRepository;
-        this.eventRepository = eventRepository;
         this.likeRepository = likeRepository;
         this.commentRepository = commentRepository;
     }
@@ -83,10 +78,11 @@ public class UserService {
         if (request.getEmail() != null && !request.getEmail().isEmpty()) {
             user.setEmail(request.getEmail());
         }
-        if (request.getPhone() != null) {
+        if (request.getPhone() != null && !request.getPhone().isEmpty()) {
             user.setPhone(request.getPhone());
         }
 
+        user.setUpdatedAt(LocalDateTime.now());
         User saved = userRepository.save(user);
         return new UserResponse(saved.getId(), saved.getUsername(), saved.getEmail(), saved.getCity());
     }

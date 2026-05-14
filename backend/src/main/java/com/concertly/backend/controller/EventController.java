@@ -7,6 +7,7 @@ import com.concertly.backend.service.TicketmasterService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
 import java.util.List;
 
 @RestController
@@ -28,7 +29,13 @@ public class EventController {
     }
 
     @GetMapping
-    public List<EventResponse> getEvents(@RequestParam(value = "city", required = false) String city) {
+    public List<EventResponse> getEvents(
+            @RequestParam(value = "city", required = false) String city,
+            @RequestParam(value = "genres", required = false) String genresCsv) {
+        if (genresCsv != null && !genresCsv.isBlank()) {
+            List<String> genres = Arrays.asList(genresCsv.split(","));
+            return eventService.getRecommendedEvents(city, genres);
+        }
         return eventService.getAllEvents(city);
     }
 

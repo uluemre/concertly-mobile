@@ -34,6 +34,7 @@ public class TicketmasterService {
         this.restTemplate = new RestTemplate();
     }
 
+    @SuppressWarnings("unchecked")
     public int syncTurkeyEvents() {
         try {
             int totalCount = 0;
@@ -42,7 +43,7 @@ public class TicketmasterService {
 
             while (hasMore) {
                 String url = UriComponentsBuilder
-                        .fromHttpUrl("https://app.ticketmaster.com/discovery/v2/events.json")
+                        .fromUriString("https://app.ticketmaster.com/discovery/v2/events.json")
                         .queryParam("apikey", apiKey)
                         .queryParam("countryCode", "TR")
                         .queryParam("classificationName", "music")
@@ -50,22 +51,22 @@ public class TicketmasterService {
                         .queryParam("page", page)
                         .toUriString();
 
-                Map response = restTemplate.getForObject(url, Map.class);
+                Map<String, Object> response = restTemplate.getForObject(url, Map.class);
                 if (response == null)
                     break;
 
-                Map embedded = (Map) response.get("_embedded");
+                Map<String, Object> embedded = (Map<String, Object>) response.get("_embedded");
                 if (embedded == null)
                     break;
 
-                List<Map> events = (List<Map>) embedded.get("events");
+                List<Map<String, Object>> events = (List<Map<String, Object>>) embedded.get("events");
                 if (events == null || events.isEmpty())
                     break;
 
                 totalCount += processEvents(events);
 
                 // Check if there are more pages
-                Map page_info = (Map) response.get("page");
+                Map<String, Object> page_info = (Map<String, Object>) response.get("page");
                 if (page_info != null) {
                     Integer totalPages = (Integer) page_info.get("totalPages");
                     hasMore = totalPages != null && page < totalPages - 1;
@@ -84,9 +85,10 @@ public class TicketmasterService {
         }
     }
 
-    private int processEvents(List<Map> events) {
+    @SuppressWarnings("unchecked")
+    private int processEvents(List<Map<String, Object>> events) {
         int count = 0;
-        for (Map e : events) {
+        for (Map<String, Object> e : events) {
             try {
                 String externalId = (String) e.get("id");
                 if (eventRepository.findByExternalId(externalId).isPresent())
@@ -96,8 +98,8 @@ public class TicketmasterService {
                 String name = (String) e.get("name");
 
                 // ── TARİH ────────────────────────────────────────────────
-                Map dates = (Map) e.get("dates");
-                Map start = (Map) dates.get("start");
+                Map<String, Object> dates = (Map<String, Object>) e.get("dates");
+                Map<String, Object> start = (Map<String, Object>) dates.get("start");
                 String dateStr = (String) start.get("localDate");
                 String timeStr = start.get("localTime") != null
                         ? (String) start.get("localTime")
@@ -105,7 +107,8 @@ public class TicketmasterService {
                 LocalDateTime eventDate = LocalDateTime.parse(dateStr + "T" + timeStr);
 
                 // ── ETKİNLİK FOTOĞRAFI ───────────────────────────────────
-                String eventImageUrl = extractBestImage((List<Map>) e.get("images"));
+                List<Map<String, Object>> eventImages = (List<Map<String, Object>>) e.get("images");
+                String eventImageUrl = extractBestImage(eventImages);
 
                 // ── ETKİNLİK LİNKİ ──────────────────────────────────────
                 String ticketUrl = (String) e.get("url");
@@ -114,7 +117,7 @@ public class TicketmasterService {
                 String genre = extractGenre(e);
 
                 // ── SANATÇI ──────────────────────────────────────────────
-                Map emb = (Map) e.get("_embedded");
+                Map<String, Object> emb = (Map<String, Object>) e.get("_embedded");
                 Artist artist = extractOrCreateArtist(emb, externalId, name);
 
                 // ── MEKAN ────────────────────────────────────────────────
@@ -150,14 +153,14 @@ public class TicketmasterService {
     }
 
     // ── EN İYİ FOTOĞRAFI SEÇ ─────────────────────────────────────────────
-    private String extractBestImage(List<Map> images) {
+    private String extractBestImage(List<Map<String, Object>> images) {
         if (images == null || images.isEmpty())
             return "https://via.placeholder.com/400x200/7C3AED/FFFFFF?text=Concertly"; // Fallback image
 
         // "RETINA_PORTRAIT_16_9" veya en geniş olanı seç
-        Map best = null;
+        Map<String, Object> best = null;
         int bestWidth = 0;
-        for (Map img : images) {
+        for (Map<String, Object> img : images) {
             Object w = img.get("width");
             int width = w instanceof Integer ? (Integer) w : 0;
             if (width > bestWidth) {
@@ -176,18 +179,19 @@ public class TicketmasterService {
     }
 
     // ── KATEGORİ ÇIKAR ───────────────────────────────────────────────────
-    private String extractGenre(Map event) {
+    @SuppressWarnings("unchecked")
+    private String extractGenre(Map<String, Object> event) {
         try {
-            List<Map> classifications = (List<Map>) event.get("classifications");
+            List<Map<String, Object>> classifications = (List<Map<String, Object>>) event.get("classifications");
             if (classifications == null || classifications.isEmpty())
                 return null;
 
-            Map cls = classifications.get(0);
-            Map genre = (Map) cls.get("genre");
+            Map<String, Object> cls = classifications.get(0);
+            Map<String, Object> genre = (Map<String, Object>) cls.get("genre");
             if (genre != null)
                 return (String) genre.get("name");
 
-            Map subGenre = (Map) cls.get("subGenre");
+            Map<String, Object> subGenre = (Map<String, Object>) cls.get("subGenre");
             if (subGenre != null)
                 return (String) subGenre.get("name");
         } catch (Exception e) {
@@ -204,22 +208,24 @@ public class TicketmasterService {
     }
 
     // ── SANATÇI OLUŞTUR / BUL ────────────────────────────────────────────
-    private Artist extractOrCreateArtist(Map emb, String eventExternalId, String eventName) {
+    @SuppressWarnings("unchecked")
+    private Artist extractOrCreateArtist(Map<String, Object> emb, String eventExternalId, String eventName) {
         String rawArtistName = eventName; // fallback
         String artistExternalId = eventExternalId + "_artist"; // fallback
         String artistImageUrl = null;
         String artistGenre = null;
 
         if (emb != null && emb.get("attractions") != null) {
-            List<Map> attractions = (List<Map>) emb.get("attractions");
-            Map attraction = attractions.get(0);
+            List<Map<String, Object>> attractions = (List<Map<String, Object>>) emb.get("attractions");
+            Map<String, Object> attraction = attractions.get(0);
 
             rawArtistName = (String) attraction.get("name");
             if (attraction.get("id") != null) {
                 artistExternalId = (String) attraction.get("id");
             }
 
-            String tmImageUrl = extractBestImage((List<Map>) attraction.get("images"));
+            List<Map<String, Object>> attrImages = (List<Map<String, Object>>) attraction.get("images");
+            String tmImageUrl = extractBestImage(attrImages);
             if (tmImageUrl != null)
                 artistImageUrl = tmImageUrl;
 
@@ -268,12 +274,13 @@ public class TicketmasterService {
     }
 
     // ── MEKAN OLUŞTUR ─────────────────────────────────────────────────────
-    private Venue extractOrCreateVenue(Map emb) {
+    @SuppressWarnings("unchecked")
+    private Venue extractOrCreateVenue(Map<String, Object> emb) {
         Venue venue = new Venue();
 
         if (emb != null && emb.get("venues") != null) {
-            List<Map> venues = (List<Map>) emb.get("venues");
-            Map v = venues.get(0);
+            List<Map<String, Object>> venues = (List<Map<String, Object>>) emb.get("venues");
+            Map<String, Object> v = venues.get(0);
 
             String venueExternalId = (String) v.get("id");
             if (venueExternalId != null) {
@@ -284,22 +291,24 @@ public class TicketmasterService {
             venue.setName((String) v.get("name"));
 
             if (v.get("city") != null) {
-                venue.setCity((String) ((Map) v.get("city")).get("name"));
+                Map<String, Object> cityMap = (Map<String, Object>) v.get("city");
+                venue.setCity((String) cityMap.get("name"));
             }
 
             if (v.get("country") != null) {
-                Map country = (Map) v.get("country");
+                Map<String, Object> country = (Map<String, Object>) v.get("country");
                 venue.setCountry((String) country.get("name"));
             } else {
                 venue.setCountry("Türkiye");
             }
 
             if (v.get("address") != null) {
-                venue.setAddress((String) ((Map) v.get("address")).get("line1"));
+                Map<String, Object> addressMap = (Map<String, Object>) v.get("address");
+                venue.setAddress((String) addressMap.get("line1"));
             }
 
             if (v.get("location") != null) {
-                Map loc = (Map) v.get("location");
+                Map<String, Object> loc = (Map<String, Object>) v.get("location");
                 try {
                     venue.setLatitude(Double.parseDouble((String) loc.get("latitude")));
                     venue.setLongitude(Double.parseDouble((String) loc.get("longitude")));
@@ -307,7 +316,8 @@ public class TicketmasterService {
                 }
             }
 
-            String venueImageUrl = extractBestImage((List<Map>) v.get("images"));
+            List<Map<String, Object>> venueImages = (List<Map<String, Object>>) v.get("images");
+            String venueImageUrl = extractBestImage(venueImages);
             if (venueImageUrl != null && venue.getImageUrl() == null) {
                 venue.setImageUrl(venueImageUrl);
             }

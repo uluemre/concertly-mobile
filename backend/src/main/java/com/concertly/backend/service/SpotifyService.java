@@ -25,6 +25,7 @@ public class SpotifyService {
     private long tokenExpiry = 0;
 
     // ── TOKEN AL ──────────────────────────────────────────────────────────
+    @SuppressWarnings("unchecked")
     private String getAccessToken() {
         if (cachedToken != null && System.currentTimeMillis() < tokenExpiry) {
             return cachedToken;
@@ -41,7 +42,7 @@ public class SpotifyService {
 
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
 
-        Map response = restTemplate.postForObject(
+        Map<String, Object> response = restTemplate.postForObject(
                 "https://accounts.spotify.com/api/token",
                 request,
                 Map.class);
@@ -58,6 +59,7 @@ public class SpotifyService {
     }
 
     // ── SANATÇI ARA ───────────────────────────────────────────────────────
+    @SuppressWarnings("unchecked")
     public SpotifyArtistData searchArtist(String artistName) {
         try {
             String token = getAccessToken();
@@ -70,23 +72,24 @@ public class SpotifyService {
             System.out.println("Searching artist: " + artistName);
             String url = "https://api.spotify.com/v1/search?q={query}&type=artist&limit=1&market=TR";
 
+            @SuppressWarnings("rawtypes")
             ResponseEntity<Map> response = restTemplate.exchange(
                     url, HttpMethod.GET, entity, Map.class, artistName);
 
-            Map body = response.getBody();
+            Map<String, Object> body = response.getBody();
             if (body == null)
                 return null;
 
-            Map artists = (Map) body.get("artists");
-            List<Map> items = (List<Map>) artists.get("items");
+            Map<String, Object> artists = (Map<String, Object>) body.get("artists");
+            List<Map<String, Object>> items = (List<Map<String, Object>>) artists.get("items");
             if (items == null || items.isEmpty())
                 return null;
 
-            Map artist = items.get(0);
+            Map<String, Object> artist = items.get(0);
 
             // Fotoğraf URL
             String imageUrl = null;
-            List<Map> images = (List<Map>) artist.get("images");
+            List<Map<String, Object>> images = (List<Map<String, Object>>) artist.get("images");
             if (images != null && !images.isEmpty()) {
                 // En büyük fotoğraf (index 0)
                 imageUrl = (String) images.get(0).get("url");

@@ -20,4 +20,11 @@ public interface ArtistRepository extends JpaRepository<Artist, Long> {
                 ORDER BY a.name ASC
             """)
     List<Artist> search(@Param("q") String q);
+
+    @Query("""
+                SELECT a FROM Artist a
+                WHERE LOWER(a.genre) IN :genres
+                ORDER BY a.name ASC
+            """)
+    List<Artist> findByGenreIn(@Param("genres") List<String> genres);
 }

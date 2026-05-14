@@ -55,9 +55,12 @@ export default function RegisterScreen({ navigation }) {
       global.authToken = loginRes.data.accessToken;
       global.userId = loginRes.data.userId;
       global.userCity = loginRes.data.city;
+      global.username = loginRes.data.username;
+      global.favoriteGenres = loginRes.data.favoriteGenres;
+      global.onboardingCompleted = loginRes.data.onboardingCompleted;
 
-      // Yeni kullanıcı → Onboarding'e yönlendir
-      navigation.replace('Onboarding');
+      // Yeni kullanıcı → Onboarding akışına yönlendir
+      navigation.replace('GenreSelection');
     } catch (err) {
       Alert.alert('Hata', 'Bu email veya kullanıcı adı zaten kullanılıyor.');
     } finally {

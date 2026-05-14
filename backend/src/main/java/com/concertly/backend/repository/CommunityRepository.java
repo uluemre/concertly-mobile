@@ -13,6 +13,13 @@ public interface CommunityRepository extends JpaRepository<Community, Long> {
 
     @Query("""
                 SELECT c FROM Community c
+                WHERE LOWER(c.type) IN :types
+                ORDER BY c.createdAt DESC
+            """)
+    List<Community> findByTypeIn(@Param("types") List<String> types);
+
+    @Query("""
+                SELECT c FROM Community c
                 WHERE LOWER(c.name) LIKE LOWER(CONCAT('%', :q, '%'))
                 OR LOWER(c.city) LIKE LOWER(CONCAT('%', :q, '%'))
                 OR LOWER(c.tags) LIKE LOWER(CONCAT('%', :q, '%'))

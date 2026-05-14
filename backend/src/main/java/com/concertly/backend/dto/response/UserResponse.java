@@ -6,6 +6,8 @@ public class UserResponse {
     private String username;
     private String email;
     private String city;
+    private String favoriteGenres;
+    private Boolean onboardingCompleted;
 
     public UserResponse(Long id, String username, String email) {
         this(id, username, email, null);
@@ -30,7 +32,9 @@ public class UserResponse {
         return email;
     }
 
-    public String getCity() {
-        return city;
-    }
+    public String getCity() { return city; }
+    public String getFavoriteGenres() { return favoriteGenres; }
+    public void setFavoriteGenres(String favoriteGenres) { this.favoriteGenres = favoriteGenres; }
+    public Boolean getOnboardingCompleted() { return onboardingCompleted; }
+    public void setOnboardingCompleted(Boolean onboardingCompleted) { this.onboardingCompleted = onboardingCompleted; }
 }

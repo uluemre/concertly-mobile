@@ -30,6 +30,11 @@ public class User {
 
     private String city;
 
+    @Column(length = 500)
+    private String favoriteGenres;
+
+    private Boolean onboardingCompleted = false;
+
     private Boolean isVerified = false;
 
     private Boolean isActive = true;
@@ -103,6 +108,22 @@ public class User {
         this.city = city;
     }
 
+    public String getFavoriteGenres() {
+        return favoriteGenres;
+    }
+
+    public void setFavoriteGenres(String favoriteGenres) {
+        this.favoriteGenres = favoriteGenres;
+    }
+
+    public Boolean getOnboardingCompleted() {
+        return onboardingCompleted;
+    }
+
+    public void setOnboardingCompleted(Boolean onboardingCompleted) {
+        this.onboardingCompleted = onboardingCompleted;
+    }
+
     public Boolean getIsVerified() {
         return isVerified;
     }
@@ -121,6 +142,14 @@ public class User {
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
     }
 
     public Set<Role> getRoles() {

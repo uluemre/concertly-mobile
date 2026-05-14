@@ -8,6 +8,7 @@ import com.concertly.backend.service.CommunityService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
 import java.util.List;
 
 @RestController
@@ -26,6 +27,17 @@ public class CommunityController {
             @RequestParam(required = false) String q) {
         Long currentUserId = JwtUtil.getCurrentUserId();
         return communityService.getAllCommunities(type, q, currentUserId);
+    }
+
+    @GetMapping("/recommended")
+    public List<CommunityResponse> recommended(
+            @RequestParam(value = "genres", required = false) String genresCsv) {
+        Long currentUserId = JwtUtil.getCurrentUserId();
+        if (genresCsv != null && !genresCsv.isBlank()) {
+            List<String> genres = Arrays.asList(genresCsv.split(","));
+            return communityService.getRecommendedCommunities(genres, currentUserId);
+        }
+        return communityService.getAllCommunities(null, null, currentUserId);
     }
 
     @GetMapping("/{id}")

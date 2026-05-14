@@ -1,9 +1,11 @@
 package com.concertly.backend.controller;
 
 import com.concertly.backend.dto.request.LoginRequest;
+import com.concertly.backend.dto.request.OnboardingRequest;
 import com.concertly.backend.dto.request.RegisterRequest;
 import com.concertly.backend.dto.response.AuthResponse;
 import com.concertly.backend.dto.response.UserResponse;
+import com.concertly.backend.security.JwtUtil;
 import com.concertly.backend.service.AuthService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -32,5 +34,11 @@ public class AuthController {
     @ResponseStatus(HttpStatus.CREATED)
     public UserResponse register(@RequestBody RegisterRequest request) {
         return authService.register(request);
+    }
+
+    @PostMapping("/onboarding")
+    public UserResponse saveOnboardingPreferences(@RequestBody OnboardingRequest request) {
+        Long userId = JwtUtil.getCurrentUserId();
+        return authService.saveOnboardingPreferences(userId, request);
     }
 }

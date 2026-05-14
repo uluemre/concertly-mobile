@@ -64,7 +64,15 @@ export default function LoginScreen({ navigation }) {
       global.authToken = res.data.accessToken;
       global.userId = res.data.userId;
       global.userCity = res.data.city;
-      navigation.replace('Welcome', { username: res.data.username });
+      global.username = res.data.username;
+      global.favoriteGenres = res.data.favoriteGenres;
+      global.onboardingCompleted = res.data.onboardingCompleted;
+
+      if (!res.data.onboardingCompleted) {
+        navigation.replace('GenreSelection');
+      } else {
+        navigation.replace('Welcome', { username: res.data.username });
+      }
     } catch (err) {
       Alert.alert('Hata', 'Email veya şifre hatalı.');
     } finally {

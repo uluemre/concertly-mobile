@@ -49,4 +49,11 @@ public class ArtistController {
         Long userId = JwtUtil.getCurrentUserId();
         artistService.unfollow(userId, id);
     }
+
+    @GetMapping("/recommended")
+    public List<ArtistResponse> getRecommended(@RequestParam("genres") String genresCsv) {
+        Long currentUserId = JwtUtil.getCurrentUserId();
+        List<String> genres = List.of(genresCsv.split(","));
+        return artistService.getArtistsByGenres(genres, currentUserId);
+    }
 }

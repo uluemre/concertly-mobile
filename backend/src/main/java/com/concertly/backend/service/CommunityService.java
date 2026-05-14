@@ -10,8 +10,8 @@ import com.concertly.backend.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class CommunityService {
@@ -65,6 +65,50 @@ public class CommunityService {
             result.add(toResponse(c, currentUserId));
         }
         return result;
+    }
+
+    public List<CommunityResponse> getRecommendedCommunities(List<String> userGenres, Long currentUserId) {
+        if (userGenres == null || userGenres.isEmpty()) {
+            return getAllCommunities(null, null, currentUserId);
+        }
+
+        Set<String> communityTypes = userGenres.stream()
+                .map(String::toLowerCase)
+                .map(this::mapGenreToCommunityType)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        if (communityTypes.isEmpty()) {
+            return getAllCommunities(null, null, currentUserId);
+        }
+
+        List<Community> matching = communityRepository.findByTypeIn(new ArrayList<>(communityTypes));
+        List<Community> all = communityRepository.findAll();
+
+        // Matching communities first, then the rest
+        Set<Long> matchingIds = matching.stream().map(Community::getId).collect(Collectors.toSet());
+        List<Community> sorted = new ArrayList<>(matching);
+        for (Community c : all) {
+            if (!matchingIds.contains(c.getId())) {
+                sorted.add(c);
+            }
+        }
+
+        List<CommunityResponse> result = new ArrayList<>();
+        for (Community c : sorted) {
+            result.add(toResponse(c, currentUserId));
+        }
+        return result;
+    }
+
+    private String mapGenreToCommunityType(String genre) {
+        if (genre == null) return null;
+        return switch (genre) {
+            case "rock", "metal", "indie", "alternatif rock", "turkce rock" -> "rock";
+            case "elektronik", "electronic", "techno" -> "elektronik";
+            case "jazz", "classical" -> "caz";
+            default -> null;
+        };
     }
 
     public CommunityResponse getCommunityById(Long communityId, Long currentUserId) {

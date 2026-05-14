@@ -100,6 +100,44 @@ public class ArtistService {
         artistFollowRepository.save(follow);
     }
 
+    public List<ArtistResponse> getArtistsByGenres(List<String> genres, Long currentUserId) {
+        if (genres == null || genres.isEmpty()) {
+            return List.of();
+        }
+        List<String> lowerGenres = genres.stream()
+                .map(String::toLowerCase)
+                .toList();
+        return artistRepository.findByGenreIn(lowerGenres)
+                .stream()
+                .map(a -> {
+                    long followerCount = artistFollowRepository.countByArtistId(a.getId());
+                    boolean isFollowed = currentUserId != null &&
+                            artistFollowRepository.findByUserIdAndArtistId(currentUserId, a.getId()).isPresent();
+                    return ArtistResponse.from(a, followerCount, isFollowed);
+                })
+                .toList();
+    }
+
+    @Transactional
+    public void bulkFollow(Long userId, List<Long> artistIds) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Kullanici bulunamadi: " + userId));
+
+        for (Long artistId : artistIds) {
+            Artist artist = artistRepository.findById(artistId)
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Sanatci bulunamadi: " + artistId));
+
+            if (artistFollowRepository.findByUserIdAndArtistId(userId, artistId).isEmpty()) {
+                ArtistFollow follow = new ArtistFollow();
+                follow.setUser(user);
+                follow.setArtist(artist);
+                artistFollowRepository.save(follow);
+            }
+        }
+    }
+
     // ✅ TAKİBİ BIRAK
     @Transactional
     public void unfollow(Long userId, Long artistId) {

@@ -1,6 +1,8 @@
 package com.concertly.backend.config;
 
+import com.concertly.backend.model.Artist;
 import com.concertly.backend.model.Community;
+import com.concertly.backend.repository.ArtistRepository;
 import com.concertly.backend.repository.CommunityRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
@@ -9,13 +11,21 @@ import org.springframework.stereotype.Component;
 public class DataSeeder implements CommandLineRunner {
 
     private final CommunityRepository communityRepository;
+    private final ArtistRepository artistRepository;
 
-    public DataSeeder(CommunityRepository communityRepository) {
+    public DataSeeder(CommunityRepository communityRepository,
+                      ArtistRepository artistRepository) {
         this.communityRepository = communityRepository;
+        this.artistRepository = artistRepository;
     }
 
     @Override
     public void run(String... args) {
+        seedCommunities();
+        seedArtists();
+    }
+
+    private void seedCommunities() {
         if (communityRepository.count() > 0) return;
 
         Community c1 = new Community();
@@ -82,5 +92,40 @@ public class DataSeeder implements CommandLineRunner {
         c5.setTags("Caz,Akustik,Kulup");
         c5.setLive(false);
         communityRepository.save(c5);
+    }
+
+    private void seedArtists() {
+        if (artistRepository.count() > 0) return;
+
+        seedArtist("Duman", "Rock", null, null);
+        seedArtist("Mor ve Otesi", "Rock", null, null);
+        seedArtist("Sebnem Ferah", "Rock", null, null);
+        seedArtist("Manga", "Rock", null, null);
+        seedArtist("She Past Away", "Rock", null, null);
+        seedArtist("Kaan Tangoze", "Rock", null, null);
+        seedArtist("Metallica", "Metal", null, null);
+        seedArtist("Pentagram", "Metal", null, null);
+        seedArtist("Tarkan", "Pop", null, null);
+        seedArtist("Sila", "Pop", null, null);
+        seedArtist("Mabel Matiz", "Pop", null, null);
+        seedArtist("Ceza", "Rap", null, null);
+        seedArtist("Sagopa Kajmer", "Rap", null, null);
+        seedArtist("Ezhel", "Rap", null, null);
+        seedArtist("Arctic Monkeys", "Indie", null, null);
+        seedArtist("Hipermob", "Indie", null, null);
+        seedArtist("BUN", "Elektronik", null, null);
+        seedArtist("hey! doug", "Elektronik", null, null);
+        seedArtist("Dolu Kadehi Ters Tut", "Alternatif Rock", null, null);
+        seedArtist("Son Feci Bisiklet", "Alternatif Rock", null, null);
+        seedArtist("Can Bonomo", "Alternatif Rock", null, null);
+    }
+
+    private void seedArtist(String name, String genre, String imageUrl, String spotifyId) {
+        Artist a = new Artist();
+        a.setName(name);
+        a.setGenre(genre);
+        a.setImageUrl(imageUrl);
+        a.setSpotifyId(spotifyId);
+        artistRepository.save(a);
     }
 }

@@ -289,10 +289,13 @@ export default function HomeScreen({ navigation }) {
     ]).start();
 
     const city = global.userCity;
+    const genres = global.favoriteGenres;
 
-    const url = city
-      ? `/events?city=${encodeURIComponent(city)}`
-      : '/events';
+    let url = '/events';
+    const params = [];
+    if (city) params.push(`city=${encodeURIComponent(city)}`);
+    if (genres) params.push(`genres=${encodeURIComponent(genres)}`);
+    if (params.length) url += '?' + params.join('&');
 
     Promise.all([
       API.get(url),

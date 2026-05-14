@@ -22,10 +22,19 @@ export default function CommunitiesScreen({ navigation }) {
   const fetchCommunities = useCallback(async (type, q) => {
     try {
       setLoading(true);
-      const params = {};
-      if (type && type !== 'Tümü') params.type = type;
-      if (q && q.trim()) params.q = q.trim();
-      const res = await API.get('/communities', { params });
+      const favGenres = global.favoriteGenres;
+      const hasFilters = (type && type !== 'Tümü') || (q && q.trim());
+
+      let res;
+      if (favGenres && !hasFilters) {
+        // Use personalized recommendations when no filters active
+        res = await API.get(`/communities/recommended?genres=${encodeURIComponent(favGenres)}`);
+      } else {
+        const params = {};
+        if (type && type !== 'Tümü') params.type = type;
+        if (q && q.trim()) params.q = q.trim();
+        res = await API.get('/communities', { params });
+      }
       setCommunities(res.data);
     } catch (err) {
       console.error('Communities fetch error:', err);

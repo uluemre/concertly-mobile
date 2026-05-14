@@ -25,4 +25,15 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     List<Event> search(@Param("q") String q);
 
     List<Event> findByVenue_CityIgnoreCase(String city);
+
+    @Query("""
+                SELECT e FROM Event e
+                WHERE LOWER(e.venue.city) = LOWER(:city)
+                AND LOWER(e.genre) IN :genres
+                ORDER BY e.eventDate DESC
+            """)
+    List<Event> findByVenueCityAndGenreIn(
+        @Param("city") String city,
+        @Param("genres") List<String> genres
+    );
 }

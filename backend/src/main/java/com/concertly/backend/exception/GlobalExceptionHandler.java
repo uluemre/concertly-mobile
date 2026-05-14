@@ -1,5 +1,6 @@
 package com.concertly.backend.exception;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -39,6 +40,21 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(new ApiError(400, ex.getMessage()));
+    }
+
+    // 409 — veritabanı constraint ihlali (unique, foreign key vs.)
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiError> handleDataIntegrity(DataIntegrityViolationException ex) {
+        String msg = ex.getMessage();
+        if (msg != null) {
+            if (msg.contains("phone")) msg = "Bu telefon numarası zaten kullanılıyor.";
+            else if (msg.contains("username")) msg = "Bu kullanıcı adı zaten kullanılıyor.";
+            else if (msg.contains("email")) msg = "Bu email zaten kullanılıyor.";
+            else msg = "Bu veri zaten kullanılıyor.";
+        }
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(new ApiError(409, msg));
     }
 
     // 500 — beklenmedik hatalar

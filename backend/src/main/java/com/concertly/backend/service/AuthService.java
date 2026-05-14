@@ -1,6 +1,7 @@
 package com.concertly.backend.service;
 
 import com.concertly.backend.dto.request.LoginRequest;
+import com.concertly.backend.dto.request.OnboardingRequest;
 import com.concertly.backend.dto.request.RegisterRequest;
 import com.concertly.backend.dto.response.AuthResponse;
 import com.concertly.backend.dto.response.UserResponse;
@@ -14,6 +15,9 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 
 @Service
 public class AuthService {
@@ -81,6 +85,29 @@ public class AuthService {
                 user.getId(),
                 user.getUsername(),
                 user.getEmail(),
-                user.getCity());
+                user.getCity(),
+                user.getFavoriteGenres(),
+                user.getOnboardingCompleted());
+    }
+
+    @Transactional
+    public UserResponse saveOnboardingPreferences(Long userId, OnboardingRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Kullanici bulunamadi: " + userId));
+
+        if (request.getGenres() != null && !request.getGenres().isEmpty()) {
+            user.setFavoriteGenres(String.join(",", request.getGenres()));
+        }
+
+        user.setOnboardingCompleted(true);
+        user.setUpdatedAt(LocalDateTime.now());
+        User saved = userRepository.save(user);
+
+        UserResponse response = new UserResponse(
+                saved.getId(), saved.getUsername(), saved.getEmail(), saved.getCity());
+        response.setFavoriteGenres(saved.getFavoriteGenres());
+        response.setOnboardingCompleted(saved.getOnboardingCompleted());
+        return response;
     }
 }
