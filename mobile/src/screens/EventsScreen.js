@@ -149,9 +149,9 @@ function createStyles(colors) {
       paddingVertical: 3,
       borderRadius: 10,
     },
-    datePillText: { color: '#fff', fontSize: 11, fontWeight: '700' },
+    datePillText: { color: colors.text, fontSize: 11, fontWeight: '700' },
 
-    cardBody: { padding: 10 },
+    cardBody: { padding: 12 },
     cardName: { fontSize: 13, fontWeight: 'bold', color: colors.text, marginBottom: 4 },
     cardArtist: { fontSize: 11, color: colors.textSecondary, marginBottom: 2 },
     cardCity: { fontSize: 11, color: colors.textSecondary, marginBottom: 6 },
@@ -161,7 +161,7 @@ function createStyles(colors) {
       paddingVertical: 3,
       borderRadius: 8,
     },
-    statusText: { fontSize: 10, color: '#fff', fontWeight: '700' },
+    statusText: { fontSize: 10, color: colors.text, fontWeight: '700' },
 
     empty: { alignItems: 'center', marginTop: 80 },
     emptyEmoji: { fontSize: 64, marginBottom: 16 },

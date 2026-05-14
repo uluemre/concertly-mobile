@@ -206,7 +206,7 @@ export default function UserProfileScreen({ route, navigation }) {
                 end={{ x: 1, y: 0 }}
               >
                 {followLoading
-                  ? <ActivityIndicator size="small" color="#fff" />
+                  ? <ActivityIndicator size="small" color={colors.text} />
                   : <Text style={styles.followText}>+ Takip Et</Text>
                 }
               </LinearGradient>
@@ -424,7 +424,7 @@ function createStyles(colors) {
     },
     tabBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', zIndex: 1 },
     tabText: { fontSize: 13, fontWeight: '600', color: colors.textSecondary },
-    tabTextActive: { color: '#fff' },
+    tabTextActive: { color: colors.text },
 
     // İÇERİK
     content: { padding: 16, paddingBottom: 32 },
@@ -443,7 +443,7 @@ function createStyles(colors) {
       width: 40, height: 40, borderRadius: 20,
       justifyContent: 'center', alignItems: 'center',
     },
-    postAvatarText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+    postAvatarText: { color: colors.text, fontWeight: 'bold', fontSize: 16 },
     postHeaderInfo: { flex: 1 },
     postEventName: { fontSize: 13, color: colors.primary, fontWeight: '700' },
     postDate: { fontSize: 11, color: colors.textSecondary, marginTop: 2 },

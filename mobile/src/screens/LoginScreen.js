@@ -43,6 +43,17 @@ function createStyles(colors) {
     linkArea: { alignItems: 'center', marginTop: 16 },
     link: { color: colors.textSecondary, fontSize: 14 },
     linkBold: { color: colors.primary, fontWeight: 'bold' },
+
+    demoDivider: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 32, marginBottom: 12 },
+    demoLine: { flex: 1, height: 1, backgroundColor: colors.border },
+    demoLabel: { color: colors.textSecondary, fontSize: 10, fontWeight: '700', letterSpacing: 2 },
+    demoBtn: {
+      paddingVertical: 12, borderRadius: 12,
+      backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
+      alignItems: 'center',
+    },
+    demoBtnText: { color: colors.primary, fontSize: 14, fontWeight: '700' },
+    demoHint: { color: colors.textSecondary, fontSize: 11, textAlign: 'center', marginTop: 8 },
   });
 }
 
@@ -75,6 +86,20 @@ export default function LoginScreen({ navigation }) {
       }
     } catch (err) {
       Alert.alert('Hata', 'Email veya şifre hatalı.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDemoSetup = async () => {
+    setLoading(true);
+    try {
+      await API.post('/demo/setup');
+      setEmail('ahmet@demo.com');
+      setPassword('Demo1234');
+      Alert.alert('Demo Hazır', 'Demo hesabı oluşturuldu. Giriş yap butonuna basın.', [{ text: 'Tamam' }]);
+    } catch (err) {
+      Alert.alert('Hata', 'Demo kurulumu yapılamadı. Backend çalışıyor mu?');
     } finally {
       setLoading(false);
     }
@@ -149,6 +174,20 @@ export default function LoginScreen({ navigation }) {
               <Text style={styles.linkBold}>Kayıt ol</Text>
             </Text>
           </TouchableOpacity>
+
+          {/* DEMO */}
+          <View style={styles.demoDivider}>
+            <View style={styles.demoLine} />
+            <Text style={styles.demoLabel}>MENTOR DEMOSU</Text>
+            <View style={styles.demoLine} />
+          </View>
+
+          <TouchableOpacity onPress={handleDemoSetup} style={styles.demoBtn}>
+            <Text style={styles.demoBtnText}>🚀 Demo Veriyi Yükle</Text>
+          </TouchableOpacity>
+          <Text style={styles.demoHint}>
+            Demo: ahmet@demo.com / Demo1234
+          </Text>
         </View>
       </KeyboardAvoidingView>
     </LinearGradient>

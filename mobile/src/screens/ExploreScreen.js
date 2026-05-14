@@ -257,7 +257,7 @@ function createStyles(colors) {
     badgeText: { color: colors.textSecondary, fontSize: 10, fontWeight: '700' },
 
     cardEmoji: { fontSize: 36, marginBottom: 10 },
-    cardTitle: { fontSize: 16, fontWeight: 'bold', color: '#fff', marginBottom: 3 },
+    cardTitle: { fontSize: 16, fontWeight: 'bold', color: colors.text, marginBottom: 3 },
     cardTitleMuted: { color: colors.text },
     cardSubtitle: { fontSize: 12, color: 'rgba(255,255,255,0.8)', lineHeight: 16 },
     cardSubtitleMuted: { color: colors.textSecondary },

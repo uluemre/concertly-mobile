@@ -20,11 +20,6 @@ const gradientSets = [
   ['#7C3AED', '#F5A623'],
 ];
 
-const cities = [
-  'İstanbul', 'Ankara', 'İzmir', 'Antalya',
-  'Bursa', 'Adana', 'Eskişehir', 'Gaziantep'
-];
-
 export default function ProfileScreen({ navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -32,7 +27,7 @@ export default function ProfileScreen({ navigation }) {
   const [posts, setPosts] = useState([]);
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('posts'); // 'posts' | 'events'
+  const [activeTab, setActiveTab] = useState('posts');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -66,9 +61,6 @@ export default function ProfileScreen({ navigation }) {
     }
   };
 
-
-
-  // 📷 GALERİDEN FOTOĞRAF SEÇ
   const handlePickPhoto = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
@@ -87,23 +79,18 @@ export default function ProfileScreen({ navigation }) {
       const localUri = result.assets[0].uri;
       setUploadingPhoto(true);
       try {
-        // Şimdilik local URI'yi profileImageUrl olarak kaydediyoruz
-        // Gerçek projede burada S3/Cloudinary'e upload edilir
         await API.put(`/users/${global.userId}/profile`, {
           profileImageUrl: localUri,
         });
         setProfile(prev => ({ ...prev, profileImageUrl: localUri }));
-        Alert.alert('✅ Başarılı', 'Profil fotoğrafın güncellendi!');
+        Alert.alert('Başarılı', 'Profil fotoğrafın güncellendi!');
       } catch (err) {
         Alert.alert('Hata', 'Fotoğraf güncellenemedi.');
-        console.log(err.message);
       } finally {
         setUploadingPhoto(false);
       }
     }
   };
-
-
 
   const handleLogout = () => {
     Alert.alert('Çıkış Yap', 'Emin misin?', [
@@ -124,58 +111,17 @@ export default function ProfileScreen({ navigation }) {
     </View>
   );
 
-  const renderPost = ({ item, index }) => (
-    <View style={styles.postCard}>
-      <View style={styles.postHeader}>
-        <Text style={styles.postEventName}>🎵 {item.eventName || 'Etkinlik'}</Text>
-        <Text style={styles.postDate}>
-          {new Date(item.createdAt).toLocaleDateString('tr-TR')}
-        </Text>
-      </View>
-      <Text style={styles.postContent} numberOfLines={3}>{item.content}</Text>
-      <View style={styles.postFooter}>
-        <Text style={styles.postStat}>❤️ {item.likeCount || 0}</Text>
-        <Text style={styles.postStat}>💬 {item.commentCount || 0}</Text>
-      </View>
-    </View>
-  );
-
-  const renderEvent = ({ item, index }) => (
-    <TouchableOpacity
-      style={styles.eventCard}
-      onPress={() => navigation.navigate('EventDetail', { event: item })}
-      activeOpacity={0.85}
-    >
-      <LinearGradient
-        colors={gradientSets[index % gradientSets.length]}
-        style={styles.eventCardGradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        <Text style={styles.eventEmoji}>🎪</Text>
-        <Text style={styles.eventName} numberOfLines={2}>{item.name}</Text>
-        {item.artistName && (
-          <Text style={styles.eventArtist} numberOfLines={1}>🎤 {item.artistName}</Text>
-        )}
-        <Text style={styles.eventDate}>
-          📅 {new Date(item.eventDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })}
-        </Text>
-      </LinearGradient>
-    </TouchableOpacity>
-  );
-
   return (
     <Animated.ScrollView style={[styles.container, { opacity: fadeAnim }]}>
 
       {/* HERO */}
-      <LinearGradient colors={['#1E1B4B', '#09090B']} style={styles.hero}>
+      <LinearGradient colors={colors.headerGradient} style={styles.hero}>
         <View style={styles.topActions}>
           <TouchableOpacity onPress={() => navigation.navigate('Settings')} style={styles.settingsButton} activeOpacity={0.8}>
             <Text style={styles.settingsIcon}>⚙️</Text>
           </TouchableOpacity>
         </View>
 
-        {/* AVATAR */}
         <TouchableOpacity onPress={handlePickPhoto} style={styles.avatarWrapper} disabled={uploadingPhoto}>
           {profile?.profileImageUrl ? (
             <Image source={{ uri: profile.profileImageUrl }} style={styles.avatarImage} />
@@ -194,16 +140,12 @@ export default function ProfileScreen({ navigation }) {
 
         <Text style={styles.username}>@{profile?.username || 'Kullanıcı'}</Text>
 
-        {/* BIO */}
         <View style={styles.bioContainer}>
           <Text style={styles.bioText}>
-            {profile?.bio ? profile.bio : 'Kendinden bahsetmek için Ayarlar\'a git'}
+            {profile?.bio || "Kendinden bahsetmek için Ayarlar'a git"}
           </Text>
         </View>
 
-
-
-        {/* STATS */}
         <View style={styles.statsRow}>
           <View style={styles.stat}>
             <Text style={styles.statNumber}>{posts.length}</Text>
@@ -227,8 +169,6 @@ export default function ProfileScreen({ navigation }) {
         </View>
       </LinearGradient>
 
-
-
       {/* SEKMELER */}
       <View style={styles.tabs}>
         <TouchableOpacity
@@ -236,7 +176,7 @@ export default function ProfileScreen({ navigation }) {
           onPress={() => setActiveTab('posts')}
         >
           <Text style={[styles.tabText, activeTab === 'posts' && styles.tabTextActive]}>
-            🎵 Postlarım ({posts.length})
+            Postlarım ({posts.length})
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -244,7 +184,7 @@ export default function ProfileScreen({ navigation }) {
           onPress={() => setActiveTab('events')}
         >
           <Text style={[styles.tabText, activeTab === 'events' && styles.tabTextActive]}>
-            🎪 Etkinliklerim ({events.length})
+            Etkinliklerim ({events.length})
           </Text>
         </TouchableOpacity>
       </View>
@@ -259,9 +199,19 @@ export default function ProfileScreen({ navigation }) {
               <Text style={styles.emptySubText}>Bir konsere git, deneyimini paylaş!</Text>
             </View>
           ) : (
-            posts.map((item, index) => (
-              <View key={item.id}>
-                {renderPost({ item, index })}
+            posts.map((item) => (
+              <View key={item.id} style={styles.postCard}>
+                <View style={styles.postHeader}>
+                  <Text style={styles.postEventName}>{item.eventName || 'Etkinlik'}</Text>
+                  <Text style={styles.postDate}>
+                    {new Date(item.createdAt).toLocaleDateString('tr-TR')}
+                  </Text>
+                </View>
+                <Text style={styles.postContent} numberOfLines={3}>{item.content}</Text>
+                <View style={styles.postFooter}>
+                  <Text style={styles.postStat}>♥ {item.likeCount || 0}</Text>
+                  <Text style={styles.postStat}>💬 {item.commentCount || 0}</Text>
+                </View>
               </View>
             ))
           )
@@ -275,9 +225,28 @@ export default function ProfileScreen({ navigation }) {
           ) : (
             <View style={styles.eventGrid}>
               {events.map((item, index) => (
-                <View key={item.id} style={styles.eventGridItem}>
-                  {renderEvent({ item, index })}
-                </View>
+                <TouchableOpacity
+                  key={item.id}
+                  style={styles.eventCard}
+                  onPress={() => navigation.navigate('EventDetail', { event: item })}
+                  activeOpacity={0.85}
+                >
+                  <LinearGradient
+                    colors={gradientSets[index % gradientSets.length]}
+                    style={styles.eventCardGradient}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                  >
+                    <Text style={styles.eventEmoji}>🎪</Text>
+                    <Text style={styles.eventName} numberOfLines={2}>{item.name}</Text>
+                    {item.artistName && (
+                      <Text style={styles.eventArtist} numberOfLines={1}>{item.artistName}</Text>
+                    )}
+                    <Text style={styles.eventDate}>
+                      {new Date(item.eventDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </Text>
+                  </LinearGradient>
+                </TouchableOpacity>
               ))}
             </View>
           )
@@ -293,7 +262,7 @@ export default function ProfileScreen({ navigation }) {
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
           >
-            <Text style={styles.logoutText}>🚪 Çıkış Yap</Text>
+            <Text style={styles.logoutText}>Çıkış Yap</Text>
           </LinearGradient>
         </TouchableOpacity>
       </View>
@@ -304,8 +273,16 @@ export default function ProfileScreen({ navigation }) {
 
 function createStyles(colors) {
   return StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.background },
-    loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: colors.background,
+    },
 
     // HERO
     hero: {
@@ -313,7 +290,6 @@ function createStyles(colors) {
       paddingBottom: 36,
       alignItems: 'center',
       paddingHorizontal: 24,
-      position: 'relative',
     },
     topActions: {
       position: 'absolute',
@@ -321,45 +297,41 @@ function createStyles(colors) {
       right: 20,
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 16,
     },
-
     settingsButton: {
       width: 44,
       height: 44,
       borderRadius: 22,
-      backgroundColor: 'rgba(255,255,255,0.08)',
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.border,
       alignItems: 'center',
       justifyContent: 'center',
     },
     settingsIcon: {
       fontSize: 20,
     },
+
+    // AVATAR
     avatarWrapper: {
-      position: 'relative',
       marginBottom: 18,
-      shadowColor: '#E94560',
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.5,
-      shadowRadius: 18,
-      elevation: 12,
     },
     avatarImage: {
       width: 110,
       height: 110,
       borderRadius: 55,
-      borderWidth: 2,
-      borderColor: 'rgba(255,255,255,0.9)',
+      borderWidth: 3,
+      borderColor: colors.primary,
     },
     avatarPlaceholder: {
       width: 110,
       height: 110,
       borderRadius: 55,
-      backgroundColor: 'rgba(255,255,255,0.08)',
+      backgroundColor: colors.card,
       justifyContent: 'center',
       alignItems: 'center',
-      borderWidth: 2,
-      borderColor: 'rgba(255,255,255,0.2)',
+      borderWidth: 3,
+      borderColor: colors.border,
     },
     avatarEmoji: { fontSize: 48 },
     avatarEditBadge: {
@@ -369,35 +341,31 @@ function createStyles(colors) {
       width: 34,
       height: 34,
       borderRadius: 17,
-      backgroundColor: '#E94560',
+      backgroundColor: colors.primary,
       justifyContent: 'center',
       alignItems: 'center',
       borderWidth: 3,
-      borderColor: '#09090B',
+      borderColor: colors.background,
     },
     avatarEditText: { fontSize: 15 },
 
+    // USERNAME & BIO
     username: {
       fontSize: 24,
       fontWeight: '800',
-      color: '#fff',
+      color: colors.text,
       marginBottom: 8,
-      letterSpacing: 0.5,
     },
-
-    // BIO
     bioContainer: {
       paddingHorizontal: 32,
-      marginBottom: 32,
+      marginBottom: 28,
     },
     bioText: {
-      color: 'rgba(255,255,255,0.65)',
+      color: colors.textSecondary,
       fontSize: 15,
       textAlign: 'center',
       lineHeight: 22,
-      fontStyle: 'italic',
     },
-
 
     // STATS
     statsRow: {
@@ -408,17 +376,16 @@ function createStyles(colors) {
       width: '100%',
     },
     stat: { alignItems: 'center' },
-    statNumber: { fontSize: 24, fontWeight: '900', color: '#fff', letterSpacing: 0.5 },
-    statLabel: { fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 6, textTransform: 'uppercase', letterSpacing: 1.2, fontWeight: '700' },
-    statDivider: { width: 1, height: 28, backgroundColor: 'rgba(255,255,255,0.15)' },
+    statNumber: { fontSize: 24, fontWeight: '900', color: colors.text },
+    statLabel: { fontSize: 11, color: colors.textSecondary, marginTop: 6, textTransform: 'uppercase', letterSpacing: 1.2, fontWeight: '700' },
+    statDivider: { width: 1, height: 28, backgroundColor: colors.border },
 
-    // SEKMELER
+    // TABS
     tabs: {
       flexDirection: 'row',
       backgroundColor: colors.background,
       borderBottomWidth: 1,
-      borderBottomColor: 'rgba(255,255,255,0.05)',
-      paddingTop: 8,
+      borderBottomColor: colors.border,
     },
     tab: {
       flex: 1,
@@ -428,7 +395,7 @@ function createStyles(colors) {
       borderBottomColor: 'transparent',
     },
     tabActive: {
-      borderBottomColor: '#E94560',
+      borderBottomColor: colors.primary,
     },
     tabText: {
       fontSize: 14,
@@ -436,14 +403,14 @@ function createStyles(colors) {
       fontWeight: '600',
     },
     tabTextActive: {
-      color: '#fff',
+      color: colors.text,
       fontWeight: '700',
     },
 
-    // İÇERİK
+    // CONTENT
     content: { padding: 16, paddingBottom: 8 },
 
-    // POST KARTI
+    // POST CARD
     postCard: {
       backgroundColor: colors.card,
       borderRadius: 16,
@@ -464,16 +431,14 @@ function createStyles(colors) {
     postFooter: { flexDirection: 'row', gap: 14 },
     postStat: { fontSize: 13, color: colors.textSecondary },
 
-    // ETKİNLİK GRİD
+    // EVENT GRID
     eventGrid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
       gap: 12,
     },
-    eventGridItem: {
-      width: CARD_WIDTH,
-    },
     eventCard: {
+      width: CARD_WIDTH,
       borderRadius: 16,
       overflow: 'hidden',
     },
@@ -487,13 +452,13 @@ function createStyles(colors) {
     eventArtist: { fontSize: 11, color: 'rgba(255,255,255,0.8)', marginBottom: 4 },
     eventDate: { fontSize: 11, color: 'rgba(255,255,255,0.9)', fontWeight: '600' },
 
-    // BOŞ DURUM
+    // EMPTY
     empty: { alignItems: 'center', paddingVertical: 48 },
     emptyEmoji: { fontSize: 52, marginBottom: 14 },
     emptyText: { color: colors.text, fontSize: 16, fontWeight: '600', marginBottom: 6 },
     emptySubText: { color: colors.textSecondary, fontSize: 13, textAlign: 'center' },
 
-    // ÇIKIŞ
+    // LOGOUT
     logoutArea: { padding: 16, paddingBottom: 32 },
     logoutButton: { padding: 16, borderRadius: 16, alignItems: 'center' },
     logoutText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },

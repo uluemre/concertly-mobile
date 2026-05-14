@@ -54,7 +54,7 @@ export default function MapScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#1E1B4B', '#09090B']} style={styles.header}>
+      <LinearGradient colors={colors.headerGradient} style={styles.header}>
         <Text style={styles.headerTitle}>🗺️ Konser Haritası</Text>
         <Text style={styles.headerSub}>Çevrendeki etkinlikleri keşfet</Text>
       </LinearGradient>
@@ -117,7 +117,7 @@ function createStyles(colors) {
     headerTitle: {
       fontSize: 24,
       fontWeight: '900',
-      color: '#fff',
+      color: colors.text,
       letterSpacing: 0.5,
       marginBottom: 4,
     },
@@ -138,7 +138,7 @@ function createStyles(colors) {
       fontSize: 28,
     },
     calloutContainer: {
-      backgroundColor: '#1E1B4B',
+      backgroundColor: colors.card,
       borderRadius: 16,
       padding: 14,
       width: 220,
@@ -147,7 +147,7 @@ function createStyles(colors) {
       alignItems: 'center',
     },
     calloutTitle: {
-      color: '#fff',
+      color: colors.text,
       fontSize: 15,
       fontWeight: 'bold',
       marginBottom: 4,
@@ -173,7 +173,7 @@ function createStyles(colors) {
       borderColor: 'rgba(255,255,255,0.2)',
     },
     calloutBtnText: {
-      color: '#fff',
+      color: colors.text,
       fontSize: 12,
       fontWeight: 'bold',
     },

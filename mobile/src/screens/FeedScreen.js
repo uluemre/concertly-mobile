@@ -293,7 +293,7 @@ function CommentModal({ visible, postId, currentUserId, onClose, styles, colors 
               style={[styles.sendBtn, (!text.trim()) && styles.sendBtnDisabled]}
             >
               {sending
-                ? <ActivityIndicator size="small" color="#fff" />
+                ? <ActivityIndicator size="small" color={colors.text} />
                 : <Text style={styles.sendBtnText}>→</Text>
               }
             </TouchableOpacity>
@@ -533,7 +533,7 @@ function createStyles(colors) {
       overflow: 'hidden',
     },
     avatarImage: { width: 44, height: 44, borderRadius: 22 },
-    avatarText: { color: '#fff', fontWeight: 'bold', fontSize: 18 },
+    avatarText: { color: colors.text, fontWeight: 'bold', fontSize: 18 },
     headerInfo: { flex: 1 },
     username: { fontSize: 14, fontWeight: 'bold', color: colors.text },
     eventTag: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
@@ -615,7 +615,7 @@ function createStyles(colors) {
       backgroundColor: colors.primary,
       justifyContent: 'center', alignItems: 'center',
     },
-    commentAvatarText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
+    commentAvatarText: { color: colors.text, fontWeight: 'bold', fontSize: 14 },
     commentBody: { flex: 1 },
     commentUsername: { fontSize: 13, fontWeight: 'bold', color: colors.text, marginBottom: 3 },
     commentContent: { fontSize: 14, color: colors.text, lineHeight: 19 },
@@ -632,7 +632,7 @@ function createStyles(colors) {
     },
     commentInput: {
       flex: 1,
-      backgroundColor: '#252538',
+      backgroundColor: colors.cardAlt,
       borderRadius: 14,
       paddingHorizontal: 14,
       paddingVertical: 10,
@@ -648,7 +648,7 @@ function createStyles(colors) {
       justifyContent: 'center', alignItems: 'center',
     },
     sendBtnDisabled: { backgroundColor: colors.border },
-    sendBtnText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+    sendBtnText: { color: colors.text, fontSize: 18, fontWeight: 'bold' },
 
     // BOŞ DURUM
     empty: { alignItems: 'center', paddingVertical: 60, paddingHorizontal: 32 },

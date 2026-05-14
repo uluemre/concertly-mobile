@@ -123,7 +123,7 @@ export default function ArtistProfileScreen({ route, navigation }) {
       showsVerticalScrollIndicator={false}
     >
       {/* ── HERO ─────────────────────────────────────────────────────────── */}
-      <LinearGradient colors={['#0F0F1A', '#1A1A2E']} style={styles.hero}>
+      <LinearGradient colors={colors.headerGradient} style={styles.hero}>
 
         {/* Dekoratif arka plan dairesi */}
         <View style={styles.heroBgCircle} />
@@ -191,7 +191,7 @@ export default function ArtistProfileScreen({ route, navigation }) {
                 end={{ x: 1, y: 0 }}
               >
                 {followLoading
-                  ? <ActivityIndicator size="small" color="#fff" />
+                  ? <ActivityIndicator size="small" color={colors.text} />
                   : <Text style={styles.followText}>+ Takip Et</Text>
                 }
               </LinearGradient>
@@ -326,7 +326,7 @@ function createStyles(colors) {
       position: 'absolute',
       width: 300, height: 300,
       borderRadius: 150,
-      backgroundColor: '#E9456015',
+      backgroundColor: colors.primary + '15',
       top: -80, right: -80,
     },
     backButton: { marginBottom: 24 },
@@ -418,7 +418,7 @@ function createStyles(colors) {
     },
     tabBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', zIndex: 1 },
     tabText: { fontSize: 13, fontWeight: '600', color: colors.textSecondary },
-    tabTextActive: { color: '#fff' },
+    tabTextActive: { color: colors.text },
 
     // İÇERİK
     content: { padding: 16, paddingBottom: 32 },
@@ -463,7 +463,7 @@ function createStyles(colors) {
       width: 40, height: 40, borderRadius: 20,
       justifyContent: 'center', alignItems: 'center',
     },
-    postAvatarText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+    postAvatarText: { color: colors.text, fontWeight: 'bold', fontSize: 16 },
     postHeaderInfo: { flex: 1 },
     postUsername: { fontSize: 14, fontWeight: 'bold', color: colors.text },
     postEvent: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },

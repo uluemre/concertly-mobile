@@ -366,7 +366,7 @@ function createStyles(colors) {
         },
         tabBtn: { flex: 1, paddingVertical: 9, alignItems: 'center', zIndex: 1 },
         tabText: { fontSize: 11, fontWeight: '600', color: colors.textSecondary },
-        tabTextActive: { color: '#fff' },
+        tabTextActive: { color: colors.text },
 
         // LİSTE
         list: { padding: 16, paddingBottom: 40 },
@@ -388,7 +388,7 @@ function createStyles(colors) {
             justifyContent: 'center', alignItems: 'center',
         },
         resultIconEmoji: { fontSize: 22 },
-        resultIconText: { fontSize: 20, fontWeight: 'bold', color: '#fff' },
+        resultIconText: { fontSize: 20, fontWeight: 'bold', color: colors.text },
         artistAvatar: { width: 48, height: 48, borderRadius: 24 },
         resultInfo: { flex: 1 },
         resultTitle: {

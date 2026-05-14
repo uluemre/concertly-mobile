@@ -192,7 +192,7 @@ export default function EventDetailScreen({ route, navigation }) {
           </LinearGradient>
         </View>
       ) : (
-        <LinearGradient colors={['#1E1B4B', '#09090B']} style={styles.heroSection}>
+        <LinearGradient colors={colors.headerGradient} style={styles.heroSection}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
             <Text style={styles.backText}>← Geri</Text>
           </TouchableOpacity>
@@ -419,35 +419,34 @@ function createStyles(colors) {
       flex: 1, flexDirection: 'row', alignItems: 'center',
       justifyContent: 'center', gap: 8,
       paddingVertical: 16, borderRadius: 16,
-      backgroundColor: 'rgba(255,255,255,0.05)',
-      borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+      backgroundColor: colors.card,
+      borderWidth: 1, borderColor: colors.border,
     },
-    attendBtnActive: { backgroundColor: 'rgba(0,212,170,0.15)', borderColor: '#00D4AA' },
-    attendBtnActiveYellow: { backgroundColor: 'rgba(245,166,35,0.15)', borderColor: '#F5A623' },
+    attendBtnActive: { backgroundColor: colors.accent + '26', borderColor: colors.accent },
+    attendBtnActiveYellow: { backgroundColor: colors.secondary + '26', borderColor: colors.secondary },
     attendBtnEmoji: { fontSize: 18 },
     attendBtnText: { fontSize: 14, fontWeight: '800', color: colors.textSecondary },
-    attendBtnTextActive: { color: '#00D4AA' },
-    attendBtnTextActiveYellow: { color: '#F5A623' },
+    attendBtnTextActive: { color: colors.accent },
+    attendBtnTextActiveYellow: { color: colors.secondary },
 
     // INFO KARTLARI
     infoCard: {
-      backgroundColor: 'rgba(255,255,255,0.05)',
-      borderRadius: 20, padding: 20,
-      borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+      backgroundColor: colors.card,
+      borderRadius: 16, padding: 16,
+      borderWidth: 1, borderColor: colors.border,
     },
     sectionTitle: {
-      fontSize: 13, color: 'rgba(255,255,255,0.5)',
+      fontSize: 14, color: colors.textSecondary,
       marginBottom: 10, fontWeight: '700',
-      textTransform: 'uppercase', letterSpacing: 1.2,
     },
-    description: { fontSize: 15, color: '#fff', lineHeight: 24 },
-    infoValue: { fontSize: 17, color: '#fff', fontWeight: '700', letterSpacing: 0.3 },
-    infoValueSub: { fontSize: 14, color: 'rgba(255,255,255,0.6)', marginTop: 6 },
-    venueAddress: { fontSize: 13, color: 'rgba(255,255,255,0.45)', marginTop: 4 },
+    description: { fontSize: 15, color: colors.text, lineHeight: 24 },
+    infoValue: { fontSize: 17, color: colors.text, fontWeight: '700', letterSpacing: 0.3 },
+    infoValueSub: { fontSize: 14, color: colors.textSecondary, marginTop: 6 },
+    venueAddress: { fontSize: 13, color: colors.textSecondary, marginTop: 4 },
 
     // SANATÇI SATIRI
     artistRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    chevron: { fontSize: 24, color: 'rgba(255,255,255,0.4)' },
+    chevron: { fontSize: 24, color: colors.textSecondary },
 
     // ── INLINE HARİTA ──
     mapWrapper: {
@@ -457,7 +456,7 @@ function createStyles(colors) {
       height: 180,
       position: 'relative',
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.12)',
+      borderColor: colors.border,
     },
     map: {
       width: '100%',
@@ -486,34 +485,34 @@ function createStyles(colors) {
 
     // KONUM DOĞRULAMA
     verifyInfoCard: {
-      backgroundColor: 'rgba(0,212,170,0.08)',
+      backgroundColor: colors.accent + '14',
       borderRadius: 20, padding: 18,
       flexDirection: 'row', alignItems: 'center', gap: 14,
-      borderWidth: 1, borderColor: 'rgba(0,212,170,0.3)',
+      borderWidth: 1, borderColor: colors.accent + '4D',
     },
     verifyInfoEmoji: { fontSize: 32 },
     verifyInfoText: { flex: 1 },
-    verifyInfoTitle: { color: '#00D4AA', fontWeight: '800', fontSize: 15, marginBottom: 6 },
-    verifyInfoSub: { color: 'rgba(255,255,255,0.7)', fontSize: 13, lineHeight: 20 },
+    verifyInfoTitle: { color: colors.accent, fontWeight: '800', fontSize: 15, marginBottom: 6 },
+    verifyInfoSub: { color: colors.textSecondary, fontSize: 13, lineHeight: 20 },
 
     verifyingContainer: {
       flexDirection: 'row', alignItems: 'center',
       justifyContent: 'center', gap: 12, padding: 20,
     },
-    verifyingText: { color: 'rgba(255,255,255,0.7)', fontSize: 15 },
+    verifyingText: { color: colors.textSecondary, fontSize: 15 },
 
     actionButton: {
-      padding: 18, borderRadius: 20, alignItems: 'center',
+      padding: 16, borderRadius: 16, alignItems: 'center',
       marginTop: 12, marginBottom: 36,
-      shadowColor: '#E94560', shadowOffset: { width: 0, height: 8 },
+      shadowColor: colors.primary, shadowOffset: { width: 0, height: 8 },
       shadowOpacity: 0.4, shadowRadius: 12, elevation: 8,
     },
     actionButtonText: { color: '#fff', fontSize: 17, fontWeight: '900', letterSpacing: 0.5 },
 
     ticketButton: {
-      backgroundColor: '#E94560', padding: 18, borderRadius: 20,
+      backgroundColor: colors.primary, padding: 18, borderRadius: 20,
       alignItems: 'center', marginTop: 12,
-      shadowColor: '#E94560', shadowOffset: { width: 0, height: 6 },
+      shadowColor: colors.primary, shadowOffset: { width: 0, height: 6 },
       shadowOpacity: 0.4, shadowRadius: 8, elevation: 6,
     },
     ticketButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },

@@ -49,7 +49,7 @@ function formatDate(dateStr) {
 }
 
 // ── FEATURED CARD ──────────────────────────────────────────────────────────
-function FeaturedCard({ item, index, onPress }) {
+function FeaturedCard({ item, index, onPress, styles }) {
   const scale = useRef(new Animated.Value(0.92)).current;
   const opacity = useRef(new Animated.Value(0)).current;
 
@@ -140,7 +140,7 @@ function FeaturedCard({ item, index, onPress }) {
 }
 
 // ── LIST ROW CARD ──────────────────────────────────────────────────────────
-function EventRow({ item, index, onPress }) {
+function EventRow({ item, index, onPress, styles }) {
   const translateX = useRef(new Animated.Value(-24)).current;
   const opacity = useRef(new Animated.Value(0)).current;
 
@@ -209,7 +209,7 @@ function EventRow({ item, index, onPress }) {
 }
 
 // ── POST CARD ──────────────────────────────────────────────────────────────
-function PostCard({ item, index }) {
+function PostCard({ item, index, styles }) {
   const accent = accentColors[index % accentColors.length];
 
   const timeAgo = (dateStr) => {
@@ -256,6 +256,7 @@ function PostCard({ item, index }) {
 // ── MAIN SCREEN ────────────────────────────────────────────────────────────
 export default function HomeScreen({ navigation }) {
   const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [events, setEvents] = useState([]);
   const [posts, setPosts] = useState([]);
@@ -313,7 +314,7 @@ export default function HomeScreen({ navigation }) {
   }, []);
 
   const activeCategoryLabel = categories.find(c => c.id === activeCategory)?.label || 'Tümü';
-  const activeCategoryColor = categories.find(c => c.id === activeCategory)?.color || '#E94560';
+  const activeCategoryColor = categories.find(c => c.id === activeCategory)?.color || colors.primary;
 
   const filteredEvents = events.filter(e => {
     const matchSearch =
@@ -335,7 +336,7 @@ export default function HomeScreen({ navigation }) {
 
   if (loading) return (
     <View style={styles.loadingScreen}>
-      <ActivityIndicator size="large" color="#E94560" />
+      <ActivityIndicator size="large" color={colors.primary} />
       <Text style={styles.loadingText}>Yükleniyor...</Text>
     </View>
   );
@@ -380,7 +381,7 @@ export default function HomeScreen({ navigation }) {
             <TextInput
               style={styles.searchInput}
               placeholder="Etkinlik, sanatçı, şehir ara..."
-              placeholderTextColor="rgba(255,255,255,0.3)"
+              placeholderTextColor={colors.textSecondary}
               value={search}
               onChangeText={setSearch}
               onFocus={() => setSearchFocused(true)}
@@ -471,6 +472,7 @@ export default function HomeScreen({ navigation }) {
                   item={item}
                   index={index}
                   onPress={ev => navigation.navigate('EventDetail', { event: ev })}
+                  styles={styles}
                 />
               )}
             />
@@ -482,7 +484,7 @@ export default function HomeScreen({ navigation }) {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionTitleRow}>
-                <View style={[styles.sectionAccent, { backgroundColor: '#00D4AA' }]} />
+                <View style={[styles.sectionAccent, { backgroundColor: colors.accent }]} />
                 <Text style={styles.sectionTitle}>Yaklaşan Etkinlikler</Text>
               </View>
             </View>
@@ -492,6 +494,7 @@ export default function HomeScreen({ navigation }) {
                 item={item}
                 index={index}
                 onPress={ev => navigation.navigate('EventDetail', { event: ev })}
+                styles={styles}
               />
             ))}
             {filteredEvents.length > 5 && (
@@ -511,7 +514,7 @@ export default function HomeScreen({ navigation }) {
         <View style={[styles.section, { paddingBottom: 40 }]}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleRow}>
-              <View style={[styles.sectionAccent, { backgroundColor: '#F5A623' }]} />
+              <View style={[styles.sectionAccent, { backgroundColor: colors.secondary }]} />
               <Text style={styles.sectionTitle}>🔥 Trend Postlar</Text>
             </View>
           </View>
@@ -523,7 +526,7 @@ export default function HomeScreen({ navigation }) {
             </View>
           ) : (
             filteredPosts.slice(0, 6).map((item, index) => (
-              <PostCard key={`post-${item.id}`} item={item} index={index} />
+              <PostCard key={`post-${item.id}`} item={item} index={index} styles={styles} />
             ))
           )}
         </View>
@@ -533,17 +536,18 @@ export default function HomeScreen({ navigation }) {
 }
 
 // ── STYLES ─────────────────────────────────────────────────────────────────
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#080810' },
+function createStyles(colors) {
+  return StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.background },
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: 24 },
 
   // LOADING
   loadingScreen: {
     flex: 1, justifyContent: 'center', alignItems: 'center',
-    backgroundColor: '#080810', gap: 14,
+    backgroundColor: colors.background, gap: 14,
   },
-  loadingText: { color: 'rgba(255,255,255,0.4)', fontSize: 14 },
+  loadingText: { color: colors.textSecondary, fontSize: 14 },
 
   // HEADER
   header: {
@@ -559,7 +563,7 @@ const styles = StyleSheet.create({
   },
   headerGreeting: {
     fontSize: 12,
-    color: 'rgba(255,255,255,0.4)',
+    color: colors.textSecondary,
     letterSpacing: 1,
     textTransform: 'uppercase',
     marginBottom: 4,
@@ -567,7 +571,7 @@ const styles = StyleSheet.create({
   headerBrand: {
     fontSize: 32,
     fontWeight: '900',
-    color: '#fff',
+    color: colors.text,
     letterSpacing: -0.5,
   },
   headerLogo: { width: 48, height: 48, borderRadius: 14 },
@@ -576,44 +580,44 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: colors.card,
     borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 13,
     gap: 10,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: colors.border,
     marginBottom: 18,
   },
   searchBarFocused: {
-    borderColor: 'rgba(233,69,96,0.5)',
-    backgroundColor: 'rgba(233,69,96,0.05)',
+    borderColor: colors.primary,
+    backgroundColor: colors.cardAlt,
   },
-  searchIcon: { fontSize: 18, color: 'rgba(255,255,255,0.35)' },
-  searchInput: { flex: 1, color: '#fff', fontSize: 15 },
-  searchClear: { color: 'rgba(255,255,255,0.4)', fontSize: 15, padding: 2 },
+  searchIcon: { fontSize: 18, color: colors.textSecondary },
+  searchInput: { flex: 1, color: colors.text, fontSize: 15 },
+  searchClear: { color: colors.textSecondary, fontSize: 15, padding: 2 },
 
   // STATS STRIP
   statsStrip: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: colors.card,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.07)',
+    borderColor: colors.border,
     overflow: 'hidden',
   },
   statStripItem: {
     flex: 1, alignItems: 'center', paddingVertical: 12,
   },
   statStripNum: {
-    fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 2,
+    fontSize: 18, fontWeight: '800', color: colors.text, marginBottom: 2,
   },
   statStripLabel: {
-    fontSize: 10, color: 'rgba(255,255,255,0.4)',
+    fontSize: 10, color: colors.textSecondary,
     textTransform: 'uppercase', letterSpacing: 0.8,
   },
   statStripDivider: {
-    width: 1, backgroundColor: 'rgba(255,255,255,0.08)',
+    width: 1, backgroundColor: colors.border,
   },
 
   // CATEGORIES
@@ -630,14 +634,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 9,
     borderRadius: 24,
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: colors.border,
     marginRight: 2,
   },
   catEmoji: { fontSize: 15 },
   catLabel: {
-    fontSize: 13, color: 'rgba(255,255,255,0.55)', fontWeight: '600',
+    fontSize: 13, color: colors.textSecondary, fontWeight: '600',
   },
   catDot: {
     width: 5, height: 5, borderRadius: 2.5, marginLeft: 2,
@@ -654,14 +658,14 @@ const styles = StyleSheet.create({
   sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   sectionAccent: { width: 4, height: 18, borderRadius: 2 },
   sectionTitle: {
-    fontSize: 17, fontWeight: '800', color: '#fff', letterSpacing: 0.2,
+    fontSize: 17, fontWeight: '800', color: colors.text, letterSpacing: 0.2,
   },
   seeAllBtn: {
     paddingHorizontal: 12, paddingVertical: 6,
-    borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.05)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 10, backgroundColor: colors.cardAlt,
+    borderWidth: 1, borderColor: colors.border,
   },
-  seeAllText: { fontSize: 13, fontWeight: '700' },
+  seeAllText: { fontSize: 13, fontWeight: '700', color: colors.textSecondary },
 
   // FEATURED
   featuredList: { paddingRight: 20, gap: 14, paddingBottom: 4 },
@@ -671,9 +675,9 @@ const styles = StyleSheet.create({
     height: FEATURED_CARD_HEIGHT,
     borderRadius: 22,
     overflow: 'hidden',
-    backgroundColor: '#12121E',
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.07)',
+    borderColor: colors.border,
   },
   featuredBg: {
     position: 'absolute', top: 0, left: 0,
@@ -689,19 +693,19 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   dateBadgeDay: { fontSize: 18, fontWeight: '900', color: '#fff', lineHeight: 20 },
-  dateBadgeMon: { fontSize: 10, fontWeight: '700', color: 'rgba(255,255,255,0.85)', textTransform: 'uppercase' },
+  dateBadgeMon: { fontSize: 10, fontWeight: '700', color: '#fff', textTransform: 'uppercase', opacity: 0.85 },
   genreTag: {
     position: 'absolute', top: 14, right: 14,
     backgroundColor: 'rgba(0,0,0,0.5)',
     paddingHorizontal: 10, paddingVertical: 4,
     borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
   },
-  genreTagText: { color: 'rgba(255,255,255,0.8)', fontSize: 11, fontWeight: '600' },
+  genreTagText: { color: '#fff', fontSize: 11, fontWeight: '600', opacity: 0.8 },
   featuredContent: {
     position: 'absolute', bottom: 14, left: 14, right: 14,
   },
   featuredArtist: {
-    fontSize: 12, color: 'rgba(255,255,255,0.7)',
+    fontSize: 12, color: '#fff', opacity: 0.7,
     marginBottom: 4, fontWeight: '600',
   },
   featuredTitle: {
@@ -714,7 +718,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.1)',
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
   },
-  metaPillText: { fontSize: 11, color: 'rgba(255,255,255,0.8)', fontWeight: '600' },
+  metaPillText: { fontSize: 11, color: '#fff', fontWeight: '600', opacity: 0.8 },
   featuredAccentLine: {
     position: 'absolute', bottom: 0, left: 0, right: 0, height: 3,
   },
@@ -723,12 +727,12 @@ const styles = StyleSheet.create({
   eventRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.035)',
+    backgroundColor: colors.card,
     borderRadius: 16,
     padding: 12,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.07)',
+    borderColor: colors.border,
     gap: 12,
   },
   eventRowDate: {
@@ -736,8 +740,8 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     borderWidth: 1,
   },
-  eventRowDay: { fontSize: 18, fontWeight: '900', lineHeight: 20 },
-  eventRowMon: { fontSize: 10, fontWeight: '700', textTransform: 'uppercase' },
+  eventRowDay: { fontSize: 18, fontWeight: '900', lineHeight: 20, color: colors.text },
+  eventRowMon: { fontSize: 10, fontWeight: '700', textTransform: 'uppercase', color: colors.textSecondary },
   eventRowThumb: {
     width: 52, height: 52, borderRadius: 12, overflow: 'hidden',
   },
@@ -746,9 +750,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   eventRowInfo: { flex: 1 },
-  eventRowTitle: { fontSize: 14, fontWeight: '800', color: '#fff', marginBottom: 3 },
-  eventRowArtist: { fontSize: 12, color: 'rgba(255,255,255,0.55)', marginBottom: 2 },
-  eventRowVenue: { fontSize: 12, color: 'rgba(255,255,255,0.4)' },
+  eventRowTitle: { fontSize: 14, fontWeight: '800', color: colors.text, marginBottom: 3 },
+  eventRowArtist: { fontSize: 12, color: colors.textSecondary, marginBottom: 2 },
+  eventRowVenue: { fontSize: 12, color: colors.textSecondary },
   eventRowArrow: {
     width: 34, height: 34, borderRadius: 10,
     alignItems: 'center', justifyContent: 'center',
@@ -759,24 +763,24 @@ const styles = StyleSheet.create({
     marginTop: 4,
     paddingVertical: 14,
     borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: colors.border,
     alignItems: 'center',
   },
   moreBtnText: {
-    color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: '700',
+    color: colors.textSecondary, fontSize: 13, fontWeight: '700',
   },
 
   // POST CARD
   postCard: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.035)',
+    backgroundColor: colors.card,
     borderRadius: 16,
     marginBottom: 10,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.07)',
+    borderColor: colors.border,
   },
   postAccentBar: { width: 3 },
   postInner: { flex: 1, padding: 14 },
@@ -787,24 +791,25 @@ const styles = StyleSheet.create({
   postAvatar: {
     width: 36, height: 36, borderRadius: 10,
     alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1,
+    borderWidth: 1, borderColor: colors.border,
   },
-  postUsername: { fontSize: 13, fontWeight: '800', color: '#fff', marginBottom: 2 },
-  postEvent: { fontSize: 11, color: 'rgba(255,255,255,0.45)' },
-  postTime: { fontSize: 11, color: 'rgba(255,255,255,0.3)' },
+  postUsername: { fontSize: 13, fontWeight: '800', color: colors.text, marginBottom: 2 },
+  postEvent: { fontSize: 11, color: colors.textSecondary },
+  postTime: { fontSize: 11, color: colors.textSecondary },
   postContent: {
-    fontSize: 14, color: 'rgba(255,255,255,0.75)',
-    lineHeight: 20, marginBottom: 12,
+    fontSize: 14, color: colors.text,
+    lineHeight: 20, marginBottom: 12, opacity: 0.75,
   },
   postFooter: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  postStat: { fontSize: 13, color: 'rgba(255,255,255,0.4)', fontWeight: '600' },
+  postStat: { fontSize: 13, color: colors.textSecondary, fontWeight: '600' },
   postDot: {
     marginLeft: 'auto', width: 6, height: 6,
-    borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 3, backgroundColor: colors.border,
   },
 
   // EMPTY
   emptyState: { alignItems: 'center', paddingVertical: 36 },
   emptyEmoji: { fontSize: 44, marginBottom: 10 },
-  emptyText: { color: 'rgba(255,255,255,0.35)', fontSize: 14 },
+  emptyText: { color: colors.textSecondary, fontSize: 14 },
 });
+}

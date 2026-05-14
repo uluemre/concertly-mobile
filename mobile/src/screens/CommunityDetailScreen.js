@@ -250,11 +250,11 @@ function createStyles(colors) {
       alignItems: 'center',
     },
     backButton: { alignSelf: 'flex-start', marginBottom: 12 },
-    backText: { color: 'rgba(255,255,255,0.9)', fontSize: 14, fontWeight: '800' },
+    backText: { color: colors.text, fontSize: 14, fontWeight: '800' },
     heroEmoji: { fontSize: 54, marginBottom: 10 },
-    heroTitle: { color: '#fff', fontSize: 25, fontWeight: 'bold', textAlign: 'center' },
+    heroTitle: { color: colors.text, fontSize: 25, fontWeight: 'bold', textAlign: 'center' },
     heroSub: {
-      color: 'rgba(255,255,255,0.82)',
+      color: colors.textSecondary,
       fontSize: 13,
       lineHeight: 19,
       textAlign: 'center',
@@ -276,7 +276,7 @@ function createStyles(colors) {
     heroDivider: { width: 1, height: 28, backgroundColor: 'rgba(255,255,255,0.24)' },
     heroJoinButton: {
       marginTop: 18,
-      backgroundColor: '#fff',
+      backgroundColor: colors.card,
       borderRadius: 15,
       paddingVertical: 12,
       paddingHorizontal: 24,

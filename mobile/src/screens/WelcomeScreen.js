@@ -1,13 +1,16 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import {
     View, Text, StyleSheet, Animated, Dimensions, Image
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTheme } from '../theme';
 
 const { width, height } = Dimensions.get('window');
 
 export default function WelcomeScreen({ navigation, route }) {
     const { username } = route.params || {};
+    const { colors } = useTheme();
+    const styles = useMemo(() => createStyles(colors), [colors]);
 
     // Animasyon değerleri
     const logoScale = useRef(new Animated.Value(0)).current;
@@ -108,7 +111,7 @@ export default function WelcomeScreen({ navigation, route }) {
 
     return (
         <LinearGradient
-            colors={['#0F0F1A', '#1A1A2E', '#0F0F1A']}
+            colors={[colors.background, colors.card, colors.background]}
             style={styles.container}
         >
             {/* LOGO + HALKALAR */}
@@ -168,15 +171,16 @@ export default function WelcomeScreen({ navigation, route }) {
 
             {/* ALT NOKTA ANİMASYONU */}
             <Animated.View style={[styles.dotsRow, { opacity: subOpacity }]}>
-                <LoadingDots />
+                <LoadingDots dotStyle={styles.dot} />
             </Animated.View>
 
         </LinearGradient>
     );
 }
 
-// Üç nokta yükleme animasyonu
-function LoadingDots() {
+const RING_BASE = 120;
+
+function LoadingDots({ dotStyle }) {
     const dot1 = useRef(new Animated.Value(0)).current;
     const dot2 = useRef(new Animated.Value(0)).current;
     const dot3 = useRef(new Animated.Value(0)).current;
@@ -199,23 +203,21 @@ function LoadingDots() {
 
     return (
         <>
-            <Animated.View style={[styles.dot, { transform: [{ translateY: dot1 }] }]} />
-            <Animated.View style={[styles.dot, { transform: [{ translateY: dot2 }] }]} />
-            <Animated.View style={[styles.dot, { transform: [{ translateY: dot3 }] }]} />
+            <Animated.View style={[dotStyle, { transform: [{ translateY: dot1 }] }]} />
+            <Animated.View style={[dotStyle, { transform: [{ translateY: dot2 }] }]} />
+            <Animated.View style={[dotStyle, { transform: [{ translateY: dot3 }] }]} />
         </>
     );
 }
 
-const RING_BASE = 120;
-
-const styles = StyleSheet.create({
+function createStyles(colors) {
+  return StyleSheet.create({
     container: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
     },
 
-    // LOGO + HALKALAR
     logoWrapper: {
         width: RING_BASE * 3,
         height: RING_BASE * 3,
@@ -227,7 +229,7 @@ const styles = StyleSheet.create({
         position: 'absolute',
         borderRadius: 999,
         borderWidth: 1.5,
-        borderColor: '#E94560',
+        borderColor: colors.primary,
     },
     ring1: { width: RING_BASE, height: RING_BASE },
     ring2: { width: RING_BASE * 1.5, height: RING_BASE * 1.5 },
@@ -236,7 +238,7 @@ const styles = StyleSheet.create({
     logoContainer: {
         width: 100, height: 100, borderRadius: 28,
         overflow: 'hidden',
-        shadowColor: '#E94560',
+        shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 0 },
         shadowOpacity: 0.8,
         shadowRadius: 20,
@@ -248,22 +250,20 @@ const styles = StyleSheet.create({
     },
     logo: { width: 70, height: 70 },
 
-    // YAZI
     textArea: { alignItems: 'center', marginBottom: 12 },
     welcomeText: {
         fontSize: 22, fontWeight: '600',
-        color: '#fff', marginBottom: 6, textAlign: 'center',
+        color: colors.text, marginBottom: 6, textAlign: 'center',
     },
     appName: {
         fontSize: 42, fontWeight: 'bold',
-        color: '#fff', letterSpacing: 3,
+        color: colors.text, letterSpacing: 3,
     },
     subText: {
-        fontSize: 15, color: '#A0A0B0',
+        fontSize: 15, color: colors.textSecondary,
         marginBottom: 48,
     },
 
-    // DOTS
     dotsRow: {
         position: 'absolute',
         bottom: 60,
@@ -273,6 +273,7 @@ const styles = StyleSheet.create({
     },
     dot: {
         width: 8, height: 8, borderRadius: 4,
-        backgroundColor: '#E94560',
+        backgroundColor: colors.primary,
     },
-}); 
+  });
+} 

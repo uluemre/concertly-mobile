@@ -122,7 +122,7 @@ function createStyles(colors) {
     header: { paddingTop: 60, paddingBottom: 24, paddingHorizontal: 24 },
     backButton: { marginBottom: 16 },
     backText: { color: 'rgba(255,255,255,0.8)', fontSize: 15 },
-    headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#fff' },
+    headerTitle: { fontSize: 24, fontWeight: 'bold', color: colors.text },
     headerSub: { fontSize: 13, color: 'rgba(255,255,255,0.8)', marginTop: 4 },
 
     content: { padding: 16, gap: 14 },
@@ -165,7 +165,7 @@ function createStyles(colors) {
     emojiText: { fontSize: 20 },
 
     submitButton: { padding: 18, borderRadius: 16, alignItems: 'center' },
-    submitText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+    submitText: { color: colors.text, fontSize: 16, fontWeight: 'bold' },
   });
 }
 
