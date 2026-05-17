@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
   TouchableOpacity, Alert, ActivityIndicator,
@@ -53,8 +53,20 @@ export default function EventDetailScreen({ route, navigation }) {
   const [verifying, setVerifying] = useState(false);
   const [attendLoading, setAttendLoading] = useState(false);
   const [attendance, setAttendance] = useState(null);
+  const [goingCount, setGoingCount] = useState(0);
+  const [interestedCount, setInterestedCount] = useState(0);
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
+
+  useEffect(() => {
+    API.get(`/events/${event.id}/attendance`)
+      .then(res => {
+        setAttendance(res.data.status ?? null);
+        setGoingCount(res.data.goingCount ?? 0);
+        setInterestedCount(res.data.interestedCount ?? 0);
+      })
+      .catch(() => {});
+  }, [event.id]);
 
   const hasCoordinates =
     event.venueLatitude != null && event.venueLongitude != null;
@@ -68,6 +80,8 @@ export default function EventDetailScreen({ route, navigation }) {
       try {
         await API.delete(`/events/${event.id}/attendance`);
         setAttendance(null);
+        if (status === 'GOING') setGoingCount(c => Math.max(0, c - 1));
+        else setInterestedCount(c => Math.max(0, c - 1));
       } catch (err) {
         Alert.alert('Hata', 'İşlem gerçekleştirilemedi.');
         console.log(err.message);
@@ -78,10 +92,10 @@ export default function EventDetailScreen({ route, navigation }) {
     }
 
     try {
-      await API.post(
-        `/events/${event.id}/attendance?userId=${global.userId}&status=${status}`
-      );
+      const res = await API.post(`/events/${event.id}/attendance?status=${status}`);
       setAttendance(status);
+      setGoingCount(res.data.goingCount ?? 0);
+      setInterestedCount(res.data.interestedCount ?? 0);
     } catch (err) {
       Alert.alert('Hata', 'İşlem gerçekleştirilemedi.');
       console.log(err.message);
@@ -212,9 +226,16 @@ export default function EventDetailScreen({ route, navigation }) {
             activeOpacity={0.8}
           >
             <Text style={styles.attendBtnEmoji}>✅</Text>
-            <Text style={[styles.attendBtnText, attendance === 'GOING' && styles.attendBtnTextActive]}>
-              Gidiyorum
-            </Text>
+            <View>
+              <Text style={[styles.attendBtnText, attendance === 'GOING' && styles.attendBtnTextActive]}>
+                Gidiyorum
+              </Text>
+              {goingCount > 0 && (
+                <Text style={[styles.attendBtnCount, attendance === 'GOING' && styles.attendBtnTextActive]}>
+                  {goingCount} kişi
+                </Text>
+              )}
+            </View>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -224,9 +245,16 @@ export default function EventDetailScreen({ route, navigation }) {
             activeOpacity={0.8}
           >
             <Text style={styles.attendBtnEmoji}>⭐</Text>
-            <Text style={[styles.attendBtnText, attendance === 'INTERESTED' && styles.attendBtnTextActiveYellow]}>
-              İlgileniyorum
-            </Text>
+            <View>
+              <Text style={[styles.attendBtnText, attendance === 'INTERESTED' && styles.attendBtnTextActiveYellow]}>
+                İlgileniyorum
+              </Text>
+              {interestedCount > 0 && (
+                <Text style={[styles.attendBtnCount, attendance === 'INTERESTED' && styles.attendBtnTextActiveYellow]}>
+                  {interestedCount} kişi
+                </Text>
+              )}
+            </View>
           </TouchableOpacity>
         </View>
 
@@ -426,6 +454,7 @@ function createStyles(colors) {
     attendBtnActiveYellow: { backgroundColor: colors.secondary + '26', borderColor: colors.secondary },
     attendBtnEmoji: { fontSize: 18 },
     attendBtnText: { fontSize: 14, fontWeight: '800', color: colors.textSecondary },
+    attendBtnCount: { fontSize: 11, fontWeight: '600', color: colors.textSecondary, marginTop: 2 },
     attendBtnTextActive: { color: colors.accent },
     attendBtnTextActiveYellow: { color: colors.secondary },
 

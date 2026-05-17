@@ -201,14 +201,7 @@ export default function ProfileScreen({ navigation }) {
             Etkinlikler ({events.length})
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'music' && styles.tabActive]}
-          onPress={() => setActiveTab('music')}
-        >
-          <Text style={[styles.tabText, activeTab === 'music' && styles.tabTextActive]}>
-            Müzik
-          </Text>
-        </TouchableOpacity>
+
       </View>
 
       {/* İÇERİK */}

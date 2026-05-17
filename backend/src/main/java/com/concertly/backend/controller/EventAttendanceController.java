@@ -17,6 +17,12 @@ public class EventAttendanceController {
         this.attendanceService = attendanceService;
     }
 
+    @GetMapping
+    public AttendanceResponse getAttendance(@PathVariable Long eventId) {
+        Long userId = JwtUtil.getCurrentUserId();
+        return attendanceService.getAttendance(userId, eventId);
+    }
+
     @PostMapping
     public AttendanceResponse attend(
             @PathVariable Long eventId,

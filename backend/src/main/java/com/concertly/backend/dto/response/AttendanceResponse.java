@@ -20,6 +20,15 @@ public class AttendanceResponse {
         return dto;
     }
 
+    public static AttendanceResponse counts(Long eventId, long goingCount, long interestedCount) {
+        AttendanceResponse dto = new AttendanceResponse();
+        dto.eventId         = eventId;
+        dto.status          = null;
+        dto.goingCount      = goingCount;
+        dto.interestedCount = interestedCount;
+        return dto;
+    }
+
     public Long getEventId() { return eventId; }
     public AttendanceStatus getStatus() { return status; }
     public long getGoingCount() { return goingCount; }

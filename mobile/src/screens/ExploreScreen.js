@@ -37,6 +37,16 @@ const menuItems = [
     screen: 'FeedTab',
     available: true,
   },
+
+  {
+    id: 6,
+    title: 'Müzik Profili',
+    subtitle: 'Türlerin ve takip ettiğin sanatçılar',
+    emoji: '✨',
+    gradient: ['#7C3AED', '#E94560'],
+    screen: 'MusicProfile',
+    available: true,
+  },
   {
     id: 7,
     title: 'Harita',
@@ -64,15 +74,7 @@ const menuItems = [
     screen: null,
     available: false,
   },
-  {
-    id: 6,
-    title: 'Müzik Profili',
-    subtitle: 'Türlerin ve takip ettiğin sanatçılar',
-    emoji: '✨',
-    gradient: ['#7C3AED', '#E94560'],
-    screen: 'MusicProfile',
-    available: true,
-  },
+
 
 ];
 

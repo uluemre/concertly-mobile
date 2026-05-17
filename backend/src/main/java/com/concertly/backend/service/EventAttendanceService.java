@@ -21,6 +21,15 @@ public class EventAttendanceService {
         this.eventRepository      = eventRepository;
     }
 
+    public AttendanceResponse getAttendance(Long userId, Long eventId) {
+        long goingCount      = attendanceRepository.countByEventIdAndStatus(eventId, AttendanceStatus.GOING);
+        long interestedCount = attendanceRepository.countByEventIdAndStatus(eventId, AttendanceStatus.INTERESTED);
+
+        return attendanceRepository.findByUserIdAndEventId(userId, eventId)
+                .map(a -> AttendanceResponse.from(a, goingCount, interestedCount))
+                .orElse(AttendanceResponse.counts(eventId, goingCount, interestedCount));
+    }
+
     public AttendanceResponse setAttendance(Long userId, Long eventId, AttendanceStatus status) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Kullanıcı bulunamadı: " + userId));
