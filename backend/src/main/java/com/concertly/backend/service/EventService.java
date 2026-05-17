@@ -13,6 +13,7 @@ import com.concertly.backend.repository.UserRepository;
 import com.concertly.backend.repository.VenueRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -64,6 +65,7 @@ public class EventService {
                 : eventRepository.findByVenue_CityIgnoreCase(city);
 
         return events.stream()
+                .sorted(Comparator.comparing(Event::getEventDate))
                 .map(EventResponse::from)
                 .toList();
     }
@@ -78,11 +80,14 @@ public class EventService {
         String queryCity = (city == null || city.isBlank()) ? "Istanbul" : city;
 
         List<Event> matching = eventRepository.findByVenueCityAndGenreIn(queryCity, lowerGenres);
+        matching.sort(Comparator.comparing(Event::getEventDate));
+
         List<Event> all = (city == null || city.isBlank())
                 ? eventRepository.findAll()
                 : eventRepository.findByVenue_CityIgnoreCase(city);
+        all.sort(Comparator.comparing(Event::getEventDate));
 
-        // Matching events first, then remaining ones — so feed never feels empty
+        // Matching events first, then remaining ones
         java.util.Set<Long> matchingIds = matching.stream().map(Event::getId).collect(java.util.stream.Collectors.toSet());
         java.util.List<Event> sorted = new java.util.ArrayList<>(matching);
         for (Event e : all) {

@@ -168,15 +168,23 @@ export default function UserProfileScreen({ route, navigation }) {
               <Text style={styles.statLabel}>Post</Text>
             </View>
             <View style={styles.statDivider} />
-            <View style={styles.stat}>
+            <TouchableOpacity
+              style={styles.stat}
+              onPress={() => navigation.navigate('FollowList', { userId, type: 'followers' })}
+              activeOpacity={0.7}
+            >
               <Text style={styles.statNumber}>{profile?.followerCount || 0}</Text>
               <Text style={styles.statLabel}>Takipçi</Text>
-            </View>
+            </TouchableOpacity>
             <View style={styles.statDivider} />
-            <View style={styles.stat}>
+            <TouchableOpacity
+              style={styles.stat}
+              onPress={() => navigation.navigate('FollowList', { userId, type: 'following' })}
+              activeOpacity={0.7}
+            >
               <Text style={styles.statNumber}>{profile?.followingCount || 0}</Text>
               <Text style={styles.statLabel}>Takip</Text>
-            </View>
+            </TouchableOpacity>
             <View style={styles.statDivider} />
             <View style={styles.stat}>
               <Text style={styles.statNumber}>{events.length}</Text>

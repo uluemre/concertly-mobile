@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/artists")
 public class ArtistController {
@@ -55,5 +57,11 @@ public class ArtistController {
         Long currentUserId = JwtUtil.getCurrentUserId();
         List<String> genres = List.of(genresCsv.split(","));
         return artistService.getArtistsByGenres(genres, currentUserId);
+    }
+
+    @RequestMapping(value = "/enrich", method = { RequestMethod.GET, RequestMethod.POST })
+    public String enrichAll() {
+        int count = artistService.enrichAllArtists();
+        return count + " sanatci Spotify ile zenginlestirildi.";
     }
 }

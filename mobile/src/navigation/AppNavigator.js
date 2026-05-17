@@ -22,6 +22,7 @@ import ArtistProfileScreen from '../screens/ArtistProfileScreen';
 import WelcomeScreen from '../screens/WelcomeScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import MapScreen from '../screens/MapScreen';
+import FollowListScreen from '../screens/FollowListScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
 import GenreSelectionScreen from '../screens/GenreSelectionScreen';
 import ArtistSelectionScreen from '../screens/ArtistSelectionScreen';
@@ -178,6 +179,11 @@ export default function AppNavigator() {
         <Stack.Screen
           name="Map"
           component={MapScreen}
+        />
+
+        <Stack.Screen
+          name="FollowList"
+          component={FollowListScreen}
         />
       </Stack.Navigator>
     </NavigationContainer>

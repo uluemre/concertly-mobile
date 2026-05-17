@@ -59,6 +59,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/communities").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/communities/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/demo/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/artists/enrich").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/artists/enrich").permitAll()
                         .anyRequest().authenticated()
 
                 )

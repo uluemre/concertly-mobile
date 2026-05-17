@@ -24,6 +24,7 @@ public class ArtistService {
     private final PostRepository         postRepository;
     private final LikeRepository         likeRepository;
     private final CommentRepository      commentRepository;
+    private final SpotifyService         spotifyService;
 
     public ArtistService(ArtistRepository artistRepository,
                          ArtistFollowRepository artistFollowRepository,
@@ -31,7 +32,8 @@ public class ArtistService {
                          EventRepository eventRepository,
                          PostRepository postRepository,
                          LikeRepository likeRepository,
-                         CommentRepository commentRepository) {
+                         CommentRepository commentRepository,
+                         SpotifyService spotifyService) {
         this.artistRepository       = artistRepository;
         this.artistFollowRepository = artistFollowRepository;
         this.userRepository         = userRepository;
@@ -39,6 +41,7 @@ public class ArtistService {
         this.postRepository         = postRepository;
         this.likeRepository         = likeRepository;
         this.commentRepository      = commentRepository;
+        this.spotifyService         = spotifyService;
     }
 
     // ✅ SANATÇI PROFİLİ
@@ -136,6 +139,37 @@ public class ArtistService {
                 artistFollowRepository.save(follow);
             }
         }
+    }
+
+    @Transactional
+    public int enrichAllArtists() {
+        List<Artist> all = artistRepository.findAll();
+        int enriched = 0;
+        int skipped = 0;
+
+        for (Artist a : all) {
+            if (a.getImageUrl() != null && a.getGenre() != null && a.getSpotifyId() != null) {
+                skipped++;
+                continue;
+            }
+
+            // Spotify rate limit: saniyede ~3 istek
+            try { Thread.sleep(350); } catch (InterruptedException e) { Thread.currentThread().interrupt(); break; }
+
+            System.out.println("🎵 Zenginlestiriliyor: " + a.getName());
+            SpotifyService.SpotifyArtistData sd = spotifyService.searchArtist(a.getName());
+            if (sd != null) {
+                if (a.getImageUrl() == null && sd.imageUrl != null) a.setImageUrl(sd.imageUrl);
+                if (a.getGenre() == null && sd.genre != null) a.setGenre(sd.genre);
+                if (a.getSpotifyId() == null && sd.spotifyId != null) a.setSpotifyId(sd.spotifyId);
+                enriched++;
+                System.out.println("  ✅ image=" + (sd.imageUrl != null) + " genre=" + sd.genre);
+            }
+        }
+
+        artistRepository.saveAll(all);
+        System.out.println("📊 " + enriched + " zenginlestirildi, " + skipped + " zaten tamdi");
+        return enriched;
     }
 
     // ✅ TAKİBİ BIRAK

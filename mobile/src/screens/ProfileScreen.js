@@ -114,7 +114,7 @@ export default function ProfileScreen({ navigation }) {
   return (
     <Animated.ScrollView style={[styles.container, { opacity: fadeAnim }]}>
 
-      {/* HERO */}
+      {/* HERO — kompakt */}
       <LinearGradient colors={colors.headerGradient} style={styles.hero}>
         <View style={styles.topActions}>
           <TouchableOpacity onPress={() => navigation.navigate('Settings')} style={styles.settingsButton} activeOpacity={0.8}>
@@ -140,34 +140,43 @@ export default function ProfileScreen({ navigation }) {
 
         <Text style={styles.username}>@{profile?.username || 'Kullanıcı'}</Text>
 
-        <View style={styles.bioContainer}>
-          <Text style={styles.bioText}>
-            {profile?.bio || "Kendinden bahsetmek için Ayarlar'a git"}
+        {!!profile?.bio && (
+          <Text style={styles.bioText} numberOfLines={2}>
+            {profile.bio}
           </Text>
-        </View>
-
-        <View style={styles.statsRow}>
-          <View style={styles.stat}>
-            <Text style={styles.statNumber}>{posts.length}</Text>
-            <Text style={styles.statLabel}>Post</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.stat}>
-            <Text style={styles.statNumber}>{profile?.followerCount || 0}</Text>
-            <Text style={styles.statLabel}>Takipçi</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.stat}>
-            <Text style={styles.statNumber}>{profile?.followingCount || 0}</Text>
-            <Text style={styles.statLabel}>Takip</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.stat}>
-            <Text style={styles.statNumber}>{events.length}</Text>
-            <Text style={styles.statLabel}>Etkinlik</Text>
-          </View>
-        </View>
+        )}
       </LinearGradient>
+
+      {/* STATS CARD */}
+      <View style={styles.statsCard}>
+        <View style={styles.stat}>
+          <Text style={styles.statNumber}>{posts.length}</Text>
+          <Text style={styles.statLabel}>Post</Text>
+        </View>
+        <View style={styles.statDivider} />
+        <TouchableOpacity
+          style={styles.stat}
+          onPress={() => navigation.navigate('FollowList', { userId: global.userId, type: 'followers' })}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.statNumber}>{profile?.followerCount || 0}</Text>
+          <Text style={styles.statLabel}>Takipçi</Text>
+        </TouchableOpacity>
+        <View style={styles.statDivider} />
+        <TouchableOpacity
+          style={styles.stat}
+          onPress={() => navigation.navigate('FollowList', { userId: global.userId, type: 'following' })}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.statNumber}>{profile?.followingCount || 0}</Text>
+          <Text style={styles.statLabel}>Takip</Text>
+        </TouchableOpacity>
+        <View style={styles.statDivider} />
+        <View style={styles.stat}>
+          <Text style={styles.statNumber}>{events.length}</Text>
+          <Text style={styles.statLabel}>Etkinlik</Text>
+        </View>
+      </View>
 
       {/* SEKMELER */}
       <View style={styles.tabs}>
@@ -286,22 +295,22 @@ function createStyles(colors) {
 
     // HERO
     hero: {
-      paddingTop: 68,
-      paddingBottom: 36,
+      paddingTop: 52,
+      paddingBottom: 20,
       alignItems: 'center',
       paddingHorizontal: 24,
     },
     topActions: {
       position: 'absolute',
-      top: 56,
-      right: 20,
+      top: 44,
+      right: 16,
       flexDirection: 'row',
       alignItems: 'center',
     },
     settingsButton: {
-      width: 44,
-      height: 44,
-      borderRadius: 22,
+      width: 38,
+      height: 38,
+      borderRadius: 19,
       backgroundColor: colors.card,
       borderWidth: 1,
       borderColor: colors.border,
@@ -309,76 +318,80 @@ function createStyles(colors) {
       justifyContent: 'center',
     },
     settingsIcon: {
-      fontSize: 20,
+      fontSize: 17,
     },
 
     // AVATAR
     avatarWrapper: {
-      marginBottom: 18,
+      marginBottom: 10,
     },
     avatarImage: {
-      width: 110,
-      height: 110,
-      borderRadius: 55,
-      borderWidth: 3,
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      borderWidth: 2.5,
       borderColor: colors.primary,
     },
     avatarPlaceholder: {
-      width: 110,
-      height: 110,
-      borderRadius: 55,
+      width: 80,
+      height: 80,
+      borderRadius: 40,
       backgroundColor: colors.card,
       justifyContent: 'center',
       alignItems: 'center',
-      borderWidth: 3,
+      borderWidth: 2.5,
       borderColor: colors.border,
     },
-    avatarEmoji: { fontSize: 48 },
+    avatarEmoji: { fontSize: 34 },
     avatarEditBadge: {
       position: 'absolute',
-      bottom: 2,
-      right: 2,
-      width: 34,
-      height: 34,
-      borderRadius: 17,
+      bottom: 0,
+      right: 0,
+      width: 26,
+      height: 26,
+      borderRadius: 13,
       backgroundColor: colors.primary,
       justifyContent: 'center',
       alignItems: 'center',
-      borderWidth: 3,
+      borderWidth: 2,
       borderColor: colors.background,
     },
-    avatarEditText: { fontSize: 15 },
+    avatarEditText: { fontSize: 12 },
 
     // USERNAME & BIO
     username: {
-      fontSize: 24,
+      fontSize: 18,
       fontWeight: '800',
       color: colors.text,
-      marginBottom: 8,
-    },
-    bioContainer: {
-      paddingHorizontal: 32,
-      marginBottom: 28,
+      marginBottom: 4,
     },
     bioText: {
       color: colors.textSecondary,
-      fontSize: 15,
+      fontSize: 13,
       textAlign: 'center',
-      lineHeight: 22,
+      lineHeight: 18,
+      paddingHorizontal: 24,
+      marginTop: 4,
     },
 
-    // STATS
-    statsRow: {
+    // STATS CARD
+    statsCard: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'center',
-      gap: 32,
-      width: '100%',
+      backgroundColor: colors.card,
+      borderRadius: 16,
+      marginHorizontal: 16,
+      marginTop: 12,
+      marginBottom: 4,
+      paddingVertical: 14,
+      paddingHorizontal: 8,
+      borderWidth: 1,
+      borderColor: colors.border,
     },
-    stat: { alignItems: 'center' },
-    statNumber: { fontSize: 24, fontWeight: '900', color: colors.text },
-    statLabel: { fontSize: 11, color: colors.textSecondary, marginTop: 6, textTransform: 'uppercase', letterSpacing: 1.2, fontWeight: '700' },
-    statDivider: { width: 1, height: 28, backgroundColor: colors.border },
+    stat: { flex: 1, alignItems: 'center' },
+    statNumber: { fontSize: 18, fontWeight: '800', color: colors.text },
+    statLabel: { fontSize: 10, color: colors.textSecondary, marginTop: 3, textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: '700' },
+    statDivider: { width: 1, height: 22, backgroundColor: colors.border },
 
     // TABS
     tabs: {

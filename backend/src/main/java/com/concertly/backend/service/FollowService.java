@@ -10,6 +10,9 @@ import com.concertly.backend.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Service
 public class FollowService {
 
@@ -74,5 +77,33 @@ public class FollowService {
                 followRepository.findByFollowerIdAndFollowingId(currentUserId, targetUserId).isPresent();
 
         return UserSummaryResponse.from(target, followerCount, followingCount, isFollowed);
+    }
+
+    // ✅ TAKİPÇİ LİSTESİ — beni takip edenler
+    public List<UserSummaryResponse> getFollowers(Long userId, Long currentUserId) {
+        return followRepository.findAllByFollowingId(userId).stream()
+                .map(f -> {
+                    User follower = f.getFollower();
+                    long fc  = followRepository.countByFollowingId(follower.getId());
+                    long fwc = followRepository.countByFollowerId(follower.getId());
+                    boolean isFollowed = currentUserId != null &&
+                            followRepository.findByFollowerIdAndFollowingId(currentUserId, follower.getId()).isPresent();
+                    return UserSummaryResponse.from(follower, fc, fwc, isFollowed);
+                })
+                .collect(Collectors.toList());
+    }
+
+    // ✅ TAKİP LİSTESİ — takip ettiklerim
+    public List<UserSummaryResponse> getFollowing(Long userId, Long currentUserId) {
+        return followRepository.findAllByFollowerId(userId).stream()
+                .map(f -> {
+                    User following = f.getFollowing();
+                    long fc  = followRepository.countByFollowingId(following.getId());
+                    long fwc = followRepository.countByFollowerId(following.getId());
+                    boolean isFollowed = currentUserId != null &&
+                            followRepository.findByFollowerIdAndFollowingId(currentUserId, following.getId()).isPresent();
+                    return UserSummaryResponse.from(following, fc, fwc, isFollowed);
+                })
+                .collect(Collectors.toList());
     }
 }

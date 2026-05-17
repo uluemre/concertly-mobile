@@ -1,22 +1,48 @@
 import axios from 'axios';
+import Constants from 'expo-constants';
+
+// Expo dev server IP'sini otomatik algıla
+function getBaseUrl() {
+  try {
+    const hostUri = Constants.expoConfig?.hostUri;
+    if (hostUri) {
+      const ip = hostUri.split(':')[0];
+      return `http://${ip}:8082/api`;
+    }
+  } catch {}
+  return 'http://192.168.1.92:8082/api';
+}
+
+const BASE_URL = getBaseUrl();
+
+console.log('API Base URL:', BASE_URL);
 
 const API = axios.create({
-    //baseURL: 'http://192.168.234.236:8082/api', //işyerindeki ip adresi
-
-    baseURL: 'http://192.168.1.92:8082/api', //evdeki ip adresi
-
-    timeout: 10000,
+  baseURL: BASE_URL,
+  timeout: 15000,
 });
-
-
 
 API.interceptors.request.use(async (config) => {
-    console.log('İSTEK:', config.method?.toUpperCase(), config.baseURL + config.url);
-    const token = global.authToken;
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
+  console.log('İSTEK:', config.method?.toUpperCase(), config.url);
+  const token = global.authToken;
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
 });
+
+API.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.code === 'ERR_NETWORK') {
+      console.error('Ağ hatası: Backend çalışmıyor veya IP yanlış. URL:', BASE_URL);
+    }
+    return Promise.reject(error);
+  }
+);
+
+export function getApiUrl() {
+  return BASE_URL;
+}
 
 export default API;
