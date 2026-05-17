@@ -67,11 +67,11 @@ const menuItems = [
   {
     id: 6,
     title: 'Müzik Profili',
-    subtitle: 'Zevkine göre eşleşmeler',
+    subtitle: 'Türlerin ve takip ettiğin sanatçılar',
     emoji: '✨',
     gradient: ['#7C3AED', '#E94560'],
-    screen: null,
-    available: false,
+    screen: 'MusicProfile',
+    available: true,
   },
 
 ];

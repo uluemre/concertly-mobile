@@ -14,9 +14,8 @@ public class UserSummaryResponse {
     private String bio;
     private String email;
     private String phone;
+    private String favoriteGenres;
 
-    // ✅ Mobil 'isFollowedByCurrentUser' bekliyor, Jackson bunu
-    // 'followedByCurrentUser' yapıyor
     @JsonProperty("isFollowedByCurrentUser")
     private boolean isFollowedByCurrentUser;
 
@@ -32,6 +31,7 @@ public class UserSummaryResponse {
         dto.bio = user.getBio();
         dto.email = user.getEmail();
         dto.phone = user.getPhone();
+        dto.favoriteGenres = user.getFavoriteGenres();
         dto.followerCount = followerCount;
         dto.followingCount = followingCount;
         dto.isFollowedByCurrentUser = isFollowedByCurrentUser;
@@ -41,6 +41,7 @@ public class UserSummaryResponse {
     public String getBio() { return bio; }
     public String getEmail() { return email; }
     public String getPhone() { return phone; }
+    public String getFavoriteGenres() { return favoriteGenres; }
 
     public Long getId() {
         return id;

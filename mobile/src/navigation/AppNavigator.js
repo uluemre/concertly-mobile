@@ -1,10 +1,11 @@
 // AppNavigator.js
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Text } from 'react-native';
+import API from '../services/api';
 
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
@@ -23,6 +24,8 @@ import WelcomeScreen from '../screens/WelcomeScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import MapScreen from '../screens/MapScreen';
 import FollowListScreen from '../screens/FollowListScreen';
+import NotificationsScreen from '../screens/NotificationsScreen';
+import MusicProfileScreen from '../screens/MusicProfileScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
 import GenreSelectionScreen from '../screens/GenreSelectionScreen';
 import ArtistSelectionScreen from '../screens/ArtistSelectionScreen';
@@ -34,6 +37,26 @@ const Tab = createBottomTabNavigator();
 
 function TabNavigator() {
   const { colors } = useTheme();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    global.setNotificationBadge = setUnreadCount;
+
+    const fetchCount = async () => {
+      if (!global.authToken) return;
+      try {
+        const res = await API.get('/notifications/unread-count');
+        setUnreadCount(res.data.count ?? 0);
+      } catch {}
+    };
+
+    fetchCount();
+    const interval = setInterval(fetchCount, 20000);
+    return () => {
+      clearInterval(interval);
+      global.setNotificationBadge = null;
+    };
+  }, []);
 
   return (
     <Tab.Navigator
@@ -70,6 +93,17 @@ function TabNavigator() {
         options={{
           tabBarLabel: 'Menü',
           tabBarIcon: () => <Text style={{ fontSize: 20 }}>☰</Text>,
+        }}
+      />
+
+      <Tab.Screen
+        name="Notifications"
+        component={NotificationsScreen}
+        options={{
+          tabBarLabel: 'Bildirimler',
+          tabBarIcon: () => <Text style={{ fontSize: 20 }}>🔔</Text>,
+          tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
+          tabBarBadgeStyle: { backgroundColor: '#E94560', fontSize: 11 },
         }}
       />
 
@@ -184,6 +218,11 @@ export default function AppNavigator() {
         <Stack.Screen
           name="FollowList"
           component={FollowListScreen}
+        />
+
+        <Stack.Screen
+          name="MusicProfile"
+          component={MusicProfileScreen}
         />
       </Stack.Navigator>
     </NavigationContainer>

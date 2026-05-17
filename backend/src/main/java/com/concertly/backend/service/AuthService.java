@@ -7,7 +7,11 @@ import com.concertly.backend.dto.response.AuthResponse;
 import com.concertly.backend.dto.response.UserResponse;
 import com.concertly.backend.exception.AlreadyExistsException;
 import com.concertly.backend.exception.ResourceNotFoundException;
+import com.concertly.backend.model.Artist;
+import com.concertly.backend.model.ArtistFollow;
 import com.concertly.backend.model.User;
+import com.concertly.backend.repository.ArtistFollowRepository;
+import com.concertly.backend.repository.ArtistRepository;
 import com.concertly.backend.repository.UserRepository;
 import com.concertly.backend.security.JwtUtil;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -23,15 +27,21 @@ import java.time.LocalDateTime;
 public class AuthService {
 
     private final UserRepository userRepository;
+    private final ArtistRepository artistRepository;
+    private final ArtistFollowRepository artistFollowRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
 
     public AuthService(UserRepository userRepository,
+            ArtistRepository artistRepository,
+            ArtistFollowRepository artistFollowRepository,
             PasswordEncoder passwordEncoder,
             JwtUtil jwtUtil,
             AuthenticationManager authenticationManager) {
         this.userRepository = userRepository;
+        this.artistRepository = artistRepository;
+        this.artistFollowRepository = artistFollowRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
         this.authenticationManager = authenticationManager;
@@ -98,6 +108,19 @@ public class AuthService {
 
         if (request.getGenres() != null && !request.getGenres().isEmpty()) {
             user.setFavoriteGenres(String.join(",", request.getGenres()));
+        }
+
+        if (request.getArtistIds() != null) {
+            for (Long artistId : request.getArtistIds()) {
+                if (artistFollowRepository.findByUserIdAndArtistId(user.getId(), artistId).isEmpty()) {
+                    artistRepository.findById(artistId).ifPresent(artist -> {
+                        ArtistFollow af = new ArtistFollow();
+                        af.setUser(user);
+                        af.setArtist(artist);
+                        artistFollowRepository.save(af);
+                    });
+                }
+            }
         }
 
         user.setOnboardingCompleted(true);

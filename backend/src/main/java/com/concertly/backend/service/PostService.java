@@ -18,17 +18,20 @@ public class PostService {
     private final EventRepository eventRepository;
     private final LikeRepository likeRepository;
     private final CommentRepository commentRepository;
+    private final NotificationService notificationService;
 
     public PostService(PostRepository postRepository,
                        UserRepository userRepository,
                        EventRepository eventRepository,
                        LikeRepository likeRepository,
-                       CommentRepository commentRepository) {
-        this.postRepository     = postRepository;
-        this.userRepository     = userRepository;
-        this.eventRepository    = eventRepository;
-        this.likeRepository     = likeRepository;
-        this.commentRepository  = commentRepository;
+                       CommentRepository commentRepository,
+                       NotificationService notificationService) {
+        this.postRepository      = postRepository;
+        this.userRepository      = userRepository;
+        this.eventRepository     = eventRepository;
+        this.likeRepository      = likeRepository;
+        this.commentRepository   = commentRepository;
+        this.notificationService = notificationService;
     }
 
     // 🔥 CORE: Post → Response dönüşüm
@@ -95,8 +98,7 @@ public class PostService {
         like.setPost(post);
 
         likeRepository.save(like);
-
-        // ❌ likeCount yok artık
+        notificationService.send(post.getUser().getId(), userId, "like", "post", postId);
     }
 
     // ✅ UNLIKE

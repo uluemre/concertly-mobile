@@ -17,13 +17,16 @@ public class CommentService {
     private final CommentRepository commentRepository;
     private final PostRepository postRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     public CommentService(CommentRepository commentRepository,
                           PostRepository postRepository,
-                          UserRepository userRepository) {
-        this.commentRepository = commentRepository;
-        this.postRepository = postRepository;
-        this.userRepository = userRepository;
+                          UserRepository userRepository,
+                          NotificationService notificationService) {
+        this.commentRepository   = commentRepository;
+        this.postRepository      = postRepository;
+        this.userRepository      = userRepository;
+        this.notificationService = notificationService;
     }
 
     // ✅ YORUM EKLE
@@ -48,6 +51,7 @@ public class CommentService {
         comment.setUser(user);
 
         Comment saved = commentRepository.save(comment);
+        notificationService.send(post.getUser().getId(), userId, "comment", "post", postId);
 
         return CommentResponse.from(saved);
     }

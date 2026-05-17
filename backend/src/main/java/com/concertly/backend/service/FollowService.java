@@ -18,11 +18,14 @@ public class FollowService {
 
     private final FollowRepository followRepository;
     private final UserRepository   userRepository;
+    private final NotificationService notificationService;
 
     public FollowService(FollowRepository followRepository,
-                         UserRepository userRepository) {
-        this.followRepository = followRepository;
-        this.userRepository   = userRepository;
+                         UserRepository userRepository,
+                         NotificationService notificationService) {
+        this.followRepository    = followRepository;
+        this.userRepository      = userRepository;
+        this.notificationService = notificationService;
     }
 
     // ✅ TAKİP ET
@@ -49,6 +52,7 @@ public class FollowService {
         follow.setFollower(follower);
         follow.setFollowing(following);
         followRepository.save(follow);
+        notificationService.send(followingId, followerId, "follow", "user", followingId);
     }
 
     // ✅ TAKİBİ BIRAK

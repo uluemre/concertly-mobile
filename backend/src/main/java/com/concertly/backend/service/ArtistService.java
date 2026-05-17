@@ -121,6 +121,16 @@ public class ArtistService {
                 .toList();
     }
 
+    public List<ArtistResponse> getFollowedArtists(Long userId) {
+        return artistFollowRepository.findAllByUserId(userId).stream()
+                .map(af -> {
+                    Artist artist = af.getArtist();
+                    long count = artistFollowRepository.countByArtistId(artist.getId());
+                    return ArtistResponse.from(artist, count, true);
+                })
+                .toList();
+    }
+
     @Transactional
     public void bulkFollow(Long userId, List<Long> artistIds) {
         User user = userRepository.findById(userId)

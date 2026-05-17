@@ -20,12 +20,15 @@ const gradientSets = [
   ['#7C3AED', '#F5A623'],
 ];
 
+const genreColors = ['#E94560', '#7C3AED', '#F5A623', '#00D4AA', '#3B82F6', '#EC4899', '#10B981', '#F97316'];
+
 export default function ProfileScreen({ navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
   const [events, setEvents] = useState([]);
+  const [followedArtists, setFollowedArtists] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('posts');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -40,14 +43,16 @@ export default function ProfileScreen({ navigation }) {
   const fetchAll = async () => {
     if (!global.userId) return;
     try {
-      const [profileRes, postsRes, eventsRes] = await Promise.all([
+      const [profileRes, postsRes, eventsRes, artistsRes] = await Promise.all([
         API.get(`/users/${global.userId}/profile`),
         API.get(`/users/${global.userId}/posts`),
         API.get(`/users/${global.userId}/events`),
+        API.get(`/users/${global.userId}/followed-artists`),
       ]);
       setProfile(profileRes.data);
       setPosts(postsRes.data);
       setEvents(eventsRes.data);
+      setFollowedArtists(artistsRes.data);
 
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -185,7 +190,7 @@ export default function ProfileScreen({ navigation }) {
           onPress={() => setActiveTab('posts')}
         >
           <Text style={[styles.tabText, activeTab === 'posts' && styles.tabTextActive]}>
-            Postlarım ({posts.length})
+            Postlar ({posts.length})
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -193,14 +198,69 @@ export default function ProfileScreen({ navigation }) {
           onPress={() => setActiveTab('events')}
         >
           <Text style={[styles.tabText, activeTab === 'events' && styles.tabTextActive]}>
-            Etkinliklerim ({events.length})
+            Etkinlikler ({events.length})
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'music' && styles.tabActive]}
+          onPress={() => setActiveTab('music')}
+        >
+          <Text style={[styles.tabText, activeTab === 'music' && styles.tabTextActive]}>
+            Müzik
           </Text>
         </TouchableOpacity>
       </View>
 
       {/* İÇERİK */}
       <View style={styles.content}>
-        {activeTab === 'posts' ? (
+        {activeTab === 'music' ? (
+          <View>
+            {/* TÜRLER */}
+            {profile?.favoriteGenres ? (
+              <View style={styles.musicSection}>
+                <Text style={styles.musicSectionTitle}>Favori Türler</Text>
+                <View style={styles.genreRow}>
+                  {profile.favoriteGenres.split(',').map((g, i) => (
+                    <View key={i} style={[styles.genreChip, { backgroundColor: genreColors[i % genreColors.length] }]}>
+                      <Text style={styles.genreChipText}>{g.trim()}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            ) : null}
+
+            {/* SANATÇILAR */}
+            <View style={styles.musicSection}>
+              <Text style={styles.musicSectionTitle}>Takip Edilen Sanatçılar</Text>
+              {followedArtists.length === 0 ? (
+                <View style={styles.empty}>
+                  <Text style={styles.emptyEmoji}>🎤</Text>
+                  <Text style={styles.emptyText}>Henüz sanatçı takip edilmiyor</Text>
+                </View>
+              ) : (
+                <View style={styles.artistGrid}>
+                  {followedArtists.map(artist => (
+                    <TouchableOpacity
+                      key={artist.id}
+                      style={styles.artistCard}
+                      onPress={() => navigation.navigate('ArtistProfile', { artistId: artist.id, artistName: artist.name })}
+                      activeOpacity={0.8}
+                    >
+                      {artist.imageUrl ? (
+                        <Image source={{ uri: artist.imageUrl }} style={styles.artistImage} />
+                      ) : (
+                        <View style={styles.artistImagePlaceholder}>
+                          <Text style={styles.artistImageEmoji}>🎤</Text>
+                        </View>
+                      )}
+                      <Text style={styles.artistName} numberOfLines={1}>{artist.name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
+          </View>
+        ) : activeTab === 'posts' ? (
           posts.length === 0 ? (
             <View style={styles.empty}>
               <Text style={styles.emptyEmoji}>📭</Text>
@@ -470,6 +530,24 @@ function createStyles(colors) {
     emptyEmoji: { fontSize: 52, marginBottom: 14 },
     emptyText: { color: colors.text, fontSize: 16, fontWeight: '600', marginBottom: 6 },
     emptySubText: { color: colors.textSecondary, fontSize: 13, textAlign: 'center' },
+
+    // MUSIC TAB
+    musicSection: { marginBottom: 24 },
+    musicSectionTitle: { fontSize: 15, fontWeight: '700', color: colors.text, marginBottom: 12 },
+    genreRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    genreChip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20 },
+    genreChipText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+
+    artistGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+    artistCard: { width: (width - 64) / 3, alignItems: 'center' },
+    artistImage: { width: (width - 64) / 3, height: (width - 64) / 3, borderRadius: 12, marginBottom: 6 },
+    artistImagePlaceholder: {
+      width: (width - 64) / 3, height: (width - 64) / 3, borderRadius: 12,
+      backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
+      justifyContent: 'center', alignItems: 'center', marginBottom: 6,
+    },
+    artistImageEmoji: { fontSize: 32 },
+    artistName: { fontSize: 12, color: colors.text, fontWeight: '600', textAlign: 'center' },
 
     // LOGOUT
     logoutArea: { padding: 16, paddingBottom: 32 },

@@ -2,9 +2,11 @@ package com.concertly.backend.controller;
 
 import com.concertly.backend.dto.request.RegisterRequest;
 import com.concertly.backend.dto.request.UpdateProfileRequest;
+import com.concertly.backend.dto.response.ArtistResponse;
 import com.concertly.backend.dto.response.EventResponse;
 import com.concertly.backend.dto.response.PostResponse;
 import com.concertly.backend.dto.response.UserResponse;
+import com.concertly.backend.service.ArtistService;
 import com.concertly.backend.service.AuthService;
 import com.concertly.backend.service.UserService;
 import org.springframework.http.HttpStatus;
@@ -18,10 +20,12 @@ public class UserController {
 
     private final UserService userService;
     private final AuthService authService;
+    private final ArtistService artistService;
 
-    public UserController(UserService userService, AuthService authService) {
+    public UserController(UserService userService, AuthService authService, ArtistService artistService) {
         this.userService = userService;
         this.authService = authService;
+        this.artistService = artistService;
     }
 
     @GetMapping
@@ -53,6 +57,11 @@ public class UserController {
     @GetMapping("/{id}/events")
     public List<EventResponse> getUserEvents(@PathVariable Long id) {
         return userService.getUserEvents(id);
+    }
+
+    @GetMapping("/{id}/followed-artists")
+    public List<ArtistResponse> getFollowedArtists(@PathVariable Long id) {
+        return artistService.getFollowedArtists(id);
     }
 
     // Geriye dönük uyumluluk
