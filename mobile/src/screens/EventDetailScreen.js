@@ -57,6 +57,8 @@ export default function EventDetailScreen({ route, navigation }) {
   const [interestedCount, setInterestedCount] = useState(0);
   const [friendsGoing, setFriendsGoing] = useState([]);
   const [friendsModalVisible, setFriendsModalVisible] = useState(false);
+  const [bookmarked, setBookmarked] = useState(false);
+  const [bookmarkLoading, setBookmarkLoading] = useState(false);
   const friendsSlideAnim = useRef(new Animated.Value(400)).current;
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
@@ -73,7 +75,26 @@ export default function EventDetailScreen({ route, navigation }) {
     API.get(`/events/${event.id}/attendance/friends`)
       .then(res => setFriendsGoing(res.data ?? []))
       .catch(() => {});
+
+    API.get(`/events/${event.id}/bookmark`)
+      .then(res => setBookmarked(res.data.bookmarked ?? false))
+      .catch(() => {});
   }, [event.id]);
+
+  const handleBookmark = async () => {
+    if (bookmarkLoading) return;
+    setBookmarkLoading(true);
+    const prev = bookmarked;
+    setBookmarked(!prev);
+    try {
+      const res = await API.post(`/events/${event.id}/bookmark`);
+      setBookmarked(res.data.bookmarked);
+    } catch {
+      setBookmarked(prev);
+    } finally {
+      setBookmarkLoading(false);
+    }
+  };
 
   const hasCoordinates =
     event.venueLatitude != null && event.venueLongitude != null;
@@ -214,6 +235,9 @@ export default function EventDetailScreen({ route, navigation }) {
             <View style={styles.heroTopActions}>
               <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
                 <Text style={styles.backText}>← Geri</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.bookmarkButton} onPress={handleBookmark} activeOpacity={0.8}>
+                <Text style={styles.bookmarkIcon}>{bookmarked ? '🔖' : '🏷️'}</Text>
               </TouchableOpacity>
             </View>
             <Text style={styles.heroTitle}>{event.name}</Text>
@@ -497,7 +521,16 @@ function createStyles(colors) {
       justifyContent: 'flex-end', alignItems: 'flex-start',
       paddingBottom: 24, paddingHorizontal: 24,
     },
-    heroTopActions: { position: 'absolute', top: 56, left: 20 },
+    heroTopActions: {
+      position: 'absolute', top: 56, left: 20, right: 20,
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    },
+    bookmarkButton: {
+      backgroundColor: 'rgba(255,255,255,0.15)',
+      padding: 10, borderRadius: 20,
+      borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
+    },
+    bookmarkIcon: { fontSize: 18 },
     genreBadge: {
       backgroundColor: 'rgba(255,255,255,0.15)',
       paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16, marginTop: 10,

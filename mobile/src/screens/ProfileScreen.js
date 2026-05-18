@@ -28,6 +28,7 @@ export default function ProfileScreen({ navigation }) {
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
   const [events, setEvents] = useState([]);
+  const [bookmarks, setBookmarks] = useState([]);
   const [followedArtists, setFollowedArtists] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('posts');
@@ -43,16 +44,18 @@ export default function ProfileScreen({ navigation }) {
   const fetchAll = async () => {
     if (!global.userId) return;
     try {
-      const [profileRes, postsRes, eventsRes, artistsRes] = await Promise.all([
+      const [profileRes, postsRes, eventsRes, artistsRes, bookmarksRes] = await Promise.all([
         API.get(`/users/${global.userId}/profile`),
         API.get(`/users/${global.userId}/posts`),
         API.get(`/users/${global.userId}/events`),
         API.get(`/users/${global.userId}/followed-artists`),
+        API.get(`/users/${global.userId}/bookmarks`),
       ]);
       setProfile(profileRes.data);
       setPosts(postsRes.data);
       setEvents(eventsRes.data);
       setFollowedArtists(artistsRes.data);
+      setBookmarks(bookmarksRes.data);
 
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -201,6 +204,14 @@ export default function ProfileScreen({ navigation }) {
             Etkinlikler ({events.length})
           </Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'bookmarks' && styles.tabActive]}
+          onPress={() => setActiveTab('bookmarks')}
+        >
+          <Text style={[styles.tabText, activeTab === 'bookmarks' && styles.tabTextActive]}>
+            🔖 ({bookmarks.length})
+          </Text>
+        </TouchableOpacity>
 
       </View>
 
@@ -277,7 +288,7 @@ export default function ProfileScreen({ navigation }) {
               </View>
             ))
           )
-        ) : (
+        ) : activeTab === 'events' ? (
           events.length === 0 ? (
             <View style={styles.empty}>
               <Text style={styles.emptyEmoji}>🎭</Text>
@@ -300,6 +311,41 @@ export default function ProfileScreen({ navigation }) {
                     end={{ x: 1, y: 1 }}
                   >
                     <Text style={styles.eventEmoji}>🎪</Text>
+                    <Text style={styles.eventName} numberOfLines={2}>{item.name}</Text>
+                    {item.artistName && (
+                      <Text style={styles.eventArtist} numberOfLines={1}>{item.artistName}</Text>
+                    )}
+                    <Text style={styles.eventDate}>
+                      {new Date(item.eventDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )
+        ) : (
+          bookmarks.length === 0 ? (
+            <View style={styles.empty}>
+              <Text style={styles.emptyEmoji}>🔖</Text>
+              <Text style={styles.emptyText}>Henüz kaydedilen etkinlik yok</Text>
+              <Text style={styles.emptySubText}>Etkinlik detayında 🏷️ butonuna bas</Text>
+            </View>
+          ) : (
+            <View style={styles.eventGrid}>
+              {bookmarks.map((item, index) => (
+                <TouchableOpacity
+                  key={item.id}
+                  style={styles.eventCard}
+                  onPress={() => navigation.navigate('EventDetail', { event: item })}
+                  activeOpacity={0.85}
+                >
+                  <LinearGradient
+                    colors={gradientSets[index % gradientSets.length]}
+                    style={styles.eventCardGradient}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                  >
+                    <Text style={styles.eventEmoji}>🔖</Text>
                     <Text style={styles.eventName} numberOfLines={2}>{item.name}</Text>
                     {item.artistName && (
                       <Text style={styles.eventArtist} numberOfLines={1}>{item.artistName}</Text>
