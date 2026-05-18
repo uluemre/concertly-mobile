@@ -1,8 +1,12 @@
 package com.concertly.backend.service;
 
 import com.concertly.backend.dto.response.AttendanceResponse;
+import com.concertly.backend.dto.response.FriendAttendeeDto;
 import com.concertly.backend.exception.ResourceNotFoundException;
 import com.concertly.backend.model.*;
+
+import java.util.List;
+import java.util.stream.Collectors;
 import com.concertly.backend.repository.*;
 import org.springframework.stereotype.Service;
 
@@ -49,6 +53,13 @@ public class EventAttendanceService {
         long interestedCount = attendanceRepository.countByEventIdAndStatus(eventId, AttendanceStatus.INTERESTED);
 
         return AttendanceResponse.from(attendance, goingCount, interestedCount);
+    }
+
+    public List<FriendAttendeeDto> getFriendsAttending(Long userId, Long eventId) {
+        return attendanceRepository.findFriendsAttending(userId, eventId)
+                .stream()
+                .map(ea -> FriendAttendeeDto.from(ea.getUser()))
+                .collect(Collectors.toList());
     }
 
     public void removeAttendance(Long userId, Long eventId) {

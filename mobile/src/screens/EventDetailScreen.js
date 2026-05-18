@@ -1,8 +1,8 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
   TouchableOpacity, Alert, ActivityIndicator,
-  Linking, Platform
+  Linking, Platform, Modal, Animated, FlatList
 } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -55,6 +55,9 @@ export default function EventDetailScreen({ route, navigation }) {
   const [attendance, setAttendance] = useState(null);
   const [goingCount, setGoingCount] = useState(0);
   const [interestedCount, setInterestedCount] = useState(0);
+  const [friendsGoing, setFriendsGoing] = useState([]);
+  const [friendsModalVisible, setFriendsModalVisible] = useState(false);
+  const friendsSlideAnim = useRef(new Animated.Value(400)).current;
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
 
@@ -66,10 +69,25 @@ export default function EventDetailScreen({ route, navigation }) {
         setInterestedCount(res.data.interestedCount ?? 0);
       })
       .catch(() => {});
+
+    API.get(`/events/${event.id}/attendance/friends`)
+      .then(res => setFriendsGoing(res.data ?? []))
+      .catch(() => {});
   }, [event.id]);
 
   const hasCoordinates =
     event.venueLatitude != null && event.venueLongitude != null;
+
+  const openFriendsModal = () => {
+    setFriendsModalVisible(true);
+    Animated.spring(friendsSlideAnim, { toValue: 0, useNativeDriver: true, bounciness: 4 }).start();
+  };
+
+  const closeFriendsModal = () => {
+    Animated.timing(friendsSlideAnim, { toValue: 400, duration: 250, useNativeDriver: true }).start(
+      () => setFriendsModalVisible(false)
+    );
+  };
 
   // ── Katılım ──────────────────────────────────────────────────────────────
   const handleAttend = async (status) => {
@@ -163,6 +181,7 @@ export default function EventDetailScreen({ route, navigation }) {
   };
 
   return (
+    <>
     <ScrollView style={styles.container}>
       {/* HERO */}
       {event.imageUrl ? (
@@ -257,6 +276,37 @@ export default function EventDetailScreen({ route, navigation }) {
             </View>
           </TouchableOpacity>
         </View>
+
+        {/* ARKADAŞLAR GİDİYOR */}
+        {friendsGoing.length > 0 && (
+          <TouchableOpacity
+            style={styles.friendsCard}
+            onPress={openFriendsModal}
+            activeOpacity={0.8}
+          >
+            <View style={styles.friendsAvatarRow}>
+              {friendsGoing.slice(0, 3).map((f, i) => (
+                <View key={f.userId} style={[styles.friendAvatar, { marginLeft: i === 0 ? 0 : -10, zIndex: 3 - i }]}>
+                  {f.profileImageUrl ? (
+                    <Image source={{ uri: f.profileImageUrl }} style={styles.friendAvatarImg} contentFit="cover" />
+                  ) : (
+                    <View style={styles.friendAvatarPlaceholder}>
+                      <Text style={styles.friendAvatarInitial}>{f.username?.[0]?.toUpperCase()}</Text>
+                    </View>
+                  )}
+                </View>
+              ))}
+            </View>
+            <Text style={styles.friendsText}>
+              <Text style={styles.friendsName}>
+                {friendsGoing.slice(0, 2).map(f => f.username).join(', ')}
+              </Text>
+              {friendsGoing.length > 2
+                ? ` ve ${friendsGoing.length - 2} kişi daha gidiyor`
+                : ' gidiyor'}
+            </Text>
+          </TouchableOpacity>
+        )}
 
         {/* ETKİNLİK HAKKINDA */}
         <View style={styles.infoCard}>
@@ -402,6 +452,40 @@ export default function EventDetailScreen({ route, navigation }) {
 
       </View>
     </ScrollView>
+
+    {/* ARKADAŞLAR MODAL */}
+    <Modal visible={friendsModalVisible} transparent animationType="none" onRequestClose={closeFriendsModal}>
+      <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={closeFriendsModal} />
+      <Animated.View style={[styles.friendsSheet, { transform: [{ translateY: friendsSlideAnim }] }]}>
+        <View style={styles.sheetHandle} />
+        <Text style={styles.sheetTitle}>Gidecekler</Text>
+        <FlatList
+          data={friendsGoing}
+          keyExtractor={item => String(item.userId)}
+          showsVerticalScrollIndicator={false}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.friendRow}
+              onPress={() => { closeFriendsModal(); setTimeout(() => navigation.navigate('UserProfile', { userId: item.userId }), 300); }}
+              activeOpacity={0.7}
+            >
+              <View style={styles.friendRowAvatar}>
+                {item.profileImageUrl ? (
+                  <Image source={{ uri: item.profileImageUrl }} style={styles.friendAvatarImg} contentFit="cover" />
+                ) : (
+                  <View style={styles.friendAvatarPlaceholder}>
+                    <Text style={styles.friendAvatarInitial}>{item.username?.[0]?.toUpperCase()}</Text>
+                  </View>
+                )}
+              </View>
+              <Text style={styles.friendRowUsername}>{item.username}</Text>
+              <Text style={styles.friendRowChevron}>›</Text>
+            </TouchableOpacity>
+          )}
+        />
+      </Animated.View>
+    </Modal>
+    </>
   );
 }
 
@@ -457,6 +541,66 @@ function createStyles(colors) {
     attendBtnCount: { fontSize: 11, fontWeight: '600', color: colors.textSecondary, marginTop: 2 },
     attendBtnTextActive: { color: colors.accent },
     attendBtnTextActiveYellow: { color: colors.secondary },
+
+    // ARKADAŞLAR MODAL
+    modalOverlay: {
+      position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+    },
+    friendsSheet: {
+      position: 'absolute', bottom: 0, left: 0, right: 0,
+      backgroundColor: colors.card,
+      borderTopLeftRadius: 24, borderTopRightRadius: 24,
+      padding: 20, paddingBottom: 40,
+      maxHeight: '60%',
+    },
+    sheetHandle: {
+      width: 40, height: 4, borderRadius: 2,
+      backgroundColor: colors.border,
+      alignSelf: 'center', marginBottom: 16,
+    },
+    sheetTitle: {
+      fontSize: 17, fontWeight: '800', color: colors.text,
+      marginBottom: 16,
+    },
+    friendRow: {
+      flexDirection: 'row', alignItems: 'center',
+      paddingVertical: 12,
+      borderBottomWidth: 1, borderBottomColor: colors.border,
+    },
+    friendRowAvatar: {
+      width: 44, height: 44, borderRadius: 22,
+      overflow: 'hidden', marginRight: 12,
+    },
+    friendRowUsername: {
+      flex: 1, fontSize: 15, fontWeight: '700', color: colors.text,
+    },
+    friendRowChevron: {
+      fontSize: 22, color: colors.textSecondary,
+    },
+
+    // ARKADAŞLAR KART
+    friendsCard: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      backgroundColor: colors.card,
+      borderRadius: 16, padding: 14,
+      borderWidth: 1, borderColor: colors.border,
+    },
+    friendsAvatarRow: { flexDirection: 'row', alignItems: 'center' },
+    friendAvatar: {
+      width: 32, height: 32, borderRadius: 16,
+      borderWidth: 2, borderColor: colors.card,
+      overflow: 'hidden',
+    },
+    friendAvatarImg: { width: '100%', height: '100%' },
+    friendAvatarPlaceholder: {
+      width: '100%', height: '100%',
+      backgroundColor: colors.primary,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    friendAvatarInitial: { color: '#fff', fontSize: 13, fontWeight: '800' },
+    friendsText: { flex: 1, fontSize: 13, color: colors.textSecondary, lineHeight: 18 },
+    friendsName: { color: colors.text, fontWeight: '700' },
 
     // INFO KARTLARI
     infoCard: {

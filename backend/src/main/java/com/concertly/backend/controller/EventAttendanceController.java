@@ -1,7 +1,9 @@
 package com.concertly.backend.controller;
 
 import com.concertly.backend.dto.response.AttendanceResponse;
+import com.concertly.backend.dto.response.FriendAttendeeDto;
 import com.concertly.backend.model.AttendanceStatus;
+import java.util.List;
 import com.concertly.backend.security.JwtUtil;
 import com.concertly.backend.service.EventAttendanceService;
 import org.springframework.http.HttpStatus;
@@ -15,6 +17,12 @@ public class EventAttendanceController {
 
     public EventAttendanceController(EventAttendanceService attendanceService) {
         this.attendanceService = attendanceService;
+    }
+
+    @GetMapping("/friends")
+    public List<FriendAttendeeDto> getFriendsAttending(@PathVariable Long eventId) {
+        Long userId = JwtUtil.getCurrentUserId();
+        return attendanceService.getFriendsAttending(userId, eventId);
     }
 
     @GetMapping
