@@ -36,17 +36,31 @@ public class EventService {
 
     public EventResponse createEvent(CreateEventRequest request) {
 
-        Artist artist = artistRepository.findById(request.getArtistId())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Artist bulunamadi: " + request.getArtistId()));
+        Artist artist;
+        if (request.getArtistId() != null) {
+            artist = artistRepository.findById(request.getArtistId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Artist bulunamadi: " + request.getArtistId()));
+        } else {
+            artist = new Artist();
+            artist.setName(request.getArtistName() != null ? request.getArtistName() : "Bilinmeyen Sanatçı");
+            artist.setGenre(request.getArtistGenre() != null ? request.getArtistGenre() : "Diger");
+            artist = artistRepository.save(artist);
+        }
 
-        Venue venue = venueRepository.findById(request.getVenueId())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Venue bulunamadi: " + request.getVenueId()));
-
-        User createdBy = userRepository.findById(request.getCreatedByUserId())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Kullanici bulunamadi: " + request.getCreatedByUserId()));
+        Venue venue;
+        if (request.getVenueId() != null) {
+            venue = venueRepository.findById(request.getVenueId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Venue bulunamadi: " + request.getVenueId()));
+        } else {
+            venue = new Venue();
+            venue.setName(request.getVenueName() != null ? request.getVenueName() : "Bilinmeyen Mekan");
+            venue.setCity(request.getVenueCity() != null ? request.getVenueCity() : "Ankara");
+            venue.setCountry(request.getVenueCountry() != null ? request.getVenueCountry() : "Turkiye");
+            venue.setAddress(request.getVenueAddress());
+            venue.setLatitude(request.getVenueLatitude());
+            venue.setLongitude(request.getVenueLongitude());
+            venue = venueRepository.save(venue);
+        }
 
         Event event = new Event();
         event.setName(request.getName());
@@ -54,7 +68,12 @@ public class EventService {
         event.setEventDate(request.getEventDate());
         event.setArtist(artist);
         event.setVenue(venue);
-        event.setCreatedBy(createdBy);
+        event.setIsApproved(true);
+        event.setGenre(artist.getGenre());
+
+        if (request.getCreatedByUserId() != null) {
+            userRepository.findById(request.getCreatedByUserId()).ifPresent(event::setCreatedBy);
+        }
 
         return EventResponse.from(eventRepository.save(event));
     }

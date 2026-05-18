@@ -134,7 +134,17 @@ function PostCard({ item, index, currentUserId, navigation, styles, colors, onLi
       </TouchableOpacity>
 
       {/* İÇERİK */}
-      <Text style={styles.postContent}>{item.content}</Text>
+      {item.content ? <Text style={styles.postContent}>{item.content}</Text> : null}
+
+      {/* GÖRSEL */}
+      {item.postType === 'IMAGE' && item.imageUrl && (
+        <Image source={{ uri: item.imageUrl }} style={styles.postImage} resizeMode="cover" />
+      )}
+
+      {/* ANKET */}
+      {item.postType === 'POLL' && item.pollOptions && (
+        <PollCard postId={item.id} options={item.pollOptions} styles={styles} colors={colors} />
+      )}
 
       {/* AKSİYON BUTONLARI */}
       <View style={styles.actions}>
@@ -175,7 +185,57 @@ function PostCard({ item, index, currentUserId, navigation, styles, colors, onLi
   );
 }
 
-// ── Yorum Modali ────────────────────────────────────────────────────────────
+// ── Anket Kartı ─────────────────────────────────────────────────────────────
+function PollCard({ postId, options: initialOptions, styles, colors }) {
+  const [options, setOptions] = useState(initialOptions);
+  const [voting, setVoting] = useState(false);
+  const totalVotes = options.reduce((sum, o) => sum + (o.voteCount || 0), 0);
+
+  const handleVote = async (optionId) => {
+    if (voting || options.some(o => o.voted)) return;
+    setVoting(true);
+    try {
+      const res = await API.post(`/posts/${postId}/poll/vote?optionId=${optionId}`);
+      setOptions(res.data);
+    } catch (err) {
+      console.log('Oy hatası:', err.message);
+    } finally {
+      setVoting(false);
+    }
+  };
+
+  const hasVoted = options.some(o => o.voted);
+
+  return (
+    <View style={styles.pollCard}>
+      {options.map(opt => {
+        const pct = totalVotes > 0 ? Math.round((opt.voteCount / totalVotes) * 100) : 0;
+        return (
+          <TouchableOpacity
+            key={opt.id}
+            style={[styles.pollOption, opt.voted && styles.pollOptionVoted]}
+            onPress={() => handleVote(opt.id)}
+            activeOpacity={hasVoted ? 1 : 0.7}
+            disabled={hasVoted || voting}
+          >
+            {hasVoted && (
+              <View style={[styles.pollBar, { width: `${pct}%` }]} />
+            )}
+            <Text style={[styles.pollOptionText, opt.voted && styles.pollOptionTextVoted]}>
+              {opt.voted ? '✓ ' : ''}{opt.optionText}
+            </Text>
+            {hasVoted && (
+              <Text style={styles.pollPct}>{pct}%</Text>
+            )}
+          </TouchableOpacity>
+        );
+      })}
+      <Text style={styles.pollTotal}>{totalVotes} oy</Text>
+    </View>
+  );
+}
+
+// ── Yorum Modali ─────────────────────────────────────────────────────────────
 function CommentModal({ visible, postId, currentUserId, onClose, styles, colors }) {
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -546,6 +606,29 @@ function createStyles(colors) {
       lineHeight: 22,
       marginBottom: 14,
     },
+
+    postImage: {
+      width: '100%', height: 220, borderRadius: 12,
+      marginBottom: 14, overflow: 'hidden',
+    },
+
+    // ANKET
+    pollCard: { gap: 8, marginBottom: 14 },
+    pollOption: {
+      borderRadius: 12, borderWidth: 1, borderColor: colors.border,
+      padding: 12, flexDirection: 'row', alignItems: 'center',
+      backgroundColor: colors.card, overflow: 'hidden', position: 'relative',
+      minHeight: 44,
+    },
+    pollOptionVoted: { borderColor: colors.primary },
+    pollBar: {
+      position: 'absolute', left: 0, top: 0, bottom: 0,
+      backgroundColor: colors.primary + '22', borderRadius: 12,
+    },
+    pollOptionText: { flex: 1, fontSize: 14, color: colors.text, fontWeight: '600' },
+    pollOptionTextVoted: { color: colors.primary },
+    pollPct: { fontSize: 13, fontWeight: '800', color: colors.primary },
+    pollTotal: { fontSize: 12, color: colors.textSecondary, marginTop: 4 },
 
     // AKSİYONLAR
     actions: {

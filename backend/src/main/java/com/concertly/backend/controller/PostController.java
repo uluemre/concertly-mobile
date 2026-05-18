@@ -1,6 +1,7 @@
 package com.concertly.backend.controller;
 
 import com.concertly.backend.dto.request.CreatePostRequest;
+import com.concertly.backend.dto.response.PollOptionDto;
 import com.concertly.backend.dto.response.PostResponse;
 import com.concertly.backend.security.JwtUtil;
 import com.concertly.backend.service.PostService;
@@ -28,7 +29,14 @@ public class PostController {
 
     @GetMapping("/feed/trending")
     public List<PostResponse> getTrending() {
-        return postService.getTrendingFeed();
+        Long userId = JwtUtil.getCurrentUserId();
+        return postService.getTrendingFeed(userId);
+    }
+
+    @PostMapping("/{postId}/poll/vote")
+    public List<PollOptionDto> votePoll(@PathVariable Long postId, @RequestParam Long optionId) {
+        Long userId = JwtUtil.getCurrentUserId();
+        return postService.votePoll(userId, postId, optionId);
     }
 
     @GetMapping("/feed/following")

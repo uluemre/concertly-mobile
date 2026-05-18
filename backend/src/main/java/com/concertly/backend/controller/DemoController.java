@@ -1,5 +1,6 @@
 package com.concertly.backend.controller;
 
+import com.concertly.backend.dto.response.EventResponse;
 import com.concertly.backend.service.DemoService;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,5 +19,13 @@ public class DemoController {
     @PostMapping("/setup")
     public Map<String, Object> setup() {
         return demoService.setup();
+    }
+
+    @PostMapping("/test-event")
+    public EventResponse createTestEvent(
+            @RequestParam double lat,
+            @RequestParam double lng,
+            @RequestParam(defaultValue = "Test Konseri") String name) {
+        return demoService.createTestEvent(name, lat, lng);
     }
 }

@@ -1,5 +1,6 @@
 package com.concertly.backend.service;
 
+import com.concertly.backend.dto.response.EventResponse;
 import com.concertly.backend.model.*;
 import com.concertly.backend.repository.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -161,6 +162,29 @@ public class DemoService {
     }
 
     // Helpers
+    @Transactional
+    public EventResponse createTestEvent(String name, double lat, double lng) {
+        Venue v = new Venue();
+        v.setName("Test Mekanı"); v.setCity("Ankara"); v.setCountry("Turkiye");
+        v.setAddress("Test Adresi"); v.setLatitude(lat); v.setLongitude(lng);
+        venueRepository.save(v);
+
+        Artist a = artistRepository.findByNameIgnoreCase("Test Artist").orElseGet(Artist::new);
+        a.setName("Test Artist"); a.setGenre("Rock");
+        artistRepository.save(a);
+
+        Event e = new Event();
+        e.setName(name);
+        e.setDescription("Post ve anket özelliklerini test etmek için oluşturulmuş etkinlik.");
+        e.setEventDate(LocalDateTime.now().plusDays(1).withHour(20).withMinute(0));
+        e.setArtist(a); e.setVenue(v);
+        e.setIsApproved(true); e.setGenre("Rock");
+        e.setTicketUrl("https://www.biletix.com");
+        eventRepository.save(e);
+
+        return EventResponse.from(e);
+    }
+
     private Venue venue(String name, String city, String country, String address, double lat, double lng) {
         Venue v = new Venue(); v.setName(name); v.setCity(city); v.setCountry(country);
         v.setAddress(address); v.setLatitude(lat); v.setLongitude(lng);
