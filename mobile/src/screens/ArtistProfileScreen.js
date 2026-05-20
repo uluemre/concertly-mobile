@@ -8,6 +8,35 @@ import { LinearGradient } from 'expo-linear-gradient';
 import API from '../services/api';
 import { useTheme } from '../theme';
 
+const GENRE_GRADIENTS = {
+  'Rock':       ['#E94560', '#7C1AED'],
+  'Pop':        ['#FF6B9D', '#C44569'],
+  'Rap':        ['#2C3E50', '#F39C12'],
+  'Elektronik': ['#00D4AA', '#0066CC'],
+  'Jazz':       ['#F5A623', '#8B4513'],
+  'Klasik':     ['#4A0E8F', '#1a237e'],
+  'Indie':      ['#00BCD4', '#2E7D32'],
+  'R&B':        ['#9C27B0', '#E91E63'],
+  'Folk':       ['#8BC34A', '#5D4037'],
+  'Reggae':     ['#43A047', '#FDD835'],
+  'Arabesk':    ['#8B0000', '#DAA520'],
+};
+
+function getGenreGradient(genre) {
+  if (!genre) return ['#E94560', '#7C3AED'];
+  const key = Object.keys(GENRE_GRADIENTS).find(k =>
+    genre.toLowerCase().includes(k.toLowerCase())
+  );
+  return GENRE_GRADIENTS[key] || ['#E94560', '#7C3AED'];
+}
+
+function getInitials(name) {
+  if (!name) return '?';
+  const words = name.trim().split(/\s+/);
+  if (words.length === 1) return words[0].substring(0, 2).toUpperCase();
+  return (words[0][0] + words[1][0]).toUpperCase();
+}
+
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2;
 
@@ -137,9 +166,12 @@ export default function ArtistProfileScreen({ route, navigation }) {
           {artist?.imageUrl ? (
             <Image source={{ uri: artist.imageUrl }} style={styles.avatar} />
           ) : (
-            <LinearGradient colors={['#E94560', '#7C3AED']} style={styles.avatarPlaceholder}>
+            <LinearGradient
+              colors={getGenreGradient(artist?.genre)}
+              style={styles.avatarPlaceholder}
+            >
               <Text style={styles.avatarLetter}>
-                {(artistName || artist?.name || '?').charAt(0).toUpperCase()}
+                {getInitials(artist?.name || artistName)}
               </Text>
             </LinearGradient>
           )}
@@ -344,7 +376,7 @@ function createStyles(colors) {
       justifyContent: 'center', alignItems: 'center',
       marginBottom: 6,
     },
-    avatarLetter: { fontSize: 46, fontWeight: 'bold', color: '#fff' },
+    avatarLetter: { fontSize: 52, fontWeight: '900', color: 'rgba(255,255,255,0.95)', letterSpacing: -1 },
 
     micBadge: {
       width: 32, height: 32, borderRadius: 16,

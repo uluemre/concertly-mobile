@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/events")
@@ -53,5 +54,10 @@ public class EventController {
     public String syncEvents() {
         int count = ticketmasterService.syncTurkeyEvents();
         return count + " etkinlik eklendi.";
+    }
+
+    @RequestMapping(value = "/enrich", method = { RequestMethod.GET, RequestMethod.POST })
+    public Map<String, Integer> enrichEvents() {
+        return ticketmasterService.enrichMissingData();
     }
 }

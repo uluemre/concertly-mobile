@@ -13,6 +13,35 @@ const { width, height } = Dimensions.get('window');
 const FEATURED_CARD_WIDTH = width * 0.78;
 const FEATURED_CARD_HEIGHT = 240;
 
+const GENRE_GRADIENTS = {
+  'Rock':       ['#E94560', '#7C1AED'],
+  'Pop':        ['#FF6B9D', '#C44569'],
+  'Rap':        ['#2C3E50', '#F39C12'],
+  'Elektronik': ['#00D4AA', '#0066CC'],
+  'Jazz':       ['#F5A623', '#8B4513'],
+  'Klasik':     ['#4A0E8F', '#1a237e'],
+  'Indie':      ['#00BCD4', '#2E7D32'],
+  'R&B':        ['#9C27B0', '#E91E63'],
+  'Folk':       ['#8BC34A', '#5D4037'],
+  'Reggae':     ['#43A047', '#FDD835'],
+  'Arabesk':    ['#8B0000', '#DAA520'],
+};
+
+function getGenreGradient(genre) {
+  if (!genre) return ['#E94560', '#7C3AED'];
+  const key = Object.keys(GENRE_GRADIENTS).find(k =>
+    genre.toLowerCase().includes(k.toLowerCase())
+  );
+  return GENRE_GRADIENTS[key] || ['#E94560', '#7C3AED'];
+}
+
+function getInitials(name) {
+  if (!name) return '?';
+  const words = name.trim().split(/\s+/);
+  if (words.length === 1) return words[0].substring(0, 2).toUpperCase();
+  return (words[0][0] + words[1][0]).toUpperCase();
+}
+
 // Kategori → genre eşleşmesi
 const categoryGenreMap = {
   'Konser': ['pop', 'rock', 'indie', 'alternative', 'classical', 'R&B', 'hip-hop', 'country', 'undefined'],
@@ -52,6 +81,7 @@ function formatDate(dateStr) {
 function FeaturedCard({ item, index, onPress, styles }) {
   const scale = useRef(new Animated.Value(0.92)).current;
   const opacity = useRef(new Animated.Value(0)).current;
+  const [imgError, setImgError] = React.useState(false);
 
   useEffect(() => {
     Animated.parallel([
@@ -74,20 +104,26 @@ function FeaturedCard({ item, index, onPress, styles }) {
       <TouchableOpacity activeOpacity={0.92} onPress={() => onPress(item)}>
         <View style={styles.featuredCard}>
           {/* BG IMAGE OR GRADIENT */}
-          {item.imageUrl || item.artistImageUrl ? (
+          {(item.imageUrl || item.artistImageUrl) && !imgError ? (
             <Image
               source={{ uri: item.imageUrl || item.artistImageUrl }}
               style={styles.featuredBg}
               contentFit="cover"
               cachePolicy="memory-disk"
+              onError={() => setImgError(true)}
             />
-          ) : (
+          ) : null}
+          {(!(item.imageUrl || item.artistImageUrl) || imgError) && (
             <LinearGradient
-              colors={[accent + 'CC', '#0A0A14']}
-              style={styles.featuredBg}
+              colors={getGenreGradient(item.genre)}
+              style={[styles.featuredBg, styles.featuredBgPlaceholder]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
-            />
+            >
+              <Text style={styles.placeholderInitials}>
+                {getInitials(item.artistName || item.name)}
+              </Text>
+            </LinearGradient>
           )}
 
           {/* SCRIM */}
@@ -143,6 +179,7 @@ function FeaturedCard({ item, index, onPress, styles }) {
 function EventRow({ item, index, onPress, styles }) {
   const translateX = useRef(new Animated.Value(-24)).current;
   const opacity = useRef(new Animated.Value(0)).current;
+  const [thumbError, setThumbError] = React.useState(false);
 
   useEffect(() => {
     Animated.parallel([
@@ -171,19 +208,22 @@ function EventRow({ item, index, onPress, styles }) {
 
         {/* THUMBNAIL */}
         <View style={styles.eventRowThumb}>
-          {item.imageUrl || item.artistImageUrl ? (
+          {(item.imageUrl || item.artistImageUrl) && !thumbError ? (
             <Image
               source={{ uri: item.imageUrl || item.artistImageUrl }}
               style={styles.eventRowThumbImg}
               contentFit="cover"
               cachePolicy="memory-disk"
+              onError={() => setThumbError(true)}
             />
           ) : (
             <LinearGradient
-              colors={[accent + 'BB', accent + '44']}
-              style={styles.eventRowThumbImg}
+              colors={getGenreGradient(item.genre)}
+              style={[styles.eventRowThumbImg, { alignItems: 'center', justifyContent: 'center' }]}
             >
-              <Text style={{ fontSize: 22 }}>🎵</Text>
+              <Text style={styles.thumbInitials}>
+                {getInitials(item.artistName || item.name)}
+              </Text>
             </LinearGradient>
           )}
         </View>
@@ -209,7 +249,7 @@ function EventRow({ item, index, onPress, styles }) {
 }
 
 // ── POST CARD ──────────────────────────────────────────────────────────────
-function PostCard({ item, index, styles }) {
+function PostCard({ item, index, styles, navigation }) {
   const accent = accentColors[index % accentColors.length];
 
   const timeAgo = (dateStr) => {
@@ -220,7 +260,7 @@ function PostCard({ item, index, styles }) {
   };
 
   return (
-    <View style={styles.postCard}>
+    <TouchableOpacity onPress={() => navigation.navigate('FeedTab')} activeOpacity={0.8} style={styles.postCard}>
       {/* LEFT ACCENT */}
       <View style={[styles.postAccentBar, { backgroundColor: accent }]} />
 
@@ -249,7 +289,7 @@ function PostCard({ item, index, styles }) {
           <View style={styles.postDot} />
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -526,7 +566,7 @@ export default function HomeScreen({ navigation }) {
             </View>
           ) : (
             filteredPosts.slice(0, 6).map((item, index) => (
-              <PostCard key={`post-${item.id}`} item={item} index={index} styles={styles} />
+              <PostCard key={`post-${item.id}`} item={item} index={index} styles={styles} navigation={navigation} />
             ))
           )}
         </View>
@@ -682,6 +722,16 @@ function createStyles(colors) {
   featuredBg: {
     position: 'absolute', top: 0, left: 0,
     width: '100%', height: '100%',
+  },
+  featuredBgPlaceholder: {
+    alignItems: 'center', justifyContent: 'center',
+  },
+  placeholderInitials: {
+    fontSize: 72, fontWeight: '900', color: 'rgba(255,255,255,0.25)',
+    letterSpacing: -2,
+  },
+  thumbInitials: {
+    fontSize: 18, fontWeight: '900', color: 'rgba(255,255,255,0.9)',
   },
   featuredScrim: {
     position: 'absolute', top: 0, left: 0,

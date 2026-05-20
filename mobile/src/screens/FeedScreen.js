@@ -82,7 +82,7 @@ function PostCard({ item, index, currentUserId, navigation, styles, colors, onLi
 
   const goToUserProfile = () => {
     if (item.userId === currentUserId) {
-      navigation.navigate('Profile');
+      navigation.navigate('MainApp', { screen: 'Profile' });
     } else {
       navigation.navigate('UserProfile', { userId: item.userId });
     }

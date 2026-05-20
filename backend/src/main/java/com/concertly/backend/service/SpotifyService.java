@@ -54,24 +54,18 @@ public class SpotifyService {
     public SpotifyArtistData searchArtist(String artistName) {
         if (artistName == null || artistName.isBlank()) return null;
 
-        // Try exact name first, then cleaned variants
-        String[] queries = {
-            artistName,
-            cleanForSearch(artistName),
-            artistName.split(" ")[0]  // just first word
-        };
+        // Önce tam adla dene, sonra temizlenmiş haliyle — başarılı olunca dur
+        String cleaned = cleanForSearch(artistName);
+        String[] queries = artistName.equals(cleaned)
+            ? new String[]{ artistName }
+            : new String[]{ artistName, cleaned };
 
         for (String query : queries) {
             if (query == null || query.isBlank()) continue;
             SpotifyArtistData result = doSearch(query);
-            if (result != null && result.imageUrl != null) return result;
-        }
-
-        // Fallback: return first result with any data
-        for (String query : queries) {
-            if (query == null || query.isBlank()) continue;
-            SpotifyArtistData result = doSearch(query);
-            if (result != null) return result;
+            if (result != null) return result; // ilk başarılı sonuçta dur
+            // Rate limit için kısa bekleme
+            try { Thread.sleep(200); } catch (InterruptedException ignored) {}
         }
 
         return null;
@@ -140,7 +134,13 @@ public class SpotifyService {
             return new SpotifyArtistData(imageUrl, genre, spotifyId, name, followerCount);
 
         } catch (Exception e) {
-            System.out.println("  ❌ Spotify hata (" + query + "): " + e.getMessage());
+            String msg = e.getMessage();
+            if (msg != null && msg.contains("429")) {
+                System.out.println("  ⏳ Spotify rate limit — 2sn bekleniyor...");
+                try { Thread.sleep(2000); } catch (InterruptedException ignored) {}
+            } else {
+                System.out.println("  ❌ Spotify hata (" + query + "): " + msg);
+            }
             return null;
         }
     }
@@ -150,21 +150,37 @@ public class SpotifyService {
         return name.replaceAll("(?i)\\s*[-–—(|].*", "").trim();
     }
 
-    private String mapSpotifyGenre(List<String> spotifyGenres) {
+    public String mapSpotifyGenre(List<String> spotifyGenres) {
         if (spotifyGenres == null || spotifyGenres.isEmpty()) return null;
 
+        // Türkçe özgün türler — önce kontrol et
         for (String g : spotifyGenres) {
             String lower = g.toLowerCase();
-            if (lower.contains("rock") || lower.contains("metal") || lower.contains("punk")) return "Rock";
-            if (lower.contains("pop")) return "Pop";
-            if (lower.contains("rap") || lower.contains("hip hop")) return "Rap";
-            if (lower.contains("elektronik") || lower.contains("electronic") || lower.contains("techno")
-                    || lower.contains("house") || lower.contains("edm") || lower.contains("dubstep")) return "Elektronik";
-            if (lower.contains("jazz") || lower.contains("blues")) return "Jazz";
+            if (lower.contains("arabesk") || lower.contains("fantezi") || lower.contains("türkü")) return "Arabesk";
+            if (lower.contains("turk sanat") || lower.contains("turkish classical")) return "Türk Sanat Müziği";
+            if (lower.contains("anadolu") || lower.contains("anatolian")) return "Rock";
+            if (lower.contains("turk") && (lower.contains("rock") || lower.contains("metal") || lower.contains("punk"))) return "Rock";
+            if (lower.contains("turk") && lower.contains("rap")) return "Rap";
+            if (lower.contains("turk") && lower.contains("pop")) return "Pop";
+            if (lower.contains("trap turk") || lower.contains("turkish hip hop")) return "Rap";
+        }
+
+        // Evrensel türler
+        for (String g : spotifyGenres) {
+            String lower = g.toLowerCase();
+            if (lower.contains("metal") || lower.contains("punk")) return "Rock";
+            if (lower.contains("rock")) return "Rock";
+            if (lower.contains("rap") || lower.contains("hip hop") || lower.contains("trap")) return "Rap";
+            if (lower.contains("techno") || lower.contains("house") || lower.contains("edm")
+                    || lower.contains("electronic") || lower.contains("dubstep") || lower.contains("trance")) return "Elektronik";
+            if (lower.contains("jazz")) return "Jazz";
+            if (lower.contains("blues")) return "Jazz";
+            if (lower.contains("classical") || lower.contains("orchestra")) return "Klasik";
             if (lower.contains("indie") || lower.contains("alternative")) return "Indie";
-            if (lower.contains("classical") || lower.contains("orkestra")) return "Classical";
-            if (lower.contains("turk") || lower.contains("anadolu")) return "Türkçe Rock";
-            if (lower.contains("arabesk") || lower.contains("fantezi")) return "Arabesk";
+            if (lower.contains("folk") || lower.contains("acoustic")) return "Folk";
+            if (lower.contains("r&b") || lower.contains("soul")) return "R&B";
+            if (lower.contains("reggae")) return "Reggae";
+            if (lower.contains("pop")) return "Pop";
         }
         return null;
     }

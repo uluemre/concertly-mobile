@@ -10,6 +10,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 public class TicketmasterService {
@@ -21,38 +22,33 @@ public class TicketmasterService {
     private final ArtistRepository artistRepository;
     private final VenueRepository venueRepository;
     private final SpotifyService spotifyService;
+    private final DeezerService deezerService;
     private final RestTemplate restTemplate;
 
     public TicketmasterService(EventRepository eventRepository,
             ArtistRepository artistRepository,
             VenueRepository venueRepository,
-            SpotifyService spotifyService) {
+            SpotifyService spotifyService,
+            DeezerService deezerService) {
         this.eventRepository = eventRepository;
         this.artistRepository = artistRepository;
         this.venueRepository = venueRepository;
         this.spotifyService = spotifyService;
+        this.deezerService = deezerService;
         this.restTemplate = new RestTemplate();
     }
 
     @SuppressWarnings("unchecked")
     public int syncTurkeyEvents() {
-        int total = 0;
+        String nowIso = LocalDateTime.now()
+                .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'"));
 
-        // 1. Turkey music events
-        total += syncFromApi("https://app.ticketmaster.com/discovery/v2/events.json",
-                Map.of("countryCode", "TR", "classificationName", "music", "size", "50"));
+        int total = syncFromApi("https://app.ticketmaster.com/discovery/v2/events.json",
+                Map.of("countryCode", "TR", "classificationName", "music",
+                       "sort", "date,asc", "size", "200",
+                       "startDateTime", nowIso));
 
-        // 2. Search by major Turkish cities to catch more events
-        for (String city : List.of("Istanbul", "Ankara", "Izmir")) {
-            total += syncFromApi("https://app.ticketmaster.com/discovery/v2/events.json",
-                    Map.of("city", city, "size", "30"));
-        }
-
-        // 3. Global popular music events (Turkey market)
-        total += syncFromApi("https://app.ticketmaster.com/discovery/v2/events.json",
-                Map.of("countryCode", "TR", "classificationName", "music", "sort", "date,asc", "size", "30"));
-
-        System.out.println("✅ Ticketmaster sync tamamlandi! Toplam: " + total + " yeni etkinlik");
+        System.out.println("✅ Ticketmaster sync tamamlandı! Toplam: " + total + " yeni etkinlik");
         return total;
     }
 
@@ -63,7 +59,7 @@ public class TicketmasterService {
             int page = 0;
             boolean hasMore = true;
 
-            while (hasMore && page < 5) { // max 5 pages per query
+            while (hasMore && page < 10) { // max 10 pages = 2000 events
                 UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(baseUrl)
                         .queryParam("apikey", apiKey)
                         .queryParam("page", page);
@@ -139,7 +135,7 @@ public class TicketmasterService {
                 // Venue
                 Venue venue = extractOrCreateVenue(emb);
 
-                // Description with better fallbacks
+                // Description
                 String description = (String) e.get("info");
                 if (isBlank(description)) description = (String) e.get("pleaseNote");
                 if (isBlank(description)) description = (String) e.get("description");
@@ -149,10 +145,9 @@ public class TicketmasterService {
                             " performansi. Biletler satista!";
                 }
 
-                // If still no image, generate from event name
-                if (isBlank(eventImageUrl)) {
-                    String encoded = name.replace(" ", "+").replace("&", "and");
-                    eventImageUrl = "https://picsum.photos/seed/" + encoded + "/400/200";
+                // Görsel: TM event → Spotify artist → TM attraction → null (sahte görsel yok)
+                if (isBlank(eventImageUrl) && !isBlank(artist.getImageUrl())) {
+                    eventImageUrl = artist.getImageUrl();
                 }
 
                 Event event = new Event();
@@ -172,7 +167,12 @@ public class TicketmasterService {
                 System.out.println("  ✅ " + name + " | " + artist.getName() + " | " + eventDate.toLocalDate());
 
             } catch (Exception ex) {
-                System.out.println("  ⚠️  Event parse: " + ex.getMessage());
+                String msg = ex.getMessage();
+                if (msg != null && (msg.contains("unique") || msg.contains("duplicate") || msg.contains("Unique"))) {
+                    // DB unique constraint — zaten var, atla
+                } else {
+                    System.out.println("  ⚠️  Event parse: " + msg);
+                }
             }
         }
         return count;
@@ -181,26 +181,33 @@ public class TicketmasterService {
     private String extractBestImage(List<Map<String, Object>> images) {
         if (images == null || images.isEmpty()) return null;
 
-        Map<String, Object> best = null;
-        int bestWidth = 0;
-        for (Map<String, Object> img : images) {
-            Object w = img.get("width");
-            int width = w instanceof Integer ? (Integer) w : 0;
-            // Prefer RETINA_PORTRAIT_16_9 or similar ratio
-            String ratio = (String) img.get("ratio");
-            boolean isGoodRatio = ratio != null &&
-                    (ratio.contains("16_9") || ratio.contains("4_3") || ratio.contains("3_2"));
+        Map<String, Object> best16x9 = null;
+        Map<String, Object> bestAny = null;
+        int best16x9Width = 0;
+        int bestAnyWidth = 0;
 
-            if (isGoodRatio && width > bestWidth) {
-                bestWidth = width;
-                best = img;
-            } else if (best == null && width > bestWidth) {
-                bestWidth = width;
-                best = img;
+        for (Map<String, Object> img : images) {
+            String url = (String) img.get("url");
+            if (isBlank(url)) continue;
+
+            Object w = img.get("width");
+            int width = (w instanceof Integer) ? (Integer) w : (w instanceof Number ? ((Number) w).intValue() : 0);
+            String ratio = (String) img.get("ratio");
+            boolean is16x9 = ratio != null && ratio.contains("16_9");
+
+            if (is16x9 && width >= 640 && width > best16x9Width) {
+                best16x9Width = width;
+                best16x9 = img;
+            }
+            if (width > bestAnyWidth) {
+                bestAnyWidth = width;
+                bestAny = img;
             }
         }
-        if (best == null) best = images.get(0);
-        return (String) best.get("url");
+
+        Map<String, Object> chosen = best16x9 != null ? best16x9 : (bestAny != null ? bestAny : images.get(0));
+        String url = (String) chosen.get("url");
+        return isBlank(url) ? null : url;
     }
 
     @SuppressWarnings("unchecked")
@@ -227,17 +234,28 @@ public class TicketmasterService {
     }
 
     private String mapTmGenre(String tmGenre) {
-        if (tmGenre == null) return null;
-        String g = tmGenre.toLowerCase();
-        if (g.contains("rock") || g.contains("metal")) return "Rock";
+        if (isBlank(tmGenre)) return null;
+        String g = tmGenre.toLowerCase().trim();
+
+        // "Undefined" ve anlamsız değerleri ele
+        if (g.equals("undefined") || g.equals("music") || g.equals("other")
+                || g.equals("miscellaneous") || g.length() < 3) return null;
+
+        if (g.contains("metal") || g.contains("punk") || g.contains("hard rock")) return "Rock";
+        if (g.contains("rock") || g.contains("alternative") || g.contains("grunge")) return "Rock";
+        if (g.contains("rap") || g.contains("hip hop") || g.contains("hip-hop") || g.contains("trap")) return "Rap";
+        if (g.contains("r&b") || g.contains("soul") || g.contains("funk")) return "R&B";
+        if (g.contains("techno") || g.contains("house") || g.contains("edm") || g.contains("trance")
+                || g.contains("electronic") || g.contains("dance") || g.contains("dubstep")) return "Elektronik";
+        if (g.contains("jazz")) return "Jazz";
+        if (g.contains("blues")) return "Jazz";
+        if (g.contains("classical") || g.contains("orchestra") || g.contains("opera")) return "Klasik";
+        if (g.contains("indie")) return "Indie";
+        if (g.contains("folk") || g.contains("acoustic") || g.contains("country")) return "Folk";
+        if (g.contains("reggae") || g.contains("ska")) return "Reggae";
+        if (g.contains("latin") || g.contains("salsa")) return "Latin";
         if (g.contains("pop")) return "Pop";
-        if (g.contains("rap") || g.contains("hip hop")) return "Rap";
-        if (g.contains("electronic") || g.contains("dance") || g.contains("techno")
-                || g.contains("house") || g.contains("edm")) return "Elektronik";
-        if (g.contains("jazz") || g.contains("blues")) return "Jazz";
-        if (g.contains("indie") || g.contains("alternative")) return "Indie";
-        if (g.contains("classical")) return "Classical";
-        if (g.contains("folk") || g.contains("world")) return "Türkçe Rock";
+        if (g.contains("world") || g.contains("turk") || g.contains("anadolu")) return "Rock";
         return null;
     }
 
@@ -247,9 +265,6 @@ public class TicketmasterService {
         String externalId = eventExternalId + "_artist";
         String tmImageUrl = null;
         String tmGenre = null;
-        String spotifyImage = null;
-        String spotifyGenre = null;
-        String spotifyName = null;
 
         if (emb != null && emb.get("attractions") != null) {
             List<Map<String, Object>> attractions = (List<Map<String, Object>>) emb.get("attractions");
@@ -265,40 +280,23 @@ public class TicketmasterService {
 
         String artistName = cleanArtistName(rawName);
 
-        // Enrich with Spotify
-        if (spotifyService != null) {
-            SpotifyService.SpotifyArtistData sd = spotifyService.searchArtist(artistName);
-            if (sd != null) {
-                if (sd.imageUrl != null) spotifyImage = sd.imageUrl;
-                if (sd.genre != null) spotifyGenre = sd.genre;
-                if (sd.name != null) spotifyName = sd.name;
-            }
-        }
+        // Spotify sync sırasında ÇAĞRILMIYOR — enrichMissingData() yavaş şekilde yapar.
+        // Burada Spotify çağrısı rate limit'i mahveder.
 
         // Find or create artist
         Artist artist = artistRepository.findByExternalId(externalId)
                 .orElseGet(() -> artistRepository.findByNameIgnoreCase(artistName)
                         .orElseGet(Artist::new));
 
-        // Prefer Spotify name
-        if (spotifyName != null && !spotifyName.equalsIgnoreCase(artistName)) {
-            artist.setName(spotifyName);
-        } else {
-            artist.setName(artistName);
-        }
-
+        artist.setName(artistName);
         if (artist.getExternalId() == null) artist.setExternalId(externalId);
 
-        // Image: prefer Spotify > Ticketmaster > none (will use fallback)
-        if (artist.getImageUrl() == null) {
-            if (spotifyImage != null) artist.setImageUrl(spotifyImage);
-            else if (tmImageUrl != null) artist.setImageUrl(tmImageUrl);
+        // TM verilerini sadece eksikse kullan
+        if (isBlank(artist.getImageUrl()) && !isBlank(tmImageUrl)) {
+            artist.setImageUrl(tmImageUrl);
         }
-
-        // Genre: prefer Spotify mapping > Ticketmaster > null
-        if (artist.getGenre() == null) {
-            if (spotifyGenre != null) artist.setGenre(spotifyGenre);
-            else if (tmGenre != null) artist.setGenre(tmGenre);
+        if (isBlank(artist.getGenre()) && !isBlank(tmGenre)) {
+            artist.setGenre(tmGenre);
         }
 
         return artistRepository.save(artist);
@@ -359,6 +357,94 @@ public class TicketmasterService {
         return venueRepository.save(venue);
     }
 
+    public Map<String, Integer> enrichMissingData() {
+        AtomicInteger enrichedImages = new AtomicInteger(0);
+        AtomicInteger enrichedGenres = new AtomicInteger(0);
+
+        // Sadece görseli veya türü eksik artist'leri sorgula
+        List<Artist> allArtists = artistRepository.findAll();
+        List<Artist> needsEnrich = allArtists.stream()
+            .filter(a -> !isBlank(a.getName()) && (
+                isBlank(a.getImageUrl()) ||
+                (a.getImageUrl() != null && a.getImageUrl().contains("s1.ticketm.net")) ||
+                isBlank(a.getGenre())
+            ))
+            .collect(java.util.stream.Collectors.toList());
+
+        System.out.println("🎤 " + needsEnrich.size() + "/" + allArtists.size() + " artist Spotify'dan çekilecek...");
+
+        int idx = 0;
+        for (Artist artist : needsEnrich) {
+            idx++;
+            System.out.print("  [" + idx + "/" + needsEnrich.size() + "] " + artist.getName() + " → ");
+            boolean changed = false;
+
+            // Görsel: Deezer (API key yok, rate limit yok)
+            boolean needsImage = isBlank(artist.getImageUrl()) || !isSpotifyImage(artist.getImageUrl());
+            if (needsImage) {
+                DeezerService.DeezerArtistData dd = deezerService.searchArtist(artist.getName());
+                if (dd != null && dd.imageUrl != null) {
+                    artist.setImageUrl(dd.imageUrl);
+                    changed = true;
+                    System.out.print("görsel✓ ");
+                } else {
+                    System.out.print("görsel✗ ");
+                }
+            } else {
+                System.out.print("görsel-mevcut ");
+            }
+
+            // Tür: Spotify (rate limit varsa null döner, mevcut genre korunur)
+            if (isBlank(artist.getGenre())) {
+                SpotifyService.SpotifyArtistData sd = spotifyService.searchArtist(artist.getName());
+                if (sd != null && sd.genre != null) {
+                    artist.setGenre(sd.genre);
+                    changed = true;
+                    System.out.print("tür✓");
+                } else {
+                    System.out.print("tür✗");
+                }
+                try { Thread.sleep(500); } catch (InterruptedException ignored) {}
+            } else {
+                System.out.print("tür-mevcut");
+            }
+
+            System.out.println();
+            if (changed) artistRepository.save(artist);
+        }
+
+        // Event'leri artist verisine göre güncelle
+        List<Event> events = eventRepository.findAll();
+        for (Event event : events) {
+            Artist artist = event.getArtist();
+            if (artist == null) continue;
+            boolean changed = false;
+
+            // TM görselini Spotify artist görseli ile değiştir
+            if (!isBlank(artist.getImageUrl()) && isSpotifyImage(artist.getImageUrl())) {
+                boolean needsImageUpdate = isBlank(event.getImageUrl()) || !isSpotifyImage(event.getImageUrl());
+                if (needsImageUpdate) {
+                    event.setImageUrl(artist.getImageUrl());
+                    enrichedImages.incrementAndGet();
+                    changed = true;
+                }
+            }
+
+            // Türü güncelle — artist'te Spotify verisi varsa event'i de güncelle
+            if (!isBlank(artist.getGenre())) {
+                event.setGenre(artist.getGenre());
+                enrichedGenres.incrementAndGet();
+                changed = true;
+            }
+
+            if (changed) eventRepository.save(event);
+        }
+
+        System.out.println("✅ Enrichment tamamlandı — görsel: " + enrichedImages + ", tür: " + enrichedGenres);
+        return Map.of("enrichedImages", enrichedImages.get(), "enrichedGenres", enrichedGenres.get(),
+                      "artists", allArtists.size(), "events", events.size());
+    }
+
     private String cleanArtistName(String rawName) {
         if (rawName == null) return "Bilinmeyen Sanatci";
         return rawName.replaceAll("(?i)\\s*( - | \\(| \\| |Konseri|Live|Tour|Turnesi|Festivali).*", "").trim();
@@ -366,5 +452,10 @@ public class TicketmasterService {
 
     private boolean isBlank(String s) {
         return s == null || s.isBlank();
+    }
+
+    // Deezer veya Spotify CDN → kaliteli görsel
+    private boolean isSpotifyImage(String url) {
+        return url != null && (url.contains("scdn.co") || url.contains("cdns-images.dzcdn.net"));
     }
 }

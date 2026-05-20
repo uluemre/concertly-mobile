@@ -44,9 +44,9 @@ public class User {
     private LocalDateTime updatedAt = LocalDateTime.now();
 
     // 🔥 ROLE RELATION
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
-    private Set<Role> roles;
+    private Set<Role> roles = new java.util.HashSet<>();
 
     public Long getId() {
         return id;
@@ -154,5 +154,9 @@ public class User {
 
     public Set<Role> getRoles() {
         return roles;
+    }
+
+    public void setRoles(Set<Role> roles) {
+        this.roles = roles;
     }
 }

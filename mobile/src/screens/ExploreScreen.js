@@ -74,6 +74,15 @@ const menuItems = [
     screen: null,
     available: false,
   },
+  {
+    id: 8,
+    title: 'Smart Ticket Alerts',
+    subtitle: 'Fiyat düşünce anında bildirim al',
+    emoji: '🔔',
+    gradient: ['#1a1a2e', '#0f3460'],
+    screen: null,
+    available: false,
+  },
 
 
 ];
@@ -155,11 +164,26 @@ function AnimatedCard({ item, index, navigation, styles, colors }) {
   );
 }
 
+const adminMenuItem = {
+  id: 99,
+  title: 'Admin Paneli',
+  subtitle: 'Etkinlik ve kullanici yonetimi',
+  emoji: '⚙️',
+  gradient: ['#1a1a2e', '#7C3AED'],
+  screen: 'Admin',
+  available: true,
+  requiresAdmin: true,
+};
+
 export default function ExploreScreen({ navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const headerAnim = useRef(new Animated.Value(-30)).current;
   const headerOpacity = useRef(new Animated.Value(0)).current;
+
+  const visibleItems = global.isAdmin
+    ? [...menuItems, adminMenuItem]
+    : menuItems;
 
   useEffect(() => {
     Animated.parallel([
@@ -185,7 +209,7 @@ export default function ExploreScreen({ navigation }) {
       </LinearGradient>
 
       <View style={styles.grid}>
-        {menuItems.map((item, index) => (
+        {visibleItems.map((item, index) => (
           <AnimatedCard
             key={item.id}
             item={item}

@@ -29,6 +29,9 @@ import MusicProfileScreen from '../screens/MusicProfileScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
 import GenreSelectionScreen from '../screens/GenreSelectionScreen';
 import ArtistSelectionScreen from '../screens/ArtistSelectionScreen';
+import AdminScreen from '../screens/AdminScreen';
+import AdminEventsScreen from '../screens/AdminEventsScreen';
+import AdminUsersScreen from '../screens/AdminUsersScreen';
 
 import { useTheme } from '../theme';
 
@@ -224,6 +227,11 @@ export default function AppNavigator() {
           name="MusicProfile"
           component={MusicProfileScreen}
         />
+
+        {/* ADMIN */}
+        <Stack.Screen name="Admin" component={AdminScreen} />
+        <Stack.Screen name="AdminEvents" component={AdminEventsScreen} />
+        <Stack.Screen name="AdminUsers" component={AdminUsersScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

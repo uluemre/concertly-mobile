@@ -10,9 +10,10 @@ public class AuthResponse {
     private String city;
     private String favoriteGenres;
     private Boolean onboardingCompleted;
+    private Boolean isAdmin;
 
     public AuthResponse(String accessToken, Long userId, String username, String email,
-                        String city, String favoriteGenres, Boolean onboardingCompleted) {
+                        String city, String favoriteGenres, Boolean onboardingCompleted, Boolean isAdmin) {
         this.accessToken = accessToken;
         this.userId = userId;
         this.username = username;
@@ -20,6 +21,7 @@ public class AuthResponse {
         this.city = city;
         this.favoriteGenres = favoriteGenres;
         this.onboardingCompleted = onboardingCompleted;
+        this.isAdmin = isAdmin;
     }
 
     public String getAccessToken() {
@@ -45,4 +47,5 @@ public class AuthResponse {
     public String getCity() { return city; }
     public String getFavoriteGenres() { return favoriteGenres; }
     public Boolean getOnboardingCompleted() { return onboardingCompleted; }
+    public Boolean getIsAdmin() { return isAdmin; }
 }

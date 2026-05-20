@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useRef } from 'react';
+import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
   TouchableOpacity, Alert, ActivityIndicator,
@@ -10,6 +10,35 @@ import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import API from '../services/api';
 import { useTheme } from '../theme';
+
+const GENRE_GRADIENTS = {
+  'Rock':       ['#E94560', '#7C1AED'],
+  'Pop':        ['#FF6B9D', '#C44569'],
+  'Rap':        ['#2C3E50', '#F39C12'],
+  'Elektronik': ['#00D4AA', '#0066CC'],
+  'Jazz':       ['#F5A623', '#8B4513'],
+  'Klasik':     ['#4A0E8F', '#1a237e'],
+  'Indie':      ['#00BCD4', '#2E7D32'],
+  'R&B':        ['#9C27B0', '#E91E63'],
+  'Folk':       ['#8BC34A', '#5D4037'],
+  'Reggae':     ['#43A047', '#FDD835'],
+  'Arabesk':    ['#8B0000', '#DAA520'],
+};
+
+function getGenreGradient(genre) {
+  if (!genre) return ['#E94560', '#7C3AED'];
+  const key = Object.keys(GENRE_GRADIENTS).find(k =>
+    genre.toLowerCase().includes(k.toLowerCase())
+  );
+  return GENRE_GRADIENTS[key] || ['#E94560', '#7C3AED'];
+}
+
+function getInitials(name) {
+  if (!name) return '?';
+  const words = name.trim().split(/\s+/);
+  if (words.length === 1) return words[0].substring(0, 2).toUpperCase();
+  return (words[0][0] + words[1][0]).toUpperCase();
+}
 
 function getDistanceInMeters(lat1, lon1, lat2, lon2) {
   const R = 6371000;
@@ -205,7 +234,7 @@ export default function EventDetailScreen({ route, navigation }) {
     <>
     <ScrollView style={styles.container}>
       {/* HERO */}
-      {event.imageUrl ? (
+      {event.imageUrl && !imageError ? (
         <View>
           <Image
             source={{ uri: event.imageUrl }}
@@ -249,12 +278,29 @@ export default function EventDetailScreen({ route, navigation }) {
           </LinearGradient>
         </View>
       ) : (
-        <LinearGradient colors={colors.headerGradient} style={styles.heroSection}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Text style={styles.backText}>← Geri</Text>
-          </TouchableOpacity>
-          <Text style={styles.heroEmoji}>🎪</Text>
+        <LinearGradient
+          colors={getGenreGradient(event.genre)}
+          style={styles.heroSection}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <View style={styles.heroTopActions}>
+            <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+              <Text style={styles.backText}>← Geri</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.bookmarkButton} onPress={handleBookmark} activeOpacity={0.8}>
+              <Text style={styles.bookmarkIcon}>{bookmarked ? '🔖' : '🏷️'}</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.heroPlaceholderInitials}>
+            {getInitials(event.artistName || event.name)}
+          </Text>
           <Text style={styles.heroTitle}>{event.name}</Text>
+          {event.genre && (
+            <View style={styles.genreBadge}>
+              <Text style={styles.genreText}>🎵 {event.genre}</Text>
+            </View>
+          )}
         </LinearGradient>
       )}
 
@@ -539,8 +585,8 @@ function createStyles(colors) {
     genreText: { color: '#fff', fontSize: 13, fontWeight: '700', letterSpacing: 0.5 },
     container: { flex: 1, backgroundColor: colors.background },
     heroSection: {
-      paddingTop: 64, paddingBottom: 40,
-      paddingHorizontal: 24, alignItems: 'center',
+      paddingTop: 52, paddingBottom: 32,
+      paddingHorizontal: 24, alignItems: 'flex-start', minHeight: 260,
     },
     backButton: {
       backgroundColor: 'rgba(255,255,255,0.15)',
@@ -549,6 +595,11 @@ function createStyles(colors) {
     },
     backText: { fontSize: 14, color: '#fff', fontWeight: '700' },
     heroEmoji: { fontSize: 64, marginBottom: 12 },
+    heroPlaceholderInitials: {
+      position: 'absolute', right: 20, bottom: 60,
+      fontSize: 120, fontWeight: '900',
+      color: 'rgba(255,255,255,0.15)', letterSpacing: -4,
+    },
     heroTitle: {
       fontSize: 32, fontWeight: '900', color: '#fff',
       textAlign: 'left', marginBottom: 4, letterSpacing: 0.5,

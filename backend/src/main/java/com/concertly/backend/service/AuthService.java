@@ -90,6 +90,9 @@ public class AuthService {
 
         String token = jwtUtil.generateToken(user.getId(), user.getEmail());
 
+        boolean isAdmin = user.getRoles() != null && user.getRoles().stream()
+                .anyMatch(r -> "ROLE_ADMIN".equals(r.getName()));
+
         return new AuthResponse(
                 token,
                 user.getId(),
@@ -97,7 +100,8 @@ public class AuthService {
                 user.getEmail(),
                 user.getCity(),
                 user.getFavoriteGenres(),
-                user.getOnboardingCompleted());
+                user.getOnboardingCompleted(),
+                isAdmin);
     }
 
     @Transactional

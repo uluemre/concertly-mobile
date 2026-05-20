@@ -26,6 +26,8 @@ public interface EventRepository extends JpaRepository<Event, Long> {
 
     List<Event> findByVenue_CityIgnoreCase(String city);
 
+    List<Event> findByIsApproved(Boolean isApproved);
+
     @Query("""
                 SELECT e FROM Event e
                 WHERE LOWER(e.venue.city) = LOWER(:city)

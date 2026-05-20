@@ -6,6 +6,7 @@ public class ArtistResponse {
 
     private Long id;
     private String name;
+    private String genre;
     private String imageUrl;
     private String externalId;
     private long followerCount;
@@ -17,6 +18,7 @@ public class ArtistResponse {
         ArtistResponse dto = new ArtistResponse();
         dto.id                      = artist.getId();
         dto.name                    = artist.getName();
+        dto.genre                   = artist.getGenre();
         dto.imageUrl                = artist.getImageUrl();
         dto.externalId              = artist.getExternalId();
         dto.followerCount           = followerCount;
@@ -26,6 +28,7 @@ public class ArtistResponse {
 
     public Long getId()                        { return id; }
     public String getName()                    { return name; }
+    public String getGenre()                   { return genre; }
     public String getImageUrl()                { return imageUrl; }
     public String getExternalId()              { return externalId; }
     public long getFollowerCount()             { return followerCount; }
