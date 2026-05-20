@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState, useRef } from 'react';
 import {
   View, Text, StyleSheet, ActivityIndicator,
   TouchableOpacity, ScrollView, TextInput,
-  Dimensions, Animated, StatusBar, FlatList
+  Dimensions, Animated, StatusBar, FlatList, Modal
 } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -304,6 +304,8 @@ export default function HomeScreen({ navigation }) {
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState(1);
   const [searchFocused, setSearchFocused] = useState(false);
+  const [selectedCity, setSelectedCity] = useState(global.userCity || null);
+  const [cityModalVisible, setCityModalVisible] = useState(false);
 
   const headerAnim = useRef(new Animated.Value(-20)).current;
   const headerOpacity = useRef(new Animated.Value(0)).current;
@@ -329,15 +331,20 @@ export default function HomeScreen({ navigation }) {
       }),
     ]).start();
 
-    const city = global.userCity;
+    fetchData();
+  }, []);
+
+  const fetchData = (city) => {
+    const activeCity = city !== undefined ? city : selectedCity;
     const genres = global.favoriteGenres;
 
     let url = '/events';
     const params = [];
-    if (city) params.push(`city=${encodeURIComponent(city)}`);
+    if (activeCity) params.push(`city=${encodeURIComponent(activeCity)}`);
     if (genres) params.push(`genres=${encodeURIComponent(genres)}`);
     if (params.length) url += '?' + params.join('&');
 
+    setLoading(true);
     Promise.all([
       API.get(url),
       API.get('/posts/feed/trending'),
@@ -346,12 +353,15 @@ export default function HomeScreen({ navigation }) {
         setEvents(evRes.data);
         setPosts(postRes.data);
       })
-      .catch(err =>
-        console.log('HomeScreen fetch error:', err.message)
-      )
+      .catch(err => console.log('HomeScreen fetch error:', err.message))
       .finally(() => setLoading(false));
+  };
 
-  }, []);
+  const handleCitySelect = (city) => {
+    setSelectedCity(city);
+    setCityModalVisible(false);
+    fetchData(city);
+  };
 
   const activeCategoryLabel = categories.find(c => c.id === activeCategory)?.label || 'Tümü';
   const activeCategoryColor = categories.find(c => c.id === activeCategory)?.color || colors.primary;
@@ -415,23 +425,30 @@ export default function HomeScreen({ navigation }) {
             />
           </Animated.View>
 
-          {/* SEARCH BAR */}
-          <View style={[styles.searchBar, searchFocused && styles.searchBarFocused]}>
-            <Text style={styles.searchIcon}>⌕</Text>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Etkinlik, sanatçı, şehir ara..."
-              placeholderTextColor={colors.textSecondary}
-              value={search}
-              onChangeText={setSearch}
-              onFocus={() => setSearchFocused(true)}
-              onBlur={() => setSearchFocused(false)}
-            />
-            {search.length > 0 && (
-              <TouchableOpacity onPress={() => setSearch('')}>
-                <Text style={styles.searchClear}>✕</Text>
-              </TouchableOpacity>
-            )}
+          {/* SEARCH BAR + ŞEHİR */}
+          <View style={styles.searchRow}>
+            <View style={[styles.searchBar, searchFocused && styles.searchBarFocused]}>
+              <Text style={styles.searchIcon}>⌕</Text>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Etkinlik, sanatçı ara..."
+                placeholderTextColor={colors.textSecondary}
+                value={search}
+                onChangeText={setSearch}
+                onFocus={() => setSearchFocused(true)}
+                onBlur={() => setSearchFocused(false)}
+              />
+              {search.length > 0 && (
+                <TouchableOpacity onPress={() => setSearch('')}>
+                  <Text style={styles.searchClear}>✕</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            <TouchableOpacity onPress={() => setCityModalVisible(true)} style={styles.cityBtn} activeOpacity={0.8}>
+              <Text style={styles.cityBtnIcon}>📍</Text>
+              <Text style={styles.cityBtnText} numberOfLines={1}>{selectedCity || 'Tümü'}</Text>
+              <Text style={styles.cityBtnChevron}>▾</Text>
+            </TouchableOpacity>
           </View>
 
           {/* STATS ROW */}
@@ -571,6 +588,31 @@ export default function HomeScreen({ navigation }) {
           )}
         </View>
       </ScrollView>
+
+      {/* ŞEHİR SEÇİCİ MODAL */}
+      <Modal visible={cityModalVisible} transparent animationType="slide">
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setCityModalVisible(false)} />
+        <View style={[styles.cityModal, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Text style={[styles.cityModalTitle, { color: colors.text }]}>Şehir Seç</Text>
+          <ScrollView showsVerticalScrollIndicator={false}>
+            {['Tümü', 'Istanbul', 'Ankara', 'Izmir', 'Bursa', 'Antalya', 'Adana', 'Konya', 'Gaziantep', 'Mersin', 'Eskisehir'].map(city => {
+              const active = (city === 'Tümü' ? !selectedCity : selectedCity === city);
+              return (
+                <TouchableOpacity
+                  key={city}
+                  onPress={() => handleCitySelect(city === 'Tümü' ? null : city)}
+                  style={[styles.cityOption, active && { backgroundColor: colors.primary + '22' }]}
+                >
+                  <Text style={[styles.cityOptionText, { color: active ? colors.primary : colors.text }]}>
+                    {city === 'Tümü' ? '🌍 Tüm Türkiye' : `📍 ${city}`}
+                  </Text>
+                  {active && <Text style={{ color: colors.primary, fontWeight: '700' }}>✓</Text>}
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -616,8 +658,61 @@ function createStyles(colors) {
   },
   headerLogo: { width: 48, height: 48, borderRadius: 14 },
 
+  // SEARCH ROW
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 18,
+  },
+  cityBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.primary + '60',
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    gap: 4,
+    minWidth: 80,
+  },
+  cityBtnIcon: { fontSize: 13 },
+  cityBtnText: { color: colors.primary, fontSize: 11, fontWeight: '700', maxWidth: 55 },
+  cityBtnChevron: { color: colors.primary, fontSize: 10 },
+
+  // CITY MODAL
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  cityModal: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderWidth: 1,
+    padding: 24,
+    paddingBottom: 40,
+    maxHeight: '60%',
+  },
+  cityModalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  cityOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    marginBottom: 4,
+  },
+  cityOptionText: { fontSize: 15 },
+
   // SEARCH
   searchBar: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.card,
@@ -627,7 +722,6 @@ function createStyles(colors) {
     gap: 10,
     borderWidth: 1,
     borderColor: colors.border,
-    marginBottom: 18,
   },
   searchBarFocused: {
     borderColor: colors.primary,
