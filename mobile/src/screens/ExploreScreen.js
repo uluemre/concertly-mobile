@@ -1,9 +1,10 @@
-import React, { useRef, useEffect, useMemo } from 'react';
+import React, { useRef, useEffect, useMemo, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   ScrollView, Alert, Animated, Dimensions
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../theme';
 
 const { width } = Dimensions.get('window');
@@ -87,9 +88,25 @@ const menuItems = [
 
 ];
 
-function AnimatedCard({ item, index, navigation, styles, colors }) {
+function AnimatedCard({ item, index, navigation, styles, colors, isSetupCard }) {
   const scaleAnim = useRef(new Animated.Value(0.85)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
+  const glowOpacity = useRef(new Animated.Value(0.35)).current;
+  const shimmerX = useRef(new Animated.Value(-CARD_SIZE - 50)).current;
+  const shimmerTimer = useRef(null);
+
+  const startShimmer = useCallback(() => {
+    shimmerX.setValue(-CARD_SIZE - 50);
+    Animated.timing(shimmerX, {
+      toValue: CARD_SIZE + 50,
+      duration: 650,
+      useNativeDriver: true,
+    }).start(({ finished }) => {
+      if (finished) {
+        shimmerTimer.current = setTimeout(startShimmer, 2800);
+      }
+    });
+  }, [shimmerX]);
 
   useEffect(() => {
     Animated.parallel([
@@ -106,8 +123,22 @@ function AnimatedCard({ item, index, navigation, styles, colors }) {
         duration: 300,
         useNativeDriver: true,
       }),
-    ]).start();
-  }, []);
+    ]).start(() => {
+      if (isSetupCard) {
+        startShimmer();
+        Animated.loop(
+          Animated.sequence([
+            Animated.timing(glowOpacity, { toValue: 1, duration: 1400, useNativeDriver: true }),
+            Animated.timing(glowOpacity, { toValue: 0.35, duration: 1400, useNativeDriver: true }),
+          ])
+        ).start();
+      }
+    });
+
+    return () => {
+      if (shimmerTimer.current) clearTimeout(shimmerTimer.current);
+    };
+  }, [isSetupCard, startShimmer]);
 
   const handlePress = () => {
     if (!item.available) {
@@ -116,6 +147,10 @@ function AnimatedCard({ item, index, navigation, styles, colors }) {
         `${item.title} özelliği çok yakında geliyor.`,
         [{ text: 'Tamam' }]
       );
+      return;
+    }
+    if (isSetupCard) {
+      navigation.navigate('GenreSelection');
       return;
     }
     navigation.navigate(item.screen);
@@ -139,9 +174,25 @@ function AnimatedCard({ item, index, navigation, styles, colors }) {
         >
           <View style={styles.cardCircle} />
 
+          {isSetupCard && (
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                styles.shimmerBar,
+                { transform: [{ translateX: shimmerX }, { rotate: '25deg' }] },
+              ]}
+            />
+          )}
+
           {!item.available && (
             <View style={styles.badge}>
               <Text style={styles.badgeText}>Yakında</Text>
+            </View>
+          )}
+
+          {isSetupCard && (
+            <View style={styles.setupBadge}>
+              <Text style={styles.setupBadgeText}>Oluştur</Text>
             </View>
           )}
 
@@ -150,7 +201,7 @@ function AnimatedCard({ item, index, navigation, styles, colors }) {
             {item.title}
           </Text>
           <Text style={[styles.cardSubtitle, !item.available && styles.cardSubtitleMuted]}>
-            {item.subtitle}
+            {isSetupCard ? 'Dokunarak başla' : item.subtitle}
           </Text>
 
           {item.available && (
@@ -160,6 +211,13 @@ function AnimatedCard({ item, index, navigation, styles, colors }) {
           )}
         </LinearGradient>
       </TouchableOpacity>
+
+      {isSetupCard && (
+        <Animated.View
+          pointerEvents="none"
+          style={[styles.glowRing, { opacity: glowOpacity }]}
+        />
+      )}
     </Animated.View>
   );
 }
@@ -180,6 +238,15 @@ export default function ExploreScreen({ navigation }) {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const headerAnim = useRef(new Animated.Value(-30)).current;
   const headerOpacity = useRef(new Animated.Value(0)).current;
+  const [hasMusicProfile, setHasMusicProfile] = useState(
+    !!(global.favoriteGenres && global.favoriteGenres.trim().length > 0)
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      setHasMusicProfile(!!(global.favoriteGenres && global.favoriteGenres.trim().length > 0));
+    }, [])
+  );
 
   const visibleItems = global.isAdmin
     ? [...menuItems, adminMenuItem]
@@ -217,6 +284,7 @@ export default function ExploreScreen({ navigation }) {
             navigation={navigation}
             styles={styles}
             colors={colors}
+            isSetupCard={item.id === 6 && !hasMusicProfile}
           />
         ))}
       </View>
@@ -281,6 +349,36 @@ function createStyles(colors) {
       borderColor: 'rgba(255,255,255,0.2)',
     },
     badgeText: { color: colors.textSecondary, fontSize: 10, fontWeight: '700' },
+
+    glowRing: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      borderRadius: 22,
+      borderWidth: 2,
+      borderColor: '#A855F7',
+    },
+    shimmerBar: {
+      position: 'absolute',
+      top: -20,
+      bottom: -20,
+      width: 48,
+      backgroundColor: 'rgba(255,255,255,0.28)',
+    },
+    setupBadge: {
+      position: 'absolute',
+      top: 12,
+      right: 12,
+      backgroundColor: 'rgba(168, 85, 247, 0.35)',
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: 'rgba(168, 85, 247, 0.6)',
+    },
+    setupBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
 
     cardEmoji: { fontSize: 36, marginBottom: 10 },
     cardTitle: { fontSize: 16, fontWeight: 'bold', color: colors.text, marginBottom: 3 },

@@ -4,6 +4,7 @@ import {
   TextInput, FlatList, ActivityIndicator
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { CommonActions } from '@react-navigation/native';
 import { useTheme } from '../theme';
 import API from '../services/api';
 import ArtistCard from '../components/ArtistCard';
@@ -52,7 +53,12 @@ export default function ArtistSelectionScreen({ route, navigation }) {
       });
       global.onboardingCompleted = true;
       global.favoriteGenres = selectedGenres.join(',');
-      navigation.replace('Welcome', { username: global.username || '' });
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 1,
+          routes: [{ name: 'MainApp' }, { name: 'MusicProfile' }],
+        })
+      );
     } catch (err) {
       console.error('Onboarding complete error:', err);
     } finally {

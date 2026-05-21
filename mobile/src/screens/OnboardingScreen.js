@@ -121,7 +121,7 @@ export default function OnboardingScreen({ navigation }) {
 
     const finish = async () => {
         await AsyncStorage.setItem('onboardingDone', 'true');
-        navigation.replace('Login');
+        navigation.replace('MainApp');
     };
 
     const onViewableItemsChanged = useRef(({ viewableItems }) => {

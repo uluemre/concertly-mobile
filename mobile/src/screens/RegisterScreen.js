@@ -59,8 +59,8 @@ export default function RegisterScreen({ navigation }) {
       global.favoriteGenres = loginRes.data.favoriteGenres;
       global.onboardingCompleted = loginRes.data.onboardingCompleted;
 
-      // Yeni kullanıcı → Onboarding akışına yönlendir
-      navigation.replace('GenreSelection');
+      // Yeni kullanıcı → Uygulama tanıtım ekranına yönlendir
+      navigation.replace('Onboarding');
     } catch (err) {
       Alert.alert('Hata', 'Bu email veya kullanıcı adı zaten kullanılıyor.');
     } finally {
