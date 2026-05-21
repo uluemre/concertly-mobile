@@ -5,12 +5,13 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CommonActions } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../theme';
 import API from '../services/api';
 import ArtistCard from '../components/ArtistCard';
 
 export default function ArtistSelectionScreen({ route, navigation }) {
-  const { selectedGenres } = route.params;
+  const { selectedGenres, editMode = false } = route.params;
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -40,9 +41,10 @@ export default function ArtistSelectionScreen({ route, navigation }) {
     );
   };
 
-  const filteredArtists = search.trim()
-    ? artists.filter(a => a.name.toLowerCase().includes(search.toLowerCase()))
-    : artists;
+  const filteredArtists = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return q ? artists.filter(a => a.name.toLowerCase().includes(q)) : artists;
+  }, [artists, search]);
 
   const handleComplete = async () => {
     setCompleting(true);
@@ -53,12 +55,20 @@ export default function ArtistSelectionScreen({ route, navigation }) {
       });
       global.onboardingCompleted = true;
       global.favoriteGenres = selectedGenres.join(',');
-      navigation.dispatch(
-        CommonActions.reset({
-          index: 1,
-          routes: [{ name: 'MainApp' }, { name: 'MusicProfile' }],
-        })
-      );
+      await AsyncStorage.multiSet([
+        ['onboardingCompleted', 'true'],
+        ['favoriteGenres', selectedGenres.join(',')],
+      ]);
+      if (editMode) {
+        navigation.navigate('MusicProfile');
+      } else {
+        navigation.dispatch(
+          CommonActions.reset({
+            index: 1,
+            routes: [{ name: 'MainApp' }, { name: 'MusicProfile' }],
+          })
+        );
+      }
     } catch (err) {
       console.error('Onboarding complete error:', err);
     } finally {
@@ -69,10 +79,16 @@ export default function ArtistSelectionScreen({ route, navigation }) {
   return (
     <View style={styles.container}>
       <View style={styles.inner}>
-        <View style={styles.stepIndicator}>
-          <View style={[styles.stepDot, styles.stepDotActive]} />
-          <View style={[styles.stepDot, styles.stepDotActive]} />
-        </View>
+        {editMode ? (
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Text style={styles.backText}>← Geri</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.stepIndicator}>
+            <View style={[styles.stepDot, styles.stepDotActive]} />
+            <View style={[styles.stepDot, styles.stepDotActive]} />
+          </View>
+        )}
 
         <Text style={styles.title}>Sevdiğin sanatçıları seç</Text>
         <Text style={styles.subtitle}>
@@ -146,7 +162,7 @@ export default function ArtistSelectionScreen({ route, navigation }) {
             style={styles.button}
           >
             <Text style={styles.buttonText}>
-              {completing ? 'Tamamlanıyor...' : 'Tamamla'}
+              {completing ? 'Kaydediliyor...' : editMode ? 'Kaydet' : 'Tamamla'}
             </Text>
           </LinearGradient>
         </TouchableOpacity>
@@ -159,6 +175,8 @@ function createStyles(colors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
     inner: { flex: 1, paddingTop: 60, paddingHorizontal: 20 },
+    backBtn: { marginBottom: 24 },
+    backText: { color: colors.textSecondary, fontSize: 15, fontWeight: '600' },
     stepIndicator: { flexDirection: 'row', gap: 8, marginBottom: 24 },
     stepDot: { width: 32, height: 4, borderRadius: 2, backgroundColor: '#2A2A3E' },
     stepDotActive: { backgroundColor: '#E94560', width: 48 },

@@ -4,6 +4,7 @@ import {
   ActivityIndicator, ScrollView,
   Alert, Image, Animated, Dimensions
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
@@ -104,9 +105,18 @@ export default function ProfileScreen({ navigation }) {
     Alert.alert('Çıkış Yap', 'Emin misin?', [
       { text: 'İptal', style: 'cancel' },
       {
-        text: 'Çıkış Yap', style: 'destructive', onPress: () => {
+        text: 'Çıkış Yap', style: 'destructive', onPress: async () => {
+          await AsyncStorage.multiRemove([
+            'authToken', 'userId', 'username', 'userCity',
+            'favoriteGenres', 'isAdmin', 'onboardingCompleted',
+          ]);
           global.authToken = null;
           global.userId = null;
+          global.username = null;
+          global.userCity = null;
+          global.favoriteGenres = null;
+          global.isAdmin = false;
+          global.onboardingCompleted = false;
           navigation.replace('Login');
         }
       }

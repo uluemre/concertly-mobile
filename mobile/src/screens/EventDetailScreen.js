@@ -10,28 +10,7 @@ import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import API from '../services/api';
 import { useTheme } from '../theme';
-
-const GENRE_GRADIENTS = {
-  'Rock':       ['#E94560', '#7C1AED'],
-  'Pop':        ['#FF6B9D', '#C44569'],
-  'Rap':        ['#2C3E50', '#F39C12'],
-  'Elektronik': ['#00D4AA', '#0066CC'],
-  'Jazz':       ['#F5A623', '#8B4513'],
-  'Klasik':     ['#4A0E8F', '#1a237e'],
-  'Indie':      ['#00BCD4', '#2E7D32'],
-  'R&B':        ['#9C27B0', '#E91E63'],
-  'Folk':       ['#8BC34A', '#5D4037'],
-  'Reggae':     ['#43A047', '#FDD835'],
-  'Arabesk':    ['#8B0000', '#DAA520'],
-};
-
-function getGenreGradient(genre) {
-  if (!genre) return ['#E94560', '#7C3AED'];
-  const key = Object.keys(GENRE_GRADIENTS).find(k =>
-    genre.toLowerCase().includes(k.toLowerCase())
-  );
-  return GENRE_GRADIENTS[key] || ['#E94560', '#7C3AED'];
-}
+import { getGenreGradient } from '../utils/gradients';
 
 function getInitials(name) {
   if (!name) return '?';
@@ -127,6 +106,7 @@ export default function EventDetailScreen({ route, navigation }) {
 
   const hasCoordinates =
     event.venueLatitude != null && event.venueLongitude != null;
+  const isExpired = new Date(event.eventDate) < new Date();
 
   const openFriendsModal = () => {
     setFriendsModalVisible(true);
@@ -248,15 +228,9 @@ export default function EventDetailScreen({ route, navigation }) {
             transition={300}
           />
 
-          {imageLoading && !imageError && (
+          {imageLoading && (
             <View style={styles.imageLoadingOverlay}>
               <ActivityIndicator size="large" color="#fff" />
-            </View>
-          )}
-
-          {imageError && (
-            <View style={styles.imageErrorOverlay}>
-              <Text style={styles.imageErrorText}>Resim yüklenemedi</Text>
             </View>
           )}
 
@@ -309,9 +283,9 @@ export default function EventDetailScreen({ route, navigation }) {
         {/* KATILIM BUTONLARI */}
         <View style={styles.attendanceRow}>
           <TouchableOpacity
-            style={[styles.attendBtn, attendance === 'GOING' && styles.attendBtnActive]}
+            style={[styles.attendBtn, attendance === 'GOING' && styles.attendBtnActive, isExpired && styles.attendBtnDisabled]}
             onPress={() => handleAttend('GOING')}
-            disabled={attendLoading}
+            disabled={attendLoading || isExpired}
             activeOpacity={0.8}
           >
             <Text style={styles.attendBtnEmoji}>✅</Text>
@@ -328,9 +302,9 @@ export default function EventDetailScreen({ route, navigation }) {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.attendBtn, attendance === 'INTERESTED' && styles.attendBtnActiveYellow]}
+            style={[styles.attendBtn, attendance === 'INTERESTED' && styles.attendBtnActiveYellow, isExpired && styles.attendBtnDisabled]}
             onPress={() => handleAttend('INTERESTED')}
-            disabled={attendLoading}
+            disabled={attendLoading || isExpired}
             activeOpacity={0.8}
           >
             <Text style={styles.attendBtnEmoji}>⭐</Text>
@@ -474,18 +448,30 @@ export default function EventDetailScreen({ route, navigation }) {
         )}
 
         {/* KONUM DOĞRULAMA BİLGİSİ */}
-        <View style={styles.verifyInfoCard}>
-          <Text style={styles.verifyInfoEmoji}>📍</Text>
-          <View style={styles.verifyInfoText}>
-            <Text style={styles.verifyInfoTitle}>Konum Doğrulama Aktif</Text>
-            <Text style={styles.verifyInfoSub}>
-              Post atabilmek için konser günü mekana 200m yakın olman gerekiyor.
-            </Text>
+        {hasCoordinates && !isExpired && (
+          <View style={styles.verifyInfoCard}>
+            <Text style={styles.verifyInfoEmoji}>📍</Text>
+            <View style={styles.verifyInfoText}>
+              <Text style={styles.verifyInfoTitle}>Konum Doğrulama Aktif</Text>
+              <Text style={styles.verifyInfoSub}>
+                Post atabilmek için konser günü mekana 200m yakın olman gerekiyor.
+              </Text>
+            </View>
           </View>
-        </View>
+        )}
+
+        {isExpired && (
+          <View style={[styles.verifyInfoCard, { backgroundColor: colors.card }]}>
+            <Text style={styles.verifyInfoEmoji}>🗓️</Text>
+            <View style={styles.verifyInfoText}>
+              <Text style={[styles.verifyInfoTitle, { color: colors.textSecondary }]}>Etkinlik Sona Erdi</Text>
+              <Text style={styles.verifyInfoSub}>Bu etkinlik geçmişte kaldı.</Text>
+            </View>
+          </View>
+        )}
 
         {/* BİLET BUTONU */}
-        {event.ticketUrl && (
+        {event.ticketUrl && !isExpired && (
           <TouchableOpacity
             onPress={async () => {
               const supported = await Linking.canOpenURL(event.ticketUrl);
@@ -502,22 +488,24 @@ export default function EventDetailScreen({ route, navigation }) {
         )}
 
         {/* POST AT BUTONU */}
-        {verifying ? (
-          <View style={styles.verifyingContainer}>
-            <ActivityIndicator color={colors.primary} />
-            <Text style={styles.verifyingText}>Konumun doğrulanıyor...</Text>
-          </View>
-        ) : (
-          <TouchableOpacity onPress={handlePostAt} activeOpacity={0.85}>
-            <LinearGradient
-              colors={['#F5A623', '#E94560']}
-              style={styles.actionButton}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            >
-              <Text style={styles.actionButtonText}>🎵 Post At</Text>
-            </LinearGradient>
-          </TouchableOpacity>
+        {!isExpired && (
+          verifying ? (
+            <View style={styles.verifyingContainer}>
+              <ActivityIndicator color={colors.primary} />
+              <Text style={styles.verifyingText}>Konumun doğrulanıyor...</Text>
+            </View>
+          ) : (
+            <TouchableOpacity onPress={handlePostAt} activeOpacity={0.85}>
+              <LinearGradient
+                colors={['#F5A623', '#E94560']}
+                style={styles.actionButton}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              >
+                <Text style={styles.actionButtonText}>🎵 Post At</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          )
         )}
 
       </View>
@@ -620,6 +608,7 @@ function createStyles(colors) {
     },
     attendBtnActive: { backgroundColor: colors.accent + '26', borderColor: colors.accent },
     attendBtnActiveYellow: { backgroundColor: colors.secondary + '26', borderColor: colors.secondary },
+    attendBtnDisabled: { opacity: 0.4 },
     attendBtnEmoji: { fontSize: 18 },
     attendBtnText: { fontSize: 14, fontWeight: '800', color: colors.textSecondary },
     attendBtnCount: { fontSize: 11, fontWeight: '600', color: colors.textSecondary, marginTop: 2 },
@@ -779,11 +768,5 @@ function createStyles(colors) {
       backgroundColor: 'rgba(0,0,0,0.5)',
       justifyContent: 'center', alignItems: 'center',
     },
-    imageErrorOverlay: {
-      position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: 'rgba(0,0,0,0.7)',
-      justifyContent: 'center', alignItems: 'center',
-    },
-    imageErrorText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   });
 }

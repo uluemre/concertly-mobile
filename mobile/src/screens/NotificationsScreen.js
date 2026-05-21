@@ -17,7 +17,7 @@ function timeAgo(dateStr) {
   const diff = (Date.now() - new Date(dateStr)) / 1000;
   if (diff < 60) return 'Az önce';
   if (diff < 3600) return `${Math.floor(diff / 60)}dk önce`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}s önce`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}sa önce`;
   return `${Math.floor(diff / 86400)}g önce`;
 }
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ActivityIndicator,
   TouchableOpacity, RefreshControl, FlatList,
@@ -107,6 +107,37 @@ export default function EventsScreen({ navigation }) {
     return list;
   }, [events, search, selectedGenre, sortKey, startDate, endDate]);
 
+  const renderItem = useCallback(({ item, index }) => (
+    <TouchableOpacity
+      style={[styles.cardWrapper, { backgroundColor: colors.card, borderColor: colors.border }]}
+      onPress={() => navigation.navigate('EventDetail', { event: item })}
+      activeOpacity={0.85}
+    >
+      {item.imageUrl ? (
+        <Image source={{ uri: item.imageUrl }} style={styles.cardImage} contentFit="cover" />
+      ) : (
+        <LinearGradient colors={gradientSets[index % gradientSets.length]} style={styles.cardImage} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+          <Text style={styles.cardEmoji}>{eventEmojis[index % eventEmojis.length]}</Text>
+        </LinearGradient>
+      )}
+      <View style={styles.datePill}>
+        <Text style={styles.datePillText}>
+          {new Date(item.eventDate).getDate()} {new Date(item.eventDate).toLocaleDateString('tr-TR', { month: 'short' })}
+        </Text>
+      </View>
+      <View style={styles.cardBody}>
+        <Text style={[styles.cardName, { color: colors.text }]} numberOfLines={2}>{item.name}</Text>
+        {item.artistName && <Text style={[styles.cardArtist, { color: colors.textSecondary }]} numberOfLines={1}>🎤 {item.artistName}</Text>}
+        {item.venueCity && <Text style={[styles.cardCity, { color: colors.textSecondary }]} numberOfLines={1}>📍 {item.venueCity}</Text>}
+        {item.genre && (
+          <View style={[styles.genrePill, { backgroundColor: colors.primary + '22' }]}>
+            <Text style={[styles.genrePillText, { color: colors.primary }]}>{item.genre}</Text>
+          </View>
+        )}
+      </View>
+    </TouchableOpacity>
+  ), [styles, colors, navigation]);
+
   if (loading) return (
     <View style={styles.loadingContainer}>
       <ActivityIndicator size="large" color={colors.primary} />
@@ -165,37 +196,7 @@ export default function EventsScreen({ navigation }) {
         columnWrapperStyle={styles.row}
         contentContainerStyle={styles.list}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
-        renderItem={({ item, index }) => (
-          <TouchableOpacity
-            style={[styles.cardWrapper, { backgroundColor: colors.card, borderColor: colors.border }]}
-            onPress={() => navigation.navigate('EventDetail', { event: item })}
-            activeOpacity={0.85}
-          >
-            {item.imageUrl ? (
-              <Image source={{ uri: item.imageUrl }} style={styles.cardImage} contentFit="cover" />
-            ) : (
-              <LinearGradient colors={gradientSets[index % gradientSets.length]} style={styles.cardImage} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-                <Text style={styles.cardEmoji}>{eventEmojis[index % eventEmojis.length]}</Text>
-              </LinearGradient>
-            )}
-            <View style={styles.datePill}>
-              <Text style={styles.datePillText}>
-                {new Date(item.eventDate).getDate()} {new Date(item.eventDate).toLocaleDateString('tr-TR', { month: 'short' })}
-              </Text>
-            </View>
-
-            <View style={styles.cardBody}>
-              <Text style={[styles.cardName, { color: colors.text }]} numberOfLines={2}>{item.name}</Text>
-              {item.artistName && <Text style={[styles.cardArtist, { color: colors.textSecondary }]} numberOfLines={1}>🎤 {item.artistName}</Text>}
-              {item.venueCity && <Text style={[styles.cardCity, { color: colors.textSecondary }]} numberOfLines={1}>📍 {item.venueCity}</Text>}
-              {item.genre && (
-                <View style={[styles.genrePill, { backgroundColor: colors.primary + '22' }]}>
-                  <Text style={[styles.genrePillText, { color: colors.primary }]}>{item.genre}</Text>
-                </View>
-              )}
-            </View>
-          </TouchableOpacity>
-        )}
+        renderItem={renderItem}
         ListEmptyComponent={
           <View style={styles.empty}>
             <Text style={styles.emptyEmoji}>🎭</Text>

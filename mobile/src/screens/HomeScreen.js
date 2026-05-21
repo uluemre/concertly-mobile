@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useRef } from 'react';
+import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ActivityIndicator,
   TouchableOpacity, ScrollView, TextInput,
@@ -8,32 +8,11 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import API from '../services/api';
 import { useTheme } from '../theme';
+import { getGenreGradient } from '../utils/gradients';
 
 const { width, height } = Dimensions.get('window');
 const FEATURED_CARD_WIDTH = width * 0.78;
 const FEATURED_CARD_HEIGHT = 240;
-
-const GENRE_GRADIENTS = {
-  'Rock':       ['#E94560', '#7C1AED'],
-  'Pop':        ['#FF6B9D', '#C44569'],
-  'Rap':        ['#2C3E50', '#F39C12'],
-  'Elektronik': ['#00D4AA', '#0066CC'],
-  'Jazz':       ['#F5A623', '#8B4513'],
-  'Klasik':     ['#4A0E8F', '#1a237e'],
-  'Indie':      ['#00BCD4', '#2E7D32'],
-  'R&B':        ['#9C27B0', '#E91E63'],
-  'Folk':       ['#8BC34A', '#5D4037'],
-  'Reggae':     ['#43A047', '#FDD835'],
-  'Arabesk':    ['#8B0000', '#DAA520'],
-};
-
-function getGenreGradient(genre) {
-  if (!genre) return ['#E94560', '#7C3AED'];
-  const key = Object.keys(GENRE_GRADIENTS).find(k =>
-    genre.toLowerCase().includes(k.toLowerCase())
-  );
-  return GENRE_GRADIENTS[key] || ['#E94560', '#7C3AED'];
-}
 
 function getInitials(name) {
   if (!name) return '?';
@@ -78,7 +57,7 @@ function formatDate(dateStr) {
 }
 
 // ── FEATURED CARD ──────────────────────────────────────────────────────────
-function FeaturedCard({ item, index, onPress, styles }) {
+const FeaturedCard = React.memo(function FeaturedCard({ item, index, onPress, styles }) {
   const scale = useRef(new Animated.Value(0.92)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const [imgError, setImgError] = React.useState(false);
@@ -173,10 +152,10 @@ function FeaturedCard({ item, index, onPress, styles }) {
       </TouchableOpacity>
     </Animated.View>
   );
-}
+});
 
 // ── LIST ROW CARD ──────────────────────────────────────────────────────────
-function EventRow({ item, index, onPress, styles }) {
+const EventRow = React.memo(function EventRow({ item, index, onPress, styles }) {
   const translateX = useRef(new Animated.Value(-24)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const [thumbError, setThumbError] = React.useState(false);
@@ -246,10 +225,10 @@ function EventRow({ item, index, onPress, styles }) {
       </TouchableOpacity>
     </Animated.View>
   );
-}
+});
 
 // ── POST CARD ──────────────────────────────────────────────────────────────
-function PostCard({ item, index, styles, navigation }) {
+const PostCard = React.memo(function PostCard({ item, index, styles, navigation }) {
   const accent = accentColors[index % accentColors.length];
 
   const timeAgo = (dateStr) => {
@@ -291,7 +270,7 @@ function PostCard({ item, index, styles, navigation }) {
       </View>
     </TouchableOpacity>
   );
-}
+});
 
 // ── MAIN SCREEN ────────────────────────────────────────────────────────────
 export default function HomeScreen({ navigation }) {
@@ -363,26 +342,41 @@ export default function HomeScreen({ navigation }) {
     fetchData(city);
   };
 
-  const activeCategoryLabel = categories.find(c => c.id === activeCategory)?.label || 'Tümü';
-  const activeCategoryColor = categories.find(c => c.id === activeCategory)?.color || colors.primary;
+  const activeCategoryLabel = useMemo(
+    () => categories.find(c => c.id === activeCategory)?.label || 'Tümü',
+    [activeCategory]
+  );
+  const activeCategoryColor = useMemo(
+    () => categories.find(c => c.id === activeCategory)?.color || colors.primary,
+    [activeCategory, colors.primary]
+  );
 
-  const filteredEvents = events.filter(e => {
-    const matchSearch =
-      !search.trim() ||
-      e.name?.toLowerCase().includes(search.toLowerCase()) ||
-      e.artistName?.toLowerCase().includes(search.toLowerCase()) ||
-      e.venueCity?.toLowerCase().includes(search.toLowerCase());
-    return matchSearch && matchesCategory(e, activeCategoryLabel);
-  });
+  const filteredEvents = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return events.filter(e => {
+      const matchSearch =
+        !q ||
+        e.name?.toLowerCase().includes(q) ||
+        e.artistName?.toLowerCase().includes(q) ||
+        e.venueCity?.toLowerCase().includes(q);
+      return matchSearch && matchesCategory(e, activeCategoryLabel);
+    });
+  }, [events, search, activeCategoryLabel]);
 
-  const filteredPosts = posts.filter(p => {
-    if (!search.trim()) return true;
-    return (
-      p.content?.toLowerCase().includes(search.toLowerCase()) ||
-      p.username?.toLowerCase().includes(search.toLowerCase()) ||
-      p.eventName?.toLowerCase().includes(search.toLowerCase())
+  const filteredPosts = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return posts;
+    return posts.filter(p =>
+      p.content?.toLowerCase().includes(q) ||
+      p.username?.toLowerCase().includes(q) ||
+      p.eventName?.toLowerCase().includes(q)
     );
-  });
+  }, [posts, search]);
+
+  const handleNavigateToEvent = useCallback(
+    ev => navigation.navigate('EventDetail', { event: ev }),
+    [navigation]
+  );
 
   if (loading) return (
     <View style={styles.loadingScreen}>
@@ -528,7 +522,7 @@ export default function HomeScreen({ navigation }) {
                 <FeaturedCard
                   item={item}
                   index={index}
-                  onPress={ev => navigation.navigate('EventDetail', { event: ev })}
+                  onPress={handleNavigateToEvent}
                   styles={styles}
                 />
               )}
@@ -550,7 +544,7 @@ export default function HomeScreen({ navigation }) {
                 key={`row-${item.id}`}
                 item={item}
                 index={index}
-                onPress={ev => navigation.navigate('EventDetail', { event: ev })}
+                onPress={handleNavigateToEvent}
                 styles={styles}
               />
             ))}

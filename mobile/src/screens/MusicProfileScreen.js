@@ -80,7 +80,14 @@ export default function MusicProfileScreen({ navigation }) {
         </TouchableOpacity>
         <Text style={styles.headerEmoji}>✨</Text>
         <Text style={styles.headerTitle}>Müzik Profilim</Text>
-        <Text style={styles.headerSub}>Onboarding'de seçtiğin zevkler</Text>
+        <Text style={styles.headerSub}>Tür ve sanatçı tercihlerini yönet</Text>
+        <TouchableOpacity
+          style={styles.editBtn}
+          onPress={() => navigation.navigate('GenreSelection', { editMode: true })}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.editBtnText}>✏️ Güncelle</Text>
+        </TouchableOpacity>
       </LinearGradient>
 
       <View style={styles.content}>
@@ -143,7 +150,7 @@ export default function MusicProfileScreen({ navigation }) {
             <View style={styles.emptyLarge}>
               <Text style={styles.emptyEmoji}>🎤</Text>
               <Text style={styles.emptyTitle}>Henüz sanatçı takip edilmiyor</Text>
-              <Text style={styles.emptySub}>Onboarding'de sanatçı seçersen burada görünür</Text>
+              <Text style={styles.emptySub}>Güncelle butonuna basarak sanatçı takip edebilirsin</Text>
             </View>
           ) : (
             <View style={styles.artistGrid}>
@@ -228,7 +235,14 @@ function createStyles(colors) {
     backText: { color: 'rgba(255,255,255,0.8)', fontSize: 15, fontWeight: '600' },
     headerEmoji: { fontSize: 40, marginBottom: 10 },
     headerTitle: { fontSize: 28, fontWeight: '900', color: '#fff', marginBottom: 6 },
-    headerSub: { fontSize: 14, color: 'rgba(255,255,255,0.75)' },
+    headerSub: { fontSize: 14, color: 'rgba(255,255,255,0.75)', marginBottom: 16 },
+    editBtn: {
+      alignSelf: 'flex-start',
+      backgroundColor: 'rgba(255,255,255,0.15)',
+      borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)',
+      paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20,
+    },
+    editBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
 
     content: { padding: 20 },
 

@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Text } from 'react-native';
+import { Text, View, ActivityIndicator } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import API from '../services/api';
 
 import LoginScreen from '../screens/LoginScreen';
@@ -123,10 +124,43 @@ function TabNavigator() {
 }
 
 export default function AppNavigator() {
+  const [isReady, setIsReady] = useState(false);
+  const [initialRoute, setInitialRoute] = useState('Login');
+
+  useEffect(() => {
+    AsyncStorage.multiGet([
+      'authToken', 'userId', 'username', 'userCity',
+      'favoriteGenres', 'isAdmin', 'onboardingCompleted',
+    ])
+      .then(pairs => {
+        const data = Object.fromEntries(pairs);
+        if (data.authToken && data.userId) {
+          global.authToken = data.authToken;
+          global.userId = parseInt(data.userId);
+          global.username = data.username || '';
+          global.userCity = data.userCity || '';
+          global.favoriteGenres = data.favoriteGenres || '';
+          global.isAdmin = data.isAdmin === 'true';
+          global.onboardingCompleted = data.onboardingCompleted === 'true';
+          setInitialRoute('MainApp');
+        }
+      })
+      .catch(() => {})
+      .finally(() => setIsReady(true));
+  }, []);
+
+  if (!isReady) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#0A0A14', justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#E94560" />
+      </View>
+    );
+  }
+
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName={'Login'}
+        initialRouteName={initialRoute}
         screenOptions={{ headerShown: false }}
       >
         {/* ONBOARDING (legacy — replaced by GenreSelection) */}

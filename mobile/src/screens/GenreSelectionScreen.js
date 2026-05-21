@@ -23,10 +23,15 @@ const GENRES = [
   { name: 'Classical', emoji: '🎻', accent: '#7C3AED' },
 ];
 
-export default function GenreSelectionScreen({ navigation }) {
+export default function GenreSelectionScreen({ navigation, route }) {
+  const editMode = route.params?.editMode ?? false;
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const [selectedGenres, setSelectedGenres] = useState([]);
+
+  const initialGenres = editMode && global.favoriteGenres
+    ? global.favoriteGenres.split(',').map(g => g.trim()).filter(Boolean)
+    : [];
+  const [selectedGenres, setSelectedGenres] = useState(initialGenres);
   const buttonPulse = useRef(new Animated.Value(1)).current;
 
   const canContinue = selectedGenres.length >= 3;
@@ -53,10 +58,16 @@ export default function GenreSelectionScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <View style={styles.inner}>
-        <View style={styles.stepIndicator}>
-          <View style={[styles.stepDot, styles.stepDotActive]} />
-          <View style={styles.stepDot} />
-        </View>
+        {editMode ? (
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Text style={styles.backText}>← Geri</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.stepIndicator}>
+            <View style={[styles.stepDot, styles.stepDotActive]} />
+            <View style={styles.stepDot} />
+          </View>
+        )}
 
         <Text style={styles.title}>Hangi müzik türlerini seviyorsun?</Text>
         <Text style={styles.subtitle}>
@@ -91,6 +102,7 @@ export default function GenreSelectionScreen({ navigation }) {
             disabled={!canContinue}
             onPress={() => navigation.navigate('ArtistSelection', {
               selectedGenres,
+              editMode,
             })}
           >
             <LinearGradient
@@ -118,6 +130,8 @@ function createStyles(colors) {
       paddingTop: 60,
       paddingHorizontal: 20,
     },
+    backBtn: { marginBottom: 24 },
+    backText: { color: colors.textSecondary, fontSize: 15, fontWeight: '600' },
     stepIndicator: {
       flexDirection: 'row',
       gap: 8,

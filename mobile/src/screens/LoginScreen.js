@@ -5,6 +5,7 @@ import {
   KeyboardAvoidingView, Platform, Image
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import API from '../services/api';
 import { useTheme } from '../theme';
 
@@ -70,11 +71,17 @@ export default function LoginScreen({ navigation }) {
       global.onboardingCompleted = res.data.onboardingCompleted;
       global.isAdmin = res.data.isAdmin === true;
 
-      if (!res.data.onboardingCompleted) {
-        navigation.replace('GenreSelection');
-      } else {
-        navigation.replace('Welcome', { username: res.data.username });
-      }
+      await AsyncStorage.multiSet([
+        ['authToken', res.data.accessToken],
+        ['userId', String(res.data.userId)],
+        ['username', res.data.username || ''],
+        ['userCity', res.data.city || ''],
+        ['favoriteGenres', res.data.favoriteGenres || ''],
+        ['isAdmin', String(res.data.isAdmin === true)],
+        ['onboardingCompleted', String(!!res.data.onboardingCompleted)],
+      ]);
+
+      navigation.replace('Welcome', { username: res.data.username });
     } catch (err) {
       Alert.alert('Hata', 'Email veya şifre hatalı.');
     } finally {

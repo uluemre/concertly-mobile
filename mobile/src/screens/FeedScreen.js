@@ -19,7 +19,7 @@ const gradientSets = [
 ];
 
 // ── Tek Post Kartı ──────────────────────────────────────────────────────────
-function PostCard({ item, index, currentUserId, navigation, styles, colors, onLike, onUnlike }) {
+const PostCard = React.memo(function PostCard({ item, index, currentUserId, navigation, styles, colors, onLike, onUnlike }) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const heartAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(40)).current;
@@ -183,7 +183,7 @@ function PostCard({ item, index, currentUserId, navigation, styles, colors, onLi
       />
     </Animated.View>
   );
-}
+});
 
 // ── Anket Kartı ─────────────────────────────────────────────────────────────
 function PollCard({ postId, options: initialOptions, styles, colors }) {

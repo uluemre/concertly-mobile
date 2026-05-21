@@ -15,7 +15,7 @@ function getBaseUrl() {
 
 const BASE_URL = getBaseUrl();
 
-console.log('API Base URL:', BASE_URL);
+if (__DEV__) console.log('API Base URL:', BASE_URL);
 
 const API = axios.create({
   baseURL: BASE_URL,
@@ -23,7 +23,7 @@ const API = axios.create({
 });
 
 API.interceptors.request.use(async (config) => {
-  console.log('İSTEK:', config.method?.toUpperCase(), config.url);
+  if (__DEV__) console.log('İSTEK:', config.method?.toUpperCase(), config.url);
   const token = global.authToken;
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
