@@ -70,6 +70,7 @@ export default function EventDetailScreen({ route, navigation }) {
   const [bookmarkLoading, setBookmarkLoading] = useState(false);
   const friendsSlideAnim = useRef(new Animated.Value(400)).current;
   const [imageError, setImageError] = useState(false);
+  const [useFallbackImage, setUseFallbackImage] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
 
   useEffect(() => {
@@ -228,14 +229,21 @@ export default function EventDetailScreen({ route, navigation }) {
     <>
     <ScrollView style={styles.container}>
       {/* HERO */}
-      {event.imageUrl && !imageError ? (
+      {(event.imageUrl || event.artistImageUrl) && !imageError ? (
         <View>
           <Image
-            source={{ uri: event.imageUrl }}
+            source={{ uri: useFallbackImage ? event.artistImageUrl : (event.imageUrl || event.artistImageUrl) }}
             style={styles.heroImage}
             contentFit="cover"
             placeholder={require('../../assets/icon.png')}
-            onError={() => { setImageError(true); setImageLoading(false); }}
+            onError={() => {
+              if (!useFallbackImage && event.artistImageUrl && event.artistImageUrl !== event.imageUrl) {
+                setUseFallbackImage(true);
+              } else {
+                setImageError(true);
+              }
+              setImageLoading(false);
+            }}
             onLoad={() => setImageLoading(false)}
             onLoadStart={() => setImageLoading(true)}
             cachePolicy="memory-disk"

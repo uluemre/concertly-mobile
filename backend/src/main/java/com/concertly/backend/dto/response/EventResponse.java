@@ -55,7 +55,6 @@ public class EventResponse {
 
         // 🔥 EVENT EXTRA
         dto.genre = event.getGenre();
-        dto.imageUrl = event.getImageUrl();
         dto.ticketUrl = event.getTicketUrl();
 
         // 🎤 ARTIST
@@ -63,10 +62,18 @@ public class EventResponse {
             dto.artistId = event.getArtist().getId();
             dto.artistName = event.getArtist().getName();
             dto.artistImageUrl = event.getArtist().getImageUrl();
-
-            // 🔥 YENİ
             dto.artistGenre = event.getArtist().getGenre();
             dto.artistSpotifyId = event.getArtist().getSpotifyId();
+        }
+
+        // Sanatçı görseli (Deezer/Spotify CDN) her zaman öncelikli;
+        // yoksa etkinliğin kendi görseline (TM) düş.
+        String eventImg = event.getImageUrl();
+        String artistImg = dto.artistImageUrl;
+        if (artistImg != null && !artistImg.isBlank()) {
+            dto.imageUrl = artistImg;
+        } else if (eventImg != null && !eventImg.isBlank()) {
+            dto.imageUrl = eventImg;
         }
 
         // 📍 VENUE

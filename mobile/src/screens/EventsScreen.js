@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, ActivityIndicator,
   TouchableOpacity, RefreshControl, FlatList,
@@ -20,6 +20,48 @@ const gradientSets = [
 ];
 
 const eventEmojis = ['🎸', '🎤', '🥁', '🎹', '🎺', '🎻', '🎪', '🎭'];
+
+function CardImage({ item, index, cardImageStyle }) {
+  const [failed, setFailed] = useState(false);
+  const triedFallback = useRef(false);
+
+  const primary = item.imageUrl;
+  const fallback = item.artistImageUrl;
+
+  let uri = null;
+  if (!failed && primary) {
+    uri = primary;
+  } else if (fallback && fallback !== primary) {
+    uri = fallback;
+  }
+
+  if (uri) {
+    return (
+      <Image
+        source={{ uri }}
+        style={cardImageStyle}
+        contentFit="cover"
+        onError={() => {
+          if (!triedFallback.current) {
+            triedFallback.current = true;
+            setFailed(true);
+          }
+        }}
+      />
+    );
+  }
+
+  return (
+    <LinearGradient
+      colors={gradientSets[index % gradientSets.length]}
+      style={cardImageStyle}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+    >
+      <Text style={{ fontSize: 40 }}>{eventEmojis[index % eventEmojis.length]}</Text>
+    </LinearGradient>
+  );
+}
 
 const CITIES = ['Tümü', 'İstanbul', 'Ankara', 'İzmir', 'Bursa', 'Antalya', 'Adana', 'Konya', 'Gaziantep', 'Mersin', 'Eskişehir'];
 const GENRES = ['Tümü', 'Rock', 'Pop', 'Rap', 'Elektronik', 'Jazz', 'Klasik', 'Indie', 'R&B', 'Folk'];
@@ -113,13 +155,7 @@ export default function EventsScreen({ navigation }) {
       onPress={() => navigation.navigate('EventDetail', { event: item })}
       activeOpacity={0.85}
     >
-      {item.imageUrl ? (
-        <Image source={{ uri: item.imageUrl }} style={styles.cardImage} contentFit="cover" />
-      ) : (
-        <LinearGradient colors={gradientSets[index % gradientSets.length]} style={styles.cardImage} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-          <Text style={styles.cardEmoji}>{eventEmojis[index % eventEmojis.length]}</Text>
-        </LinearGradient>
-      )}
+      <CardImage item={item} index={index} cardImageStyle={styles.cardImage} />
       <View style={styles.datePill}>
         <Text style={styles.datePillText}>
           {new Date(item.eventDate).getDate()} {new Date(item.eventDate).toLocaleDateString('tr-TR', { month: 'short' })}
