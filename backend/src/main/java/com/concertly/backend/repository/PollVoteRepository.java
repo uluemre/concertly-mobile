@@ -8,4 +8,5 @@ import java.util.Optional;
 public interface PollVoteRepository extends JpaRepository<PollVote, Long> {
     Optional<PollVote> findByUserIdAndPostId(Long userId, Long postId);
     long countByPollOptionId(Long pollOptionId);
+    void deleteByPostId(Long postId);
 }

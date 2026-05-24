@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/posts")
@@ -57,5 +58,18 @@ public class PostController {
     public void unlikePost(@PathVariable Long postId) {
         Long userId = JwtUtil.getCurrentUserId();
         postService.unlikePost(userId, postId);
+    }
+
+    @DeleteMapping("/{postId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deletePost(@PathVariable Long postId) {
+        Long userId = JwtUtil.getCurrentUserId();
+        postService.deletePost(userId, postId);
+    }
+
+    @PatchMapping("/{postId}")
+    public PostResponse updatePost(@PathVariable Long postId, @RequestBody Map<String, String> body) {
+        Long userId = JwtUtil.getCurrentUserId();
+        return postService.updatePost(userId, postId, body.get("content"));
     }
 }

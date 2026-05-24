@@ -3,7 +3,7 @@ import {
   View, Text, TouchableOpacity, StyleSheet,
   ActivityIndicator, FlatList, Animated,
   TextInput, KeyboardAvoidingView, Platform,
-  Modal, Alert, RefreshControl, Dimensions, Image
+  Modal, Alert, RefreshControl, Dimensions, Image, Share
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import API from '../services/api';
@@ -19,7 +19,7 @@ const gradientSets = [
 ];
 
 // ── Tek Post Kartı ──────────────────────────────────────────────────────────
-const PostCard = React.memo(function PostCard({ item, index, currentUserId, navigation, styles, colors, onLike, onUnlike }) {
+const PostCard = React.memo(function PostCard({ item, index, currentUserId, navigation, styles, colors, onLike, onUnlike, onDelete, onEdit }) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const heartAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(40)).current;
@@ -29,6 +29,63 @@ const PostCard = React.memo(function PostCard({ item, index, currentUserId, navi
   const [likeCount, setLikeCount] = useState(item.likeCount || 0);
   const [likeLoading, setLikeLoading] = useState(false);
   const [showComments, setShowComments] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editText, setEditText] = useState(item.content || '');
+  const [editSaving, setEditSaving] = useState(false);
+
+  const isOwner = item.userId === currentUserId;
+
+  const handleOptions = () => {
+    Alert.alert('Post İşlemleri', null, [
+      { text: 'Düzenle', onPress: () => { setEditText(item.content || ''); setShowEditModal(true); } },
+      { text: 'Sil', style: 'destructive', onPress: handleDelete },
+      { text: 'İptal', style: 'cancel' },
+    ]);
+  };
+
+  const handleDelete = () => {
+    Alert.alert('Postu Sil', 'Bu postu silmek istediğine emin misin?', [
+      { text: 'İptal', style: 'cancel' },
+      {
+        text: 'Sil', style: 'destructive', onPress: async () => {
+          try {
+            await API.delete(`/posts/${item.id}`);
+            onDelete?.(item.id);
+          } catch {
+            Alert.alert('Hata', 'Post silinemedi.');
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleShare = async () => {
+    try {
+      const event = item.eventName ? `🎵 ${item.eventName}` : '';
+      const content = item.content ? `"${item.content}"` : '';
+      const author = `— @${item.username}`;
+      const message = [event, content, author].filter(Boolean).join('\n');
+      await Share.share({ message });
+    } catch (err) {
+      if (err.message !== 'The user did not share') {
+        Alert.alert('Hata', 'Paylaşım başarısız.');
+      }
+    }
+  };
+
+  const handleEditSave = async () => {
+    if (!editText.trim()) return;
+    setEditSaving(true);
+    try {
+      const res = await API.patch(`/posts/${item.id}`, { content: editText.trim() });
+      onEdit?.(item.id, res.data.content);
+      setShowEditModal(false);
+    } catch {
+      Alert.alert('Hata', 'Post düzenlenemedi.');
+    } finally {
+      setEditSaving(false);
+    }
+  };
 
   useEffect(() => {
     Animated.parallel([
@@ -109,29 +166,66 @@ const PostCard = React.memo(function PostCard({ item, index, currentUserId, navi
       ]}>❤️</Animated.Text>
 
       {/* KULLANICI BAŞLIĞI */}
-      <TouchableOpacity style={styles.postHeader} onPress={goToUserProfile} activeOpacity={0.75}>
-        <LinearGradient
-          colors={gradientSets[index % gradientSets.length]}
-          style={styles.avatar}
-        >
-          {item.userProfileImageUrl ? (
-            <Image source={{ uri: item.userProfileImageUrl }} style={styles.avatarImage} />
-          ) : (
-            <Text style={styles.avatarText}>
-              {item.username?.charAt(0).toUpperCase() || '?'}
-            </Text>
+      <View style={styles.postHeader}>
+        <TouchableOpacity style={styles.postHeaderLeft} onPress={goToUserProfile} activeOpacity={0.75}>
+          <LinearGradient
+            colors={gradientSets[index % gradientSets.length]}
+            style={styles.avatar}
+          >
+            {item.userProfileImageUrl ? (
+              <Image source={{ uri: item.userProfileImageUrl }} style={styles.avatarImage} />
+            ) : (
+              <Text style={styles.avatarText}>
+                {item.username?.charAt(0).toUpperCase() || '?'}
+              </Text>
+            )}
+          </LinearGradient>
+
+          <View style={styles.headerInfo}>
+            <Text style={styles.username}>@{item.username}</Text>
+            <Text style={styles.eventTag}>🎵 {item.eventName || 'Etkinlik'}</Text>
+          </View>
+        </TouchableOpacity>
+
+        <View style={styles.postHeaderRight}>
+          <Text style={styles.postTime}>{formatTime(item.createdAt)}</Text>
+          {isOwner && (
+            <TouchableOpacity onPress={handleOptions} style={styles.optionsBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Text style={styles.optionsIcon}>⋯</Text>
+            </TouchableOpacity>
           )}
-        </LinearGradient>
-
-        <View style={styles.headerInfo}>
-          <Text style={styles.username}>@{item.username}</Text>
-          <Text style={styles.eventTag}>🎵 {item.eventName || 'Etkinlik'}</Text>
         </View>
+      </View>
 
-        <Text style={styles.postTime}>
-          {formatTime(item.createdAt)}
-        </Text>
-      </TouchableOpacity>
+      {/* DÜZENLEME MODALI */}
+      <Modal visible={showEditModal} transparent animationType="fade" onRequestClose={() => setShowEditModal(false)}>
+        <TouchableOpacity style={styles.editOverlay} activeOpacity={1} onPress={() => setShowEditModal(false)} />
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.editSheetWrapper}>
+          <View style={[styles.editSheet, { backgroundColor: colors.card }]}>
+            <Text style={[styles.editTitle, { color: colors.text }]}>Postu Düzenle</Text>
+            <TextInput
+              style={[styles.editInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
+              value={editText}
+              onChangeText={setEditText}
+              multiline
+              autoFocus
+              placeholderTextColor={colors.textSecondary}
+            />
+            <View style={styles.editActions}>
+              <TouchableOpacity style={[styles.editBtn, { backgroundColor: colors.border }]} onPress={() => setShowEditModal(false)}>
+                <Text style={[styles.editBtnText, { color: colors.text }]}>İptal</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.editBtn, { backgroundColor: colors.primary, opacity: editSaving ? 0.6 : 1 }]}
+                onPress={handleEditSave}
+                disabled={editSaving}
+              >
+                <Text style={[styles.editBtnText, { color: '#fff' }]}>{editSaving ? 'Kaydediliyor...' : 'Kaydet'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
 
       {/* İÇERİK */}
       {item.content ? <Text style={styles.postContent}>{item.content}</Text> : null}
@@ -166,7 +260,7 @@ const PostCard = React.memo(function PostCard({ item, index, currentUserId, navi
           <Text style={styles.actionCount}>{item.commentCount || 0}</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.actionBtn} activeOpacity={0.7}>
+        <TouchableOpacity style={styles.actionBtn} onPress={handleShare} activeOpacity={0.7}>
           <Text style={styles.actionIcon}>🔗</Text>
           <Text style={styles.actionCount}>Paylaş</Text>
         </TouchableOpacity>
@@ -426,6 +520,14 @@ export default function FeedScreen({ navigation }) {
     fetchPosts();
   };
 
+  const handleDeletePost = useCallback((postId) => {
+    setPosts(prev => prev.filter(p => p.id !== postId));
+  }, []);
+
+  const handleEditPost = useCallback((postId, newContent) => {
+    setPosts(prev => prev.map(p => p.id === postId ? { ...p, content: newContent } : p));
+  }, []);
+
   const renderPost = useCallback(({ item, index }) => (
     <PostCard
       item={item}
@@ -434,8 +536,10 @@ export default function FeedScreen({ navigation }) {
       navigation={navigation}
       styles={styles}
       colors={colors}
+      onDelete={handleDeletePost}
+      onEdit={handleEditPost}
     />
-  ), [navigation, styles, colors]);
+  ), [navigation, styles, colors, handleDeletePost, handleEditPost]);
 
   return (
     <View style={styles.container}>
@@ -584,6 +688,19 @@ function createStyles(colors) {
       marginBottom: 12,
       gap: 10,
     },
+    postHeaderLeft: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    postHeaderRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    optionsBtn: { padding: 4 },
+    optionsIcon: { fontSize: 20, color: colors.textSecondary, letterSpacing: 1 },
     avatar: {
       width: 44,
       height: 44,
@@ -598,6 +715,22 @@ function createStyles(colors) {
     username: { fontSize: 14, fontWeight: 'bold', color: colors.text },
     eventTag: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
     postTime: { fontSize: 11, color: colors.textSecondary },
+    editOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' },
+    editSheetWrapper: { position: 'absolute', bottom: 0, left: 0, right: 0 },
+    editSheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 36 },
+    editTitle: { fontSize: 16, fontWeight: '800', marginBottom: 14 },
+    editInput: {
+      borderWidth: 1,
+      borderRadius: 12,
+      padding: 12,
+      fontSize: 15,
+      minHeight: 100,
+      textAlignVertical: 'top',
+      marginBottom: 14,
+    },
+    editActions: { flexDirection: 'row', gap: 10 },
+    editBtn: { flex: 1, paddingVertical: 13, borderRadius: 12, alignItems: 'center' },
+    editBtnText: { fontSize: 15, fontWeight: '700' },
 
     // POST İÇERİK
     postContent: {

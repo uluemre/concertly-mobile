@@ -9,7 +9,6 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
 
     // Post'a ait yorumları en yeniden en eskiye sırala
     List<Comment> findByPostIdOrderByCreatedAtDesc(Long postId);
-
-    // Post'un yorum sayısını say (commentCount güncellemek için alternatif)
     long countByPostId(Long postId);
+    void deleteByPostId(Long postId);
 }

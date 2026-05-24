@@ -1,7 +1,8 @@
 import React, { useState, useRef, useMemo, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ActivityIndicator, ScrollView,
+  ActivityIndicator, ScrollView, Modal, TextInput,
+  KeyboardAvoidingView, Platform,
   Alert, Image, Animated, Dimensions
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -34,6 +35,9 @@ export default function ProfileScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('posts');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [editingPost, setEditingPost] = useState(null);
+  const [editText, setEditText] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useFocusEffect(
@@ -132,7 +136,51 @@ export default function ProfileScreen({ navigation }) {
     </View>
   );
 
+  const handleEditSave = async () => {
+    if (!editText.trim() || !editingPost) return;
+    setEditSaving(true);
+    try {
+      const res = await API.patch(`/posts/${editingPost.id}`, { content: editText.trim() });
+      setPosts(prev => prev.map(p => p.id === editingPost.id ? { ...p, content: res.data.content } : p));
+      setEditingPost(null);
+    } catch {
+      Alert.alert('Hata', 'Post düzenlenemedi.');
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
   return (
+    <>
+    <Modal visible={!!editingPost} transparent animationType="fade" onRequestClose={() => setEditingPost(null)}>
+      <TouchableOpacity style={styles.editOverlay} activeOpacity={1} onPress={() => setEditingPost(null)} />
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.editSheetWrapper}>
+        <View style={[styles.editSheet, { backgroundColor: colors.card }]}>
+          <Text style={[styles.editTitle, { color: colors.text }]}>Postu Düzenle</Text>
+          <TextInput
+            style={[styles.editInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
+            value={editText}
+            onChangeText={setEditText}
+            multiline
+            autoFocus
+            placeholderTextColor={colors.textSecondary}
+          />
+          <View style={styles.editActions}>
+            <TouchableOpacity style={[styles.editBtn, { backgroundColor: colors.border }]} onPress={() => setEditingPost(null)}>
+              <Text style={[styles.editBtnText, { color: colors.text }]}>İptal</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.editBtn, { backgroundColor: colors.primary, opacity: editSaving ? 0.6 : 1 }]}
+              onPress={handleEditSave}
+              disabled={editSaving}
+            >
+              <Text style={[styles.editBtnText, { color: '#fff' }]}>{editSaving ? 'Kaydediliyor...' : 'Kaydet'}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+
     <Animated.ScrollView style={[styles.container, { opacity: fadeAnim }]}>
 
       {/* HERO — kompakt */}
@@ -289,9 +337,39 @@ export default function ProfileScreen({ navigation }) {
               <View key={item.id} style={styles.postCard}>
                 <View style={styles.postHeader}>
                   <Text style={styles.postEventName}>{item.eventName || 'Etkinlik'}</Text>
-                  <Text style={styles.postDate}>
-                    {new Date(item.createdAt).toLocaleDateString('tr-TR')}
-                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Text style={styles.postDate}>
+                      {new Date(item.createdAt).toLocaleDateString('tr-TR')}
+                    </Text>
+                    <TouchableOpacity
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      onPress={() => Alert.alert('Post İşlemleri', null, [
+                        {
+                          text: 'Düzenle', onPress: () => {
+                            setEditText(item.content || '');
+                            setEditingPost(item);
+                          }
+                        },
+                        {
+                          text: 'Sil', style: 'destructive', onPress: () =>
+                            Alert.alert('Postu Sil', 'Emin misin?', [
+                              { text: 'İptal', style: 'cancel' },
+                              {
+                                text: 'Sil', style: 'destructive', onPress: async () => {
+                                  try {
+                                    await API.delete(`/posts/${item.id}`);
+                                    setPosts(prev => prev.filter(p => p.id !== item.id));
+                                  } catch { Alert.alert('Hata', 'Post silinemedi.'); }
+                                }
+                              }
+                            ])
+                        },
+                        { text: 'İptal', style: 'cancel' },
+                      ])}
+                    >
+                      <Text style={{ color: colors.textSecondary, fontSize: 18 }}>⋯</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
                 <Text style={styles.postContent} numberOfLines={3}>{item.content}</Text>
                 <View style={styles.postFooter}>
@@ -389,6 +467,7 @@ export default function ProfileScreen({ navigation }) {
       </View>
 
     </Animated.ScrollView>
+    </>
   );
 }
 
@@ -605,5 +684,13 @@ function createStyles(colors) {
     logoutArea: { padding: 16, paddingBottom: 32 },
     logoutButton: { padding: 16, borderRadius: 16, alignItems: 'center' },
     logoutText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+    editOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' },
+    editSheetWrapper: { position: 'absolute', bottom: 0, left: 0, right: 0 },
+    editSheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 36 },
+    editTitle: { fontSize: 16, fontWeight: '800', marginBottom: 14 },
+    editInput: { borderWidth: 1, borderRadius: 12, padding: 12, fontSize: 15, minHeight: 100, textAlignVertical: 'top', marginBottom: 14 },
+    editActions: { flexDirection: 'row', gap: 10 },
+    editBtn: { flex: 1, paddingVertical: 13, borderRadius: 12, alignItems: 'center' },
+    editBtnText: { fontSize: 15, fontWeight: '700' },
   });
 }

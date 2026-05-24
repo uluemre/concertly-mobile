@@ -7,8 +7,12 @@ import com.concertly.backend.exception.AlreadyExistsException;
 import com.concertly.backend.exception.ResourceNotFoundException;
 import com.concertly.backend.model.*;
 import com.concertly.backend.repository.*;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -180,6 +184,33 @@ public class PostService {
 
         likeRepository.save(like);
         notificationService.send(post.getUser().getId(), userId, "like", "post", postId);
+    }
+
+    // ✅ POST SİL
+    @Transactional
+    public void deletePost(Long userId, Long postId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new ResourceNotFoundException("Post bulunamadı: " + postId));
+        if (!post.getUser().getId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bu postu silemezsiniz.");
+        }
+        pollVoteRepository.deleteByPostId(postId);
+        likeRepository.deleteByPostId(postId);
+        commentRepository.deleteByPostId(postId);
+        postRepository.delete(post);
+    }
+
+    // ✅ POST DÜZENLE
+    @Transactional
+    public PostResponse updatePost(Long userId, Long postId, String content) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new ResourceNotFoundException("Post bulunamadı: " + postId));
+        if (!post.getUser().getId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bu postu düzenleyemezsiniz.");
+        }
+        post.setContent(content);
+        post.setUpdatedAt(LocalDateTime.now());
+        return toResponse(postRepository.save(post), userId);
     }
 
     // ✅ UNLIKE
