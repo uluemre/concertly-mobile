@@ -59,6 +59,7 @@ export default function EventDetailScreen({ route, navigation }) {
   const { event } = route.params;
 
   const [verifying, setVerifying] = useState(false);
+  const [isVerified, setIsVerified] = useState(false);
   const [attendLoading, setAttendLoading] = useState(false);
   const [attendance, setAttendance] = useState(null);
   const [goingCount, setGoingCount] = useState(0);
@@ -86,6 +87,10 @@ export default function EventDetailScreen({ route, navigation }) {
 
     API.get(`/events/${event.id}/bookmark`)
       .then(res => setBookmarked(res.data.bookmarked ?? false))
+      .catch(() => {});
+
+    API.get(`/events/${event.id}/verify`)
+      .then(res => setIsVerified(res.data.verified ?? false))
       .catch(() => {});
   }, [event.id]);
 
@@ -187,9 +192,18 @@ export default function EventDetailScreen({ route, navigation }) {
           : `${(distance / 1000).toFixed(1)} km`;
 
       if (distance <= 200) {
+        if (!isVerified) {
+          try {
+            await API.post(`/events/${event.id}/verify`);
+            setIsVerified(true);
+          } catch (err) {
+            // 409 = zaten doğrulanmış, sorun değil
+            if (err.response?.status === 409) setIsVerified(true);
+          }
+        }
         Alert.alert(
           '✅ Doğrulandı!',
-          `Mekana ${distanceFormatted} uzaklıkta tespit edildin. Post atabilirsin! 🎉`,
+          `Mekana ${distanceFormatted} uzaklıkta tespit edildin. Konser doğrulandı! 🎉`,
           [{
             text: 'Post At',
             onPress: () => navigation.navigate('CreatePost', { event, verified: true }),
@@ -487,6 +501,14 @@ export default function EventDetailScreen({ route, navigation }) {
           </TouchableOpacity>
         )}
 
+        {/* DOĞRULAMA BADGE */}
+        {isVerified && (
+          <View style={styles.verifiedBadge}>
+            <Text style={styles.verifiedBadgeText}>✅ Konser Doğrulandı</Text>
+            <Text style={styles.verifiedBadgeSub}>Bu konsere gittiğin doğrulandı</Text>
+          </View>
+        )}
+
         {/* POST AT BUTONU */}
         {!isExpired && (
           verifying ? (
@@ -497,12 +519,14 @@ export default function EventDetailScreen({ route, navigation }) {
           ) : (
             <TouchableOpacity onPress={handlePostAt} activeOpacity={0.85}>
               <LinearGradient
-                colors={['#F5A623', '#E94560']}
+                colors={isVerified ? ['#00D4AA', '#00A896'] : ['#F5A623', '#E94560']}
                 style={styles.actionButton}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
               >
-                <Text style={styles.actionButtonText}>🎵 Post At</Text>
+                <Text style={styles.actionButtonText}>
+                  {isVerified ? '🎵 Post At (Doğrulandı ✓)' : '🎵 Post At & Doğrula'}
+                </Text>
               </LinearGradient>
             </TouchableOpacity>
           )
@@ -746,6 +770,14 @@ function createStyles(colors) {
       justifyContent: 'center', gap: 12, padding: 20,
     },
     verifyingText: { color: colors.textSecondary, fontSize: 15 },
+    verifiedBadge: {
+      flexDirection: 'row', alignItems: 'center',
+      backgroundColor: 'rgba(0,212,170,0.12)',
+      borderWidth: 1, borderColor: 'rgba(0,212,170,0.35)',
+      borderRadius: 14, padding: 14, marginBottom: 12, gap: 10,
+    },
+    verifiedBadgeText: { color: '#00D4AA', fontWeight: '800', fontSize: 15 },
+    verifiedBadgeSub: { color: colors.textSecondary, fontSize: 12, marginTop: 2 },
 
     actionButton: {
       padding: 16, borderRadius: 16, alignItems: 'center',
