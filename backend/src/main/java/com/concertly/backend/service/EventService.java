@@ -81,7 +81,7 @@ public class EventService {
     public List<EventResponse> getAllEvents(String city) {
         List<Event> events = (city == null || city.isBlank())
                 ? eventRepository.findAll()
-                : eventRepository.findByVenue_CityIgnoreCase(city);
+                : eventRepository.findByCityNormalized(city);
 
         return events.stream()
                 .sorted(Comparator.comparing(Event::getEventDate))
@@ -96,14 +96,14 @@ public class EventService {
         List<String> lowerGenres = genres.stream()
                 .map(String::toLowerCase)
                 .toList();
-        String queryCity = (city == null || city.isBlank()) ? "Istanbul" : city;
+        String queryCity = (city == null || city.isBlank()) ? "İstanbul" : city;
 
         List<Event> matching = eventRepository.findByVenueCityAndGenreIn(queryCity, lowerGenres);
         matching.sort(Comparator.comparing(Event::getEventDate));
 
         List<Event> all = (city == null || city.isBlank())
                 ? eventRepository.findAll()
-                : eventRepository.findByVenue_CityIgnoreCase(city);
+                : eventRepository.findByCityNormalized(city);
         all.sort(Comparator.comparing(Event::getEventDate));
 
         // Matching events first, then remaining ones

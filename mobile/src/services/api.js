@@ -22,6 +22,11 @@ const API = axios.create({
   timeout: 15000,
 });
 
+let _onSessionExpired = null;
+export function setSessionExpiredHandler(cb) {
+  _onSessionExpired = cb;
+}
+
 API.interceptors.request.use(async (config) => {
   if (__DEV__) console.log('İSTEK:', config.method?.toUpperCase(), config.url);
   const token = global.authToken;
@@ -36,6 +41,9 @@ API.interceptors.response.use(
   (error) => {
     if (error.code === 'ERR_NETWORK') {
       console.error('Ağ hatası: Backend çalışmıyor veya IP yanlış. URL:', BASE_URL);
+    }
+    if (error.response?.status === 403 && global.authToken) {
+      if (_onSessionExpired) _onSessionExpired();
     }
     return Promise.reject(error);
   }

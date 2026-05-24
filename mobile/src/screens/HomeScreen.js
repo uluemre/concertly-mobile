@@ -9,6 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import API from '../services/api';
 import { useTheme } from '../theme';
 import { getGenreGradient } from '../utils/gradients';
+import SearchModal from './SearchModal';
 
 const { width, height } = Dimensions.get('window');
 const FEATURED_CARD_WIDTH = width * 0.78;
@@ -285,6 +286,7 @@ export default function HomeScreen({ navigation }) {
   const [searchFocused, setSearchFocused] = useState(false);
   const [selectedCity, setSelectedCity] = useState(global.userCity || null);
   const [cityModalVisible, setCityModalVisible] = useState(false);
+  const [searchModalVisible, setSearchModalVisible] = useState(false);
 
   const headerAnim = useRef(new Animated.Value(-20)).current;
   const headerOpacity = useRef(new Animated.Value(0)).current;
@@ -387,10 +389,13 @@ export default function HomeScreen({ navigation }) {
 
   return (
     <View style={styles.screen}>
-
-
-
       <StatusBar barStyle="light-content" />
+
+      <SearchModal
+        visible={searchModalVisible}
+        onClose={() => setSearchModalVisible(false)}
+        navigation={navigation}
+      />
 
       <ScrollView
         style={styles.scroll}
@@ -421,23 +426,14 @@ export default function HomeScreen({ navigation }) {
 
           {/* SEARCH BAR + ŞEHİR */}
           <View style={styles.searchRow}>
-            <View style={[styles.searchBar, searchFocused && styles.searchBarFocused]}>
+            <TouchableOpacity
+              style={[styles.searchBar, styles.searchBarTappable]}
+              onPress={() => setSearchModalVisible(true)}
+              activeOpacity={0.7}
+            >
               <Text style={styles.searchIcon}>⌕</Text>
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Etkinlik, sanatçı ara..."
-                placeholderTextColor={colors.textSecondary}
-                value={search}
-                onChangeText={setSearch}
-                onFocus={() => setSearchFocused(true)}
-                onBlur={() => setSearchFocused(false)}
-              />
-              {search.length > 0 && (
-                <TouchableOpacity onPress={() => setSearch('')}>
-                  <Text style={styles.searchClear}>✕</Text>
-                </TouchableOpacity>
-              )}
-            </View>
+              <Text style={styles.searchPlaceholder}>Etkinlik, sanatçı, kullanıcı ara...</Text>
+            </TouchableOpacity>
             <TouchableOpacity onPress={() => setCityModalVisible(true)} style={styles.cityBtn} activeOpacity={0.8}>
               <Text style={styles.cityBtnIcon}>📍</Text>
               <Text style={styles.cityBtnText} numberOfLines={1}>{selectedCity || 'Tümü'}</Text>
@@ -721,8 +717,12 @@ function createStyles(colors) {
     borderColor: colors.primary,
     backgroundColor: colors.cardAlt,
   },
+  searchBarTappable: {
+    borderColor: colors.border,
+  },
   searchIcon: { fontSize: 18, color: colors.textSecondary },
   searchInput: { flex: 1, color: colors.text, fontSize: 15 },
+  searchPlaceholder: { flex: 1, color: colors.textSecondary, fontSize: 15 },
   searchClear: { color: colors.textSecondary, fontSize: 15, padding: 2 },
 
   // STATS STRIP

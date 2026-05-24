@@ -43,7 +43,10 @@ export default function ProfileScreen({ navigation }) {
   );
 
   const fetchAll = async () => {
-    if (!global.userId) return;
+    if (!global.userId) {
+      setLoading(false);
+      return;
+    }
     try {
       const [profileRes, postsRes, eventsRes, artistsRes, bookmarksRes] = await Promise.all([
         API.get(`/users/${global.userId}/profile`),

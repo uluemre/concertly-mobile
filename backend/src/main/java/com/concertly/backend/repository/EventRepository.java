@@ -24,13 +24,14 @@ public interface EventRepository extends JpaRepository<Event, Long> {
             """)
     List<Event> search(@Param("q") String q);
 
-    List<Event> findByVenue_CityIgnoreCase(String city);
+    @Query("SELECT e FROM Event e WHERE LOWER(REPLACE(e.venue.city, 'İ', 'I')) = LOWER(REPLACE(:city, 'İ', 'I'))")
+    List<Event> findByCityNormalized(@Param("city") String city);
 
     List<Event> findByIsApproved(Boolean isApproved);
 
     @Query("""
                 SELECT e FROM Event e
-                WHERE LOWER(e.venue.city) = LOWER(:city)
+                WHERE LOWER(REPLACE(e.venue.city, 'İ', 'I')) = LOWER(REPLACE(:city, 'İ', 'I'))
                 AND LOWER(e.genre) IN :genres
                 ORDER BY e.eventDate DESC
             """)

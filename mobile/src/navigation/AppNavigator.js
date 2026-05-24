@@ -1,12 +1,12 @@
 // AppNavigator.js
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Text, View, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import API from '../services/api';
+import API, { setSessionExpiredHandler } from '../services/api';
 
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
@@ -126,13 +126,31 @@ function TabNavigator() {
 export default function AppNavigator() {
   const [isReady, setIsReady] = useState(false);
   const [initialRoute, setInitialRoute] = useState('Login');
+  const navigationRef = useRef(null);
+
+  useEffect(() => {
+    setSessionExpiredHandler(async () => {
+      await AsyncStorage.multiRemove([
+        'authToken', 'userId', 'username', 'userCity',
+        'favoriteGenres', 'isAdmin', 'onboardingCompleted',
+      ]);
+      global.authToken = null;
+      global.userId = null;
+      global.username = null;
+      global.userCity = null;
+      global.favoriteGenres = null;
+      global.isAdmin = false;
+      global.onboardingCompleted = false;
+      navigationRef.current?.reset({ index: 0, routes: [{ name: 'Login' }] });
+    });
+  }, []);
 
   useEffect(() => {
     AsyncStorage.multiGet([
       'authToken', 'userId', 'username', 'userCity',
       'favoriteGenres', 'isAdmin', 'onboardingCompleted',
     ])
-      .then(pairs => {
+      .then(async pairs => {
         const data = Object.fromEntries(pairs);
         if (data.authToken && data.userId) {
           global.authToken = data.authToken;
@@ -142,7 +160,19 @@ export default function AppNavigator() {
           global.favoriteGenres = data.favoriteGenres || '';
           global.isAdmin = data.isAdmin === 'true';
           global.onboardingCompleted = data.onboardingCompleted === 'true';
-          setInitialRoute('MainApp');
+
+          try {
+            await API.get(`/users/${global.userId}/profile`);
+            setInitialRoute('MainApp');
+          } catch {
+            await AsyncStorage.multiRemove([
+              'authToken', 'userId', 'username', 'userCity',
+              'favoriteGenres', 'isAdmin', 'onboardingCompleted',
+            ]);
+            global.authToken = null;
+            global.userId = null;
+            setInitialRoute('Login');
+          }
         }
       })
       .catch(() => {})
@@ -158,7 +188,7 @@ export default function AppNavigator() {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <Stack.Navigator
         initialRouteName={initialRoute}
         screenOptions={{ headerShown: false }}
