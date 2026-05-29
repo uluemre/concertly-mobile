@@ -13,6 +13,7 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     Optional<Event> findByExternalId(String externalId);
 
     List<Event> findByArtistIdOrderByEventDateDesc(Long artistId);
+    List<Event> findByVenueIdOrderByEventDateAsc(Long venueId);
 
     // 🔥 SEARCH QUERY EKLENDİ
     @Query("""

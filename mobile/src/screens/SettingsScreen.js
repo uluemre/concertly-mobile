@@ -2,10 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   View, Text, StyleSheet, TextInput,
   TouchableOpacity, ScrollView, Alert,
-  ActivityIndicator, Modal, FlatList
+  ActivityIndicator, Modal, FlatList, Linking
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as WebBrowser from 'expo-web-browser';
 import API from '../services/api';
 import { useTheme } from '../theme';
 
@@ -29,6 +30,8 @@ export default function SettingsScreen({ navigation, route }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [cityModalVisible, setCityModalVisible] = useState(false);
+  const [spotifyStatus, setSpotifyStatus] = useState(null);
+  const [spotifyLoading, setSpotifyLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     username: '',
@@ -40,7 +43,46 @@ export default function SettingsScreen({ navigation, route }) {
 
   useEffect(() => {
     fetchProfile();
+    fetchSpotifyStatus();
   }, []);
+
+  const fetchSpotifyStatus = async () => {
+    try {
+      const res = await API.get(`/spotify/status/${global.userId}`);
+      setSpotifyStatus(res.data);
+    } catch {}
+  };
+
+  const handleSpotifyConnect = async () => {
+    setSpotifyLoading(true);
+    try {
+      const res = await API.get(`/spotify/auth-url?userId=${global.userId}`);
+      const authUrl = res.data.url;
+      await WebBrowser.openBrowserAsync(authUrl);
+      // Tarayıcı kapandıktan sonra durumu yenile
+      await fetchSpotifyStatus();
+    } catch (err) {
+      Alert.alert('Hata', 'Spotify bağlantısı başlatılamadı.');
+    } finally {
+      setSpotifyLoading(false);
+    }
+  };
+
+  const handleSpotifyDisconnect = () => {
+    Alert.alert('Spotify Bağlantısını Kes', 'Emin misin?', [
+      { text: 'İptal', style: 'cancel' },
+      {
+        text: 'Bağlantıyı Kes', style: 'destructive', onPress: async () => {
+          try {
+            await API.delete(`/spotify/disconnect/${global.userId}`);
+            setSpotifyStatus({ connected: false });
+          } catch {
+            Alert.alert('Hata', 'Bağlantı kesilemedi.');
+          }
+        }
+      }
+    ]);
+  };
 
   const fetchProfile = async () => {
     try {
@@ -186,6 +228,67 @@ export default function SettingsScreen({ navigation, route }) {
           />
         </View>
 
+        {/* SPOTIFY BÖLÜMÜ */}
+        <Text style={styles.sectionTitle}>Spotify Bağlantısı</Text>
+        <View style={styles.spotifyCard}>
+          <View style={styles.spotifyRow}>
+            <View style={styles.spotifyIconWrap}>
+              <Text style={{ fontSize: 28 }}>🎵</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.spotifyTitle, { color: colors.text }]}>
+                {spotifyStatus?.connected ? 'Spotify Bağlı' : 'Spotify\'ı Bağla'}
+              </Text>
+              <Text style={[styles.spotifyDesc, { color: colors.textSecondary }]}>
+                {spotifyStatus?.connected
+                  ? `@${spotifyStatus.spotifyDisplayName || 'Kullanıcı'} · En çok dinlediklerine göre sanatçı önerileri`
+                  : 'En çok dinlediğin sanatçılara göre öneriler al'}
+              </Text>
+            </View>
+            {spotifyStatus?.connected ? (
+              <View style={styles.connectedBadge}>
+                <Text style={styles.connectedBadgeText}>✓</Text>
+              </View>
+            ) : null}
+          </View>
+
+          {spotifyStatus?.connected ? (
+            <View style={styles.spotifyActions}>
+              <TouchableOpacity
+                style={styles.spotifySecondaryBtn}
+                onPress={() => navigation.navigate('SpotifyRecommendations')}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.spotifySecondaryBtnText}>Önerilerimi Gör</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.spotifySecondaryBtn, { borderColor: '#E94560' }]}
+                onPress={handleSpotifyDisconnect}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.spotifySecondaryBtnText, { color: '#E94560' }]}>Bağlantıyı Kes</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity
+              onPress={handleSpotifyConnect}
+              disabled={spotifyLoading}
+              activeOpacity={0.85}
+            >
+              <LinearGradient
+                colors={['#1DB954', '#158a3e']}
+                style={styles.spotifyConnectBtn}
+                start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+              >
+                {spotifyLoading
+                  ? <ActivityIndicator color="#fff" />
+                  : <Text style={styles.spotifyConnectBtnText}>Spotify ile Bağlan</Text>
+                }
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
+        </View>
+
         <TouchableOpacity onPress={handleSave} disabled={saving} activeOpacity={0.85}>
           <LinearGradient
             colors={['#E94560', '#7C3AED']}
@@ -325,6 +428,33 @@ function createStyles(colors) {
       marginTop: 20,
     },
     saveButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+
+    // SPOTIFY
+    spotifyCard: {
+      backgroundColor: colors.card, borderRadius: 16, padding: 16,
+      borderWidth: 1, borderColor: colors.border, marginBottom: 24, gap: 14,
+    },
+    spotifyRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    spotifyIconWrap: {
+      width: 52, height: 52, borderRadius: 26,
+      backgroundColor: 'rgba(29,185,84,0.15)',
+      justifyContent: 'center', alignItems: 'center',
+    },
+    spotifyTitle: { fontSize: 15, fontWeight: '800', marginBottom: 3 },
+    spotifyDesc: { fontSize: 12, lineHeight: 17 },
+    connectedBadge: {
+      width: 28, height: 28, borderRadius: 14,
+      backgroundColor: '#1DB954', justifyContent: 'center', alignItems: 'center',
+    },
+    connectedBadgeText: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
+    spotifyActions: { flexDirection: 'row', gap: 10 },
+    spotifySecondaryBtn: {
+      flex: 1, paddingVertical: 10, borderRadius: 10,
+      borderWidth: 1.5, borderColor: '#1DB954', alignItems: 'center',
+    },
+    spotifySecondaryBtnText: { color: '#1DB954', fontWeight: '700', fontSize: 13 },
+    spotifyConnectBtn: { padding: 14, borderRadius: 12, alignItems: 'center' },
+    spotifyConnectBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
 
     // MODAL STYLES
     modalOverlay: {

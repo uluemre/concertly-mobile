@@ -16,13 +16,16 @@ public class EventAttendanceService {
     private final EventAttendanceRepository attendanceRepository;
     private final UserRepository userRepository;
     private final EventRepository eventRepository;
+    private final BadgeService badgeService;
 
     public EventAttendanceService(EventAttendanceRepository attendanceRepository,
                                   UserRepository userRepository,
-                                  EventRepository eventRepository) {
+                                  EventRepository eventRepository,
+                                  BadgeService badgeService) {
         this.attendanceRepository = attendanceRepository;
         this.userRepository       = userRepository;
         this.eventRepository      = eventRepository;
+        this.badgeService         = badgeService;
     }
 
     public AttendanceResponse getAttendance(Long userId, Long eventId) {
@@ -48,6 +51,7 @@ public class EventAttendanceService {
         attendance.setEvent(event);
         attendance.setStatus(status);
         attendanceRepository.save(attendance);
+        badgeService.checkAndAwardBadges(userId);
 
         long goingCount      = attendanceRepository.countByEventIdAndStatus(eventId, AttendanceStatus.GOING);
         long interestedCount = attendanceRepository.countByEventIdAndStatus(eventId, AttendanceStatus.INTERESTED);

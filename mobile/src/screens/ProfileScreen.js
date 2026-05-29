@@ -32,6 +32,7 @@ export default function ProfileScreen({ navigation }) {
   const [events, setEvents] = useState([]);
   const [bookmarks, setBookmarks] = useState([]);
   const [followedArtists, setFollowedArtists] = useState([]);
+  const [badges, setBadges] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('posts');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -52,18 +53,20 @@ export default function ProfileScreen({ navigation }) {
       return;
     }
     try {
-      const [profileRes, postsRes, eventsRes, artistsRes, bookmarksRes] = await Promise.all([
+      const [profileRes, postsRes, eventsRes, artistsRes, bookmarksRes, badgesRes] = await Promise.all([
         API.get(`/users/${global.userId}/profile`),
         API.get(`/users/${global.userId}/posts`),
         API.get(`/users/${global.userId}/events`),
         API.get(`/users/${global.userId}/followed-artists`),
         API.get(`/users/${global.userId}/bookmarks`),
+        API.get(`/users/${global.userId}/badges/all`),
       ]);
       setProfile(profileRes.data);
       setPosts(postsRes.data);
       setEvents(eventsRes.data);
       setFollowedArtists(artistsRes.data);
       setBookmarks(bookmarksRes.data);
+      setBadges(badgesRes.data);
 
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -273,6 +276,14 @@ export default function ProfileScreen({ navigation }) {
             🔖 ({bookmarks.length})
           </Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'badges' && styles.tabActive]}
+          onPress={() => setActiveTab('badges')}
+        >
+          <Text style={[styles.tabText, activeTab === 'badges' && styles.tabTextActive]}>
+            🏅 ({badges.filter(b => b.earned).length}/{badges.length})
+          </Text>
+        </TouchableOpacity>
 
       </View>
 
@@ -414,7 +425,7 @@ export default function ProfileScreen({ navigation }) {
               ))}
             </View>
           )
-        ) : (
+        ) : activeTab === 'bookmarks' ? (
           bookmarks.length === 0 ? (
             <View style={styles.empty}>
               <Text style={styles.emptyEmoji}>🔖</Text>
@@ -449,6 +460,41 @@ export default function ProfileScreen({ navigation }) {
               ))}
             </View>
           )
+        ) : (
+          <View style={styles.badgeGrid}>
+            {badges.map(item => (
+              <View key={item.id} style={[styles.badgeCard, !item.earned && styles.badgeCardLocked]}>
+                <LinearGradient
+                  colors={item.earned ? ['#7C3AED', '#E94560'] : ['#444', '#333']}
+                  style={styles.badgeIconBg}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <Text style={[styles.badgeIcon, !item.earned && styles.badgeIconLocked]}>
+                    {item.earned ? item.icon : '🔒'}
+                  </Text>
+                </LinearGradient>
+                <Text style={[styles.badgeName, !item.earned && styles.badgeTextLocked]} numberOfLines={1}>
+                  {item.name}
+                </Text>
+                <Text style={[styles.badgeDesc, !item.earned && styles.badgeTextLocked]} numberOfLines={2}>
+                  {item.description}
+                </Text>
+                {item.earned ? (
+                  <Text style={styles.badgeDate}>
+                    {new Date(item.earnedAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
+                  </Text>
+                ) : item.required > 0 && (
+                  <View style={styles.badgeProgressWrap}>
+                    <View style={styles.badgeProgressBg}>
+                      <View style={[styles.badgeProgressFill, { width: `${Math.round((item.progress / item.required) * 100)}%` }]} />
+                    </View>
+                    <Text style={styles.badgeProgressText}>{item.progress}/{item.required}</Text>
+                  </View>
+                )}
+              </View>
+            ))}
+          </View>
         )}
       </View>
 
@@ -679,6 +725,41 @@ function createStyles(colors) {
     },
     artistImageEmoji: { fontSize: 32 },
     artistName: { fontSize: 12, color: colors.text, fontWeight: '600', textAlign: 'center' },
+
+    // BADGE GRID
+    badgeGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 12,
+    },
+    badgeCard: {
+      width: CARD_WIDTH,
+      backgroundColor: colors.card,
+      borderRadius: 16,
+      padding: 14,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    badgeIconBg: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    badgeCardLocked: { opacity: 0.55 },
+    badgeIcon: { fontSize: 26 },
+    badgeIconLocked: { opacity: 0.7 },
+    badgeName: { fontSize: 13, fontWeight: '800', color: colors.text, textAlign: 'center', marginBottom: 4 },
+    badgeTextLocked: { color: colors.textSecondary },
+    badgeDesc: { fontSize: 11, color: colors.textSecondary, textAlign: 'center', lineHeight: 15, marginBottom: 6 },
+    badgeDate: { fontSize: 10, color: colors.primary, fontWeight: '700' },
+    badgeProgressWrap: { width: '100%', alignItems: 'center', gap: 3 },
+    badgeProgressBg: { width: '100%', height: 4, backgroundColor: colors.border, borderRadius: 2, overflow: 'hidden' },
+    badgeProgressFill: { height: 4, backgroundColor: '#7C3AED', borderRadius: 2 },
+    badgeProgressText: { fontSize: 10, color: colors.textSecondary, fontWeight: '600' },
 
     // LOGOUT
     logoutArea: { padding: 16, paddingBottom: 32 },

@@ -28,6 +28,7 @@ public class PostService {
     private final NotificationService notificationService;
     private final PollOptionRepository pollOptionRepository;
     private final PollVoteRepository pollVoteRepository;
+    private final BadgeService badgeService;
 
     public PostService(PostRepository postRepository,
                        UserRepository userRepository,
@@ -36,7 +37,8 @@ public class PostService {
                        CommentRepository commentRepository,
                        NotificationService notificationService,
                        PollOptionRepository pollOptionRepository,
-                       PollVoteRepository pollVoteRepository) {
+                       PollVoteRepository pollVoteRepository,
+                       BadgeService badgeService) {
         this.postRepository      = postRepository;
         this.userRepository      = userRepository;
         this.eventRepository     = eventRepository;
@@ -45,6 +47,7 @@ public class PostService {
         this.notificationService = notificationService;
         this.pollOptionRepository = pollOptionRepository;
         this.pollVoteRepository   = pollVoteRepository;
+        this.badgeService         = badgeService;
     }
 
     private PostResponse toResponse(Post post) {
@@ -112,6 +115,7 @@ public class PostService {
             saved = postRepository.findById(saved.getId()).orElse(saved);
         }
 
+        badgeService.checkAndAwardBadges(userId);
         return toResponse(saved, userId);
     }
 

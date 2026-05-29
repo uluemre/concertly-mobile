@@ -417,7 +417,14 @@ export default function EventDetailScreen({ route, navigation }) {
         {event.venueName && (
           <View style={styles.infoCard}>
             <Text style={styles.sectionTitle}>📍 Mekan</Text>
-            <Text style={styles.infoValue}>{event.venueName}</Text>
+            <TouchableOpacity
+              onPress={() => event.venueId && navigation.navigate('VenueProfile', { venueId: event.venueId, venueName: event.venueName })}
+              activeOpacity={event.venueId ? 0.7 : 1}
+            >
+              <Text style={[styles.infoValue, event.venueId && { color: '#E94560', textDecorationLine: 'underline' }]}>
+                {event.venueName}
+              </Text>
+            </TouchableOpacity>
             {event.venueCity && event.venueCountry && (
               <Text style={styles.infoValueSub}>
                 {event.venueCity}, {event.venueCountry}
