@@ -109,6 +109,7 @@ function AnimatedCard({ item, index, navigation, styles, colors, isSetupCard }) 
   }, [shimmerX]);
 
   useEffect(() => {
+    let glowLoop = null;
     Animated.parallel([
       Animated.spring(scaleAnim, {
         toValue: 1,
@@ -126,17 +127,19 @@ function AnimatedCard({ item, index, navigation, styles, colors, isSetupCard }) 
     ]).start(() => {
       if (isSetupCard) {
         startShimmer();
-        Animated.loop(
+        glowLoop = Animated.loop(
           Animated.sequence([
             Animated.timing(glowOpacity, { toValue: 1, duration: 1400, useNativeDriver: true }),
             Animated.timing(glowOpacity, { toValue: 0.35, duration: 1400, useNativeDriver: true }),
           ])
-        ).start();
+        );
+        glowLoop.start();
       }
     });
 
     return () => {
       if (shimmerTimer.current) clearTimeout(shimmerTimer.current);
+      glowLoop?.stop();
     };
   }, [isSetupCard, startShimmer]);
 

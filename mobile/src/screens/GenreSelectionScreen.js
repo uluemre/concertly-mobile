@@ -43,16 +43,19 @@ export default function GenreSelectionScreen({ navigation, route }) {
   };
 
   useEffect(() => {
+    let anim = null;
     if (canContinue) {
-      Animated.loop(
+      anim = Animated.loop(
         Animated.sequence([
           Animated.timing(buttonPulse, { toValue: 1.04, duration: 800, useNativeDriver: true }),
           Animated.timing(buttonPulse, { toValue: 1, duration: 800, useNativeDriver: true }),
         ])
-      ).start();
+      );
+      anim.start();
     } else {
       buttonPulse.setValue(1);
     }
+    return () => { anim?.stop(); };
   }, [canContinue]);
 
   return (

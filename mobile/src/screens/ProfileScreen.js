@@ -289,54 +289,7 @@ export default function ProfileScreen({ navigation }) {
 
       {/* İÇERİK */}
       <View style={styles.content}>
-        {activeTab === 'music' ? (
-          <View>
-            {/* TÜRLER */}
-            {profile?.favoriteGenres ? (
-              <View style={styles.musicSection}>
-                <Text style={styles.musicSectionTitle}>Favori Türler</Text>
-                <View style={styles.genreRow}>
-                  {profile.favoriteGenres.split(',').map((g, i) => (
-                    <View key={i} style={[styles.genreChip, { backgroundColor: genreColors[i % genreColors.length] }]}>
-                      <Text style={styles.genreChipText}>{g.trim()}</Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            ) : null}
-
-            {/* SANATÇILAR */}
-            <View style={styles.musicSection}>
-              <Text style={styles.musicSectionTitle}>Takip Edilen Sanatçılar</Text>
-              {followedArtists.length === 0 ? (
-                <View style={styles.empty}>
-                  <Text style={styles.emptyEmoji}>🎤</Text>
-                  <Text style={styles.emptyText}>Henüz sanatçı takip edilmiyor</Text>
-                </View>
-              ) : (
-                <View style={styles.artistGrid}>
-                  {followedArtists.map(artist => (
-                    <TouchableOpacity
-                      key={artist.id}
-                      style={styles.artistCard}
-                      onPress={() => navigation.navigate('ArtistProfile', { artistId: artist.id, artistName: artist.name })}
-                      activeOpacity={0.8}
-                    >
-                      {artist.imageUrl ? (
-                        <Image source={{ uri: artist.imageUrl }} style={styles.artistImage} />
-                      ) : (
-                        <View style={styles.artistImagePlaceholder}>
-                          <Text style={styles.artistImageEmoji}>🎤</Text>
-                        </View>
-                      )}
-                      <Text style={styles.artistName} numberOfLines={1}>{artist.name}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-            </View>
-          </View>
-        ) : activeTab === 'posts' ? (
+        {activeTab === 'posts' ? (
           posts.length === 0 ? (
             <View style={styles.empty}>
               <Text style={styles.emptyEmoji}>📭</Text>

@@ -477,12 +477,38 @@ export default function FeedScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const tabIndicator = useRef(new Animated.Value(0)).current;
+  const isMounted = useRef(true);
 
   useEffect(() => {
-    fetchPosts();
+    return () => { isMounted.current = false; };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const doFetch = async () => {
+      try {
+        let res;
+        if (activeTab === 'trending') {
+          res = await API.get('/posts/feed/trending');
+        } else {
+          res = await API.get(`/posts/feed/following?userId=${global.userId}`);
+        }
+        if (!cancelled) setPosts(res.data);
+      } catch (err) {
+        if (!cancelled) console.log('Feed hatası:', err.message);
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+          setRefreshing(false);
+        }
+      }
+    };
+    doFetch();
+    return () => { cancelled = true; };
   }, [activeTab]);
 
-  const fetchPosts = async () => {
+  const fetchPosts = useCallback(async () => {
+    setRefreshing(true);
     try {
       let res;
       if (activeTab === 'trending') {
@@ -490,14 +516,13 @@ export default function FeedScreen({ navigation }) {
       } else {
         res = await API.get(`/posts/feed/following?userId=${global.userId}`);
       }
-      setPosts(res.data);
+      if (isMounted.current) setPosts(res.data);
     } catch (err) {
-      console.log('Feed hatası:', err.message);
+      if (isMounted.current) console.log('Feed hatası:', err.message);
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (isMounted.current) setRefreshing(false);
     }
-  };
+  }, [activeTab]);
 
   const switchTab = (tab) => {
     setActiveTab(tab);
@@ -516,7 +541,6 @@ export default function FeedScreen({ navigation }) {
   });
 
   const onRefresh = () => {
-    setRefreshing(true);
     fetchPosts();
   };
 

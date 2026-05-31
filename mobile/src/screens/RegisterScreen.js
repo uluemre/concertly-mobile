@@ -5,6 +5,7 @@ import {
   StyleSheet, Alert, ActivityIndicator, KeyboardAvoidingView, Platform
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import API from '../services/api';
 import { useTheme } from '../theme';
 
@@ -54,12 +55,23 @@ export default function RegisterScreen({ navigation }) {
       const loginRes = await API.post('/auth/login', { email, password });
       global.authToken = loginRes.data.accessToken;
       global.userId = loginRes.data.userId;
-      global.userCity = loginRes.data.city;
+      global.userCity = loginRes.data.city || '';
       global.username = loginRes.data.username;
-      global.favoriteGenres = loginRes.data.favoriteGenres;
-      global.onboardingCompleted = loginRes.data.onboardingCompleted;
+      global.favoriteGenres = loginRes.data.favoriteGenres || '';
+      global.onboardingCompleted = false;
+      global.isAdmin = loginRes.data.isAdmin === true;
 
-      navigation.replace('Onboarding');
+      await AsyncStorage.multiSet([
+        ['authToken', loginRes.data.accessToken],
+        ['userId', String(loginRes.data.userId)],
+        ['username', loginRes.data.username || ''],
+        ['userCity', loginRes.data.city || ''],
+        ['favoriteGenres', loginRes.data.favoriteGenres || ''],
+        ['isAdmin', String(loginRes.data.isAdmin === true)],
+        ['onboardingCompleted', 'false'],
+      ]);
+
+      navigation.replace('GenreSelection');
     } catch (err) {
       Alert.alert('Hata', 'Bu email veya kullanıcı adı zaten kullanılıyor.');
     } finally {

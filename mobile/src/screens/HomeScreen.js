@@ -291,6 +291,11 @@ export default function HomeScreen({ navigation }) {
   const headerAnim = useRef(new Animated.Value(-20)).current;
   const headerOpacity = useRef(new Animated.Value(0)).current;
   const searchWidth = useRef(new Animated.Value(0)).current;
+  const isMounted = useRef(true);
+
+  useEffect(() => {
+    return () => { isMounted.current = false; };
+  }, []);
 
   useEffect(() => {
 
@@ -331,11 +336,16 @@ export default function HomeScreen({ navigation }) {
       API.get('/posts/feed/trending'),
     ])
       .then(([evRes, postRes]) => {
+        if (!isMounted.current) return;
         setEvents(evRes.data);
         setPosts(postRes.data);
       })
-      .catch(err => console.log('HomeScreen fetch error:', err.message))
-      .finally(() => setLoading(false));
+      .catch(err => {
+        if (isMounted.current) console.log('HomeScreen fetch error:', err.message);
+      })
+      .finally(() => {
+        if (isMounted.current) setLoading(false);
+      });
   };
 
   const handleCitySelect = (city) => {

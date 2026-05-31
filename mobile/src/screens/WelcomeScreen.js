@@ -26,6 +26,9 @@ export default function WelcomeScreen({ navigation, route }) {
     const ring3Opacity = useRef(new Animated.Value(0.2)).current;
 
     useEffect(() => {
+        const timers = [];
+        const loops = [];
+
         // 1 — Logo giriş
         Animated.parallel([
             Animated.spring(logoScale, {
@@ -37,8 +40,8 @@ export default function WelcomeScreen({ navigation, route }) {
         ]).start();
 
         // 2 — Halkalar yayılsın (pulse)
-        setTimeout(() => {
-            Animated.loop(
+        timers.push(setTimeout(() => {
+            const loop1 = Animated.loop(
                 Animated.sequence([
                     Animated.parallel([
                         Animated.timing(ring1Scale, { toValue: 1.8, duration: 1200, useNativeDriver: true }),
@@ -49,10 +52,12 @@ export default function WelcomeScreen({ navigation, route }) {
                         Animated.timing(ring1Opacity, { toValue: 0.6, duration: 0, useNativeDriver: true }),
                     ]),
                 ])
-            ).start();
+            );
+            loop1.start();
+            loops.push(loop1);
 
-            setTimeout(() => {
-                Animated.loop(
+            timers.push(setTimeout(() => {
+                const loop2 = Animated.loop(
                     Animated.sequence([
                         Animated.parallel([
                             Animated.timing(ring2Scale, { toValue: 1.8, duration: 1200, useNativeDriver: true }),
@@ -63,11 +68,13 @@ export default function WelcomeScreen({ navigation, route }) {
                             Animated.timing(ring2Opacity, { toValue: 0.4, duration: 0, useNativeDriver: true }),
                         ]),
                     ])
-                ).start();
-            }, 400);
+                );
+                loop2.start();
+                loops.push(loop2);
+            }, 400));
 
-            setTimeout(() => {
-                Animated.loop(
+            timers.push(setTimeout(() => {
+                const loop3 = Animated.loop(
                     Animated.sequence([
                         Animated.parallel([
                             Animated.timing(ring3Scale, { toValue: 1.8, duration: 1200, useNativeDriver: true }),
@@ -78,12 +85,14 @@ export default function WelcomeScreen({ navigation, route }) {
                             Animated.timing(ring3Opacity, { toValue: 0.2, duration: 0, useNativeDriver: true }),
                         ]),
                     ])
-                ).start();
-            }, 800);
-        }, 300);
+                );
+                loop3.start();
+                loops.push(loop3);
+            }, 800));
+        }, 300));
 
         // 3 — Yazı giriş
-        setTimeout(() => {
+        timers.push(setTimeout(() => {
             Animated.parallel([
                 Animated.timing(textOpacity, {
                     toValue: 1, duration: 500, useNativeDriver: true,
@@ -92,21 +101,24 @@ export default function WelcomeScreen({ navigation, route }) {
                     toValue: 0, tension: 60, friction: 8, useNativeDriver: true,
                 }),
             ]).start();
-        }, 600);
+        }, 600));
 
         // 4 — Alt yazı
-        setTimeout(() => {
+        timers.push(setTimeout(() => {
             Animated.timing(subOpacity, {
                 toValue: 1, duration: 500, useNativeDriver: true,
             }).start();
-        }, 1000);
+        }, 1000));
 
         // 5 — Ana uygulamaya geç
-        const timer = setTimeout(() => {
+        timers.push(setTimeout(() => {
             navigation.replace('MainApp');
-        }, 3000);
+        }, 3000));
 
-        return () => clearTimeout(timer);
+        return () => {
+            timers.forEach(clearTimeout);
+            loops.forEach(loop => loop.stop());
+        };
     }, []);
 
     return (
@@ -186,19 +198,24 @@ function LoadingDots({ dotStyle }) {
     const dot3 = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
+        const loops = [];
         const animate = (dot, delay) => {
-            Animated.loop(
+            const loop = Animated.loop(
                 Animated.sequence([
                     Animated.timing(dot, { toValue: -8, duration: 300, delay, useNativeDriver: true }),
                     Animated.timing(dot, { toValue: 0, duration: 300, useNativeDriver: true }),
                     Animated.delay(400),
                 ])
-            ).start();
+            );
+            loop.start();
+            loops.push(loop);
         };
 
         animate(dot1, 0);
         animate(dot2, 150);
         animate(dot3, 300);
+
+        return () => loops.forEach(loop => loop.stop());
     }, []);
 
     return (

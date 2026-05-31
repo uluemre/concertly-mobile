@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity,
   StyleSheet, ActivityIndicator, Image,
@@ -26,6 +26,11 @@ export default function NotificationsScreen({ navigation }) {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const isMounted = useRef(true);
+
+  useEffect(() => {
+    return () => { isMounted.current = false; };
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -36,13 +41,14 @@ export default function NotificationsScreen({ navigation }) {
   const fetchAndMarkRead = async () => {
     try {
       const res = await API.get('/notifications');
+      if (!isMounted.current) return;
       setNotifications(res.data);
       await API.patch('/notifications/read-all');
-      global.setNotificationBadge?.(0);
+      if (isMounted.current) global.setNotificationBadge?.(0);
     } catch (err) {
-      console.log('Bildirim hatası:', err.message);
+      if (isMounted.current) console.log('Bildirim hatası:', err.message);
     } finally {
-      setLoading(false);
+      if (isMounted.current) setLoading(false);
     }
   };
 

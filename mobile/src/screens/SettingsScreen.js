@@ -114,8 +114,8 @@ export default function SettingsScreen({ navigation, route }) {
         { text: 'Tamam', onPress: () => navigation.goBack() }
       ]);
     } catch (err) {
-      const msg = err?.response?.data?.message || 'Ayarlar kaydedilirken bir sorun oluştu.';
-      Alert.alert('Hata', msg);
+      console.log('Ayar kayıt hatası:', err?.response?.data?.message);
+      Alert.alert('Hata', 'Ayarlar kaydedilirken bir sorun oluştu.');
     } finally {
       setSaving(false);
     }
@@ -322,13 +322,13 @@ export default function SettingsScreen({ navigation, route }) {
                 <TouchableOpacity
                   style={styles.cityListItem}
                   onPress={async () => {
-
-                    setFormData({ ...formData, city: item });
-
+                    setFormData(prev => ({ ...prev, city: item }));
                     global.userCity = item;
-
-                    await AsyncStorage.setItem('selectedCity', item);
-
+                    try {
+                      await AsyncStorage.setItem('selectedCity', item);
+                    } catch (err) {
+                      console.log('Şehir kaydedilemedi:', err.message);
+                    }
                     setCityModalVisible(false);
                   }}
                 >

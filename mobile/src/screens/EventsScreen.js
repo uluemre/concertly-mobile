@@ -88,29 +88,34 @@ export default function EventsScreen({ navigation }) {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
-  const fetchEvents = (city) => {
+  const isMounted = useRef(true);
+  useEffect(() => {
+    return () => { isMounted.current = false; };
+  }, []);
+
+  const fetchEvents = useCallback((city) => {
     const activeCity = city !== undefined ? city : selectedCity;
     const url = activeCity ? `/events?city=${encodeURIComponent(activeCity)}` : '/events';
     return API.get(url)
-      .then(res => setEvents(res.data))
-      .catch(err => console.error('Events fetch error:', err.message));
-  };
+      .then(res => { if (isMounted.current) setEvents(res.data); })
+      .catch(err => { if (isMounted.current) console.error('Events fetch error:', err.message); });
+  }, [selectedCity]);
 
   useEffect(() => {
-    fetchEvents().finally(() => setLoading(false));
+    fetchEvents().finally(() => { if (isMounted.current) setLoading(false); });
   }, []);
 
-  const onRefresh = () => {
+  const onRefresh = useCallback(() => {
     setRefreshing(true);
-    fetchEvents().finally(() => setRefreshing(false));
-  };
+    fetchEvents().finally(() => { if (isMounted.current) setRefreshing(false); });
+  }, [fetchEvents]);
 
   const handleCitySelect = (city) => {
     const val = city === 'Tümü' ? null : city;
     setSelectedCity(val);
     setCityModalVisible(false);
     setLoading(true);
-    fetchEvents(val).finally(() => setLoading(false));
+    fetchEvents(val).finally(() => { if (isMounted.current) setLoading(false); });
   };
 
   const filtered = useMemo(() => {

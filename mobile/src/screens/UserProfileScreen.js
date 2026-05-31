@@ -320,13 +320,13 @@ export default function UserProfileScreen({ route, navigation }) {
                       {/* Sanatçıya tıklayınca ArtistProfile'a git ✅ */}
                       {item.artistName && (
                         <TouchableOpacity
-                          onPress={(e) => {
-                            e.stopPropagation?.();
+                          onPress={() => {
                             navigation.navigate('ArtistProfile', {
                               artistId: item.artistId,
                               artistName: item.artistName,
                             });
                           }}
+                          hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
                         >
                           <Text style={styles.eventArtist}>🎤 {item.artistName}</Text>
                         </TouchableOpacity>

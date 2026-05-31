@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  TextInput, FlatList, ActivityIndicator
+  TextInput, FlatList, ActivityIndicator, Alert
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CommonActions } from '@react-navigation/native';
@@ -29,6 +29,7 @@ export default function ArtistSelectionScreen({ route, navigation }) {
         setArtists(res.data);
       } catch (err) {
         console.error('Artist fetch error:', err);
+        Alert.alert('Hata', 'Sanatçılar yüklenemedi. Devam etmek için Tamamla\'ya basabilirsin.');
       } finally {
         setLoading(false);
       }
@@ -71,6 +72,7 @@ export default function ArtistSelectionScreen({ route, navigation }) {
       }
     } catch (err) {
       console.error('Onboarding complete error:', err);
+      Alert.alert('Hata', 'Tercihler kaydedilemedi. Tekrar dene.');
     } finally {
       setCompleting(false);
     }

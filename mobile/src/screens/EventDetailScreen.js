@@ -8,6 +8,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
+import * as Calendar from 'expo-calendar';
 import API from '../services/api';
 import { useTheme } from '../theme';
 import { getGenreGradient } from '../utils/gradients';
@@ -113,6 +114,40 @@ export default function EventDetailScreen({ route, navigation }) {
   const hasCoordinates =
     event.venueLatitude != null && event.venueLongitude != null;
   const isExpired = new Date(event.eventDate) < new Date();
+
+  const addToCalendar = async () => {
+    const { status } = await Calendar.requestCalendarPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('İzin Gerekli', 'Takvim erişimine izin vermeniz gerekiyor.');
+      return;
+    }
+
+    try {
+      const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
+      const writable = calendars.find(c => c.allowsModifications);
+      if (!writable) {
+        Alert.alert('Hata', 'Düzenlenebilir takvim bulunamadı.');
+        return;
+      }
+
+      const startDate = new Date(event.eventDate);
+      const endDate = new Date(startDate.getTime() + 3 * 60 * 60 * 1000); // 3 saat
+
+      await Calendar.createEventAsync(writable.id, {
+        title: event.name,
+        startDate,
+        endDate,
+        location: [event.venueName, event.venueCity].filter(Boolean).join(', '),
+        notes: event.description || '',
+        alarms: [{ relativeOffset: -60 }, { relativeOffset: -1440 }], // 1 saat ve 1 gün önce
+        url: event.ticketUrl || undefined,
+      });
+
+      Alert.alert('✅ Eklendi!', `"${event.name}" takvimine eklendi.`);
+    } catch (err) {
+      Alert.alert('Hata', 'Takvime eklenemedi.');
+    }
+  };
 
   const openFriendsModal = () => {
     setFriendsModalVisible(true);
@@ -524,6 +559,13 @@ export default function EventDetailScreen({ route, navigation }) {
           </View>
         )}
 
+        {/* TAKVİME EKLE */}
+        {!isExpired && (
+          <TouchableOpacity onPress={addToCalendar} style={styles.calendarButton} activeOpacity={0.85}>
+            <Text style={styles.calendarButtonText}>🗓️ Takvime Ekle</Text>
+          </TouchableOpacity>
+        )}
+
         {/* POST AT BUTONU */}
         {!isExpired && (
           verifying ? (
@@ -809,6 +851,12 @@ function createStyles(colors) {
       shadowOpacity: 0.4, shadowRadius: 8, elevation: 6,
     },
     ticketButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+    calendarButton: {
+      backgroundColor: colors.card, padding: 16, borderRadius: 20,
+      alignItems: 'center', marginTop: 12,
+      borderWidth: 1.5, borderColor: colors.border,
+    },
+    calendarButtonText: { color: colors.text, fontSize: 15, fontWeight: '700' },
 
     imageLoadingOverlay: {
       position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
