@@ -6,12 +6,14 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../theme';
+import { useAuth } from '../context/AuthContext';
 import API from '../services/api';
 
 const filters = ['Tümü', 'Rock', 'Festival', 'Elektronik', 'Şehir', 'Caz'];
 
 export default function CommunitiesScreen({ navigation }) {
   const { colors } = useTheme();
+  const { session } = useAuth();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [activeFilter, setActiveFilter] = useState('Tümü');
   const [query, setQuery] = useState('');
@@ -22,7 +24,7 @@ export default function CommunitiesScreen({ navigation }) {
   const fetchCommunities = useCallback(async (type, q) => {
     try {
       setLoading(true);
-      const favGenres = global.favoriteGenres;
+      const favGenres = session.favoriteGenres;
       const hasFilters = (type && type !== 'Tümü') || (q && q.trim());
 
       let res;

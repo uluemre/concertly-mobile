@@ -5,6 +5,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme';
 import GenreChip from '../components/GenreChip';
+import { useAuth } from '../context/AuthContext';
 
 const GENRES = [
   { name: 'Rock', emoji: '🎸', accent: '#E94560' },
@@ -27,9 +28,10 @@ export default function GenreSelectionScreen({ navigation, route }) {
   const editMode = route.params?.editMode ?? false;
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { session } = useAuth();
 
-  const initialGenres = editMode && global.favoriteGenres
-    ? global.favoriteGenres.split(',').map(g => g.trim()).filter(Boolean)
+  const initialGenres = editMode && session.favoriteGenres
+    ? session.favoriteGenres.split(',').map(g => g.trim()).filter(Boolean)
     : [];
   const [selectedGenres, setSelectedGenres] = useState(initialGenres);
   const buttonPulse = useRef(new Animated.Value(1)).current;

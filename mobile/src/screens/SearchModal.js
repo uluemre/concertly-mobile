@@ -7,6 +7,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import API from '../services/api';
 import { useTheme } from '../theme';
+import { useAuth } from '../context/AuthContext';
 
 const { width, height } = Dimensions.get('window');
 
@@ -29,6 +30,7 @@ function useDebounce(fn, delay) {
 // ── Arama Modalı ─────────────────────────────────────────────────────────────
 export default function SearchModal({ visible, onClose, navigation }) {
     const { colors } = useTheme();
+  const { session } = useAuth();
     const styles = useMemo(() => createStyles(colors), [colors]);
 
     const [query, setQuery] = useState('');
@@ -67,7 +69,7 @@ export default function SearchModal({ visible, onClose, navigation }) {
         setLoading(true);
         try {
             const res = await API.get(
-                `/search?q=${encodeURIComponent(q)}&currentUserId=${global.userId}`
+                `/search?q=${encodeURIComponent(q)}&currentUserId=${session.userId}`
             );
             setResults(res.data);
             setSearched(true);

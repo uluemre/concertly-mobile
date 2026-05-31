@@ -1,12 +1,12 @@
 // AppNavigator.js
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Text, View, ActivityIndicator } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import API, { setSessionExpiredHandler } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
@@ -43,26 +43,21 @@ const Tab = createBottomTabNavigator();
 
 function TabNavigator() {
   const { colors } = useTheme();
-  const [unreadCount, setUnreadCount] = useState(0);
+  const { session, notificationCount, setNotificationCount } = useAuth();
 
   useEffect(() => {
-    global.setNotificationBadge = setUnreadCount;
-
     const fetchCount = async () => {
-      if (!global.authToken) return;
+      if (!session.authToken) return;
       try {
         const res = await API.get('/notifications/unread-count');
-        setUnreadCount(res.data.count ?? 0);
+        setNotificationCount(res.data.count ?? 0);
       } catch {}
     };
 
     fetchCount();
     const interval = setInterval(fetchCount, 20000);
-    return () => {
-      clearInterval(interval);
-      global.setNotificationBadge = null;
-    };
-  }, []);
+    return () => clearInterval(interval);
+  }, [session.authToken]);
 
   return (
     <Tab.Navigator
@@ -108,7 +103,7 @@ function TabNavigator() {
         options={{
           tabBarLabel: 'Bildirimler',
           tabBarIcon: () => <Text style={{ fontSize: 20 }}>🔔</Text>,
-          tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
+          tabBarBadge: notificationCount > 0 ? notificationCount : undefined,
           tabBarBadgeStyle: { backgroundColor: '#E94560', fontSize: 11 },
         }}
       />
@@ -126,60 +121,17 @@ function TabNavigator() {
 }
 
 export default function AppNavigator() {
-  const [isReady, setIsReady] = useState(false);
-  const [initialRoute, setInitialRoute] = useState('Login');
+  const { session, isReady, logout } = useAuth();
   const navigationRef = useRef(null);
 
   useEffect(() => {
     setSessionExpiredHandler(async () => {
-      await AsyncStorage.multiRemove([
-        'authToken', 'userId', 'username', 'userCity',
-        'favoriteGenres', 'isAdmin', 'onboardingCompleted',
-      ]);
-      global.authToken = null;
-      global.userId = null;
-      global.username = null;
-      global.userCity = null;
-      global.favoriteGenres = null;
-      global.isAdmin = false;
-      global.onboardingCompleted = false;
+      await logout();
       navigationRef.current?.reset({ index: 0, routes: [{ name: 'Login' }] });
     });
-  }, []);
+  }, [logout]);
 
-  useEffect(() => {
-    AsyncStorage.multiGet([
-      'authToken', 'userId', 'username', 'userCity',
-      'favoriteGenres', 'isAdmin', 'onboardingCompleted',
-    ])
-      .then(async pairs => {
-        const data = Object.fromEntries(pairs);
-        if (data.authToken && data.userId) {
-          global.authToken = data.authToken;
-          global.userId = parseInt(data.userId);
-          global.username = data.username || '';
-          global.userCity = data.userCity || '';
-          global.favoriteGenres = data.favoriteGenres || '';
-          global.isAdmin = data.isAdmin === 'true';
-          global.onboardingCompleted = data.onboardingCompleted === 'true';
-
-          try {
-            await API.get(`/users/${global.userId}/profile`);
-            setInitialRoute('MainApp');
-          } catch {
-            await AsyncStorage.multiRemove([
-              'authToken', 'userId', 'username', 'userCity',
-              'favoriteGenres', 'isAdmin', 'onboardingCompleted',
-            ]);
-            global.authToken = null;
-            global.userId = null;
-            setInitialRoute('Login');
-          }
-        }
-      })
-      .catch(() => {})
-      .finally(() => setIsReady(true));
-  }, []);
+  const initialRoute = session.authToken ? 'MainApp' : 'Login';
 
   if (!isReady) {
     return (

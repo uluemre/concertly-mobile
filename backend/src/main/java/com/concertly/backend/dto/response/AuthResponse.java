@@ -3,6 +3,7 @@ package com.concertly.backend.dto.response;
 public class AuthResponse {
 
     private String accessToken;
+    private String refreshToken;
     private String tokenType = "Bearer";
     private Long userId;
     private String username;
@@ -12,9 +13,10 @@ public class AuthResponse {
     private Boolean onboardingCompleted;
     private Boolean isAdmin;
 
-    public AuthResponse(String accessToken, Long userId, String username, String email,
+    public AuthResponse(String accessToken, String refreshToken, Long userId, String username, String email,
                         String city, String favoriteGenres, Boolean onboardingCompleted, Boolean isAdmin) {
         this.accessToken = accessToken;
+        this.refreshToken = refreshToken;
         this.userId = userId;
         this.username = username;
         this.email = email;
@@ -24,9 +26,8 @@ public class AuthResponse {
         this.isAdmin = isAdmin;
     }
 
-    public String getAccessToken() {
-        return accessToken;
-    }
+    public String getAccessToken() { return accessToken; }
+    public String getRefreshToken() { return refreshToken; }
 
     public String getTokenType() {
         return tokenType;

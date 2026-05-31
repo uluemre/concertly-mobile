@@ -6,6 +6,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme';
+import { useAuth } from '../context/AuthContext';
 import API from '../services/api';
 
 const { width } = Dimensions.get('window');
@@ -22,6 +23,7 @@ const genreColors = [
 
 export default function MusicProfileScreen({ navigation }) {
   const { colors } = useTheme();
+  const { session } = useAuth();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [profile, setProfile] = useState(null);
@@ -40,8 +42,8 @@ export default function MusicProfileScreen({ navigation }) {
     setLoading(true);
     try {
       const [profileRes, artistsRes] = await Promise.all([
-        API.get(`/users/${global.userId}/profile`),
-        API.get(`/users/${global.userId}/followed-artists`),
+        API.get(`/users/${session.userId}/profile`),
+        API.get(`/users/${session.userId}/followed-artists`),
       ]);
       setProfile(profileRes.data);
       setArtists(artistsRes.data);

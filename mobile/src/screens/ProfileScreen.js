@@ -5,12 +5,13 @@ import {
   KeyboardAvoidingView, Platform,
   Alert, Image, Animated, Dimensions
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
+import { useAuth } from '../context/AuthContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import API from '../services/api';
 import { useTheme } from '../theme';
+import BadgeGrid from '../components/profile/BadgeGrid';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2;
@@ -27,6 +28,7 @@ const genreColors = ['#E94560', '#7C3AED', '#F5A623', '#00D4AA', '#3B82F6', '#EC
 export default function ProfileScreen({ navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { session, logout } = useAuth();
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
   const [events, setEvents] = useState([]);
@@ -48,18 +50,18 @@ export default function ProfileScreen({ navigation }) {
   );
 
   const fetchAll = async () => {
-    if (!global.userId) {
+    if (!session.userId) {
       setLoading(false);
       return;
     }
     try {
       const [profileRes, postsRes, eventsRes, artistsRes, bookmarksRes, badgesRes] = await Promise.all([
-        API.get(`/users/${global.userId}/profile`),
-        API.get(`/users/${global.userId}/posts`),
-        API.get(`/users/${global.userId}/events`),
-        API.get(`/users/${global.userId}/followed-artists`),
-        API.get(`/users/${global.userId}/bookmarks`),
-        API.get(`/users/${global.userId}/badges/all`),
+        API.get(`/users/${session.userId}/profile`),
+        API.get(`/users/${session.userId}/posts`),
+        API.get(`/users/${session.userId}/events`),
+        API.get(`/users/${session.userId}/followed-artists`),
+        API.get(`/users/${session.userId}/bookmarks`),
+        API.get(`/users/${session.userId}/badges/all`),
       ]);
       setProfile(profileRes.data);
       setPosts(postsRes.data);
@@ -98,7 +100,7 @@ export default function ProfileScreen({ navigation }) {
       const localUri = result.assets[0].uri;
       setUploadingPhoto(true);
       try {
-        await API.put(`/users/${global.userId}/profile`, {
+        await API.put(`/users/${session.userId}/profile`, {
           profileImageUrl: localUri,
         });
         setProfile(prev => ({ ...prev, profileImageUrl: localUri }));
@@ -116,17 +118,7 @@ export default function ProfileScreen({ navigation }) {
       { text: 'İptal', style: 'cancel' },
       {
         text: 'Çıkış Yap', style: 'destructive', onPress: async () => {
-          await AsyncStorage.multiRemove([
-            'authToken', 'userId', 'username', 'userCity',
-            'favoriteGenres', 'isAdmin', 'onboardingCompleted',
-          ]);
-          global.authToken = null;
-          global.userId = null;
-          global.username = null;
-          global.userCity = null;
-          global.favoriteGenres = null;
-          global.isAdmin = false;
-          global.onboardingCompleted = false;
+          await logout();
           navigation.replace('Login');
         }
       }
@@ -228,7 +220,7 @@ export default function ProfileScreen({ navigation }) {
         <View style={styles.statDivider} />
         <TouchableOpacity
           style={styles.stat}
-          onPress={() => navigation.navigate('FollowList', { userId: global.userId, type: 'followers' })}
+          onPress={() => navigation.navigate('FollowList', { userId: session.userId, type: 'followers' })}
           activeOpacity={0.7}
         >
           <Text style={styles.statNumber}>{profile?.followerCount || 0}</Text>
@@ -237,7 +229,7 @@ export default function ProfileScreen({ navigation }) {
         <View style={styles.statDivider} />
         <TouchableOpacity
           style={styles.stat}
-          onPress={() => navigation.navigate('FollowList', { userId: global.userId, type: 'following' })}
+          onPress={() => navigation.navigate('FollowList', { userId: session.userId, type: 'following' })}
           activeOpacity={0.7}
         >
           <Text style={styles.statNumber}>{profile?.followingCount || 0}</Text>
@@ -414,40 +406,7 @@ export default function ProfileScreen({ navigation }) {
             </View>
           )
         ) : (
-          <View style={styles.badgeGrid}>
-            {badges.map(item => (
-              <View key={item.id} style={[styles.badgeCard, !item.earned && styles.badgeCardLocked]}>
-                <LinearGradient
-                  colors={item.earned ? ['#7C3AED', '#E94560'] : ['#444', '#333']}
-                  style={styles.badgeIconBg}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                >
-                  <Text style={[styles.badgeIcon, !item.earned && styles.badgeIconLocked]}>
-                    {item.earned ? item.icon : '🔒'}
-                  </Text>
-                </LinearGradient>
-                <Text style={[styles.badgeName, !item.earned && styles.badgeTextLocked]} numberOfLines={1}>
-                  {item.name}
-                </Text>
-                <Text style={[styles.badgeDesc, !item.earned && styles.badgeTextLocked]} numberOfLines={2}>
-                  {item.description}
-                </Text>
-                {item.earned ? (
-                  <Text style={styles.badgeDate}>
-                    {new Date(item.earnedAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
-                  </Text>
-                ) : item.required > 0 && (
-                  <View style={styles.badgeProgressWrap}>
-                    <View style={styles.badgeProgressBg}>
-                      <View style={[styles.badgeProgressFill, { width: `${Math.round((item.progress / item.required) * 100)}%` }]} />
-                    </View>
-                    <Text style={styles.badgeProgressText}>{item.progress}/{item.required}</Text>
-                  </View>
-                )}
-              </View>
-            ))}
-          </View>
+          <BadgeGrid badges={badges} />
         )}
       </View>
 
@@ -678,41 +637,6 @@ function createStyles(colors) {
     },
     artistImageEmoji: { fontSize: 32 },
     artistName: { fontSize: 12, color: colors.text, fontWeight: '600', textAlign: 'center' },
-
-    // BADGE GRID
-    badgeGrid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 12,
-    },
-    badgeCard: {
-      width: CARD_WIDTH,
-      backgroundColor: colors.card,
-      borderRadius: 16,
-      padding: 14,
-      alignItems: 'center',
-      borderWidth: 1,
-      borderColor: colors.border,
-    },
-    badgeIconBg: {
-      width: 56,
-      height: 56,
-      borderRadius: 28,
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginBottom: 8,
-    },
-    badgeCardLocked: { opacity: 0.55 },
-    badgeIcon: { fontSize: 26 },
-    badgeIconLocked: { opacity: 0.7 },
-    badgeName: { fontSize: 13, fontWeight: '800', color: colors.text, textAlign: 'center', marginBottom: 4 },
-    badgeTextLocked: { color: colors.textSecondary },
-    badgeDesc: { fontSize: 11, color: colors.textSecondary, textAlign: 'center', lineHeight: 15, marginBottom: 6 },
-    badgeDate: { fontSize: 10, color: colors.primary, fontWeight: '700' },
-    badgeProgressWrap: { width: '100%', alignItems: 'center', gap: 3 },
-    badgeProgressBg: { width: '100%', height: 4, backgroundColor: colors.border, borderRadius: 2, overflow: 'hidden' },
-    badgeProgressFill: { height: 4, backgroundColor: '#7C3AED', borderRadius: 2 },
-    badgeProgressText: { fontSize: 10, color: colors.textSecondary, fontWeight: '600' },
 
     // LOGOUT
     logoutArea: { padding: 16, paddingBottom: 32 },

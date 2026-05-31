@@ -7,6 +7,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import API from '../services/api';
 import { useTheme } from '../theme';
+import { useAuth } from '../context/AuthContext';
 
 const GENRE_GRADIENTS = {
   'Rock':       ['#E94560', '#7C1AED'],
@@ -51,6 +52,7 @@ const eventEmojis = ['🎸', '🎤', '🥁', '🎹', '🎺', '🎻', '🎪', '�
 
 export default function ArtistProfileScreen({ route, navigation }) {
   const { colors } = useTheme();
+  const { session } = useAuth();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { artistId, artistName } = route.params;
 
@@ -73,7 +75,7 @@ export default function ArtistProfileScreen({ route, navigation }) {
   const fetchAll = async () => {
     try {
       const [artistRes, eventsRes, postsRes] = await Promise.all([
-        API.get(`/artists/${artistId}?currentUserId=${global.userId}`),
+        API.get(`/artists/${artistId}?currentUserId=${session.userId}`),
         API.get(`/artists/${artistId}/events`),
         API.get(`/artists/${artistId}/posts`),
       ]);
@@ -107,13 +109,13 @@ export default function ArtistProfileScreen({ route, navigation }) {
 
     try {
       if (wasFollowing) {
-        await API.delete(`/artists/${artistId}/follow?userId=${global.userId}`);
+        await API.delete(`/artists/${artistId}/follow?userId=${session.userId}`);
         setArtist(prev => ({
           ...prev,
           followerCount: Math.max(0, (prev.followerCount || 1) - 1),
         }));
       } else {
-        await API.post(`/artists/${artistId}/follow?userId=${global.userId}`);
+        await API.post(`/artists/${artistId}/follow?userId=${session.userId}`);
         setArtist(prev => ({
           ...prev,
           followerCount: (prev.followerCount || 0) + 1,

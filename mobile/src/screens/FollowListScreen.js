@@ -4,11 +4,13 @@ import {
   StyleSheet, ActivityIndicator, Image, Alert,
 } from 'react-native';
 import { useTheme } from '../theme';
+import { useAuth } from '../context/AuthContext';
 import API from '../services/api';
 
 export default function FollowListScreen({ route, navigation }) {
   const { userId, type } = route.params; // type: 'followers' | 'following'
   const { colors } = useTheme();
+  const { session } = useAuth();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [users, setUsers] = useState([]);
@@ -33,7 +35,7 @@ export default function FollowListScreen({ route, navigation }) {
   };
 
   const handleToggleFollow = async (targetUser) => {
-    if (targetUser.id === global.userId) return;
+    if (targetUser.id === session.userId) return;
     try {
       if (targetUser.isFollowedByCurrentUser) {
         await API.delete(`/users/${targetUser.id}/follow`);
@@ -53,7 +55,7 @@ export default function FollowListScreen({ route, navigation }) {
   };
 
   const renderUser = ({ item }) => {
-    const isSelf = item.id === global.userId;
+    const isSelf = item.id === session.userId;
     return (
       <TouchableOpacity
         style={styles.row}

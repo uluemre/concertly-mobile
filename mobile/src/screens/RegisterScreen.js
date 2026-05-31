@@ -5,9 +5,9 @@ import {
   StyleSheet, Alert, ActivityIndicator, KeyboardAvoidingView, Platform
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import API from '../services/api';
 import { useTheme } from '../theme';
+import { useAuth } from '../context/AuthContext';
 
 function createStyles(colors) {
   return StyleSheet.create({
@@ -38,6 +38,7 @@ function createStyles(colors) {
 export default function RegisterScreen({ navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { login } = useAuth();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -51,26 +52,8 @@ export default function RegisterScreen({ navigation }) {
     setLoading(true);
     try {
       await API.post('/auth/register', { username, email, password });
-      // Kayıt sonrası otomatik login
       const loginRes = await API.post('/auth/login', { email, password });
-      global.authToken = loginRes.data.accessToken;
-      global.userId = loginRes.data.userId;
-      global.userCity = loginRes.data.city || '';
-      global.username = loginRes.data.username;
-      global.favoriteGenres = loginRes.data.favoriteGenres || '';
-      global.onboardingCompleted = false;
-      global.isAdmin = loginRes.data.isAdmin === true;
-
-      await AsyncStorage.multiSet([
-        ['authToken', loginRes.data.accessToken],
-        ['userId', String(loginRes.data.userId)],
-        ['username', loginRes.data.username || ''],
-        ['userCity', loginRes.data.city || ''],
-        ['favoriteGenres', loginRes.data.favoriteGenres || ''],
-        ['isAdmin', String(loginRes.data.isAdmin === true)],
-        ['onboardingCompleted', 'false'],
-      ]);
-
+      await login({ ...loginRes.data, onboardingCompleted: false });
       navigation.replace('GenreSelection');
     } catch (err) {
       Alert.alert('Hata', 'Bu email veya kullanıcı adı zaten kullanılıyor.');

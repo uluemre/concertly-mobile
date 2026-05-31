@@ -5,14 +5,15 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CommonActions } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../theme';
 import API from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import ArtistCard from '../components/ArtistCard';
 
 export default function ArtistSelectionScreen({ route, navigation }) {
   const { selectedGenres, editMode = false } = route.params;
   const { colors } = useTheme();
+  const { updateSession } = useAuth();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [artists, setArtists] = useState([]);
@@ -54,12 +55,10 @@ export default function ArtistSelectionScreen({ route, navigation }) {
         genres: selectedGenres,
         artistIds: selectedIds,
       });
-      global.onboardingCompleted = true;
-      global.favoriteGenres = selectedGenres.join(',');
-      await AsyncStorage.multiSet([
-        ['onboardingCompleted', 'true'],
-        ['favoriteGenres', selectedGenres.join(',')],
-      ]);
+      await updateSession({
+        onboardingCompleted: true,
+        favoriteGenres: selectedGenres.join(','),
+      });
       if (editMode) {
         navigation.navigate('MusicProfile');
       } else {

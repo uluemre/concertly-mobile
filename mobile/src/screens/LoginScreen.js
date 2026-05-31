@@ -5,9 +5,9 @@ import {
   KeyboardAvoidingView, Platform, Image
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import API from '../services/api';
 import { useTheme } from '../theme';
+import { useAuth } from '../context/AuthContext';
 
 function createStyles(colors) {
   return StyleSheet.create({
@@ -51,6 +51,7 @@ function createStyles(colors) {
 export default function LoginScreen({ navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -63,24 +64,7 @@ export default function LoginScreen({ navigation }) {
     setLoading(true);
     try {
       const res = await API.post('/auth/login', { email, password });
-      global.authToken = res.data.accessToken;
-      global.userId = res.data.userId;
-      global.userCity = res.data.city;
-      global.username = res.data.username;
-      global.favoriteGenres = res.data.favoriteGenres;
-      global.onboardingCompleted = res.data.onboardingCompleted;
-      global.isAdmin = res.data.isAdmin === true;
-
-      await AsyncStorage.multiSet([
-        ['authToken', res.data.accessToken],
-        ['userId', String(res.data.userId)],
-        ['username', res.data.username || ''],
-        ['userCity', res.data.city || ''],
-        ['favoriteGenres', res.data.favoriteGenres || ''],
-        ['isAdmin', String(res.data.isAdmin === true)],
-        ['onboardingCompleted', String(!!res.data.onboardingCompleted)],
-      ]);
-
+      await login(res.data);
       navigation.replace('Welcome', { username: res.data.username });
     } catch (err) {
       Alert.alert('Hata', 'Email veya şifre hatalı.');

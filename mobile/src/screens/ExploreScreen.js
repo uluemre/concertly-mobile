@@ -1,11 +1,11 @@
-import React, { useRef, useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useMemo, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   ScrollView, Alert, Animated, Dimensions
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../theme';
+import { useAuth } from '../context/AuthContext';
 
 const { width } = Dimensions.get('window');
 const CARD_SIZE = (width - 48) / 2;
@@ -239,19 +239,12 @@ const adminMenuItem = {
 export default function ExploreScreen({ navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { session } = useAuth();
   const headerAnim = useRef(new Animated.Value(-30)).current;
   const headerOpacity = useRef(new Animated.Value(0)).current;
-  const [hasMusicProfile, setHasMusicProfile] = useState(
-    !!(global.favoriteGenres && global.favoriteGenres.trim().length > 0)
-  );
 
-  useFocusEffect(
-    useCallback(() => {
-      setHasMusicProfile(!!(global.favoriteGenres && global.favoriteGenres.trim().length > 0));
-    }, [])
-  );
-
-  const visibleItems = global.isAdmin
+  const hasMusicProfile = !!(session.favoriteGenres?.trim());
+  const visibleItems = session.isAdmin
     ? [...menuItems, adminMenuItem]
     : menuItems;
 

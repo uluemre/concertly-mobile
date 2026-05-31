@@ -2,6 +2,7 @@ package com.concertly.backend.controller;
 
 import com.concertly.backend.dto.request.LoginRequest;
 import com.concertly.backend.dto.request.OnboardingRequest;
+import com.concertly.backend.dto.request.RefreshRequest;
 import com.concertly.backend.dto.request.RegisterRequest;
 import com.concertly.backend.dto.response.AuthResponse;
 import com.concertly.backend.dto.response.UserResponse;
@@ -34,6 +35,17 @@ public class AuthController {
     @ResponseStatus(HttpStatus.CREATED)
     public UserResponse register(@RequestBody RegisterRequest request) {
         return authService.register(request);
+    }
+
+    @PostMapping("/refresh")
+    public AuthResponse refresh(@RequestBody RefreshRequest request) {
+        return authService.refreshToken(request.getRefreshToken());
+    }
+
+    @PostMapping("/logout")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void logout(@RequestBody RefreshRequest request) {
+        authService.logout(request.getRefreshToken());
     }
 
     @PostMapping("/onboarding")

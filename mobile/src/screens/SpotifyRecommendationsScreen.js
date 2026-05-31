@@ -6,11 +6,13 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import API from '../services/api';
 import { useTheme } from '../theme';
+import { useAuth } from '../context/AuthContext';
 
 const { width } = Dimensions.get('window');
 
 export default function SpotifyRecommendationsScreen({ navigation }) {
   const { colors } = useTheme();
+  const { session } = useAuth();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [artists, setArtists] = useState([]);
@@ -24,7 +26,7 @@ export default function SpotifyRecommendationsScreen({ navigation }) {
 
   const fetchRecommendations = async () => {
     try {
-      const res = await API.get(`/spotify/recommendations/${global.userId}`);
+      const res = await API.get(`/spotify/recommendations/${session.userId}`);
       setArtists(res.data);
       const followed = new Set(
         res.data.filter(a => a.followed && a.appArtistId).map(a => a.appArtistId)

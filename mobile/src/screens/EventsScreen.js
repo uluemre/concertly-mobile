@@ -8,6 +8,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import API from '../services/api';
 import { useTheme } from '../theme';
+import { useAuth } from '../context/AuthContext';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2;
@@ -74,13 +75,14 @@ const SORT_OPTIONS = [
 export default function EventsScreen({ navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { session } = useAuth();
 
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const [search, setSearch] = useState('');
-  const [selectedCity, setSelectedCity] = useState(global.userCity || null);
+  const [selectedCity, setSelectedCity] = useState(session.userCity || null);
   const [selectedGenre, setSelectedGenre] = useState(null);
   const [sortKey, setSortKey] = useState('date_asc');
   const [cityModalVisible, setCityModalVisible] = useState(false);

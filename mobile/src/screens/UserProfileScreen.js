@@ -7,6 +7,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import API from '../services/api';
 import { useTheme } from '../theme';
+import { useAuth } from '../context/AuthContext';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2;
@@ -23,6 +24,7 @@ const eventEmojis = ['🎸', '🎤', '🥁', '🎹', '🎺', '🎻', '🎪', '�
 export default function UserProfileScreen({ route, navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { session } = useAuth();
   const { userId } = route.params;
 
   const [profile, setProfile] = useState(null);
@@ -37,7 +39,7 @@ export default function UserProfileScreen({ route, navigation }) {
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
   const tabAnim = useRef(new Animated.Value(0)).current;
 
-  const isOwnProfile = global.userId === userId;
+  const isOwnProfile = session.userId === userId;
 
   useEffect(() => {
     // Kendi profilimse ProfileScreen'e yönlendir
@@ -51,7 +53,7 @@ export default function UserProfileScreen({ route, navigation }) {
   const fetchAll = async () => {
     try {
       const [profileRes, postsRes, eventsRes] = await Promise.all([
-        API.get(`/users/${userId}/profile?currentUserId=${global.userId}`),
+        API.get(`/users/${userId}/profile?currentUserId=${session.userId}`),
         API.get(`/users/${userId}/posts`),
         API.get(`/users/${userId}/events`),
       ]);
@@ -86,13 +88,13 @@ export default function UserProfileScreen({ route, navigation }) {
 
     try {
       if (wasFollowing) {
-        await API.delete(`/users/${userId}/follow?followerId=${global.userId}`);
+        await API.delete(`/users/${userId}/follow?followerId=${session.userId}`);
         setProfile(prev => ({
           ...prev,
           followerCount: Math.max(0, (prev.followerCount || 1) - 1),
         }));
       } else {
-        await API.post(`/users/${userId}/follow?followerId=${global.userId}`);
+        await API.post(`/users/${userId}/follow?followerId=${session.userId}`);
         setProfile(prev => ({
           ...prev,
           followerCount: (prev.followerCount || 0) + 1,

@@ -7,6 +7,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import API from '../services/api';
 import { useTheme } from '../theme';
+import { useAuth } from '../context/AuthContext';
 
 const { width } = Dimensions.get('window');
 const DAY_SIZE = Math.floor((width - 32) / 7);
@@ -30,6 +31,7 @@ function StarRating({ value, onChange, size = 28 }) {
 export default function VenueProfileScreen({ route, navigation }) {
   const { venueId, venueName } = route.params;
   const { colors } = useTheme();
+  const { session } = useAuth();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [venue, setVenue]       = useState(null);
@@ -312,7 +314,7 @@ export default function VenueProfileScreen({ route, navigation }) {
                     <Text style={[styles.reviewDate, { color: colors.textSecondary }]}>
                       {new Date(r.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
                     </Text>
-                    {r.userId === global.userId && (
+                    {r.userId === session.userId && (
                       <TouchableOpacity onPress={() => handleDeleteReview(r.id)}>
                         <Text style={{ color: '#E94560', fontSize: 12 }}>Sil</Text>
                       </TouchableOpacity>

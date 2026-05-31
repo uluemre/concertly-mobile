@@ -6,6 +6,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../theme';
 import API from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 const TYPE_CONFIG = {
   follow:  { icon: '👤', text: 'seni takip etmeye başladı' },
@@ -24,6 +25,7 @@ function timeAgo(dateStr) {
 export default function NotificationsScreen({ navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { setNotificationCount } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const isMounted = useRef(true);
@@ -44,7 +46,7 @@ export default function NotificationsScreen({ navigation }) {
       if (!isMounted.current) return;
       setNotifications(res.data);
       await API.patch('/notifications/read-all');
-      if (isMounted.current) global.setNotificationBadge?.(0);
+      if (isMounted.current) setNotificationCount(0);
     } catch (err) {
       if (isMounted.current) console.log('Bildirim hatası:', err.message);
     } finally {

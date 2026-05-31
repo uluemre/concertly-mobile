@@ -5,10 +5,10 @@ import {
   ActivityIndicator, Modal, FlatList, Linking
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as WebBrowser from 'expo-web-browser';
 import API from '../services/api';
 import { useTheme } from '../theme';
+import { useAuth } from '../context/AuthContext';
 
 const TURKISH_CITIES = [
   'Adana', 'Adıyaman', 'Afyonkarahisar', 'Ağrı', 'Amasya', 'Ankara', 'Antalya', 'Artvin',
@@ -25,6 +25,7 @@ const TURKISH_CITIES = [
 
 export default function SettingsScreen({ navigation, route }) {
   const { colors, themeMode, setThemeMode } = useTheme();
+  const { session, updateSession } = useAuth();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [loading, setLoading] = useState(true);
@@ -48,7 +49,7 @@ export default function SettingsScreen({ navigation, route }) {
 
   const fetchSpotifyStatus = async () => {
     try {
-      const res = await API.get(`/spotify/status/${global.userId}`);
+      const res = await API.get(`/spotify/status/${session.userId}`);
       setSpotifyStatus(res.data);
     } catch {}
   };
@@ -56,7 +57,7 @@ export default function SettingsScreen({ navigation, route }) {
   const handleSpotifyConnect = async () => {
     setSpotifyLoading(true);
     try {
-      const res = await API.get(`/spotify/auth-url?userId=${global.userId}`);
+      const res = await API.get(`/spotify/auth-url?userId=${session.userId}`);
       const authUrl = res.data.url;
       await WebBrowser.openBrowserAsync(authUrl);
       // Tarayıcı kapandıktan sonra durumu yenile
@@ -74,7 +75,7 @@ export default function SettingsScreen({ navigation, route }) {
       {
         text: 'Bağlantıyı Kes', style: 'destructive', onPress: async () => {
           try {
-            await API.delete(`/spotify/disconnect/${global.userId}`);
+            await API.delete(`/spotify/disconnect/${session.userId}`);
             setSpotifyStatus({ connected: false });
           } catch {
             Alert.alert('Hata', 'Bağlantı kesilemedi.');
@@ -87,7 +88,7 @@ export default function SettingsScreen({ navigation, route }) {
   const fetchProfile = async () => {
     try {
       // Backend'deki getUserProfile endpoint'i
-      const res = await API.get(`/users/${global.userId}/profile`);
+      const res = await API.get(`/users/${session.userId}/profile`);
       const data = res.data;
       setFormData({
         username: data.username || '',
@@ -106,9 +107,9 @@ export default function SettingsScreen({ navigation, route }) {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await API.put(`/users/${global.userId}/profile`, formData);
+      await API.put(`/users/${session.userId}/profile`, formData);
       if (formData.city) {
-        global.userCity = formData.city;
+        await updateSession({ userCity: formData.city });
       }
       Alert.alert('✅ Başarılı', 'Ayarların başarıyla kaydedildi!', [
         { text: 'Tamam', onPress: () => navigation.goBack() }
@@ -323,9 +324,8 @@ export default function SettingsScreen({ navigation, route }) {
                   style={styles.cityListItem}
                   onPress={async () => {
                     setFormData(prev => ({ ...prev, city: item }));
-                    global.userCity = item;
                     try {
-                      await AsyncStorage.setItem('selectedCity', item);
+                      await updateSession({ userCity: item });
                     } catch (err) {
                       console.log('Şehir kaydedilemedi:', err.message);
                     }
