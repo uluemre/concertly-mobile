@@ -36,6 +36,7 @@ import AdminUsersScreen from '../screens/AdminUsersScreen';
 import AdminPostsScreen from '../screens/AdminPostsScreen';
 import SpotifyRecommendationsScreen from '../screens/SpotifyRecommendationsScreen';
 import VenueProfileScreen from '../screens/VenueProfileScreen';
+import PostDetailScreen from '../screens/PostDetailScreen';
 
 import { useTheme } from '../theme';
 
@@ -257,6 +258,7 @@ export default function AppNavigator() {
         <Stack.Screen name="AdminPosts" component={AdminPostsScreen} />
         <Stack.Screen name="SpotifyRecommendations" component={SpotifyRecommendationsScreen} />
         <Stack.Screen name="VenueProfile" component={VenueProfileScreen} />
+        <Stack.Screen name="PostDetail" component={PostDetailScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

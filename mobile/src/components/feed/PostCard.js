@@ -201,8 +201,12 @@ export default React.memo(function PostCard({
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* İÇERİK */}
-      {item.content ? <Text style={styles.content}>{item.content}</Text> : null}
+      {/* İÇERİK — tıklayınca detay */}
+      {item.content ? (
+        <TouchableOpacity activeOpacity={0.85} onPress={() => navigation.navigate('PostDetail', { post: item })}>
+          <Text style={styles.content} numberOfLines={4}>{item.content}</Text>
+        </TouchableOpacity>
+      ) : null}
       {item.postType === 'IMAGE' && item.imageUrl && (
         <Image source={{ uri: item.imageUrl }} style={styles.postImage} resizeMode="cover" />
       )}
@@ -218,7 +222,11 @@ export default React.memo(function PostCard({
           </Animated.Text>
           <Text style={[styles.actionCount, liked && styles.actionCountActive]}>{likeCount}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionBtn} onPress={() => setShowComments(true)} activeOpacity={0.7}>
+        <TouchableOpacity
+          style={styles.actionBtn}
+          onPress={() => navigation.navigate('PostDetail', { post: item })}
+          activeOpacity={0.7}
+        >
           <Text style={styles.actionIcon}>💬</Text>
           <Text style={styles.actionCount}>{item.commentCount || 0}</Text>
         </TouchableOpacity>
