@@ -65,7 +65,11 @@ export default function LoginScreen({ navigation }) {
     try {
       const res = await API.post('/auth/login', { email, password });
       await login(res.data);
-      navigation.replace('Welcome', { username: res.data.username });
+      if (res.data.isAdmin) {
+        navigation.replace('Admin');
+      } else {
+        navigation.replace('Welcome', { username: res.data.username });
+      }
     } catch (err) {
       Alert.alert('Hata', 'Email veya şifre hatalı.');
     } finally {

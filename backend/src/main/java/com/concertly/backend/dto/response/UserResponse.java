@@ -10,6 +10,7 @@ public class UserResponse {
     private Boolean onboardingCompleted;
     private Boolean isActive;
     private Boolean isAdmin;
+    private Integer postCount;
 
     public UserResponse(Long id, String username, String email) {
         this(id, username, email, null);
@@ -43,4 +44,6 @@ public class UserResponse {
     public void setIsActive(Boolean isActive) { this.isActive = isActive; }
     public Boolean getIsAdmin() { return isAdmin; }
     public void setIsAdmin(Boolean isAdmin) { this.isAdmin = isAdmin; }
+    public Integer getPostCount() { return postCount; }
+    public void setPostCount(Integer postCount) { this.postCount = postCount; }
 }

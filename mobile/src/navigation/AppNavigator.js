@@ -33,6 +33,7 @@ import ArtistSelectionScreen from '../screens/ArtistSelectionScreen';
 import AdminScreen from '../screens/AdminScreen';
 import AdminEventsScreen from '../screens/AdminEventsScreen';
 import AdminUsersScreen from '../screens/AdminUsersScreen';
+import AdminPostsScreen from '../screens/AdminPostsScreen';
 import SpotifyRecommendationsScreen from '../screens/SpotifyRecommendationsScreen';
 import VenueProfileScreen from '../screens/VenueProfileScreen';
 
@@ -131,7 +132,10 @@ export default function AppNavigator() {
     });
   }, [logout]);
 
-  const initialRoute = session.authToken ? 'MainApp' : 'Login';
+  let initialRoute = 'Login';
+  if (session.authToken) {
+    initialRoute = session.isAdmin ? 'Admin' : 'MainApp';
+  }
 
   if (!isReady) {
     return (
@@ -250,6 +254,7 @@ export default function AppNavigator() {
         <Stack.Screen name="Admin" component={AdminScreen} />
         <Stack.Screen name="AdminEvents" component={AdminEventsScreen} />
         <Stack.Screen name="AdminUsers" component={AdminUsersScreen} />
+        <Stack.Screen name="AdminPosts" component={AdminPostsScreen} />
         <Stack.Screen name="SpotifyRecommendations" component={SpotifyRecommendationsScreen} />
         <Stack.Screen name="VenueProfile" component={VenueProfileScreen} />
       </Stack.Navigator>

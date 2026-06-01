@@ -22,6 +22,7 @@ public class CreateEventRequest {
     // Artist inline (artistId yoksa bunlar kullanılır)
     private String artistName;
     private String artistGenre;
+    private String ticketUrl;
 
     public String getName()                    { return name; }
     public String getDescription()             { return description; }
@@ -37,6 +38,7 @@ public class CreateEventRequest {
     public Double getVenueLongitude()          { return venueLongitude; }
     public String getArtistName()              { return artistName; }
     public String getArtistGenre()             { return artistGenre; }
+    public String getTicketUrl()               { return ticketUrl; }
 
     public void setName(String name)                        { this.name = name; }
     public void setDescription(String description)          { this.description = description; }
@@ -52,4 +54,5 @@ public class CreateEventRequest {
     public void setVenueLongitude(Double venueLongitude)    { this.venueLongitude = venueLongitude; }
     public void setArtistName(String artistName)            { this.artistName = artistName; }
     public void setArtistGenre(String artistGenre)          { this.artistGenre = artistGenre; }
+    public void setTicketUrl(String ticketUrl)              { this.ticketUrl = ticketUrl; }
 }

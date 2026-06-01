@@ -75,49 +75,50 @@ API.interceptors.response.use(
       console.error('Ağ hatası: Backend çalışmıyor veya IP yanlış. URL:', BASE_URL);
     }
 
-    // 401 aldık, refresh token var ve bu istek zaten retry değilse
-    if (status === 401 && _refreshToken && !originalRequest._retry) {
-      if (_isRefreshing) {
-        // Başka bir refresh devam ediyor — kuyruğa ekle
-        return new Promise((resolve, reject) => {
-          _refreshQueue.push({ resolve, reject });
-        }).then(token => {
-          originalRequest.headers.Authorization = `Bearer ${token}`;
+    // 401 — token geçersiz veya süresi dolmuş
+    if (status === 401) {
+      if (_refreshToken && !originalRequest._retry) {
+        // Refresh token var → yenilenmeyi dene
+        if (_isRefreshing) {
+          return new Promise((resolve, reject) => {
+            _refreshQueue.push({ resolve, reject });
+          }).then(token => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return API(originalRequest);
+          });
+        }
+
+        originalRequest._retry = true;
+        _isRefreshing = true;
+
+        try {
+          const res = await axios.post(`${BASE_URL}/auth/refresh`, {
+            refreshToken: _refreshToken,
+          });
+
+          const newAccessToken = res.data.accessToken;
+          _authToken = newAccessToken;
+
+          if (_onTokenRefreshed) _onTokenRefreshed(newAccessToken);
+
+          processQueue(null, newAccessToken);
+          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
           return API(originalRequest);
-        });
-      }
-
-      originalRequest._retry = true;
-      _isRefreshing = true;
-
-      try {
-        const res = await axios.post(`${BASE_URL}/auth/refresh`, {
-          refreshToken: _refreshToken,
-        });
-
-        const newAccessToken = res.data.accessToken;
-        _authToken = newAccessToken;
-
-        // Context'i de güncelle (AsyncStorage dahil)
-        if (_onTokenRefreshed) _onTokenRefreshed(newAccessToken);
-
-        processQueue(null, newAccessToken);
-        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-        return API(originalRequest);
-      } catch (refreshError) {
-        processQueue(refreshError, null);
-        // Refresh başarısız — oturumu sonlandır
+        } catch (refreshError) {
+          processQueue(refreshError, null);
+          if (_onSessionExpired) _onSessionExpired();
+          return Promise.reject(refreshError);
+        } finally {
+          _isRefreshing = false;
+        }
+      } else {
+        // Refresh token yok veya ikinci deneme — oturumu sonlandır
         if (_onSessionExpired) _onSessionExpired();
-        return Promise.reject(refreshError);
-      } finally {
-        _isRefreshing = false;
       }
     }
 
-    // 403 — yetkisiz, direkt logout
-    if (status === 403 && _authToken) {
-      if (_onSessionExpired) _onSessionExpired();
-    }
+    // 403 — yetki hatası, sadece isteği reddet; oturumu kapatma
+    // (admin endpoint'lere yetkisiz erişim ekranı kendi handle eder)
 
     return Promise.reject(error);
   }

@@ -52,6 +52,7 @@ export default function ProfileScreen({ navigation }) {
   const fetchAll = async () => {
     if (!session.userId) {
       setLoading(false);
+      Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
       return;
     }
     try {
@@ -69,16 +70,11 @@ export default function ProfileScreen({ navigation }) {
       setFollowedArtists(artistsRes.data);
       setBookmarks(bookmarksRes.data);
       setBadges(badgesRes.data);
-
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: true,
-      }).start();
     } catch (err) {
       console.log('Profil hatası:', err.message);
     } finally {
       setLoading(false);
+      Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
     }
   };
 
