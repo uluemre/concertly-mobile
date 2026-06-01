@@ -6,6 +6,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 
 const { width } = Dimensions.get('window');
 const CARD_SIZE = (width - 48) / 2;
@@ -143,12 +144,14 @@ function AnimatedCard({ item, index, navigation, styles, colors, isSetupCard }) 
     };
   }, [isSetupCard, startShimmer]);
 
+  const { t } = useLanguage();
+
   const handlePress = () => {
     if (!item.available) {
       Alert.alert(
-        'Yakında!',
-        `${item.title} özelliği çok yakında geliyor.`,
-        [{ text: 'Tamam' }]
+        t('explore_coming_soon'),
+        `${item.title}${t('explore_coming_soon_msg')}`,
+        [{ text: t('confirm') }]
       );
       return;
     }
@@ -240,6 +243,7 @@ export default function ExploreScreen({ navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { session } = useAuth();
+  const { t } = useLanguage();
   const headerAnim = useRef(new Animated.Value(-30)).current;
   const headerOpacity = useRef(new Animated.Value(0)).current;
 
@@ -264,10 +268,8 @@ export default function ExploreScreen({ navigation }) {
       <LinearGradient colors={colors.headerGradient} style={styles.header}>
         <Animated.View style={{ opacity: headerOpacity, transform: [{ translateY: headerAnim }] }}>
           <Text style={styles.headerLabel}>Concertly</Text>
-          <Text style={styles.headerTitle}>Menü</Text>
-          <Text style={styles.headerSub}>
-            Konser, post ve hesap araçlarına buradan ulaş
-          </Text>
+          <Text style={styles.headerTitle}>{t('explore_title')}</Text>
+          <Text style={styles.headerSub}>{t('explore_subtitle')}</Text>
         </Animated.View>
       </LinearGradient>
 

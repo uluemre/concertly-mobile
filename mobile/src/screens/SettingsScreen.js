@@ -9,6 +9,7 @@ import * as WebBrowser from 'expo-web-browser';
 import API from '../services/api';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 
 const TURKISH_CITIES = [
   'Adana', 'Adıyaman', 'Afyonkarahisar', 'Ağrı', 'Amasya', 'Ankara', 'Antalya', 'Artvin',
@@ -26,6 +27,7 @@ const TURKISH_CITIES = [
 export default function SettingsScreen({ navigation, route }) {
   const { colors, themeMode, setThemeMode } = useTheme();
   const { session, updateSession } = useAuth();
+  const { lang, setLang, t } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [loading, setLoading] = useState(true);
@@ -115,8 +117,10 @@ export default function SettingsScreen({ navigation, route }) {
         { text: 'Tamam', onPress: () => navigation.goBack() }
       ]);
     } catch (err) {
-      console.log('Ayar kayıt hatası:', err?.response?.data?.message);
-      Alert.alert('Hata', 'Ayarlar kaydedilirken bir sorun oluştu.');
+      const status = err?.response?.status;
+      const msg = err?.response?.data?.message || err?.response?.data?.error || err?.message || 'Bilinmeyen hata';
+      console.log('Ayar kayıt hatası:', status, msg);
+      Alert.alert('Hata', `Ayarlar kaydedilemedi. (${status || 'Ağ hatası'})`);
     } finally {
       setSaving(false);
     }
@@ -144,21 +148,42 @@ export default function SettingsScreen({ navigation, route }) {
         <Text style={styles.sectionTitle}>Uygulama Görünümü</Text>
 
         <View style={styles.themeToggleContainer}>
-          <Text style={styles.label}>Tema</Text>
+          <Text style={styles.label}>{t('settings_theme')}</Text>
           <View style={styles.themeToggle}>
             <TouchableOpacity
               onPress={() => setThemeMode('dark')}
               style={[styles.themeToggleOption, themeMode === 'dark' && styles.themeToggleOptionActive]}
               activeOpacity={0.8}
             >
-              <Text style={styles.themeToggleIcon}>🌙 Koyu</Text>
+              <Text style={styles.themeToggleIcon}>{t('settings_theme_dark')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => setThemeMode('light')}
               style={[styles.themeToggleOption, themeMode === 'light' && styles.themeToggleOptionActive]}
               activeOpacity={0.8}
             >
-              <Text style={styles.themeToggleIcon}>☀️ Açık</Text>
+              <Text style={styles.themeToggleIcon}>{t('settings_theme_light')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* DİL SEÇİCİ */}
+        <View style={styles.themeToggleContainer}>
+          <Text style={styles.label}>{t('settings_language')}</Text>
+          <View style={styles.themeToggle}>
+            <TouchableOpacity
+              onPress={() => setLang('tr')}
+              style={[styles.themeToggleOption, lang === 'tr' && styles.themeToggleOptionActive]}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.themeToggleIcon}>{t('settings_language_tr')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setLang('en')}
+              style={[styles.themeToggleOption, lang === 'en' && styles.themeToggleOptionActive]}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.themeToggleIcon}>{t('settings_language_en')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -170,7 +195,7 @@ export default function SettingsScreen({ navigation, route }) {
           <TextInput
             style={styles.input}
             value={formData.username}
-            onChangeText={(t) => setFormData({ ...formData, username: t })}
+            onChangeText={(val) => setFormData({ ...formData, username: val })}
             placeholder="@kullanici_adi"
             placeholderTextColor={colors.textSecondary}
           />
@@ -181,7 +206,7 @@ export default function SettingsScreen({ navigation, route }) {
           <TextInput
             style={styles.input}
             value={formData.email}
-            onChangeText={(t) => setFormData({ ...formData, email: t })}
+            onChangeText={(val) => setFormData({ ...formData, email: val })}
             placeholder="ornek@email.com"
             keyboardType="email-address"
             autoCapitalize="none"
@@ -194,7 +219,7 @@ export default function SettingsScreen({ navigation, route }) {
           <TextInput
             style={styles.input}
             value={formData.phone}
-            onChangeText={(t) => setFormData({ ...formData, phone: t })}
+            onChangeText={(val) => setFormData({ ...formData, phone: val })}
             placeholder="0555 555 55 55"
             keyboardType="phone-pad"
             placeholderTextColor={colors.textSecondary}
@@ -220,7 +245,7 @@ export default function SettingsScreen({ navigation, route }) {
           <TextInput
             style={[styles.input, styles.textArea]}
             value={formData.bio}
-            onChangeText={(t) => setFormData({ ...formData, bio: t })}
+            onChangeText={(val) => setFormData({ ...formData, bio: val })}
             placeholder="Kendinden bahset..."
             multiline
             numberOfLines={4}

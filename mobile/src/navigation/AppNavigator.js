@@ -40,12 +40,14 @@ import PostDetailScreen from '../screens/PostDetailScreen';
 import ConcertBuddyMatchScreen from '../screens/ConcertBuddyMatchScreen';
 
 import { useTheme } from '../theme';
+import { useLanguage } from '../context/LanguageContext';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 function TabNavigator() {
   const { colors } = useTheme();
+  const { t } = useLanguage();
   const { session, notificationCount, setNotificationCount } = useAuth();
 
   useEffect(() => {
@@ -86,7 +88,7 @@ function TabNavigator() {
         name="Home"
         component={HomeScreen}
         options={{
-          tabBarLabel: 'Ana Sayfa',
+          tabBarLabel: t('tab_home'),
           tabBarIcon: () => <Text style={{ fontSize: 20 }}>🏠</Text>,
         }}
       />
@@ -95,7 +97,7 @@ function TabNavigator() {
         name="Explore"
         component={ExploreScreen}
         options={{
-          tabBarLabel: 'Menü',
+          tabBarLabel: t('tab_menu'),
           tabBarIcon: () => <Text style={{ fontSize: 20 }}>☰</Text>,
         }}
       />
@@ -104,7 +106,7 @@ function TabNavigator() {
         name="Notifications"
         component={NotificationsScreen}
         options={{
-          tabBarLabel: 'Bildirimler',
+          tabBarLabel: t('tab_notifications'),
           tabBarIcon: () => <Text style={{ fontSize: 20 }}>🔔</Text>,
           tabBarBadge: notificationCount > 0 ? notificationCount : undefined,
           tabBarBadgeStyle: { backgroundColor: '#E94560', fontSize: 11 },
@@ -115,7 +117,7 @@ function TabNavigator() {
         name="Profile"
         component={ProfileScreen}
         options={{
-          tabBarLabel: 'Profil',
+          tabBarLabel: t('tab_profile'),
           tabBarIcon: () => <Text style={{ fontSize: 20 }}>👤</Text>,
         }}
       />

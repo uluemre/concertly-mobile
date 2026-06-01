@@ -8,6 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import API from '../services/api';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 
 function createStyles(colors) {
   return StyleSheet.create({
@@ -52,13 +53,14 @@ export default function LoginScreen({ navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { login } = useAuth();
+  const { t } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Hata', 'Email ve şifre boş olamaz.');
+      Alert.alert(t('error'), t('login_empty_error'));
       return;
     }
     setLoading(true);
@@ -71,7 +73,7 @@ export default function LoginScreen({ navigation }) {
         navigation.replace('Welcome', { username: res.data.username });
       }
     } catch (err) {
-      Alert.alert('Hata', 'Email veya şifre hatalı.');
+      Alert.alert(t('error'), t('login_error'));
     } finally {
       setLoading(false);
     }
@@ -93,8 +95,8 @@ export default function LoginScreen({ navigation }) {
             style={styles.logo}
             resizeMode="contain"
           />
-          <Text style={styles.title}>Concertly</Text>
-          <Text style={styles.subtitle}>Müziği yaşa, anları paylaş</Text>
+          <Text style={styles.title}>{t('login_title')}</Text>
+          <Text style={styles.subtitle}>{t('login_subtitle')}</Text>
 
         </View>
 
@@ -132,7 +134,7 @@ export default function LoginScreen({ navigation }) {
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
               >
-                <Text style={styles.buttonText}>Giriş Yap 🎵</Text>
+                <Text style={styles.buttonText}>{t('login_btn')}</Text>
               </LinearGradient>
             </TouchableOpacity>
           )}
@@ -142,8 +144,8 @@ export default function LoginScreen({ navigation }) {
             style={styles.linkArea}
           >
             <Text style={styles.link}>
-              Hesabın yok mu?{' '}
-              <Text style={styles.linkBold}>Kayıt ol</Text>
+              {t('login_no_account')}{' '}
+              <Text style={styles.linkBold}>{t('login_register_link')}</Text>
             </Text>
           </TouchableOpacity>
 

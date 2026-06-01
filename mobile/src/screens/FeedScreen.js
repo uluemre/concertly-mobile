@@ -8,12 +8,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import API from '../services/api';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import PostCard from '../components/feed/PostCard';
 
 export default function FeedScreen({ navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { session } = useAuth();
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState('trending');
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -98,17 +100,17 @@ export default function FeedScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <LinearGradient colors={colors.headerGradient} style={styles.header}>
-        <Text style={styles.headerTitle}>🔥 Feed</Text>
+        <Text style={styles.headerTitle}>{t('feed_title')}</Text>
         <View style={styles.tabBar}>
           <Animated.View style={[styles.tabIndicator, { left: indicatorLeft }]} />
           <TouchableOpacity style={styles.tabBtn} onPress={() => switchTab('trending')}>
             <Text style={[styles.tabBtnText, activeTab === 'trending' && styles.tabBtnTextActive]}>
-              🔥 Trending
+              {t('feed_trending')}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.tabBtn} onPress={() => switchTab('following')}>
             <Text style={[styles.tabBtnText, activeTab === 'following' && styles.tabBtnTextActive]}>
-              👥 Takip
+              {t('feed_following')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -117,7 +119,7 @@ export default function FeedScreen({ navigation }) {
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Postlar yükleniyor...</Text>
+          <Text style={styles.loadingText}>{t('feed_loading')}</Text>
         </View>
       ) : (
         <FlatList
@@ -133,12 +135,10 @@ export default function FeedScreen({ navigation }) {
             <View style={styles.empty}>
               <Text style={styles.emptyEmoji}>{activeTab === 'following' ? '👥' : '📭'}</Text>
               <Text style={styles.emptyTitle}>
-                {activeTab === 'following' ? 'Takip ettiğin kimse yok' : 'Henüz post yok'}
+                {activeTab === 'following' ? t('feed_empty_following_title') : t('feed_empty_title')}
               </Text>
               <Text style={styles.emptySubtext}>
-                {activeTab === 'following'
-                  ? 'Kullanıcıları takip et, onların postlarını burada gör'
-                  : 'İlk postu sen at! Bir konsere git 🎸'}
+                {activeTab === 'following' ? t('feed_empty_following_sub') : t('feed_empty_sub')}
               </Text>
             </View>
           }

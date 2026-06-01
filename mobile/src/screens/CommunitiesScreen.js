@@ -7,6 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
 
 const filters = ['Tümü', 'Rock', 'Festival', 'Elektronik', 'Şehir', 'Caz'];
@@ -14,6 +15,7 @@ const filters = ['Tümü', 'Rock', 'Festival', 'Elektronik', 'Şehir', 'Caz'];
 export default function CommunitiesScreen({ navigation }) {
   const { colors } = useTheme();
   const { session } = useAuth();
+  const { t } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [activeFilter, setActiveFilter] = useState('Tümü');
   const [query, setQuery] = useState('');
@@ -91,9 +93,9 @@ export default function CommunitiesScreen({ navigation }) {
           <Text style={styles.backText}>← Geri</Text>
         </TouchableOpacity>
         <Text style={styles.headerLabel}>Concertly</Text>
-        <Text style={styles.headerTitle}>Topluluklar</Text>
+        <Text style={styles.headerTitle}>{t('communities_title')}</Text>
         <Text style={styles.headerSub}>
-          Müzik zevkine, şehrine ve konser planına göre insanları bul.
+          {t('communities_search')}
         </Text>
 
         <View style={styles.statsRow}>
@@ -169,7 +171,7 @@ export default function CommunitiesScreen({ navigation }) {
                     style={[styles.joinButton, community.isJoinedByCurrentUser && styles.joinButtonActive]}
                   >
                     <Text style={[styles.joinText, community.isJoinedByCurrentUser && styles.joinTextActive]}>
-                      {community.isJoinedByCurrentUser ? 'Katıldın' : 'Katıl'}
+                      {community.isJoinedByCurrentUser ? t('communities_joined') : t('communities_join')}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -179,8 +181,8 @@ export default function CommunitiesScreen({ navigation }) {
                 </Text>
 
                 <View style={styles.communityFooter}>
-                  <Text style={styles.footerMetric}>{community.memberCount.toLocaleString('tr-TR')} üye</Text>
-                  <Text style={styles.footerMetric}>{community.postCount} post</Text>
+                  <Text style={styles.footerMetric}>{community.memberCount.toLocaleString('tr-TR')} {t('communities_members')}</Text>
+                  <Text style={styles.footerMetric}>{community.postCount} {t('communities_posts')}</Text>
                   <Text style={styles.footerMetric}>→</Text>
                 </View>
               </View>

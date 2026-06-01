@@ -7,6 +7,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import API from '../services/api';
@@ -29,6 +30,7 @@ export default function ProfileScreen({ navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { session, logout } = useAuth();
+  const { t } = useLanguage();
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
   const [events, setEvents] = useState([]);
@@ -110,10 +112,10 @@ export default function ProfileScreen({ navigation }) {
   };
 
   const handleLogout = () => {
-    Alert.alert('Çıkış Yap', 'Emin misin?', [
-      { text: 'İptal', style: 'cancel' },
+    Alert.alert(t('profile_logout'), t('profile_logout_confirm'), [
+      { text: t('cancel'), style: 'cancel' },
       {
-        text: 'Çıkış Yap', style: 'destructive', onPress: async () => {
+        text: t('profile_logout'), style: 'destructive', onPress: async () => {
           await logout();
           navigation.replace('Login');
         }
@@ -220,7 +222,7 @@ export default function ProfileScreen({ navigation }) {
           activeOpacity={0.7}
         >
           <Text style={styles.statNumber}>{profile?.followerCount || 0}</Text>
-          <Text style={styles.statLabel}>Takipçi</Text>
+          <Text style={styles.statLabel}>{t('profile_followers')}</Text>
         </TouchableOpacity>
         <View style={styles.statDivider} />
         <TouchableOpacity
@@ -229,7 +231,7 @@ export default function ProfileScreen({ navigation }) {
           activeOpacity={0.7}
         >
           <Text style={styles.statNumber}>{profile?.followingCount || 0}</Text>
-          <Text style={styles.statLabel}>Takip</Text>
+          <Text style={styles.statLabel}>{t('profile_following')}</Text>
         </TouchableOpacity>
         <View style={styles.statDivider} />
         <View style={styles.stat}>
@@ -245,7 +247,7 @@ export default function ProfileScreen({ navigation }) {
           onPress={() => setActiveTab('posts')}
         >
           <Text style={[styles.tabText, activeTab === 'posts' && styles.tabTextActive]}>
-            Postlar ({posts.length})
+            {t('profile_posts')} ({posts.length})
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -253,7 +255,7 @@ export default function ProfileScreen({ navigation }) {
           onPress={() => setActiveTab('events')}
         >
           <Text style={[styles.tabText, activeTab === 'events' && styles.tabTextActive]}>
-            Etkinlikler ({events.length})
+            {t('profile_events')} ({events.length})
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -281,8 +283,8 @@ export default function ProfileScreen({ navigation }) {
           posts.length === 0 ? (
             <View style={styles.empty}>
               <Text style={styles.emptyEmoji}>📭</Text>
-              <Text style={styles.emptyText}>Henüz post atmadın</Text>
-              <Text style={styles.emptySubText}>Bir konsere git, deneyimini paylaş!</Text>
+              <Text style={styles.emptyText}>{t('profile_empty_posts')}</Text>
+              <Text style={styles.emptySubText}>{t('profile_empty_posts_sub')}</Text>
             </View>
           ) : (
             posts.map((item) => (
@@ -335,8 +337,8 @@ export default function ProfileScreen({ navigation }) {
           events.length === 0 ? (
             <View style={styles.empty}>
               <Text style={styles.emptyEmoji}>🎭</Text>
-              <Text style={styles.emptyText}>Henüz etkinlik yok</Text>
-              <Text style={styles.emptySubText}>Post attığın etkinlikler burada görünür</Text>
+              <Text style={styles.emptyText}>{t('profile_empty_events')}</Text>
+              <Text style={styles.emptySubText}>{t('profile_empty_events_sub')}</Text>
             </View>
           ) : (
             <View style={styles.eventGrid}>

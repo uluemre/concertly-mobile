@@ -7,6 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
 
 const { width, height } = Dimensions.get('window');
@@ -30,11 +31,11 @@ function formatDate(iso) {
   return new Date(iso).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
 }
 
-function genreScore(score) {
-  if (score >= 80) return { label: 'Mükemmel uyum 🔥', color: '#00D4AA' };
-  if (score >= 50) return { label: 'İyi uyum ✨', color: '#F5A623' };
-  if (score > 0) return { label: 'Farklı tatlar 🎵', color: '#7C3AED' };
-  return { label: 'Keşfet 🎭', color: '#A0A0B0' };
+function genreScore(score, t) {
+  if (score >= 80) return { label: t('buddy_compat_great'), color: '#00D4AA' };
+  if (score >= 50) return { label: t('buddy_compat_good'), color: '#F5A623' };
+  if (score > 0) return { label: t('buddy_compat_diff'), color: '#7C3AED' };
+  return { label: t('buddy_compat_explore'), color: '#A0A0B0' };
 }
 
 // ── Eşleşme Animasyonu ────────────────────────────────────────────────────────
@@ -90,6 +91,7 @@ function MatchOverlay({ matchedUser, onClose, navigation }) {
 export default function ConcertBuddyMatchScreen({ navigation }) {
   const { colors } = useTheme();
   const { session } = useAuth();
+  const { t } = useLanguage();
 
   const [cards, setCards] = useState([]);
   const [matches, setMatches] = useState([]);
@@ -172,7 +174,7 @@ export default function ConcertBuddyMatchScreen({ navigation }) {
   const renderCard = (card, isBack = false) => {
     if (!card) return null;
     const genres = card.favoriteGenres ? card.favoriteGenres.split(',').map(g => g.trim()).filter(Boolean) : [];
-    const compat = genreScore(card.genreMatchScore || 0);
+    const compat = genreScore(card.genreMatchScore || 0, t);
 
     return (
       <Animated.View
@@ -255,7 +257,7 @@ export default function ConcertBuddyMatchScreen({ navigation }) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Text style={[styles.backText, { color: colors.primary }]}>‹ Geri</Text>
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>🎵 Konser Arkadaşı</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>{t('buddy_title')}</Text>
 
         {/* Tab */}
         <View style={[styles.tabRow, { backgroundColor: colors.cardAlt }]}>
@@ -264,7 +266,7 @@ export default function ConcertBuddyMatchScreen({ navigation }) {
             onPress={() => setActiveTab('discover')}
           >
             <Text style={[styles.tabBtnText, { color: activeTab === 'discover' ? '#fff' : colors.textSecondary }]}>
-              Keşfet
+              {t('buddy_discover')}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -272,7 +274,7 @@ export default function ConcertBuddyMatchScreen({ navigation }) {
             onPress={() => setActiveTab('matches')}
           >
             <Text style={[styles.tabBtnText, { color: activeTab === 'matches' ? '#fff' : colors.textSecondary }]}>
-              Eşleşmeler {matches.length > 0 ? `(${matches.length})` : ''}
+              {t('buddy_matches')} {matches.length > 0 ? `(${matches.length})` : ''}
             </Text>
           </TouchableOpacity>
         </View>
@@ -289,15 +291,15 @@ export default function ConcertBuddyMatchScreen({ navigation }) {
             {currentIndex >= cards.length ? (
               <View style={styles.emptyState}>
                 <Text style={styles.emptyEmoji}>🎭</Text>
-                <Text style={[styles.emptyTitle, { color: colors.text }]}>Hepsi bu kadar!</Text>
+                <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('buddy_empty_title')}</Text>
                 <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
-                  Daha fazla kişiyle eşleşmek için etkinliklere{'\n'}"Gidiyorum" ile katıl.
+                  {t('buddy_empty_sub')}
                 </Text>
                 <TouchableOpacity
                   onPress={fetchAll}
                   style={[styles.refreshBtn, { backgroundColor: colors.primary }]}
                 >
-                  <Text style={styles.refreshBtnText}>Yenile</Text>
+                  <Text style={styles.refreshBtnText}>{t('buddy_refresh')}</Text>
                 </TouchableOpacity>
               </View>
             ) : (
@@ -320,7 +322,7 @@ export default function ConcertBuddyMatchScreen({ navigation }) {
                 activeOpacity={0.8}
               >
                 <Text style={styles.passBtnText}>❌</Text>
-                <Text style={[styles.passBtnLabel, { color: colors.textSecondary }]}>Pas</Text>
+                <Text style={[styles.passBtnLabel, { color: colors.textSecondary }]}>{t('buddy_pass')}</Text>
               </TouchableOpacity>
 
               <View style={styles.counterWrap}>
@@ -337,7 +339,7 @@ export default function ConcertBuddyMatchScreen({ navigation }) {
               >
                 <LinearGradient colors={['#E94560', '#7C3AED']} style={styles.likeBtnGrad}>
                   <Text style={styles.likeBtnText}>🎵</Text>
-                  <Text style={styles.likeBtnLabel}>Arkadaş</Text>
+                  <Text style={styles.likeBtnLabel}>{t('buddy_like')}</Text>
                 </LinearGradient>
               </TouchableOpacity>
             </View>
@@ -349,9 +351,9 @@ export default function ConcertBuddyMatchScreen({ navigation }) {
           {matches.length === 0 ? (
             <View style={styles.emptyState}>
               <Text style={styles.emptyEmoji}>💫</Text>
-              <Text style={[styles.emptyTitle, { color: colors.text }]}>Henüz eşleşme yok</Text>
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('buddy_no_matches')}</Text>
               <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
-                Keşfet sekmesinde konser arkadaşı bul!
+                {t('buddy_no_matches_sub')}
               </Text>
             </View>
           ) : (

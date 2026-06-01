@@ -6,6 +6,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../theme';
+import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
 
 function formatRelativeTime(isoString) {
@@ -25,6 +26,7 @@ function formatRelativeTime(isoString) {
 export default function CommunityDetailScreen({ route, navigation }) {
   const { communityId } = route.params;
   const { colors } = useTheme();
+  const { t } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [community, setCommunity] = useState(null);
@@ -163,13 +165,13 @@ export default function CommunityDetailScreen({ route, navigation }) {
           style={[styles.heroJoinButton, joined && styles.heroJoinButtonActive]}
         >
           <Text style={[styles.heroJoinText, joined && styles.heroJoinTextActive]}>
-            {joined ? 'Topluluktasın' : 'Topluluğa Katıl'}
+            {joined ? t('communities_joined') : t('communities_join')}
           </Text>
         </TouchableOpacity>
       </LinearGradient>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Sıradaki Konu</Text>
+        <Text style={styles.sectionTitle}>{t('communities_next_event')}</Text>
         <View style={styles.topicCard}>
           <Text style={styles.topicTitle}>{community.nextEvent}</Text>
           <Text style={styles.topicSub}>
@@ -183,7 +185,7 @@ export default function CommunityDetailScreen({ route, navigation }) {
           <TextInput
             value={draft}
             onChangeText={setDraft}
-            placeholder={joined ? 'Topluluğa bir şey yaz...' : 'Post atmak için topluluğa katıl'}
+            placeholder={joined ? t('communities_compose') : t('communities_compose_locked')}
             placeholderTextColor={colors.textSecondary}
             editable={joined}
             multiline
@@ -194,13 +196,13 @@ export default function CommunityDetailScreen({ route, navigation }) {
             disabled={!joined || !draft.trim() || publishing}
             style={[styles.publishButton, (!joined || !draft.trim() || publishing) && styles.publishButtonDisabled]}
           >
-            <Text style={styles.publishText}>{publishing ? '...' : 'Paylaş'}</Text>
+            <Text style={styles.publishText}>{publishing ? '...' : t('communities_publish')}</Text>
           </TouchableOpacity>
         </View>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Topluluk Akışı</Text>
+        <Text style={styles.sectionTitle}>{t('communities_feed')}</Text>
         {posts.map(post => (
           <View key={post.id} style={styles.postCard}>
             <View style={styles.postHeader}>
@@ -230,7 +232,7 @@ export default function CommunityDetailScreen({ route, navigation }) {
           </View>
         ))}
         {posts.length === 0 && (
-          <Text style={styles.emptyText}>Henüz post yok. Topluluğa katılıp ilk postu sen at!</Text>
+          <Text style={styles.emptyText}>{t('communities_empty')}</Text>
         )}
       </View>
     </ScrollView>
