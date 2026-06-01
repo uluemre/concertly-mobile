@@ -59,12 +59,12 @@ const menuItems = [
   },
   {
     id: 4,
-    title: 'Konser Ekipleri',
-    subtitle: 'Aynı konsere gidenleri bul',
-    emoji: '🤝',
-    gradient: ['#00A8FF', '#00D4AA'],
-    screen: null,
-    available: false,
+    title: 'Konser Arkadaşı',
+    subtitle: 'Aynı konsere gidenleri eşleştir',
+    emoji: '🎵',
+    gradient: ['#E94560', '#F5A623'],
+    screen: 'ConcertBuddyMatch',
+    available: true,
   },
   {
     id: 5,

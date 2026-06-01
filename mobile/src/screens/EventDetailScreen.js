@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react'
 import {
   View, Text, StyleSheet, ScrollView,
   TouchableOpacity, Alert, ActivityIndicator,
-  Linking, Platform, Modal, Animated, FlatList
+  Linking, Platform, Modal, Animated, FlatList, TextInput
 } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -11,7 +11,9 @@ import * as Location from 'expo-location';
 import * as Calendar from 'expo-calendar';
 import API from '../services/api';
 import { useTheme } from '../theme';
+import { useAuth } from '../context/AuthContext';
 import { getGenreGradient } from '../utils/gradients';
+import { formatTimeAgo } from '../utils/time';
 
 function getInitials(name) {
   if (!name) return '?';
@@ -57,6 +59,7 @@ function openMapsApp(latitude, longitude, venueName) {
 export default function EventDetailScreen({ route, navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { session } = useAuth();
   const { event } = route.params;
 
   const [verifying, setVerifying] = useState(false);
@@ -73,6 +76,20 @@ export default function EventDetailScreen({ route, navigation }) {
   const [imageError, setImageError] = useState(false);
   const [useFallbackImage, setUseFallbackImage] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
+
+  // ── Konser Arkadaşı ──
+  const [buddies, setBuddies] = useState([]);
+  const [isBuddy, setIsBuddy] = useState(false);
+  const [buddyMessage, setBuddyMessage] = useState('');
+  const [buddyLoading, setBuddyLoading] = useState(false);
+  const [showBuddyInput, setShowBuddyInput] = useState(false);
+
+  // ── Değerlendirme ──
+  const [reviews, setReviews] = useState([]);
+  const [myRating, setMyRating] = useState(0);
+  const [reviewText, setReviewText] = useState('');
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
 
   useEffect(() => {
     API.get(`/events/${event.id}/attendance`)
@@ -94,6 +111,28 @@ export default function EventDetailScreen({ route, navigation }) {
     API.get(`/events/${event.id}/verify`)
       .then(res => setIsVerified(res.data.verified ?? false))
       .catch(() => {});
+
+    // Buddy durumu yükle
+    API.get(`/events/${event.id}/buddies/me`)
+      .then(res => {
+        setIsBuddy(res.data.joined);
+        setBuddyMessage(res.data.message || '');
+      })
+      .catch(() => {});
+    API.get(`/events/${event.id}/buddies`)
+      .then(res => setBuddies(res.data))
+      .catch(() => {});
+
+    // Değerlendirmeleri yükle
+    setReviewsLoading(true);
+    API.get(`/events/${event.id}/reviews`)
+      .then(res => {
+        setReviews(res.data);
+        const mine = res.data.find(r => r.userId === session.userId);
+        if (mine) { setMyRating(mine.rating); setReviewText(mine.comment || ''); }
+      })
+      .catch(() => {})
+      .finally(() => setReviewsLoading(false));
   }, [event.id]);
 
   const handleBookmark = async () => {
@@ -260,6 +299,69 @@ export default function EventDetailScreen({ route, navigation }) {
     }
   };
 
+  const handleToggleBuddy = async () => {
+    setBuddyLoading(true);
+    try {
+      if (isBuddy) {
+        await API.delete(`/events/${event.id}/buddies`);
+        setIsBuddy(false);
+        setBuddies(prev => prev.filter(b => b.userId !== session.userId));
+      } else {
+        await API.post(`/events/${event.id}/buddies`, { message: buddyMessage.trim() || null });
+        setIsBuddy(true);
+        setShowBuddyInput(false);
+        const res = await API.get(`/events/${event.id}/buddies`);
+        setBuddies(res.data);
+      }
+    } catch {
+      Alert.alert('Hata', 'İşlem gerçekleştirilemedi.');
+    } finally {
+      setBuddyLoading(false);
+    }
+  };
+
+  const avgRating = reviews.length
+    ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)
+    : null;
+
+  const handleSubmitReview = async () => {
+    if (!myRating) { Alert.alert('Puan ver', '1-5 arası bir puan seç.'); return; }
+    setReviewLoading(true);
+    try {
+      const res = await API.post(`/events/${event.id}/reviews`, {
+        rating: myRating,
+        comment: reviewText.trim() || null,
+      });
+      setReviews(prev => {
+        const filtered = prev.filter(r => r.userId !== session.userId);
+        return [res.data, ...filtered];
+      });
+      Alert.alert('✅ Teşekkürler!', 'Değerlendirmen kaydedildi.');
+    } catch {
+      Alert.alert('Hata', 'Değerlendirme gönderilemedi.');
+    } finally {
+      setReviewLoading(false);
+    }
+  };
+
+  const handleDeleteReview = () => {
+    Alert.alert('Değerlendirmeyi Sil', 'Değerlendirmeni kaldırmak istiyor musun?', [
+      { text: 'İptal', style: 'cancel' },
+      {
+        text: 'Sil', style: 'destructive', onPress: async () => {
+          try {
+            await API.delete(`/events/${event.id}/reviews`);
+            setReviews(prev => prev.filter(r => r.userId !== session.userId));
+            setMyRating(0);
+            setReviewText('');
+          } catch {
+            Alert.alert('Hata', 'Silinemedi.');
+          }
+        },
+      },
+    ]);
+  };
+
   return (
     <>
     <ScrollView style={styles.container}>
@@ -377,6 +479,86 @@ export default function EventDetailScreen({ route, navigation }) {
             </View>
           </TouchableOpacity>
         </View>
+
+        {/* KONSER ARKADAŞI */}
+        {!isExpired && (
+          <View style={[styles.buddyCard, { backgroundColor: colors.card, borderColor: isBuddy ? colors.primary : colors.border }]}>
+            <View style={styles.buddyCardHeader}>
+              <View>
+                <Text style={[styles.buddyTitle, { color: colors.text }]}>🙋 Konser Arkadaşı</Text>
+                <Text style={[styles.buddySub, { color: colors.textSecondary }]}>
+                  {buddies.length > 0
+                    ? `${buddies.length} kişi arkadaş arıyor`
+                    : 'Bu konsere birlikte gidecek biri arıyorum'}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => isBuddy ? handleToggleBuddy() : setShowBuddyInput(v => !v)}
+                disabled={buddyLoading}
+                style={[styles.buddyToggleBtn, { backgroundColor: isBuddy ? colors.primary : colors.cardAlt, borderColor: colors.border }]}
+                activeOpacity={0.8}
+              >
+                {buddyLoading
+                  ? <ActivityIndicator size="small" color={isBuddy ? '#fff' : colors.primary} />
+                  : <Text style={[styles.buddyToggleText, { color: isBuddy ? '#fff' : colors.primary }]}>
+                      {isBuddy ? '✓ Arıyorum' : '+ Katıl'}
+                    </Text>
+                }
+              </TouchableOpacity>
+            </View>
+
+            {/* Mesaj girişi */}
+            {showBuddyInput && !isBuddy && (
+              <View style={styles.buddyInputWrap}>
+                <TextInput
+                  style={[styles.buddyInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
+                  placeholder='Mesaj ekle: "Ön sıraya gidelim 🎸" (isteğe bağlı)'
+                  placeholderTextColor={colors.textSecondary}
+                  value={buddyMessage}
+                  onChangeText={setBuddyMessage}
+                  maxLength={200}
+                />
+                <TouchableOpacity
+                  onPress={handleToggleBuddy}
+                  disabled={buddyLoading}
+                  style={[styles.buddySendBtn, { backgroundColor: colors.primary }]}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.buddySendText}>Aramaya Başla →</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Arkadaş arayanlar listesi */}
+            {buddies.length > 0 && (
+              <View style={styles.buddyList}>
+                {buddies.map((b, i) => (
+                  <TouchableOpacity
+                    key={b.userId}
+                    style={[styles.buddyRow, { borderTopColor: colors.border, borderTopWidth: i === 0 ? 1 : 0 }]}
+                    onPress={() => b.userId !== session.userId && navigation.navigate('UserProfile', { userId: b.userId })}
+                    activeOpacity={b.userId === session.userId ? 1 : 0.7}
+                  >
+                    <View style={[styles.buddyAvatar, { backgroundColor: colors.primary }]}>
+                      <Text style={styles.buddyAvatarText}>{b.username?.charAt(0).toUpperCase()}</Text>
+                    </View>
+                    <View style={styles.buddyInfo}>
+                      <Text style={[styles.buddyUsername, { color: colors.text }]}>
+                        @{b.username}
+                        {b.userId === session.userId && <Text style={{ color: colors.primary }}> (sen)</Text>}
+                      </Text>
+                      {b.city ? <Text style={[styles.buddyCity, { color: colors.textSecondary }]}>📍 {b.city}</Text> : null}
+                      {b.message ? <Text style={[styles.buddyMessage, { color: colors.textSecondary }]}>"{b.message}"</Text> : null}
+                    </View>
+                    {b.userId !== session.userId && (
+                      <Text style={[styles.buddyChevron, { color: colors.textSecondary }]}>›</Text>
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
+        )}
 
         {/* ARKADAŞLAR GİDİYOR */}
         {friendsGoing.length > 0 && (
@@ -589,6 +771,92 @@ export default function EventDetailScreen({ route, navigation }) {
           )
         )}
 
+        {/* ── DEĞERLENDİRMELER (sadece geçmiş etkinlikler) ── */}
+        {isExpired && (
+          <View style={styles.reviewSection}>
+            {/* Özet */}
+            <View style={styles.reviewHeader}>
+              <Text style={styles.sectionTitle}>⭐ Değerlendirmeler</Text>
+              {avgRating && (
+                <View style={styles.avgBadge}>
+                  <Text style={styles.avgRatingText}>{avgRating}</Text>
+                  <Text style={styles.avgRatingStars}>{'★'.repeat(Math.round(avgRating))}{'☆'.repeat(5 - Math.round(avgRating))}</Text>
+                  <Text style={styles.avgCount}>({reviews.length})</Text>
+                </View>
+              )}
+            </View>
+
+            {/* Puan ver */}
+            <View style={[styles.myReviewCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <Text style={styles.myReviewTitle}>
+                {reviews.find(r => r.userId === session.userId) ? 'Değerlendirmeni Güncelle' : 'Bu Konseri Değerlendir'}
+              </Text>
+              <View style={styles.starsRow}>
+                {[1, 2, 3, 4, 5].map(star => (
+                  <TouchableOpacity key={star} onPress={() => setMyRating(star)} activeOpacity={0.7}>
+                    <Text style={[styles.star, myRating >= star && styles.starActive]}>★</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <TextInput
+                style={[styles.reviewInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
+                placeholder="Konser nasıldı? (isteğe bağlı)"
+                placeholderTextColor={colors.textSecondary}
+                value={reviewText}
+                onChangeText={setReviewText}
+                multiline
+                maxLength={300}
+              />
+              <View style={styles.reviewActions}>
+                {reviews.find(r => r.userId === session.userId) && (
+                  <TouchableOpacity onPress={handleDeleteReview} style={styles.deleteReviewBtn}>
+                    <Text style={styles.deleteReviewText}>Sil</Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity
+                  onPress={handleSubmitReview}
+                  disabled={reviewLoading || !myRating}
+                  style={[styles.submitReviewBtn, { backgroundColor: myRating ? colors.primary : colors.border }]}
+                >
+                  {reviewLoading
+                    ? <ActivityIndicator size="small" color="#fff" />
+                    : <Text style={styles.submitReviewText}>Gönder</Text>}
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Değerlendirme listesi */}
+            {reviewsLoading ? (
+              <ActivityIndicator color={colors.primary} style={{ marginTop: 16 }} />
+            ) : (
+              reviews.map(r => (
+                <View key={r.id} style={[styles.reviewCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  <View style={styles.reviewCardHeader}>
+                    <View style={styles.reviewCardLeft}>
+                      <View style={[styles.reviewAvatar, { backgroundColor: colors.primary }]}>
+                        <Text style={styles.reviewAvatarText}>{r.username?.charAt(0).toUpperCase()}</Text>
+                      </View>
+                      <View>
+                        <Text style={[styles.reviewUsername, { color: colors.text }]}>@{r.username}</Text>
+                        <Text style={[styles.reviewTime, { color: colors.textSecondary }]}>{formatTimeAgo(r.createdAt)}</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.reviewStars}>{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</Text>
+                  </View>
+                  {r.comment && (
+                    <Text style={[styles.reviewComment, { color: colors.text }]}>{r.comment}</Text>
+                  )}
+                </View>
+              ))
+            )}
+            {!reviewsLoading && reviews.length === 0 && (
+              <Text style={[styles.noReviews, { color: colors.textSecondary }]}>
+                Henüz değerlendirme yok. İlk değerlendiren sen ol!
+              </Text>
+            )}
+          </View>
+        )}
+
       </View>
     </ScrollView>
 
@@ -708,6 +976,74 @@ function createStyles(colors) {
       padding: 20, paddingBottom: 40,
       maxHeight: '60%',
     },
+    // ── KONSER ARKADAŞI STİLLERİ ──
+    buddyCard: {
+      borderRadius: 16, borderWidth: 1.5, padding: 16, marginBottom: 12,
+    },
+    buddyCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    buddyTitle: { fontSize: 15, fontWeight: '800', marginBottom: 3 },
+    buddySub: { fontSize: 12 },
+    buddyToggleBtn: {
+      paddingHorizontal: 14, paddingVertical: 9,
+      borderRadius: 12, borderWidth: 1, minWidth: 80, alignItems: 'center',
+    },
+    buddyToggleText: { fontSize: 13, fontWeight: '800' },
+    buddyInputWrap: { marginTop: 14, gap: 10 },
+    buddyInput: {
+      borderWidth: 1, borderRadius: 12, padding: 12, fontSize: 14,
+    },
+    buddySendBtn: { padding: 13, borderRadius: 12, alignItems: 'center' },
+    buddySendText: { color: '#fff', fontSize: 14, fontWeight: '800' },
+    buddyList: { marginTop: 14, gap: 0 },
+    buddyRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 10,
+      paddingVertical: 10, borderTopWidth: 1,
+    },
+    buddyAvatar: {
+      width: 36, height: 36, borderRadius: 18,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    buddyAvatarText: { color: '#fff', fontWeight: '800', fontSize: 14 },
+    buddyInfo: { flex: 1 },
+    buddyUsername: { fontSize: 13, fontWeight: '800' },
+    buddyCity: { fontSize: 11, marginTop: 1 },
+    buddyMessage: { fontSize: 12, fontStyle: 'italic', marginTop: 2 },
+    buddyChevron: { fontSize: 22, fontWeight: '300' },
+
+    // ── DEĞERLENDİRME STİLLERİ ──
+    reviewSection: { marginTop: 8, paddingBottom: 8 },
+    reviewHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+    avgBadge: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    avgRatingText: { fontSize: 18, fontWeight: '900', color: colors.text },
+    avgRatingStars: { fontSize: 13, color: '#F5A623' },
+    avgCount: { fontSize: 12, color: colors.textSecondary },
+    myReviewCard: {
+      borderRadius: 16, borderWidth: 1, padding: 16, marginBottom: 16,
+    },
+    myReviewTitle: { fontSize: 14, fontWeight: '700', color: colors.text, marginBottom: 12 },
+    starsRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
+    star: { fontSize: 32, color: colors.border },
+    starActive: { color: '#F5A623' },
+    reviewInput: {
+      borderWidth: 1, borderRadius: 12, padding: 12,
+      fontSize: 14, minHeight: 72, textAlignVertical: 'top', marginBottom: 12,
+    },
+    reviewActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, alignItems: 'center' },
+    deleteReviewBtn: { paddingHorizontal: 14, paddingVertical: 10 },
+    deleteReviewText: { color: colors.textSecondary, fontSize: 13, fontWeight: '700' },
+    submitReviewBtn: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12 },
+    submitReviewText: { color: '#fff', fontSize: 14, fontWeight: '800' },
+    reviewCard: { borderRadius: 14, borderWidth: 1, padding: 14, marginBottom: 10 },
+    reviewCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+    reviewCardLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    reviewAvatar: { width: 34, height: 34, borderRadius: 17, justifyContent: 'center', alignItems: 'center' },
+    reviewAvatarText: { color: '#fff', fontWeight: '800', fontSize: 14 },
+    reviewUsername: { fontSize: 13, fontWeight: '800' },
+    reviewTime: { fontSize: 11, marginTop: 1 },
+    reviewStars: { fontSize: 14, color: '#F5A623' },
+    reviewComment: { fontSize: 14, lineHeight: 20 },
+    noReviews: { textAlign: 'center', paddingVertical: 24, fontSize: 13 },
+
     sheetHandle: {
       width: 40, height: 4, borderRadius: 2,
       backgroundColor: colors.border,
