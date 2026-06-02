@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ActivityIndicator,
-  Animated, Dimensions, ScrollView, Image, Alert,
+  Animated, Dimensions, ScrollView, Image, Alert, PanResponder,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
@@ -9,6 +9,7 @@ import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
+import ConfettiOverlay from '../components/ConfettiOverlay';
 
 const { width, height } = Dimensions.get('window');
 
@@ -92,19 +93,64 @@ export default function ConcertBuddyMatchScreen({ navigation }) {
   const { colors } = useTheme();
   const { session } = useAuth();
   const { t } = useLanguage();
+  const confettiRef = useRef(null);
 
   const [cards, setCards] = useState([]);
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('discover'); // 'discover' | 'matches'
+  const [activeTab, setActiveTab] = useState('discover');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [matchedUser, setMatchedUser] = useState(null);
   const [swiping, setSwiping] = useState(false);
 
-  const cardScale = useRef(new Animated.Value(1)).current;
+  // Swipe gesture values
+  const pan        = useRef(new Animated.ValueXY()).current;
   const cardOpacity = useRef(new Animated.Value(1)).current;
-  const likeAnim = useRef(new Animated.Value(0)).current;
-  const passAnim = useRef(new Animated.Value(0)).current;
+
+  // Derived interpolations
+  const rotate = pan.x.interpolate({
+    inputRange: [-width / 2, 0, width / 2],
+    outputRange: ['-12deg', '0deg', '12deg'],
+    extrapolate: 'clamp',
+  });
+  const likeOpacity = pan.x.interpolate({
+    inputRange: [0, 80],
+    outputRange: [0, 0.9],
+    extrapolate: 'clamp',
+  });
+  const passOpacity = pan.x.interpolate({
+    inputRange: [-80, 0],
+    outputRange: [0.9, 0],
+    extrapolate: 'clamp',
+  });
+
+  const SWIPE_THRESHOLD = 100;
+  const SWIPE_VELOCITY  = 0.3;
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > 5,
+      onPanResponderMove: Animated.event(
+        [null, { dx: pan.x, dy: pan.y }],
+        { useNativeDriver: false }
+      ),
+      onPanResponderRelease: (_, gesture) => {
+        const { dx, vx } = gesture;
+        if (Math.abs(dx) > SWIPE_THRESHOLD || Math.abs(vx) > SWIPE_VELOCITY) {
+          const liked = dx > 0;
+          flyCard(liked);
+        } else {
+          Animated.spring(pan, {
+            toValue: { x: 0, y: 0 },
+            tension: 80,
+            friction: 8,
+            useNativeDriver: false,
+          }).start();
+        }
+      },
+    })
+  ).current;
 
   useFocusEffect(useCallback(() => {
     fetchAll();
@@ -130,66 +176,71 @@ export default function ConcertBuddyMatchScreen({ navigation }) {
   const currentCard = cards[currentIndex];
   const nextCard = cards[currentIndex + 1];
 
-  const animateSwipe = (liked) => {
-    const anim = liked ? likeAnim : passAnim;
-    Animated.sequence([
-      Animated.timing(anim, { toValue: 1, duration: 150, useNativeDriver: true }),
-      Animated.timing(anim, { toValue: 0, duration: 100, useNativeDriver: true }),
-    ]).start();
-
-    Animated.parallel([
-      Animated.timing(cardScale, { toValue: 0.85, duration: 200, useNativeDriver: true }),
-      Animated.timing(cardOpacity, { toValue: 0, duration: 200, useNativeDriver: true }),
-    ]).start(async () => {
-      cardScale.setValue(1);
-      cardOpacity.setValue(1);
-
-      try {
-        const res = await API.post('/buddy/swipe', {
-          targetId: currentCard.userId,
-          liked,
-        });
-        if (res.data.matched) {
-          setMatchedUser(res.data.matchedUser);
-          setMatches(prev => [...prev, res.data.matchedUser]);
-        }
-      } catch (err) {
-        console.log('Swipe error:', err.message);
-      } finally {
-        setSwiping(false);
-        setCurrentIndex(prev => prev + 1);
+  const sendSwipe = useCallback(async (liked, card) => {
+    try {
+      const res = await API.post('/buddy/swipe', { targetId: card.userId, liked });
+      if (res.data.matched) {
+        setMatchedUser(res.data.matchedUser);
+        setMatches(prev => [...prev, res.data.matchedUser]);
+        confettiRef.current?.fire();
       }
-    });
-  };
+    } catch (err) {
+      console.log('Swipe error:', err.message);
+    } finally {
+      pan.setValue({ x: 0, y: 0 });
+      cardOpacity.setValue(1);
+      setSwiping(false);
+      setCurrentIndex(prev => prev + 1);
+    }
+  }, [pan, cardOpacity]);
 
-  const handleSwipe = (liked) => {
-    if (swiping || !currentCard) return;
+  const flyCard = useCallback((liked) => {
+    if (swiping || !cards[currentIndex]) return;
     setSwiping(true);
-    animateSwipe(liked);
-  };
+    const card = cards[currentIndex];
+    const targetX = liked ? width * 1.4 : -width * 1.4;
+    Animated.parallel([
+      Animated.timing(pan, {
+        toValue: { x: targetX, y: liked ? -60 : -20 },
+        duration: 350,
+        useNativeDriver: false,
+      }),
+      Animated.timing(cardOpacity, { toValue: 0, duration: 300, useNativeDriver: false }),
+    ]).start(() => sendSwipe(liked, card));
+  }, [swiping, cards, currentIndex, pan, cardOpacity, sendSwipe]);
 
-  const likeOverlayOpacity = likeAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 0.7] });
-  const passOverlayOpacity = passAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 0.7] });
+  const handleSwipe = (liked) => flyCard(liked);
 
   const renderCard = (card, isBack = false) => {
     if (!card) return null;
     const genres = card.favoriteGenres ? card.favoriteGenres.split(',').map(g => g.trim()).filter(Boolean) : [];
     const compat = genreScore(card.genreMatchScore || 0, t);
 
+    const cardStyle = isBack
+      ? [styles.card, styles.cardBack]
+      : [
+          styles.card,
+          {
+            opacity: cardOpacity,
+            transform: [
+              { translateX: pan.x },
+              { translateY: pan.y },
+              { rotate },
+            ],
+          },
+        ];
+
     return (
       <Animated.View
-        style={[
-          styles.card,
-          isBack && styles.cardBack,
-          !isBack && { opacity: cardOpacity, transform: [{ scale: cardScale }] },
-        ]}
+        style={cardStyle}
+        {...(!isBack ? panResponder.panHandlers : {})}
       >
         {!isBack && (
           <>
-            <Animated.View style={[styles.likeOverlay, { opacity: likeOverlayOpacity }]}>
+            <Animated.View style={[styles.likeOverlay, { opacity: likeOpacity }]}>
               <Text style={styles.overlayText}>🎸 GEL</Text>
             </Animated.View>
-            <Animated.View style={[styles.passOverlay, { opacity: passOverlayOpacity }]}>
+            <Animated.View style={[styles.passOverlay, { opacity: passOpacity }]}>
               <Text style={styles.overlayText}>⏩ GEÇ</Text>
             </Animated.View>
           </>
@@ -399,6 +450,7 @@ export default function ConcertBuddyMatchScreen({ navigation }) {
           t={t}
         />
       )}
+      <ConfettiOverlay ref={confettiRef} />
     </View>
   );
 }

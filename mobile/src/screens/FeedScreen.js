@@ -10,6 +10,7 @@ import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import PostCard from '../components/feed/PostCard';
+import AnimatedListItem from '../components/AnimatedListItem';
 
 export default function FeedScreen({ navigation }) {
   const { colors } = useTheme();
@@ -87,14 +88,16 @@ export default function FeedScreen({ navigation }) {
   }, []);
 
   const renderPost = useCallback(({ item, index }) => (
-    <PostCard
-      item={item}
-      index={index}
-      currentUserId={session.userId}
-      navigation={navigation}
-      onDelete={handleDeletePost}
-      onEdit={handleEditPost}
-    />
+    <AnimatedListItem index={index}>
+      <PostCard
+        item={item}
+        index={index}
+        currentUserId={session.userId}
+        navigation={navigation}
+        onDelete={handleDeletePost}
+        onEdit={handleEditPost}
+      />
+    </AnimatedListItem>
   ), [navigation, session.userId, handleDeletePost, handleEditPost]);
 
   return (

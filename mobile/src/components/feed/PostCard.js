@@ -29,6 +29,30 @@ export default React.memo(function PostCard({
   const slideAnim = useRef(new Animated.Value(40)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
+  // Floating hearts
+  const floatAnims = useRef([0, 1, 2].map(() => ({
+    y:       new Animated.Value(0),
+    opacity: new Animated.Value(0),
+    x:       new Animated.Value(0),
+  }))).current;
+
+  const fireFloatingHearts = () => {
+    floatAnims.forEach((a, i) => {
+      a.y.setValue(0);
+      a.opacity.setValue(0);
+      a.x.setValue((i - 1) * 18);
+      Animated.sequence([
+        Animated.delay(i * 80),
+        Animated.parallel([
+          Animated.timing(a.opacity, { toValue: 1, duration: 100, useNativeDriver: true }),
+          Animated.timing(a.y, { toValue: -60 - i * 12, duration: 700, useNativeDriver: true }),
+          Animated.timing(a.x, { toValue: a.x._value + (i - 1) * 12, duration: 700, useNativeDriver: true }),
+        ]),
+        Animated.timing(a.opacity, { toValue: 0, duration: 250, useNativeDriver: true }),
+      ]).start();
+    });
+  };
+
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(item.likeCount || 0);
   const [likeLoading, setLikeLoading] = useState(false);
@@ -61,6 +85,7 @@ export default React.memo(function PostCard({
       Animated.timing(heartAnim, { toValue: 1, duration: 150, useNativeDriver: true }),
       Animated.timing(heartAnim, { toValue: 0, duration: 600, useNativeDriver: true }),
     ]).start();
+    if (!liked) fireFloatingHearts();
     try {
       if (liked) {
         await API.delete(`/posts/${item.id}/like?userId=${currentUserId}`);
@@ -147,6 +172,25 @@ export default React.memo(function PostCard({
       <Animated.Text style={[styles.floatingHeart, { opacity: heartOpacity, transform: [{ scale: heartScale }] }]}>
         ❤️
       </Animated.Text>
+
+      {/* Yükselen kalpler */}
+      {floatAnims.map((a, i) => (
+        <Animated.Text
+          key={i}
+          style={{
+            position: 'absolute',
+            bottom: 44,
+            left: 20 + i * 14,
+            fontSize: 14 + i * 2,
+            opacity: a.opacity,
+            transform: [{ translateY: a.y }, { translateX: a.x }],
+            zIndex: 10,
+            pointerEvents: 'none',
+          }}
+        >
+          ❤️
+        </Animated.Text>
+      ))}
 
       {/* BAŞLIK */}
       <View style={styles.header}>

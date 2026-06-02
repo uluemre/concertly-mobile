@@ -15,6 +15,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { getGenreGradient } from '../utils/gradients';
 import { formatTimeAgo } from '../utils/time';
+import ConfettiOverlay from '../components/ConfettiOverlay';
 
 function getInitials(name) {
   if (!name) return '?';
@@ -63,6 +64,19 @@ export default function EventDetailScreen({ route, navigation }) {
   const { session } = useAuth();
   const { t } = useLanguage();
   const { event } = route.params;
+  const confettiRef = useRef(null);
+
+  // Attendance button scale animations
+  const goingScale      = useRef(new Animated.Value(1)).current;
+  const interestedScale = useRef(new Animated.Value(1)).current;
+
+  const bounceBtn = (anim) => {
+    Animated.sequence([
+      Animated.spring(anim, { toValue: 0.9, useNativeDriver: true, tension: 300, friction: 5 }),
+      Animated.spring(anim, { toValue: 1.06, useNativeDriver: true, tension: 300, friction: 5 }),
+      Animated.spring(anim, { toValue: 1, useNativeDriver: true, tension: 300, friction: 5 }),
+    ]).start();
+  };
 
   const [verifying, setVerifying] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
@@ -268,6 +282,7 @@ export default function EventDetailScreen({ route, navigation }) {
             if (err.response?.status === 409) setIsVerified(true);
           }
         }
+        confettiRef.current?.fire();
         Alert.alert(
           t('detail_verified_alert_title'),
           t('detail_verified_alert_msg', { distance: distanceFormatted }),
@@ -430,11 +445,12 @@ export default function EventDetailScreen({ route, navigation }) {
 
         {/* KATILIM BUTONLARI */}
         <View style={styles.attendanceRow}>
+          <Animated.View style={{ flex: 1, transform: [{ scale: goingScale }] }}>
           <TouchableOpacity
             style={[styles.attendBtn, attendance === 'GOING' && styles.attendBtnActive, isExpired && styles.attendBtnDisabled]}
-            onPress={() => handleAttend('GOING')}
+            onPress={() => { bounceBtn(goingScale); handleAttend('GOING'); }}
             disabled={attendLoading || isExpired}
-            activeOpacity={0.8}
+            activeOpacity={1}
           >
             <Text style={styles.attendBtnEmoji}>✅</Text>
             <View>
@@ -448,12 +464,14 @@ export default function EventDetailScreen({ route, navigation }) {
               )}
             </View>
           </TouchableOpacity>
+          </Animated.View>
 
+          <Animated.View style={{ flex: 1, transform: [{ scale: interestedScale }] }}>
           <TouchableOpacity
             style={[styles.attendBtn, attendance === 'INTERESTED' && styles.attendBtnActiveYellow, isExpired && styles.attendBtnDisabled]}
-            onPress={() => handleAttend('INTERESTED')}
+            onPress={() => { bounceBtn(interestedScale); handleAttend('INTERESTED'); }}
             disabled={attendLoading || isExpired}
-            activeOpacity={0.8}
+            activeOpacity={1}
           >
             <Text style={styles.attendBtnEmoji}>⭐</Text>
             <View>
@@ -467,6 +485,7 @@ export default function EventDetailScreen({ route, navigation }) {
               )}
             </View>
           </TouchableOpacity>
+          </Animated.View>
         </View>
 
         {/* KONSER ARKADAŞI */}
@@ -877,6 +896,7 @@ export default function EventDetailScreen({ route, navigation }) {
         />
       </Animated.View>
     </Modal>
+    <ConfettiOverlay ref={confettiRef} />
     </>
   );
 }
@@ -932,7 +952,7 @@ function createStyles(colors) {
     content: { padding: 20, gap: 16 },
 
     // KATILIM
-    attendanceRow: { flexDirection: 'row', gap: 12 },
+    attendanceRow: { flexDirection: 'row', gap: 12, alignItems: 'stretch' },
     attendBtn: {
       flex: 1, flexDirection: 'row', alignItems: 'center',
       justifyContent: 'center', gap: 8,

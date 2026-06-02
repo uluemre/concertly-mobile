@@ -13,6 +13,7 @@ public interface EventAttendanceRepository extends JpaRepository<EventAttendance
     Optional<EventAttendance> findByUserIdAndEventId(Long userId, Long eventId);
     long countByEventIdAndStatus(Long eventId, AttendanceStatus status);
     long countByUserIdAndStatus(Long userId, AttendanceStatus status);
+    List<EventAttendance> findByUserIdAndStatus(Long userId, AttendanceStatus status);
 
     @Query("SELECT ea FROM EventAttendance ea WHERE ea.event.id = :eventId AND ea.status = 'GOING' " +
            "AND ea.user.id IN (SELECT f.following.id FROM Follow f WHERE f.follower.id = :userId)")

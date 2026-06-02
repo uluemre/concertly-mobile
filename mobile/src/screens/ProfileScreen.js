@@ -408,6 +408,28 @@ export default function ProfileScreen({ navigation }) {
         )}
       </View>
 
+      {/* KONSER PASAPORTU */}
+      <View style={styles.passportArea}>
+        <TouchableOpacity
+          onPress={() => navigation.navigate('ConcertPassport')}
+          activeOpacity={0.85}
+        >
+          <LinearGradient
+            colors={['#1A0A2E', '#0A1628']}
+            style={styles.passportButton}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          >
+            <Text style={styles.passportEmoji}>🎟️</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.passportTitle}>Konser Pasaportu</Text>
+              <Text style={styles.passportSub}>Gittiğin konserlerin tarihi</Text>
+            </View>
+            <Text style={styles.passportChevron}>›</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      </View>
+
       {/* ÇIKIŞ */}
       <View style={styles.logoutArea}>
         <TouchableOpacity onPress={handleLogout}>
@@ -635,6 +657,18 @@ function createStyles(colors) {
     },
     artistImageEmoji: { fontSize: 32 },
     artistName: { fontSize: 12, color: colors.text, fontWeight: '600', textAlign: 'center' },
+
+    // PASSPORT
+    passportArea: { paddingHorizontal: 16, paddingBottom: 8 },
+    passportButton: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      padding: 16, borderRadius: 16,
+      borderWidth: 1, borderColor: '#2A1A4E',
+    },
+    passportEmoji: { fontSize: 28 },
+    passportTitle: { color: '#fff', fontSize: 15, fontWeight: '800', marginBottom: 2 },
+    passportSub: { color: 'rgba(255,255,255,0.5)', fontSize: 12 },
+    passportChevron: { color: 'rgba(255,255,255,0.4)', fontSize: 24 },
 
     // LOGOUT
     logoutArea: { padding: 16, paddingBottom: 32 },

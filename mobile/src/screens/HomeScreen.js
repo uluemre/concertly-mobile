@@ -10,6 +10,7 @@ import API from '../services/api';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { HomeSkeletonPage } from '../components/SkeletonLoader';
 import SearchModal from './SearchModal';
 import FeaturedCard from '../components/home/FeaturedCard';
 import EventRow from '../components/home/EventRow';
@@ -96,7 +97,10 @@ export default function HomeScreen({ navigation }) {
         setPosts(postRes.data);
       })
       .catch(err => { if (isMounted.current) console.log('HomeScreen fetch error:', err.message); })
-      .finally(() => { if (isMounted.current) setLoading(false); });
+      .finally(() => {
+        // En az 600ms skeleton göster ki animasyon görünsün
+        setTimeout(() => { if (isMounted.current) setLoading(false); }, 600);
+      });
   };
 
   const handleCitySelect = (city) => {
@@ -141,9 +145,8 @@ export default function HomeScreen({ navigation }) {
   );
 
   if (loading) return (
-    <View style={styles.loadingScreen}>
-      <ActivityIndicator size="large" color={colors.primary} />
-      <Text style={styles.loadingText}>{t('loading')}</Text>
+    <View style={styles.skeletonScreen}>
+      <HomeSkeletonPage />
     </View>
   );
 
@@ -329,6 +332,7 @@ function createStyles(colors) {
     scroll: { flex: 1 },
     scrollContent: { paddingBottom: 24 },
     loadingScreen: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background, gap: 14 },
+    skeletonScreen: { flex: 1, backgroundColor: colors.background, paddingTop: 56 },
     loadingText: { color: colors.textSecondary, fontSize: 14 },
     header: { paddingTop: 60, paddingBottom: 20, paddingHorizontal: 20 },
     headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 22 },

@@ -4,6 +4,7 @@ import com.concertly.backend.dto.request.RegisterRequest;
 import com.concertly.backend.dto.request.UpdateProfileRequest;
 import com.concertly.backend.dto.response.ArtistResponse;
 import com.concertly.backend.dto.response.EventResponse;
+import com.concertly.backend.dto.response.PassportResponse;
 import com.concertly.backend.dto.response.PostResponse;
 import com.concertly.backend.dto.response.UserResponse;
 import com.concertly.backend.service.ArtistService;
@@ -62,6 +63,12 @@ public class UserController {
     @GetMapping("/{id}/followed-artists")
     public List<ArtistResponse> getFollowedArtists(@PathVariable Long id) {
         return artistService.getFollowedArtists(id);
+    }
+
+    // ✅ KONSER PASAPORTU
+    @GetMapping("/{id}/passport")
+    public PassportResponse getPassport(@PathVariable Long id) {
+        return userService.getUserPassport(id);
     }
 
     // Geriye dönük uyumluluk

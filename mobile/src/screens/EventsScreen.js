@@ -10,6 +10,8 @@ import API from '../services/api';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import AnimatedListItem from '../components/AnimatedListItem';
+import { EventsSkeletonPage } from '../components/SkeletonLoader';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2;
@@ -107,7 +109,9 @@ export default function EventsScreen({ navigation }) {
   }, [selectedCity]);
 
   useEffect(() => {
-    fetchEvents().finally(() => { if (isMounted.current) setLoading(false); });
+    fetchEvents().finally(() => {
+      setTimeout(() => { if (isMounted.current) setLoading(false); }, 600);
+    });
   }, []);
 
   const onRefresh = useCallback(() => {
@@ -160,6 +164,7 @@ export default function EventsScreen({ navigation }) {
   }, [events, search, selectedGenre, sortKey, startDate, endDate]);
 
   const renderItem = useCallback(({ item, index }) => (
+    <AnimatedListItem index={index}>
     <TouchableOpacity
       style={[styles.cardWrapper, { backgroundColor: colors.card, borderColor: colors.border }]}
       onPress={() => navigation.navigate('EventDetail', { event: item })}
@@ -182,11 +187,12 @@ export default function EventsScreen({ navigation }) {
         )}
       </View>
     </TouchableOpacity>
+    </AnimatedListItem>
   ), [styles, colors, navigation]);
 
   if (loading) return (
-    <View style={styles.loadingContainer}>
-      <ActivityIndicator size="large" color={colors.primary} />
+    <View style={styles.skeletonContainer}>
+      <EventsSkeletonPage />
     </View>
   );
 
@@ -364,6 +370,7 @@ function createStyles(colors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
+    skeletonContainer: { flex: 1, backgroundColor: colors.background, paddingTop: 140 },
 
     header: { paddingTop: 56, paddingBottom: 14, paddingHorizontal: 20 },
     headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },

@@ -2,12 +2,19 @@ package com.concertly.backend.service;
 
 import com.concertly.backend.dto.request.UpdateProfileRequest;
 import com.concertly.backend.dto.response.EventResponse;
+import com.concertly.backend.dto.response.PassportResponse;
+import com.concertly.backend.dto.response.PassportResponse.PassportEventDto;
 import com.concertly.backend.dto.response.PostResponse;
 import com.concertly.backend.dto.response.UserResponse;
 import com.concertly.backend.exception.ResourceNotFoundException;
+import com.concertly.backend.model.AttendanceStatus;
+import com.concertly.backend.model.Event;
+import com.concertly.backend.model.EventAttendance;
 import com.concertly.backend.model.Post;
 import com.concertly.backend.model.User;
 import com.concertly.backend.repository.CommentRepository;
+import com.concertly.backend.repository.EventAttendanceRepository;
+import com.concertly.backend.repository.EventVerificationRepository;
 import com.concertly.backend.repository.LikeRepository;
 import com.concertly.backend.repository.PostRepository;
 import com.concertly.backend.repository.UserRepository;
@@ -15,7 +22,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class UserService {
@@ -24,15 +35,21 @@ public class UserService {
     private final PostRepository postRepository;
     private final LikeRepository likeRepository;
     private final CommentRepository commentRepository;
+    private final EventAttendanceRepository attendanceRepository;
+    private final EventVerificationRepository verificationRepository;
 
     public UserService(UserRepository userRepository,
             PostRepository postRepository,
             LikeRepository likeRepository,
-            CommentRepository commentRepository) {
-        this.userRepository = userRepository;
-        this.postRepository = postRepository;
-        this.likeRepository = likeRepository;
-        this.commentRepository = commentRepository;
+            CommentRepository commentRepository,
+            EventAttendanceRepository attendanceRepository,
+            EventVerificationRepository verificationRepository) {
+        this.userRepository       = userRepository;
+        this.postRepository       = postRepository;
+        this.likeRepository       = likeRepository;
+        this.commentRepository    = commentRepository;
+        this.attendanceRepository = attendanceRepository;
+        this.verificationRepository = verificationRepository;
     }
 
     // 🔥 CORE METHOD (eksik olan buydu)
@@ -112,5 +129,74 @@ public class UserService {
                 .distinct()
                 .map(EventResponse::from)
                 .toList();
+    }
+
+    // ✅ KONSER PASAPORTU
+    public PassportResponse getUserPassport(Long userId) {
+        if (!userRepository.existsById(userId)) {
+            throw new ResourceNotFoundException("Kullanıcı bulunamadı: " + userId);
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+
+        // Geçmiş GOING etkinlikler
+        List<EventAttendance> goingAttendances = attendanceRepository
+                .findByUserIdAndStatus(userId, AttendanceStatus.GOING)
+                .stream()
+                .filter(a -> a.getEvent() != null && a.getEvent().getEventDate().isBefore(now))
+                .sorted((a, b) -> b.getEvent().getEventDate().compareTo(a.getEvent().getEventDate()))
+                .toList();
+
+        // Doğrulanmış event id seti
+        Set<Long> verifiedIds = verificationRepository.findByUserId(userId)
+                .stream()
+                .map(v -> v.getEvent().getId())
+                .collect(Collectors.toSet());
+
+        // İstatistikler
+        int totalConcerts    = goingAttendances.size();
+        int verifiedConcerts = (int) goingAttendances.stream()
+                .filter(a -> verifiedIds.contains(a.getEvent().getId()))
+                .count();
+
+        Set<String> artistNames = goingAttendances.stream()
+                .map(a -> a.getEvent().getArtist() != null ? a.getEvent().getArtist().getName() : null)
+                .filter(name -> name != null)
+                .collect(Collectors.toSet());
+
+        Set<String> cities = goingAttendances.stream()
+                .map(a -> a.getEvent().getVenue() != null ? a.getEvent().getVenue().getCity() : null)
+                .filter(city -> city != null)
+                .collect(Collectors.toSet());
+
+        // Yıl bazlı dağılım
+        Map<String, Long> byYear = goingAttendances.stream()
+                .collect(Collectors.groupingBy(
+                        a -> String.valueOf(a.getEvent().getEventDate().getYear()),
+                        Collectors.counting()
+                ));
+
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
+
+        List<PassportEventDto> events = goingAttendances.stream()
+                .map(a -> {
+                    Event e = a.getEvent();
+                    String img = (e.getArtist() != null && e.getArtist().getImageUrl() != null)
+                            ? e.getArtist().getImageUrl() : e.getImageUrl();
+                    return new PassportEventDto(
+                            e.getId(),
+                            e.getName(),
+                            e.getEventDate().format(fmt),
+                            e.getArtist() != null ? e.getArtist().getName() : null,
+                            e.getVenue() != null ? e.getVenue().getCity() : null,
+                            img,
+                            e.getGenre(),
+                            verifiedIds.contains(e.getId())
+                    );
+                })
+                .toList();
+
+        return new PassportResponse(totalConcerts, verifiedConcerts,
+                artistNames.size(), cities.size(), byYear, events);
     }
 }

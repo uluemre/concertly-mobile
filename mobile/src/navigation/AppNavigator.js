@@ -4,9 +4,26 @@ import React, { useEffect, useRef } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Text, View, ActivityIndicator } from 'react-native';
+import { Text, View, ActivityIndicator, Animated } from 'react-native';
 import API, { setSessionExpiredHandler } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+
+function TabIcon({ emoji, focused }) {
+  const scale = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    if (focused) {
+      Animated.sequence([
+        Animated.spring(scale, { toValue: 1.3, useNativeDriver: true, tension: 300, friction: 6 }),
+        Animated.spring(scale, { toValue: 1,   useNativeDriver: true, tension: 300, friction: 6 }),
+      ]).start();
+    }
+  }, [focused]);
+  return (
+    <Animated.Text style={{ fontSize: 20, transform: [{ scale }] }}>
+      {emoji}
+    </Animated.Text>
+  );
+}
 
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
@@ -38,6 +55,7 @@ import SpotifyRecommendationsScreen from '../screens/SpotifyRecommendationsScree
 import VenueProfileScreen from '../screens/VenueProfileScreen';
 import PostDetailScreen from '../screens/PostDetailScreen';
 import ConcertBuddyMatchScreen from '../screens/ConcertBuddyMatchScreen';
+import ConcertPassportScreen from '../screens/ConcertPassportScreen';
 
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
@@ -89,7 +107,7 @@ function TabNavigator() {
         component={HomeScreen}
         options={{
           tabBarLabel: t('tab_home'),
-          tabBarIcon: () => <Text style={{ fontSize: 20 }}>🏠</Text>,
+          tabBarIcon: ({ focused }) => <TabIcon emoji="🏠" focused={focused} />,
         }}
       />
 
@@ -98,7 +116,7 @@ function TabNavigator() {
         component={ExploreScreen}
         options={{
           tabBarLabel: t('tab_menu'),
-          tabBarIcon: () => <Text style={{ fontSize: 20 }}>☰</Text>,
+          tabBarIcon: ({ focused }) => <TabIcon emoji="☰" focused={focused} />,
         }}
       />
 
@@ -107,7 +125,7 @@ function TabNavigator() {
         component={NotificationsScreen}
         options={{
           tabBarLabel: t('tab_notifications'),
-          tabBarIcon: () => <Text style={{ fontSize: 20 }}>🔔</Text>,
+          tabBarIcon: ({ focused }) => <TabIcon emoji="🔔" focused={focused} />,
           tabBarBadge: notificationCount > 0 ? notificationCount : undefined,
           tabBarBadgeStyle: { backgroundColor: '#E94560', fontSize: 11 },
         }}
@@ -118,7 +136,7 @@ function TabNavigator() {
         component={ProfileScreen}
         options={{
           tabBarLabel: t('tab_profile'),
-          tabBarIcon: () => <Text style={{ fontSize: 20 }}>👤</Text>,
+          tabBarIcon: ({ focused }) => <TabIcon emoji="👤" focused={focused} />,
         }}
       />
     </Tab.Navigator>
@@ -263,6 +281,7 @@ export default function AppNavigator() {
         <Stack.Screen name="VenueProfile" component={VenueProfileScreen} />
         <Stack.Screen name="PostDetail" component={PostDetailScreen} />
         <Stack.Screen name="ConcertBuddyMatch" component={ConcertBuddyMatchScreen} />
+        <Stack.Screen name="ConcertPassport" component={ConcertPassportScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
