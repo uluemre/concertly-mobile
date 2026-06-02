@@ -83,7 +83,7 @@ export default function ProfileScreen({ navigation }) {
   const handlePickPhoto = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('İzin Gerekli', 'Galeri erişimine izin vermeniz gerekiyor.');
+      Alert.alert(t('profile_photo_perm_title'), t('profile_photo_perm_msg'));
       return;
     }
 
@@ -102,9 +102,9 @@ export default function ProfileScreen({ navigation }) {
           profileImageUrl: localUri,
         });
         setProfile(prev => ({ ...prev, profileImageUrl: localUri }));
-        Alert.alert('Başarılı', 'Profil fotoğrafın güncellendi!');
+        Alert.alert(t('success'), t('profile_photo_updated'));
       } catch (err) {
-        Alert.alert('Hata', 'Fotoğraf güncellenemedi.');
+        Alert.alert(t('error'), t('profile_photo_error'));
       } finally {
         setUploadingPhoto(false);
       }
@@ -137,7 +137,7 @@ export default function ProfileScreen({ navigation }) {
       setPosts(prev => prev.map(p => p.id === editingPost.id ? { ...p, content: res.data.content } : p));
       setEditingPost(null);
     } catch {
-      Alert.alert('Hata', 'Post düzenlenemedi.');
+      Alert.alert(t('error'), t('profile_edit_error'));
     } finally {
       setEditSaving(false);
     }
@@ -149,7 +149,7 @@ export default function ProfileScreen({ navigation }) {
       <TouchableOpacity style={styles.editOverlay} activeOpacity={1} onPress={() => setEditingPost(null)} />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.editSheetWrapper}>
         <View style={[styles.editSheet, { backgroundColor: colors.card }]}>
-          <Text style={[styles.editTitle, { color: colors.text }]}>Postu Düzenle</Text>
+          <Text style={[styles.editTitle, { color: colors.text }]}>{t('profile_edit_title')}</Text>
           <TextInput
             style={[styles.editInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
             value={editText}
@@ -160,14 +160,14 @@ export default function ProfileScreen({ navigation }) {
           />
           <View style={styles.editActions}>
             <TouchableOpacity style={[styles.editBtn, { backgroundColor: colors.border }]} onPress={() => setEditingPost(null)}>
-              <Text style={[styles.editBtnText, { color: colors.text }]}>İptal</Text>
+              <Text style={[styles.editBtnText, { color: colors.text }]}>{t('cancel')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.editBtn, { backgroundColor: colors.primary, opacity: editSaving ? 0.6 : 1 }]}
               onPress={handleEditSave}
               disabled={editSaving}
             >
-              <Text style={[styles.editBtnText, { color: '#fff' }]}>{editSaving ? 'Kaydediliyor...' : 'Kaydet'}</Text>
+              <Text style={[styles.editBtnText, { color: '#fff' }]}>{editSaving ? t('profile_edit_saving') : t('profile_edit_save')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -213,7 +213,7 @@ export default function ProfileScreen({ navigation }) {
       <View style={styles.statsCard}>
         <View style={styles.stat}>
           <Text style={styles.statNumber}>{posts.length}</Text>
-          <Text style={styles.statLabel}>Post</Text>
+          <Text style={styles.statLabel}>{t('profile_stat_posts')}</Text>
         </View>
         <View style={styles.statDivider} />
         <TouchableOpacity
@@ -236,7 +236,7 @@ export default function ProfileScreen({ navigation }) {
         <View style={styles.statDivider} />
         <View style={styles.stat}>
           <Text style={styles.statNumber}>{events.length}</Text>
-          <Text style={styles.statLabel}>Etkinlik</Text>
+          <Text style={styles.statLabel}>{t('profile_stat_events')}</Text>
         </View>
       </View>
 
@@ -297,28 +297,28 @@ export default function ProfileScreen({ navigation }) {
                     </Text>
                     <TouchableOpacity
                       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      onPress={() => Alert.alert('Post İşlemleri', null, [
+                      onPress={() => Alert.alert(t('profile_post_actions'), null, [
                         {
-                          text: 'Düzenle', onPress: () => {
+                          text: t('profile_post_edit_action'), onPress: () => {
                             setEditText(item.content || '');
                             setEditingPost(item);
                           }
                         },
                         {
-                          text: 'Sil', style: 'destructive', onPress: () =>
-                            Alert.alert('Postu Sil', 'Emin misin?', [
-                              { text: 'İptal', style: 'cancel' },
+                          text: t('profile_post_delete_action'), style: 'destructive', onPress: () =>
+                            Alert.alert(t('profile_post_delete_title'), t('profile_post_delete_confirm'), [
+                              { text: t('cancel'), style: 'cancel' },
                               {
-                                text: 'Sil', style: 'destructive', onPress: async () => {
+                                text: t('delete'), style: 'destructive', onPress: async () => {
                                   try {
                                     await API.delete(`/posts/${item.id}`);
                                     setPosts(prev => prev.filter(p => p.id !== item.id));
-                                  } catch { Alert.alert('Hata', 'Post silinemedi.'); }
+                                  } catch { Alert.alert(t('error'), t('profile_post_delete_error')); }
                                 }
                               }
                             ])
                         },
-                        { text: 'İptal', style: 'cancel' },
+                        { text: t('cancel'), style: 'cancel' },
                       ])}
                     >
                       <Text style={{ color: colors.textSecondary, fontSize: 18 }}>⋯</Text>
@@ -372,8 +372,8 @@ export default function ProfileScreen({ navigation }) {
           bookmarks.length === 0 ? (
             <View style={styles.empty}>
               <Text style={styles.emptyEmoji}>🔖</Text>
-              <Text style={styles.emptyText}>Henüz kaydedilen etkinlik yok</Text>
-              <Text style={styles.emptySubText}>Etkinlik detayında 🏷️ butonuna bas</Text>
+              <Text style={styles.emptyText}>{t('profile_empty_bookmarks')}</Text>
+              <Text style={styles.emptySubText}>{t('profile_empty_bookmarks_sub')}</Text>
             </View>
           ) : (
             <View style={styles.eventGrid}>
@@ -417,7 +417,7 @@ export default function ProfileScreen({ navigation }) {
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
           >
-            <Text style={styles.logoutText}>Çıkış Yap</Text>
+            <Text style={styles.logoutText}>{t('profile_logout_btn')}</Text>
           </LinearGradient>
         </TouchableOpacity>
       </View>

@@ -8,13 +8,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import API from '../services/api';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 
 const { width } = Dimensions.get('window');
 const DAY_SIZE = Math.floor((width - 32) / 7);
-
-const MONTHS = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran',
-                 'Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
-const DAYS   = ['Pzt','Sal','Çar','Per','Cum','Cmt','Paz'];
 
 function StarRating({ value, onChange, size = 28 }) {
   return (
@@ -32,7 +29,11 @@ export default function VenueProfileScreen({ route, navigation }) {
   const { venueId, venueName } = route.params;
   const { colors } = useTheme();
   const { session } = useAuth();
+  const { t } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
+
+  const MONTHS = t('venue_months').split(',');
+  const DAYS = t('venue_days').split(',');
 
   const [venue, setVenue]       = useState(null);
   const [events, setEvents]     = useState([]);
@@ -104,27 +105,27 @@ export default function VenueProfileScreen({ route, navigation }) {
   };
 
   const handleSaveReview = async () => {
-    if (myRating === 0) { Alert.alert('Puan ver', 'Lütfen bir puan seç.'); return; }
+    if (myRating === 0) { Alert.alert(t('review_no_rating'), t('review_no_rating_sub')); return; }
     setSaving(true);
     try {
       await API.post(`/venues/${venueId}/reviews`, { rating: myRating, comment: myComment.trim() || null });
       setReviewModal(false);
       fetchAll();
     } catch {
-      Alert.alert('Hata', 'Yorum kaydedilemedi.');
+      Alert.alert(t('error'), t('review_error'));
     } finally {
       setSaving(false);
     }
   };
 
   const handleDeleteReview = (reviewId) => {
-    Alert.alert('Yorumu Sil', 'Emin misin?', [
-      { text: 'İptal', style: 'cancel' },
-      { text: 'Sil', style: 'destructive', onPress: async () => {
+    Alert.alert(t('postdetail_delete_title'), t('postdetail_delete_confirm'), [
+      { text: t('cancel'), style: 'cancel' },
+      { text: t('delete'), style: 'destructive', onPress: async () => {
         try {
           await API.delete(`/venues/${venueId}/reviews/${reviewId}`);
           fetchAll();
-        } catch { Alert.alert('Hata', 'Yorum silinemedi.'); }
+        } catch { Alert.alert(t('error'), t('postdetail_del_error')); }
       }}
     ]);
   };
@@ -142,14 +143,14 @@ export default function VenueProfileScreen({ route, navigation }) {
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setReviewModal(false)} />
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalWrapper}>
           <View style={[styles.modalSheet, { backgroundColor: colors.card }]}>
-            <Text style={[styles.modalTitle, { color: colors.text }]}>Mekanı Puanla</Text>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>{t('venue_rate_title')}</Text>
             <Text style={[styles.modalVenueName, { color: colors.textSecondary }]}>{venue?.name}</Text>
             <View style={{ alignItems: 'center', marginVertical: 16 }}>
               <StarRating value={myRating} onChange={setMyRating} size={36} />
             </View>
             <TextInput
               style={[styles.commentInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
-              placeholder="Yorum ekle (isteğe bağlı)"
+              placeholder={t('venue_comment_placeholder')}
               placeholderTextColor={colors.textSecondary}
               value={myComment}
               onChangeText={setMyComment}
@@ -158,13 +159,13 @@ export default function VenueProfileScreen({ route, navigation }) {
             />
             <View style={styles.modalActions}>
               <TouchableOpacity style={[styles.modalBtn, { backgroundColor: colors.border }]} onPress={() => setReviewModal(false)}>
-                <Text style={[styles.modalBtnText, { color: colors.text }]}>İptal</Text>
+                <Text style={[styles.modalBtnText, { color: colors.text }]}>{t('cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalBtn, { backgroundColor: colors.primary, opacity: saving ? 0.6 : 1 }]}
                 onPress={handleSaveReview} disabled={saving}
               >
-                <Text style={[styles.modalBtnText, { color: '#fff' }]}>{saving ? 'Kaydediliyor...' : 'Kaydet'}</Text>
+                <Text style={[styles.modalBtnText, { color: '#fff' }]}>{saving ? t('artsel_saving') : t('save')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -282,7 +283,7 @@ export default function VenueProfileScreen({ route, navigation }) {
           >
             <LinearGradient colors={['#E94560', '#7C3AED']} style={styles.rateBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
               <Text style={styles.rateBtnText}>
-                {venue?.myRating ? `Puanını Güncelle  ★${venue.myRating}` : '★ Mekanı Puanla'}
+                {venue?.myRating ? `${t('venue_rate_update')}  ★${venue.myRating}` : t('venue_rate_btn')}
               </Text>
             </LinearGradient>
           </TouchableOpacity>
@@ -292,7 +293,7 @@ export default function VenueProfileScreen({ route, navigation }) {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Yorumlar ({reviews.length})</Text>
           {reviews.length === 0 ? (
-            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>Henüz yorum yok. İlk yorumu sen yap!</Text>
+            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t('venue_no_reviews')}</Text>
           ) : (
             reviews.map(r => (
               <View key={r.id} style={[styles.reviewCard, { backgroundColor: colors.card, borderColor: colors.border }]}>

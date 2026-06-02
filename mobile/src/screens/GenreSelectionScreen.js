@@ -6,6 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme';
 import GenreChip from '../components/GenreChip';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 
 const GENRES = [
   { name: 'Rock', emoji: '🎸', accent: '#E94560' },
@@ -29,6 +30,7 @@ export default function GenreSelectionScreen({ navigation, route }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { session } = useAuth();
+  const { t } = useLanguage();
 
   const initialGenres = editMode && session.favoriteGenres
     ? session.favoriteGenres.split(',').map(g => g.trim()).filter(Boolean)
@@ -65,7 +67,7 @@ export default function GenreSelectionScreen({ navigation, route }) {
       <View style={styles.inner}>
         {editMode ? (
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Text style={styles.backText}>← Geri</Text>
+            <Text style={styles.backText}>{t('back')}</Text>
           </TouchableOpacity>
         ) : (
           <View style={styles.stepIndicator}>
@@ -74,11 +76,11 @@ export default function GenreSelectionScreen({ navigation, route }) {
           </View>
         )}
 
-        <Text style={styles.title}>Hangi müzik türlerini seviyorsun?</Text>
+        <Text style={styles.title}>{t('genre_title')}</Text>
         <Text style={styles.subtitle}>
           {canContinue
-            ? `${selectedGenres.length}/14 tür seçildi`
-            : 'En az 3 tür seçmelisin'}
+            ? t('genre_sub_enough', { count: selectedGenres.length })
+            : t('genre_sub_need')}
         </Text>
 
         <View style={styles.genreGrid}>
@@ -99,8 +101,8 @@ export default function GenreSelectionScreen({ navigation, route }) {
       <View style={styles.bottomBar}>
         <Text style={styles.countText}>
           {selectedGenres.length === 0
-            ? 'Henüz tür seçmedin'
-            : `${selectedGenres.length}/14 tür seçildi`}
+            ? t('genre_count_none')
+            : t('genre_sub_enough', { count: selectedGenres.length })}
         </Text>
         <Animated.View style={{ transform: [{ scale: buttonPulse }], width: '100%' }}>
           <TouchableOpacity
@@ -117,7 +119,7 @@ export default function GenreSelectionScreen({ navigation, route }) {
               style={[styles.button, !canContinue && styles.buttonDisabled]}
             >
               <Text style={[styles.buttonText, !canContinue && styles.buttonTextDisabled]}>
-                {canContinue ? 'Devam Et' : 'En az 3 tür seç'}
+                {canContinue ? t('genre_continue') : t('genre_need_more')}
               </Text>
             </LinearGradient>
           </TouchableOpacity>

@@ -1,4 +1,3 @@
-// Onboarding ekranı - uygulamaya ilk girişte gösterilen tanıtım slaytları
 import React, { useRef, useState } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity,
@@ -6,50 +5,18 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useLanguage } from '../context/LanguageContext';
 
 const { width, height } = Dimensions.get('window');
 
-const SLIDES = [
-    {
-        key: '1',
-        emoji: '🎸',
-        title: 'Müziği\nYaşa',
-        subtitle: 'Türkiye\'deki tüm konserleri, festivalleri ve müzik etkinliklerini tek bir yerde keşfet.',
-        gradient: ['#0F0F1A', '#1A1A2E'],
-        accent: '#E94560',
-        dots: ['#E94560', '#2A2A3E', '#2A2A3E'],
-    },
-    {
-        key: '2',
-        emoji: '📍',
-        title: 'Anında\nDoğrula',
-        subtitle: 'Konser günü mekanda olduğunu konum ile kanıtla. Sadece gerçek deneyimler burada.',
-        gradient: ['#0F0F1A', '#16213E'],
-        accent: '#00D4AA',
-        dots: ['#2A2A3E', '#00D4AA', '#2A2A3E'],
-    },
-    {
-        key: '3',
-        emoji: '🎤',
-        title: 'Sanatçını\nTakip Et',
-        subtitle: 'Sevdiğin sanatçıların yeni turlarını, konserlerini ve paylaşımlarını kaçırma.',
-        gradient: ['#0F0F1A', '#1A1A2E'],
-        accent: '#7C3AED',
-        dots: ['#2A2A3E', '#2A2A3E', '#7C3AED'],
-    },
-    {
-        key: '4',
-        emoji: '👥',
-        title: 'Topluluğa\nKatıl',
-        subtitle: 'Aynı müzik zevkini paylaşan insanlarla bağlan, konser sonrası deneyimlerini paylaş.',
-        gradient: ['#0F0F1A', '#16213E'],
-        accent: '#F5A623',
-        dots: ['#2A2A3E', '#2A2A3E', '#2A2A3E'],
-        isLast: true,
-    },
+const SLIDE_DEFS = [
+    { key: '1', emoji: '🎸', titleKey: 'onb_slide1_title', subKey: 'onb_slide1_sub', gradient: ['#0F0F1A', '#1A1A2E'], accent: '#E94560' },
+    { key: '2', emoji: '📍', titleKey: 'onb_slide2_title', subKey: 'onb_slide2_sub', gradient: ['#0F0F1A', '#16213E'], accent: '#00D4AA' },
+    { key: '3', emoji: '🎤', titleKey: 'onb_slide3_title', subKey: 'onb_slide3_sub', gradient: ['#0F0F1A', '#1A1A2E'], accent: '#7C3AED' },
+    { key: '4', emoji: '👥', titleKey: 'onb_slide4_title', subKey: 'onb_slide4_sub', gradient: ['#0F0F1A', '#16213E'], accent: '#F5A623', isLast: true },
 ];
 
-function Slide({ item, index, scrollX }) {
+function Slide({ item, index, scrollX, t }) {
     const inputRange = [(index - 1) * width, index * width, (index + 1) * width];
 
     const emojiScale = scrollX.interpolate({
@@ -97,10 +64,10 @@ function Slide({ item, index, scrollX }) {
                 { opacity: textOpacity, transform: [{ translateY: textTranslateY }] },
             ]}>
                 <Text style={[styles.title, { color: '#FFFFFF' }]}>
-                    {item.title}
+                    {t(item.titleKey)}
                 </Text>
                 <View style={[styles.accentLine, { backgroundColor: item.accent }]} />
-                <Text style={styles.subtitle}>{item.subtitle}</Text>
+                <Text style={styles.subtitle}>{t(item.subKey)}</Text>
             </Animated.View>
         </LinearGradient>
     );
@@ -110,6 +77,9 @@ export default function OnboardingScreen({ navigation }) {
     const scrollX = useRef(new Animated.Value(0)).current;
     const flatListRef = useRef(null);
     const [currentIndex, setCurrentIndex] = useState(0);
+    const { t } = useLanguage();
+
+    const SLIDES = SLIDE_DEFS.map(s => ({ ...s, title: t(s.titleKey), subtitle: t(s.subKey) }));
 
     const goNext = () => {
         if (currentIndex < SLIDES.length - 1) {
@@ -160,7 +130,7 @@ export default function OnboardingScreen({ navigation }) {
                 onViewableItemsChanged={onViewableItemsChanged}
                 viewabilityConfig={{ viewAreaCoveragePercentThreshold: 50 }}
                 renderItem={({ item, index }) => (
-                    <Slide item={item} index={index} scrollX={scrollX} />
+                    <Slide item={item} index={index} scrollX={scrollX} t={t} />
                 )}
             />
 
@@ -201,7 +171,7 @@ export default function OnboardingScreen({ navigation }) {
                     {/* Atla */}
                     {currentIndex < SLIDES.length - 1 ? (
                         <TouchableOpacity onPress={finish} style={styles.skipBtn} activeOpacity={0.7}>
-                            <Text style={styles.skipText}>Atla</Text>
+                            <Text style={styles.skipText}>{t('onb_skip')}</Text>
                         </TouchableOpacity>
                     ) : (
                         <View style={styles.skipBtn} />
@@ -211,7 +181,7 @@ export default function OnboardingScreen({ navigation }) {
                     <TouchableOpacity onPress={goNext} activeOpacity={0.85}>
                         <Animated.View style={[styles.nextBtn, { backgroundColor: btnBg }]}>
                             <Text style={styles.nextText}>
-                                {currentIndex === SLIDES.length - 1 ? 'Başlayalım 🚀' : 'İleri →'}
+                                {currentIndex === SLIDES.length - 1 ? t('onb_start') : t('onb_next')}
                             </Text>
                         </Animated.View>
                     </TouchableOpacity>

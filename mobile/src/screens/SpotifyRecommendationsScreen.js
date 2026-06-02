@@ -7,12 +7,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import API from '../services/api';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 
 const { width } = Dimensions.get('window');
 
 export default function SpotifyRecommendationsScreen({ navigation }) {
   const { colors } = useTheme();
   const { session } = useAuth();
+  const { t } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [artists, setArtists] = useState([]);
@@ -109,7 +111,7 @@ export default function SpotifyRecommendationsScreen({ navigation }) {
             activeOpacity={0.8}
           >
             <Text style={[styles.followBtnText, isFollowed && styles.followBtnTextActive]}>
-              {isFollowed ? 'Takipte' : 'Takip Et'}
+              {isFollowed ? t('artist_following') : t('artist_follow')}
             </Text>
           </TouchableOpacity>
         ) : (
@@ -125,7 +127,7 @@ export default function SpotifyRecommendationsScreen({ navigation }) {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>← Geri</Text>
+          <Text style={styles.backBtnText}>{t('back')}</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Spotify Önerileri</Text>
         <View style={{ width: 60 }} />
@@ -141,10 +143,8 @@ export default function SpotifyRecommendationsScreen({ navigation }) {
       ) : artists.length === 0 ? (
         <View style={styles.center}>
           <Text style={{ fontSize: 52 }}>🎧</Text>
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>Veri bulunamadı</Text>
-          <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>
-            Spotify'da daha fazla müzik dinle ve tekrar dene.
-          </Text>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('spotify_no_data')}</Text>
+          <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>{t('spotify_no_data_sub')}</Text>
         </View>
       ) : (
         <FlatList
@@ -157,7 +157,7 @@ export default function SpotifyRecommendationsScreen({ navigation }) {
                 <Text style={styles.heroIcon}>🎵</Text>
                 <Text style={styles.heroTitle}>En Çok Dinlediklerin</Text>
                 <Text style={styles.heroSubtitle}>
-                  {appMatchCount} sanatçı Concertly'de mevcut
+                  {appMatchCount} {t('spotify_in_app')}
                 </Text>
               </LinearGradient>
               {appMatchCount > 0 && (

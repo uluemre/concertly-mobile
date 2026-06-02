@@ -39,7 +39,7 @@ function genreScore(score, t) {
 }
 
 // ── Eşleşme Animasyonu ────────────────────────────────────────────────────────
-function MatchOverlay({ matchedUser, onClose, navigation }) {
+function MatchOverlay({ matchedUser, onClose, navigation, t }) {
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
@@ -50,20 +50,20 @@ function MatchOverlay({ matchedUser, onClose, navigation }) {
     ]).start();
   }, []);
 
+  const subText = t('buddy_match_sub').replace('{username}', matchedUser.username);
+
   return (
     <Animated.View style={[styles.matchOverlay, { opacity: opacityAnim }]}>
       <LinearGradient colors={['#0A0A14EE', '#1A0A2EEE']} style={StyleSheet.absoluteFill} />
       <Animated.View style={[styles.matchContent, { transform: [{ scale: scaleAnim }] }]}>
-        <Text style={styles.matchEmoji}>🎵</Text>
-        <Text style={styles.matchTitle}>Konser Arkadaşı Buldun!</Text>
-        <Text style={styles.matchSub}>
-          Sen ve @{matchedUser.username} birbirinizi beğendi.{'\n'}Hadi birlikte konsere gidin!
-        </Text>
+        <Text style={styles.matchEmoji}>🎸</Text>
+        <Text style={styles.matchTitle}>{t('buddy_match_title')}</Text>
+        <Text style={styles.matchSub}>{subText}</Text>
         <View style={styles.matchAvatars}>
-          <LinearGradient colors={['#E94560', '#7C3AED']} style={styles.matchAvatar}>
+          <LinearGradient colors={['#3B82F6', '#7C3AED']} style={styles.matchAvatar}>
             <Text style={styles.matchAvatarText}>Sen</Text>
           </LinearGradient>
-          <Text style={styles.matchHeart}>❤️</Text>
+          <Text style={styles.matchHeart}>🎵</Text>
           <LinearGradient colors={['#00D4AA', '#3B82F6']} style={styles.matchAvatar}>
             <Text style={styles.matchAvatarText}>
               {matchedUser.username?.charAt(0).toUpperCase()}
@@ -75,12 +75,12 @@ function MatchOverlay({ matchedUser, onClose, navigation }) {
           onPress={() => { onClose(); navigation.navigate('UserProfile', { userId: matchedUser.userId }); }}
           activeOpacity={0.85}
         >
-          <LinearGradient colors={['#E94560', '#7C3AED']} style={styles.matchProfileBtnGrad}>
-            <Text style={styles.matchProfileBtnText}>Profili Gör →</Text>
+          <LinearGradient colors={['#00D4AA', '#3B82F6']} style={styles.matchProfileBtnGrad}>
+            <Text style={styles.matchProfileBtnText}>{t('buddy_view_profile')}</Text>
           </LinearGradient>
         </TouchableOpacity>
         <TouchableOpacity onPress={onClose} style={styles.matchSkipBtn}>
-          <Text style={styles.matchSkipText}>Devam Et</Text>
+          <Text style={styles.matchSkipText}>{t('buddy_continue')}</Text>
         </TouchableOpacity>
       </Animated.View>
     </Animated.View>
@@ -184,14 +184,13 @@ export default function ConcertBuddyMatchScreen({ navigation }) {
           !isBack && { opacity: cardOpacity, transform: [{ scale: cardScale }] },
         ]}
       >
-        {/* Beğeni overlay */}
         {!isBack && (
           <>
             <Animated.View style={[styles.likeOverlay, { opacity: likeOverlayOpacity }]}>
-              <Text style={styles.overlayText}>🎵 EVET</Text>
+              <Text style={styles.overlayText}>🎸 GEL</Text>
             </Animated.View>
             <Animated.View style={[styles.passOverlay, { opacity: passOverlayOpacity }]}>
-              <Text style={styles.overlayText}>❌ PAS</Text>
+              <Text style={styles.overlayText}>⏩ GEÇ</Text>
             </Animated.View>
           </>
         )}
@@ -258,6 +257,7 @@ export default function ConcertBuddyMatchScreen({ navigation }) {
           <Text style={[styles.backText, { color: colors.primary }]}>‹ Geri</Text>
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>{t('buddy_title')}</Text>
+        <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{t('buddy_subtitle')}</Text>
 
         {/* Tab */}
         <View style={[styles.tabRow, { backgroundColor: colors.cardAlt }]}>
@@ -337,8 +337,8 @@ export default function ConcertBuddyMatchScreen({ navigation }) {
                 disabled={swiping}
                 activeOpacity={0.8}
               >
-                <LinearGradient colors={['#E94560', '#7C3AED']} style={styles.likeBtnGrad}>
-                  <Text style={styles.likeBtnText}>🎵</Text>
+                <LinearGradient colors={['#00D4AA', '#3B82F6']} style={styles.likeBtnGrad}>
+                  <Text style={styles.likeBtnText}>🎸</Text>
                   <Text style={styles.likeBtnLabel}>{t('buddy_like')}</Text>
                 </LinearGradient>
               </TouchableOpacity>
@@ -396,6 +396,7 @@ export default function ConcertBuddyMatchScreen({ navigation }) {
           matchedUser={matchedUser}
           onClose={() => setMatchedUser(null)}
           navigation={navigation}
+          t={t}
         />
       )}
     </View>
@@ -409,6 +410,7 @@ const styles = StyleSheet.create({
   backBtn: {},
   backText: { fontSize: 17, fontWeight: '700' },
   headerTitle: { fontSize: 22, fontWeight: '900' },
+  headerSubtitle: { fontSize: 12, fontWeight: '500', marginTop: -8 },
 
   tabRow: { flexDirection: 'row', borderRadius: 12, padding: 4, gap: 4 },
   tabBtn: { flex: 1, paddingVertical: 9, borderRadius: 10, alignItems: 'center' },
@@ -510,7 +512,7 @@ const styles = StyleSheet.create({
   counter: { fontSize: 13, fontWeight: '600' },
   likeBtn: {
     width: 80, height: 80, borderRadius: 40, overflow: 'hidden',
-    shadowColor: '#E94560', shadowOffset: { width: 0, height: 4 },
+    shadowColor: '#00D4AA', shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4, shadowRadius: 10, elevation: 6,
   },
   likeBtnGrad: { flex: 1, justifyContent: 'center', alignItems: 'center' },

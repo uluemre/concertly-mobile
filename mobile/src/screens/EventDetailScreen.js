@@ -12,6 +12,7 @@ import * as Calendar from 'expo-calendar';
 import API from '../services/api';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { getGenreGradient } from '../utils/gradients';
 import { formatTimeAgo } from '../utils/time';
 
@@ -60,6 +61,7 @@ export default function EventDetailScreen({ route, navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { session } = useAuth();
+  const { t } = useLanguage();
   const { event } = route.params;
 
   const [verifying, setVerifying] = useState(false);
@@ -157,7 +159,7 @@ export default function EventDetailScreen({ route, navigation }) {
   const addToCalendar = async () => {
     const { status } = await Calendar.requestCalendarPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('İzin Gerekli', 'Takvim erişimine izin vermeniz gerekiyor.');
+      Alert.alert(t('cal_perm_title'), t('cal_perm_msg'));
       return;
     }
 
@@ -165,12 +167,12 @@ export default function EventDetailScreen({ route, navigation }) {
       const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
       const writable = calendars.find(c => c.allowsModifications);
       if (!writable) {
-        Alert.alert('Hata', 'Düzenlenebilir takvim bulunamadı.');
+        Alert.alert(t('error'), 'Düzenlenebilir takvim bulunamadı.');
         return;
       }
 
       const startDate = new Date(event.eventDate);
-      const endDate = new Date(startDate.getTime() + 3 * 60 * 60 * 1000); // 3 saat
+      const endDate = new Date(startDate.getTime() + 3 * 60 * 60 * 1000);
 
       await Calendar.createEventAsync(writable.id, {
         title: event.name,
@@ -178,13 +180,13 @@ export default function EventDetailScreen({ route, navigation }) {
         endDate,
         location: [event.venueName, event.venueCity].filter(Boolean).join(', '),
         notes: event.description || '',
-        alarms: [{ relativeOffset: -60 }, { relativeOffset: -1440 }], // 1 saat ve 1 gün önce
+        alarms: [{ relativeOffset: -60 }, { relativeOffset: -1440 }],
         url: event.ticketUrl || undefined,
       });
 
-      Alert.alert('✅ Eklendi!', `"${event.name}" takvimine eklendi.`);
+      Alert.alert(t('cal_added_title'), t('cal_added_msg', { name: event.name }));
     } catch (err) {
-      Alert.alert('Hata', 'Takvime eklenemedi.');
+      Alert.alert(t('error'), 'Takvime eklenemedi.');
     }
   };
 
@@ -211,7 +213,7 @@ export default function EventDetailScreen({ route, navigation }) {
         if (status === 'GOING') setGoingCount(c => Math.max(0, c - 1));
         else setInterestedCount(c => Math.max(0, c - 1));
       } catch (err) {
-        Alert.alert('Hata', 'İşlem gerçekleştirilemedi.');
+        Alert.alert(t('error'), t('detail_action_error'));
         console.log(err.message);
       } finally {
         setAttendLoading(false);
@@ -225,7 +227,7 @@ export default function EventDetailScreen({ route, navigation }) {
       setGoingCount(res.data.goingCount ?? 0);
       setInterestedCount(res.data.interestedCount ?? 0);
     } catch (err) {
-      Alert.alert('Hata', 'İşlem gerçekleştirilemedi.');
+      Alert.alert(t('error'), t('detail_action_error'));
       console.log(err.message);
     } finally {
       setAttendLoading(false);
@@ -243,23 +245,14 @@ export default function EventDetailScreen({ route, navigation }) {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert(
-          '📍 Konum İzni',
-          'Doğrulama için konum iznine ihtiyacımız var.',
-          [{ text: 'Tamam' }]
-        );
+        Alert.alert(t('detail_location_perm_title'), t('detail_location_perm_msg'), [{ text: t('confirm') }]);
         return;
       }
 
-      const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
-      });
+      const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
       const { latitude, longitude } = location.coords;
 
-      const distance = getDistanceInMeters(
-        latitude, longitude,
-        event.venueLatitude, event.venueLongitude
-      );
+      const distance = getDistanceInMeters(latitude, longitude, event.venueLatitude, event.venueLongitude);
 
       const distanceFormatted =
         distance < 1000
@@ -272,27 +265,23 @@ export default function EventDetailScreen({ route, navigation }) {
             await API.post(`/events/${event.id}/verify`);
             setIsVerified(true);
           } catch (err) {
-            // 409 = zaten doğrulanmış, sorun değil
             if (err.response?.status === 409) setIsVerified(true);
           }
         }
         Alert.alert(
-          '✅ Doğrulandı!',
-          `Mekana ${distanceFormatted} uzaklıkta tespit edildin. Konser doğrulandı! 🎉`,
-          [{
-            text: 'Post At',
-            onPress: () => navigation.navigate('CreatePost', { event, verified: true }),
-          }]
+          t('detail_verified_alert_title'),
+          t('detail_verified_alert_msg', { distance: distanceFormatted }),
+          [{ text: t('detail_verified_alert_btn'), onPress: () => navigation.navigate('CreatePost', { event, verified: true }) }]
         );
       } else {
         Alert.alert(
-          '📍 Çok uzaktasın!',
-          `Mekana ${distanceFormatted} uzaklıktasın. Post atabilmek için en az 200m yakın olman gerekiyor.`,
-          [{ text: 'Tamam' }]
+          t('detail_far_alert_title'),
+          t('detail_far_alert_msg', { distance: distanceFormatted }),
+          [{ text: t('confirm') }]
         );
       }
     } catch (err) {
-      Alert.alert('Hata', 'Konum alınamadı, tekrar dene.');
+      Alert.alert(t('error'), t('detail_location_error'));
       console.log(err.message);
     } finally {
       setVerifying(false);
@@ -314,7 +303,7 @@ export default function EventDetailScreen({ route, navigation }) {
         setBuddies(res.data);
       }
     } catch {
-      Alert.alert('Hata', 'İşlem gerçekleştirilemedi.');
+      Alert.alert(t('error'), t('detail_action_error'));
     } finally {
       setBuddyLoading(false);
     }
@@ -325,7 +314,7 @@ export default function EventDetailScreen({ route, navigation }) {
     : null;
 
   const handleSubmitReview = async () => {
-    if (!myRating) { Alert.alert('Puan ver', '1-5 arası bir puan seç.'); return; }
+    if (!myRating) { Alert.alert(t('review_no_rating'), t('review_no_rating_sub')); return; }
     setReviewLoading(true);
     try {
       const res = await API.post(`/events/${event.id}/reviews`, {
@@ -336,26 +325,26 @@ export default function EventDetailScreen({ route, navigation }) {
         const filtered = prev.filter(r => r.userId !== session.userId);
         return [res.data, ...filtered];
       });
-      Alert.alert('✅ Teşekkürler!', 'Değerlendirmen kaydedildi.');
+      Alert.alert(t('review_saved_title'), t('review_saved_msg'));
     } catch {
-      Alert.alert('Hata', 'Değerlendirme gönderilemedi.');
+      Alert.alert(t('error'), t('review_error'));
     } finally {
       setReviewLoading(false);
     }
   };
 
   const handleDeleteReview = () => {
-    Alert.alert('Değerlendirmeyi Sil', 'Değerlendirmeni kaldırmak istiyor musun?', [
-      { text: 'İptal', style: 'cancel' },
+    Alert.alert(t('review_delete_title'), t('review_delete_msg'), [
+      { text: t('cancel'), style: 'cancel' },
       {
-        text: 'Sil', style: 'destructive', onPress: async () => {
+        text: t('review_delete'), style: 'destructive', onPress: async () => {
           try {
             await API.delete(`/events/${event.id}/reviews`);
             setReviews(prev => prev.filter(r => r.userId !== session.userId));
             setMyRating(0);
             setReviewText('');
           } catch {
-            Alert.alert('Hata', 'Silinemedi.');
+            Alert.alert(t('error'), t('review_del_error'));
           }
         },
       },
@@ -396,7 +385,7 @@ export default function EventDetailScreen({ route, navigation }) {
           <LinearGradient colors={['transparent', 'rgba(0,0,0,0.9)']} style={styles.heroOverlay}>
             <View style={styles.heroTopActions}>
               <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-                <Text style={styles.backText}>← Geri</Text>
+                <Text style={styles.backText}>{t('back')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.bookmarkButton} onPress={handleBookmark} activeOpacity={0.8}>
                 <Text style={styles.bookmarkIcon}>{bookmarked ? '🔖' : '🏷️'}</Text>
@@ -450,11 +439,11 @@ export default function EventDetailScreen({ route, navigation }) {
             <Text style={styles.attendBtnEmoji}>✅</Text>
             <View>
               <Text style={[styles.attendBtnText, attendance === 'GOING' && styles.attendBtnTextActive]}>
-                Gidiyorum
+                {t('events_going')}
               </Text>
               {goingCount > 0 && (
                 <Text style={[styles.attendBtnCount, attendance === 'GOING' && styles.attendBtnTextActive]}>
-                  {goingCount} kişi
+                  {t('detail_people', { count: goingCount })}
                 </Text>
               )}
             </View>
@@ -469,11 +458,11 @@ export default function EventDetailScreen({ route, navigation }) {
             <Text style={styles.attendBtnEmoji}>⭐</Text>
             <View>
               <Text style={[styles.attendBtnText, attendance === 'INTERESTED' && styles.attendBtnTextActiveYellow]}>
-                İlgileniyorum
+                {t('events_interested')}
               </Text>
               {interestedCount > 0 && (
                 <Text style={[styles.attendBtnCount, attendance === 'INTERESTED' && styles.attendBtnTextActiveYellow]}>
-                  {interestedCount} kişi
+                  {t('detail_people', { count: interestedCount })}
                 </Text>
               )}
             </View>
@@ -485,11 +474,11 @@ export default function EventDetailScreen({ route, navigation }) {
           <View style={[styles.buddyCard, { backgroundColor: colors.card, borderColor: isBuddy ? colors.primary : colors.border }]}>
             <View style={styles.buddyCardHeader}>
               <View>
-                <Text style={[styles.buddyTitle, { color: colors.text }]}>🙋 Konser Arkadaşı</Text>
+                <Text style={[styles.buddyTitle, { color: colors.text }]}>{t('detail_buddy_title')}</Text>
                 <Text style={[styles.buddySub, { color: colors.textSecondary }]}>
                   {buddies.length > 0
-                    ? `${buddies.length} kişi arkadaş arıyor`
-                    : 'Bu konsere birlikte gidecek biri arıyorum'}
+                    ? t('detail_buddy_sub_count', { count: buddies.length })
+                    : t('detail_buddy_sub_empty')}
                 </Text>
               </View>
               <TouchableOpacity
@@ -501,7 +490,7 @@ export default function EventDetailScreen({ route, navigation }) {
                 {buddyLoading
                   ? <ActivityIndicator size="small" color={isBuddy ? '#fff' : colors.primary} />
                   : <Text style={[styles.buddyToggleText, { color: isBuddy ? '#fff' : colors.primary }]}>
-                      {isBuddy ? '✓ Arıyorum' : '+ Katıl'}
+                      {isBuddy ? t('detail_buddy_active') : t('detail_buddy_join')}
                     </Text>
                 }
               </TouchableOpacity>
@@ -512,7 +501,7 @@ export default function EventDetailScreen({ route, navigation }) {
               <View style={styles.buddyInputWrap}>
                 <TextInput
                   style={[styles.buddyInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
-                  placeholder='Mesaj ekle: "Ön sıraya gidelim 🎸" (isteğe bağlı)'
+                  placeholder={t('detail_buddy_msg_placeholder')}
                   placeholderTextColor={colors.textSecondary}
                   value={buddyMessage}
                   onChangeText={setBuddyMessage}
@@ -524,7 +513,7 @@ export default function EventDetailScreen({ route, navigation }) {
                   style={[styles.buddySendBtn, { backgroundColor: colors.primary }]}
                   activeOpacity={0.8}
                 >
-                  <Text style={styles.buddySendText}>Aramaya Başla →</Text>
+                  <Text style={styles.buddySendText}>{t('detail_buddy_start')}</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -545,7 +534,7 @@ export default function EventDetailScreen({ route, navigation }) {
                     <View style={styles.buddyInfo}>
                       <Text style={[styles.buddyUsername, { color: colors.text }]}>
                         @{b.username}
-                        {b.userId === session.userId && <Text style={{ color: colors.primary }}> (sen)</Text>}
+                        {b.userId === session.userId && <Text style={{ color: colors.primary }}> {t('detail_you')}</Text>}
                       </Text>
                       {b.city ? <Text style={[styles.buddyCity, { color: colors.textSecondary }]}>📍 {b.city}</Text> : null}
                       {b.message ? <Text style={[styles.buddyMessage, { color: colors.textSecondary }]}>"{b.message}"</Text> : null}
@@ -585,21 +574,21 @@ export default function EventDetailScreen({ route, navigation }) {
                 {friendsGoing.slice(0, 2).map(f => f.username).join(', ')}
               </Text>
               {friendsGoing.length > 2
-                ? ` ve ${friendsGoing.length - 2} kişi daha gidiyor`
-                : ' gidiyor'}
+                ? ` ${t('detail_friend_more', { count: friendsGoing.length - 2 })}`
+                : t('detail_friend_going')}
             </Text>
           </TouchableOpacity>
         )}
 
         {/* ETKİNLİK HAKKINDA */}
         <View style={styles.infoCard}>
-          <Text style={styles.sectionTitle}>📋 Etkinlik Hakkında</Text>
+          <Text style={styles.sectionTitle}>{t('events_about')}</Text>
           <Text style={styles.description}>{event.description}</Text>
         </View>
 
         {/* TARİH & SAAT */}
         <View style={styles.infoCard}>
-          <Text style={styles.sectionTitle}>📅 Tarih & Saat</Text>
+          <Text style={styles.sectionTitle}>{t('detail_date_time')}</Text>
           <Text style={styles.infoValue}>
             {new Date(event.eventDate).toLocaleDateString('tr-TR', {
               weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
@@ -622,7 +611,7 @@ export default function EventDetailScreen({ route, navigation }) {
             })}
             activeOpacity={0.8}
           >
-            <Text style={styles.sectionTitle}>🎤 Sanatçı</Text>
+            <Text style={styles.sectionTitle}>{t('events_artist')}</Text>
             <View style={styles.artistRow}>
               <Text style={styles.infoValue}>{event.artistName}</Text>
               <Text style={styles.chevron}>›</Text>
@@ -633,7 +622,7 @@ export default function EventDetailScreen({ route, navigation }) {
         {/* MEKAN + INLINE HARİTA */}
         {event.venueName && (
           <View style={styles.infoCard}>
-            <Text style={styles.sectionTitle}>📍 Mekan</Text>
+            <Text style={styles.sectionTitle}>{t('events_venue')}</Text>
             <TouchableOpacity
               onPress={() => event.venueId && navigation.navigate('VenueProfile', { venueId: event.venueId, venueName: event.venueName })}
               activeOpacity={event.venueId ? 0.7 : 1}
@@ -685,7 +674,7 @@ export default function EventDetailScreen({ route, navigation }) {
                 {/* Harita üstü overlay — tıklanabilirlik ipucu */}
                 <View style={styles.mapOverlay}>
                   <View style={styles.mapOverlayBadge}>
-                    <Text style={styles.mapOverlayText}>🗺️ Haritada Aç</Text>
+                    <Text style={styles.mapOverlayText}>{t('detail_open_map')}</Text>
                   </View>
                 </View>
               </TouchableOpacity>
@@ -698,10 +687,8 @@ export default function EventDetailScreen({ route, navigation }) {
           <View style={styles.verifyInfoCard}>
             <Text style={styles.verifyInfoEmoji}>📍</Text>
             <View style={styles.verifyInfoText}>
-              <Text style={styles.verifyInfoTitle}>Konum Doğrulama Aktif</Text>
-              <Text style={styles.verifyInfoSub}>
-                Post atabilmek için konser günü mekana 200m yakın olman gerekiyor.
-              </Text>
+              <Text style={styles.verifyInfoTitle}>{t('events_verify_active')}</Text>
+              <Text style={styles.verifyInfoSub}>{t('events_verify_sub')}</Text>
             </View>
           </View>
         )}
@@ -710,8 +697,8 @@ export default function EventDetailScreen({ route, navigation }) {
           <View style={[styles.verifyInfoCard, { backgroundColor: colors.card }]}>
             <Text style={styles.verifyInfoEmoji}>🗓️</Text>
             <View style={styles.verifyInfoText}>
-              <Text style={[styles.verifyInfoTitle, { color: colors.textSecondary }]}>Etkinlik Sona Erdi</Text>
-              <Text style={styles.verifyInfoSub}>Bu etkinlik geçmişte kaldı.</Text>
+              <Text style={[styles.verifyInfoTitle, { color: colors.textSecondary }]}>{t('events_expired')}</Text>
+              <Text style={styles.verifyInfoSub}>{t('events_expired_sub')}</Text>
             </View>
           </View>
         )}
@@ -724,27 +711,27 @@ export default function EventDetailScreen({ route, navigation }) {
               if (supported) {
                 await Linking.openURL(event.ticketUrl);
               } else {
-                Alert.alert('Hata', 'Bu link açılamıyor');
+                Alert.alert(t('error'), 'Bu link açılamıyor');
               }
             }}
             style={styles.ticketButton}
           >
-            <Text style={styles.ticketButtonText}>🎫 Bilet Al</Text>
+            <Text style={styles.ticketButtonText}>{t('events_ticket')}</Text>
           </TouchableOpacity>
         )}
 
         {/* DOĞRULAMA BADGE */}
         {isVerified && (
           <View style={styles.verifiedBadge}>
-            <Text style={styles.verifiedBadgeText}>✅ Konser Doğrulandı</Text>
-            <Text style={styles.verifiedBadgeSub}>Bu konsere gittiğin doğrulandı</Text>
+            <Text style={styles.verifiedBadgeText}>{t('events_verified_badge')}</Text>
+            <Text style={styles.verifiedBadgeSub}>{t('detail_verified_sub')}</Text>
           </View>
         )}
 
         {/* TAKVİME EKLE */}
         {!isExpired && (
           <TouchableOpacity onPress={addToCalendar} style={styles.calendarButton} activeOpacity={0.85}>
-            <Text style={styles.calendarButtonText}>🗓️ Takvime Ekle</Text>
+            <Text style={styles.calendarButtonText}>{t('events_add_calendar')}</Text>
           </TouchableOpacity>
         )}
 
@@ -753,7 +740,7 @@ export default function EventDetailScreen({ route, navigation }) {
           verifying ? (
             <View style={styles.verifyingContainer}>
               <ActivityIndicator color={colors.primary} />
-              <Text style={styles.verifyingText}>Konumun doğrulanıyor...</Text>
+              <Text style={styles.verifyingText}>{t('detail_verifying')}</Text>
             </View>
           ) : (
             <TouchableOpacity onPress={handlePostAt} activeOpacity={0.85}>
@@ -764,7 +751,7 @@ export default function EventDetailScreen({ route, navigation }) {
                 end={{ x: 1, y: 0 }}
               >
                 <Text style={styles.actionButtonText}>
-                  {isVerified ? '🎵 Post At (Doğrulandı ✓)' : '🎵 Post At & Doğrula'}
+                  {isVerified ? t('events_post_verified') : t('events_post')}
                 </Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -776,7 +763,7 @@ export default function EventDetailScreen({ route, navigation }) {
           <View style={styles.reviewSection}>
             {/* Özet */}
             <View style={styles.reviewHeader}>
-              <Text style={styles.sectionTitle}>⭐ Değerlendirmeler</Text>
+              <Text style={styles.sectionTitle}>{t('review_title')}</Text>
               {avgRating && (
                 <View style={styles.avgBadge}>
                   <Text style={styles.avgRatingText}>{avgRating}</Text>
@@ -789,7 +776,7 @@ export default function EventDetailScreen({ route, navigation }) {
             {/* Puan ver */}
             <View style={[styles.myReviewCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <Text style={styles.myReviewTitle}>
-                {reviews.find(r => r.userId === session.userId) ? 'Değerlendirmeni Güncelle' : 'Bu Konseri Değerlendir'}
+                {reviews.find(r => r.userId === session.userId) ? t('review_my_update') : t('review_my_title')}
               </Text>
               <View style={styles.starsRow}>
                 {[1, 2, 3, 4, 5].map(star => (
@@ -800,7 +787,7 @@ export default function EventDetailScreen({ route, navigation }) {
               </View>
               <TextInput
                 style={[styles.reviewInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
-                placeholder="Konser nasıldı? (isteğe bağlı)"
+                placeholder={t('review_placeholder')}
                 placeholderTextColor={colors.textSecondary}
                 value={reviewText}
                 onChangeText={setReviewText}
@@ -810,7 +797,7 @@ export default function EventDetailScreen({ route, navigation }) {
               <View style={styles.reviewActions}>
                 {reviews.find(r => r.userId === session.userId) && (
                   <TouchableOpacity onPress={handleDeleteReview} style={styles.deleteReviewBtn}>
-                    <Text style={styles.deleteReviewText}>Sil</Text>
+                    <Text style={styles.deleteReviewText}>{t('review_delete')}</Text>
                   </TouchableOpacity>
                 )}
                 <TouchableOpacity
@@ -820,7 +807,7 @@ export default function EventDetailScreen({ route, navigation }) {
                 >
                   {reviewLoading
                     ? <ActivityIndicator size="small" color="#fff" />
-                    : <Text style={styles.submitReviewText}>Gönder</Text>}
+                    : <Text style={styles.submitReviewText}>{t('review_submit')}</Text>}
                 </TouchableOpacity>
               </View>
             </View>
@@ -850,9 +837,7 @@ export default function EventDetailScreen({ route, navigation }) {
               ))
             )}
             {!reviewsLoading && reviews.length === 0 && (
-              <Text style={[styles.noReviews, { color: colors.textSecondary }]}>
-                Henüz değerlendirme yok. İlk değerlendiren sen ol!
-              </Text>
+              <Text style={[styles.noReviews, { color: colors.textSecondary }]}>{t('review_empty')}</Text>
             )}
           </View>
         )}
@@ -865,7 +850,7 @@ export default function EventDetailScreen({ route, navigation }) {
       <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={closeFriendsModal} />
       <Animated.View style={[styles.friendsSheet, { transform: [{ translateY: friendsSlideAnim }] }]}>
         <View style={styles.sheetHandle} />
-        <Text style={styles.sheetTitle}>Gidecekler</Text>
+        <Text style={styles.sheetTitle}>{t('detail_friends_title')}</Text>
         <FlatList
           data={friendsGoing}
           keyExtractor={item => String(item.userId)}

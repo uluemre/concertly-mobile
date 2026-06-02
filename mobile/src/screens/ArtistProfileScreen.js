@@ -8,6 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import API from '../services/api';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 
 const GENRE_GRADIENTS = {
   'Rock':       ['#E94560', '#7C1AED'],
@@ -53,6 +54,7 @@ const eventEmojis = ['🎸', '🎤', '🥁', '🎹', '🎺', '🎻', '🎪', '�
 export default function ArtistProfileScreen({ route, navigation }) {
   const { colors } = useTheme();
   const { session } = useAuth();
+  const { t } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { artistId, artistName } = route.params;
 
@@ -93,8 +95,8 @@ export default function ArtistProfileScreen({ route, navigation }) {
         }),
       ]).start();
     } catch (err) {
-      console.log('Sanatçı hatası:', err.message);
-      Alert.alert('Hata', 'Sanatçı profili yüklenemedi.');
+      console.log('artist fetch error:', err.message);
+      Alert.alert(t('error'), t('artist_load_error'));
       navigation.goBack();
     } finally {
       setLoading(false);
@@ -123,7 +125,7 @@ export default function ArtistProfileScreen({ route, navigation }) {
       }
     } catch (err) {
       setFollowing(wasFollowing);
-      Alert.alert('Hata', 'İşlem gerçekleştirilemedi.');
+      Alert.alert(t('error'), t('artist_action_error'));
     } finally {
       setFollowLoading(false);
     }
@@ -160,7 +162,7 @@ export default function ArtistProfileScreen({ route, navigation }) {
         <View style={styles.heroBgCircle} />
 
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backText}>← Geri</Text>
+          <Text style={styles.backText}>{t('back')}</Text>
         </TouchableOpacity>
 
         <Animated.View style={[styles.heroInner, { transform: [{ scale: scaleAnim }] }]}>
@@ -189,17 +191,17 @@ export default function ArtistProfileScreen({ route, navigation }) {
           <View style={styles.statsRow}>
             <View style={styles.stat}>
               <Text style={styles.statNumber}>{artist?.followerCount || 0}</Text>
-              <Text style={styles.statLabel}>Takipçi</Text>
+              <Text style={styles.statLabel}>{t('artist_followers')}</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.stat}>
               <Text style={styles.statNumber}>{events.length}</Text>
-              <Text style={styles.statLabel}>Etkinlik</Text>
+              <Text style={styles.statLabel}>{t('artist_events_label')}</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.stat}>
               <Text style={styles.statNumber}>{posts.length}</Text>
-              <Text style={styles.statLabel}>Post</Text>
+              <Text style={styles.statLabel}>{t('artist_posts_label')}</Text>
             </View>
           </View>
 
@@ -214,7 +216,7 @@ export default function ArtistProfileScreen({ route, navigation }) {
               <View style={styles.followingButton}>
                 {followLoading
                   ? <ActivityIndicator size="small" color={colors.primary} />
-                  : <Text style={styles.followingText}>✓ Takip Ediliyor</Text>
+                  : <Text style={styles.followingText}>{t('artist_following')}</Text>
                 }
               </View>
             ) : (
@@ -226,7 +228,7 @@ export default function ArtistProfileScreen({ route, navigation }) {
               >
                 {followLoading
                   ? <ActivityIndicator size="small" color={colors.text} />
-                  : <Text style={styles.followText}>+ Takip Et</Text>
+                  : <Text style={styles.followText}>{t('artist_follow')}</Text>
                 }
               </LinearGradient>
             )}
@@ -240,12 +242,12 @@ export default function ArtistProfileScreen({ route, navigation }) {
           <Animated.View style={[styles.tabIndicator, { left: tabIndicatorLeft }]} />
           <TouchableOpacity style={styles.tabBtn} onPress={() => switchTab('events')}>
             <Text style={[styles.tabText, activeTab === 'events' && styles.tabTextActive]}>
-              🎪 Etkinlikler ({events.length})
+              {t('artist_tab_events', { count: events.length })}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.tabBtn} onPress={() => switchTab('posts')}>
             <Text style={[styles.tabText, activeTab === 'posts' && styles.tabTextActive]}>
-              🔥 Postlar ({posts.length})
+              {t('artist_tab_posts', { count: posts.length })}
             </Text>
           </TouchableOpacity>
         </View>
@@ -258,7 +260,7 @@ export default function ArtistProfileScreen({ route, navigation }) {
           events.length === 0 ? (
             <View style={styles.empty}>
               <Text style={styles.emptyEmoji}>🎭</Text>
-              <Text style={styles.emptyText}>Henüz etkinlik yok</Text>
+              <Text style={styles.emptyText}>{t('artist_no_events')}</Text>
             </View>
           ) : (
             <View style={styles.eventGrid}>
@@ -302,7 +304,7 @@ export default function ArtistProfileScreen({ route, navigation }) {
           posts.length === 0 ? (
             <View style={styles.empty}>
               <Text style={styles.emptyEmoji}>📭</Text>
-              <Text style={styles.emptyText}>Bu sanatçı için henüz post yok</Text>
+              <Text style={styles.emptyText}>{t('artist_no_posts')}</Text>
             </View>
           ) : (
             posts.map((item, index) => (

@@ -4,12 +4,14 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme';
+import { useLanguage } from '../context/LanguageContext';
 
 const { width, height } = Dimensions.get('window');
 
 export default function WelcomeScreen({ navigation, route }) {
     const { username } = route.params || {};
     const { colors } = useTheme();
+    const { t } = useLanguage();
     const styles = useMemo(() => createStyles(colors), [colors]);
 
     // Animasyon değerleri
@@ -172,13 +174,13 @@ export default function WelcomeScreen({ navigation, route }) {
                 { opacity: textOpacity, transform: [{ translateY: textSlide }] },
             ]}>
                 <Text style={styles.welcomeText}>
-                    {username ? `Hoş geldin, ${username}! 🎉` : 'Hoş geldin! 🎉'}
+                    {username ? t('welcome_msg', { username }) : t('welcome_generic')}
                 </Text>
                 <Text style={styles.appName}>Concertly</Text>
             </Animated.View>
 
             <Animated.Text style={[styles.subText, { opacity: subOpacity }]}>
-                Müziği yaşa, anları paylaş 🎸
+                {t('welcome_sub')}
             </Animated.Text>
 
             {/* ALT NOKTA ANİMASYONU */}

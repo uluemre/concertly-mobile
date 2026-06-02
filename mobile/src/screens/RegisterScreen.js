@@ -8,6 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import API from '../services/api';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 
 function createStyles(colors) {
   return StyleSheet.create({
@@ -39,6 +40,7 @@ export default function RegisterScreen({ navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { login } = useAuth();
+  const { t } = useLanguage();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -46,7 +48,7 @@ export default function RegisterScreen({ navigation }) {
 
   const handleRegister = async () => {
     if (!username || !email || !password) {
-      Alert.alert('Hata', 'Tüm alanları doldurun.');
+      Alert.alert(t('error'), t('reg_fill_all'));
       return;
     }
     setLoading(true);
@@ -56,7 +58,7 @@ export default function RegisterScreen({ navigation }) {
       await login({ ...loginRes.data, onboardingCompleted: false });
       navigation.replace('GenreSelection');
     } catch (err) {
-      Alert.alert('Hata', 'Bu email veya kullanıcı adı zaten kullanılıyor.');
+      Alert.alert(t('error'), t('reg_already_exists'));
     } finally {
       setLoading(false);
     }
@@ -68,14 +70,14 @@ export default function RegisterScreen({ navigation }) {
 
         <View style={styles.logoArea}>
           <Text style={styles.emoji}>🎟️</Text>
-          <Text style={styles.title}>Katıl Bize</Text>
-          <Text style={styles.subtitle}>Festival deneyimini paylaş</Text>
+          <Text style={styles.title}>{t('reg_title')}</Text>
+          <Text style={styles.subtitle}>{t('reg_subtitle')}</Text>
         </View>
 
         <View style={styles.form}>
           <TextInput
             style={styles.input}
-            placeholder="Kullanıcı adı"
+            placeholder={t('reg_username')}
             placeholderTextColor={colors.textSecondary}
             value={username}
             onChangeText={setUsername}
@@ -104,13 +106,13 @@ export default function RegisterScreen({ navigation }) {
           ) : (
             <TouchableOpacity onPress={handleRegister}>
               <LinearGradient colors={['#F5A623', '#E94560']} style={styles.button} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-                <Text style={styles.buttonText}>Kayıt Ol 🚀</Text>
+                <Text style={styles.buttonText}>{t('reg_btn')}</Text>
               </LinearGradient>
             </TouchableOpacity>
           )}
 
           <TouchableOpacity onPress={() => navigation.navigate('Login')} style={styles.linkArea}>
-            <Text style={styles.link}>Zaten hesabın var mı? <Text style={styles.linkBold}>Giriş yap</Text></Text>
+            <Text style={styles.link}>{t('reg_have_account')} <Text style={styles.linkBold}>{t('reg_login_link')}</Text></Text>
           </TouchableOpacity>
         </View>
 

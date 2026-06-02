@@ -8,6 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import API from '../services/api';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2;
@@ -25,6 +26,7 @@ export default function UserProfileScreen({ route, navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { session } = useAuth();
+  const { t } = useLanguage();
   const { userId } = route.params;
 
   const [profile, setProfile] = useState(null);
@@ -72,8 +74,8 @@ export default function UserProfileScreen({ route, navigation }) {
         }),
       ]).start();
     } catch (err) {
-      console.log('Profil hatası:', err.message);
-      Alert.alert('Hata', 'Profil yüklenemedi.');
+      console.log('profile fetch error:', err.message);
+      Alert.alert(t('error'), t('userprofile_load_error'));
       navigation.goBack();
     } finally {
       setLoading(false);
@@ -102,7 +104,7 @@ export default function UserProfileScreen({ route, navigation }) {
       }
     } catch (err) {
       setFollowing(wasFollowing);
-      Alert.alert('Hata', 'İşlem gerçekleştirilemedi.');
+      Alert.alert(t('error'), t('userprofile_action_error'));
     } finally {
       setFollowLoading(false);
     }
@@ -136,7 +138,7 @@ export default function UserProfileScreen({ route, navigation }) {
       <LinearGradient colors={colors.headerGradient} style={styles.hero}>
 
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backText}>← Geri</Text>
+          <Text style={styles.backText}>{t('back')}</Text>
         </TouchableOpacity>
 
         <Animated.View style={[styles.heroInner, { transform: [{ scale: scaleAnim }] }]}>
@@ -160,14 +162,14 @@ export default function UserProfileScreen({ route, navigation }) {
           {profile?.bio ? (
             <Text style={styles.bio}>{profile.bio}</Text>
           ) : (
-            <Text style={styles.bioEmpty}>Bio henüz eklenmemiş</Text>
+            <Text style={styles.bioEmpty}>{t('userprofile_bio_empty')}</Text>
           )}
 
           {/* STATS */}
           <View style={styles.statsRow}>
             <View style={styles.stat}>
               <Text style={styles.statNumber}>{posts.length}</Text>
-              <Text style={styles.statLabel}>Post</Text>
+              <Text style={styles.statLabel}>{t('profile_post_count')}</Text>
             </View>
             <View style={styles.statDivider} />
             <TouchableOpacity
@@ -176,7 +178,7 @@ export default function UserProfileScreen({ route, navigation }) {
               activeOpacity={0.7}
             >
               <Text style={styles.statNumber}>{profile?.followerCount || 0}</Text>
-              <Text style={styles.statLabel}>Takipçi</Text>
+              <Text style={styles.statLabel}>{t('profile_followers')}</Text>
             </TouchableOpacity>
             <View style={styles.statDivider} />
             <TouchableOpacity
@@ -185,12 +187,12 @@ export default function UserProfileScreen({ route, navigation }) {
               activeOpacity={0.7}
             >
               <Text style={styles.statNumber}>{profile?.followingCount || 0}</Text>
-              <Text style={styles.statLabel}>Takip</Text>
+              <Text style={styles.statLabel}>{t('profile_following')}</Text>
             </TouchableOpacity>
             <View style={styles.statDivider} />
             <View style={styles.stat}>
               <Text style={styles.statNumber}>{events.length}</Text>
-              <Text style={styles.statLabel}>Etkinlik</Text>
+              <Text style={styles.statLabel}>{t('profile_event_count')}</Text>
             </View>
           </View>
 
@@ -205,7 +207,7 @@ export default function UserProfileScreen({ route, navigation }) {
               <View style={styles.followingButton}>
                 {followLoading
                   ? <ActivityIndicator size="small" color={colors.primary} />
-                  : <Text style={styles.followingText}>✓ Takip Ediliyor</Text>
+                  : <Text style={styles.followingText}>{t('user_profile_following')}</Text>
                 }
               </View>
             ) : (
@@ -217,7 +219,7 @@ export default function UserProfileScreen({ route, navigation }) {
               >
                 {followLoading
                   ? <ActivityIndicator size="small" color={colors.text} />
-                  : <Text style={styles.followText}>+ Takip Et</Text>
+                  : <Text style={styles.followText}>{t('user_profile_follow')}</Text>
                 }
               </LinearGradient>
             )}
@@ -232,12 +234,12 @@ export default function UserProfileScreen({ route, navigation }) {
           <Animated.View style={[styles.tabIndicator, { left: tabIndicatorLeft }]} />
           <TouchableOpacity style={styles.tabBtn} onPress={() => switchTab('posts')}>
             <Text style={[styles.tabText, activeTab === 'posts' && styles.tabTextActive]}>
-              🎵 Postlar ({posts.length})
+              {t('userprofile_tab_posts', { count: posts.length })}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.tabBtn} onPress={() => switchTab('events')}>
             <Text style={[styles.tabText, activeTab === 'events' && styles.tabTextActive]}>
-              🎪 Etkinlikler ({events.length})
+              {t('userprofile_tab_events', { count: events.length })}
             </Text>
           </TouchableOpacity>
         </View>
@@ -250,7 +252,7 @@ export default function UserProfileScreen({ route, navigation }) {
           posts.length === 0 ? (
             <View style={styles.empty}>
               <Text style={styles.emptyEmoji}>📭</Text>
-              <Text style={styles.emptyText}>Henüz post yok</Text>
+              <Text style={styles.emptyText}>{t('userprofile_no_posts')}</Text>
             </View>
           ) : (
             posts.map((item, index) => (
@@ -297,7 +299,7 @@ export default function UserProfileScreen({ route, navigation }) {
           events.length === 0 ? (
             <View style={styles.empty}>
               <Text style={styles.emptyEmoji}>🎭</Text>
-              <Text style={styles.emptyText}>Henüz etkinlik yok</Text>
+              <Text style={styles.emptyText}>{t('userprofile_no_events')}</Text>
             </View>
           ) : (
             <View style={styles.eventGrid}>

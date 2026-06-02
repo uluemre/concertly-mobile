@@ -11,82 +11,15 @@ import { useLanguage } from '../context/LanguageContext';
 const { width } = Dimensions.get('window');
 const CARD_SIZE = (width - 48) / 2;
 
-const menuItems = [
-  {
-    id: 1,
-    title: 'Topluluklar',
-    subtitle: 'Müzik zevkine göre gruplar',
-    emoji: '👥',
-    gradient: ['#00D4AA', '#7C3AED'],
-    screen: 'Communities',
-    available: true,
-  },
-  {
-    id: 2,
-    title: 'Etkinlikler',
-    subtitle: 'Konser ve festivalleri listele',
-    emoji: '🎵',
-    gradient: ['#E94560', '#7C3AED'],
-    screen: 'Events',
-    available: true,
-  },
-  {
-    id: 3,
-    title: 'Feed',
-    subtitle: 'Postları ve trendleri gör',
-    emoji: '🔥',
-    gradient: ['#F5A623', '#E94560'],
-    screen: 'FeedTab',
-    available: true,
-  },
-
-  {
-    id: 6,
-    title: 'Müzik Profili',
-    subtitle: 'Türlerin ve takip ettiğin sanatçılar',
-    emoji: '✨',
-    gradient: ['#7C3AED', '#E94560'],
-    screen: 'MusicProfile',
-    available: true,
-  },
-  {
-    id: 7,
-    title: 'Harita',
-    subtitle: 'Etkinlikleri konumda gör',
-    emoji: '🗺️',
-    gradient: ['#00D4AA', '#00A8FF'],
-    screen: 'Map',
-    available: true,
-  },
-  {
-    id: 4,
-    title: 'Konser Arkadaşı',
-    subtitle: 'Aynı konsere gidenleri eşleştir',
-    emoji: '🎵',
-    gradient: ['#E94560', '#F5A623'],
-    screen: 'ConcertBuddyMatch',
-    available: true,
-  },
-  {
-    id: 5,
-    title: 'Canlı Odalar',
-    subtitle: 'Etkinlik günü sohbetleri',
-    emoji: '💬',
-    gradient: ['#FF6B35', '#F7C59F'],
-    screen: null,
-    available: false,
-  },
-  {
-    id: 8,
-    title: 'Smart Ticket Alerts',
-    subtitle: 'Fiyat düşünce anında bildirim al',
-    emoji: '🔔',
-    gradient: ['#1a1a2e', '#0f3460'],
-    screen: null,
-    available: false,
-  },
-
-
+const MENU_ITEM_DEFS = [
+  { id: 1, titleKey: 'menu_communities',   subKey: 'menu_communities_sub',   emoji: '👥', gradient: ['#00D4AA', '#7C3AED'], screen: 'Communities',       available: true  },
+  { id: 2, titleKey: 'menu_events_item',   subKey: 'menu_events_item_sub',   emoji: '🎵', gradient: ['#E94560', '#7C3AED'], screen: 'Events',            available: true  },
+  { id: 3, titleKey: 'menu_feed_item',     subKey: 'menu_feed_item_sub',     emoji: '🔥', gradient: ['#F5A623', '#E94560'], screen: 'FeedTab',           available: true  },
+  { id: 6, titleKey: 'menu_music_profile', subKey: 'menu_music_profile_sub', emoji: '✨', gradient: ['#7C3AED', '#E94560'], screen: 'MusicProfile',      available: true  },
+  { id: 7, titleKey: 'menu_map_item',      subKey: 'menu_map_item_sub',      emoji: '🗺️', gradient: ['#00D4AA', '#00A8FF'], screen: 'Map',               available: true  },
+  { id: 4, titleKey: 'menu_buddy_item',    subKey: 'menu_buddy_item_sub',    emoji: '🎸', gradient: ['#E94560', '#F5A623'], screen: 'ConcertBuddyMatch', available: true  },
+  { id: 5, titleKey: 'menu_live_rooms',    subKey: 'menu_live_rooms_sub',    emoji: '💬', gradient: ['#FF6B35', '#F7C59F'], screen: null,                available: false },
+  { id: 8, titleKey: 'menu_ticket_alerts', subKey: 'menu_ticket_alerts_sub', emoji: '🔔', gradient: ['#1a1a2e', '#0f3460'], screen: null,                available: false },
 ];
 
 function AnimatedCard({ item, index, navigation, styles, colors, isSetupCard }) {
@@ -192,13 +125,13 @@ function AnimatedCard({ item, index, navigation, styles, colors, isSetupCard }) 
 
           {!item.available && (
             <View style={styles.badge}>
-              <Text style={styles.badgeText}>Yakında</Text>
+              <Text style={styles.badgeText}>{t('menu_coming_soon_badge')}</Text>
             </View>
           )}
 
           {isSetupCard && (
             <View style={styles.setupBadge}>
-              <Text style={styles.setupBadgeText}>Oluştur</Text>
+              <Text style={styles.setupBadgeText}>{t('menu_create_badge')}</Text>
             </View>
           )}
 
@@ -207,7 +140,7 @@ function AnimatedCard({ item, index, navigation, styles, colors, isSetupCard }) 
             {item.title}
           </Text>
           <Text style={[styles.cardSubtitle, !item.available && styles.cardSubtitleMuted]}>
-            {isSetupCard ? 'Dokunarak başla' : item.subtitle}
+            {isSetupCard ? t('menu_tap_to_start') : item.subtitle}
           </Text>
 
           {item.available && (
@@ -228,15 +161,10 @@ function AnimatedCard({ item, index, navigation, styles, colors, isSetupCard }) 
   );
 }
 
-const adminMenuItem = {
-  id: 99,
-  title: 'Admin Paneli',
-  subtitle: 'Etkinlik ve kullanici yonetimi',
-  emoji: '⚙️',
-  gradient: ['#1a1a2e', '#7C3AED'],
-  screen: 'Admin',
-  available: true,
-  requiresAdmin: true,
+const ADMIN_ITEM_DEF = {
+  id: 99, titleKey: 'menu_admin', subKey: 'menu_admin_sub',
+  emoji: '⚙️', gradient: ['#1a1a2e', '#7C3AED'],
+  screen: 'Admin', available: true, requiresAdmin: true,
 };
 
 export default function ExploreScreen({ navigation }) {
@@ -247,7 +175,13 @@ export default function ExploreScreen({ navigation }) {
   const headerAnim = useRef(new Animated.Value(-30)).current;
   const headerOpacity = useRef(new Animated.Value(0)).current;
 
+  const menuItems = useMemo(() =>
+    MENU_ITEM_DEFS.map(d => ({ ...d, title: t(d.titleKey), subtitle: t(d.subKey) })),
+    [t]
+  );
+
   const hasMusicProfile = !!(session.favoriteGenres?.trim());
+  const adminMenuItem = useMemo(() => ({ ...ADMIN_ITEM_DEF, title: t(ADMIN_ITEM_DEF.titleKey), subtitle: t(ADMIN_ITEM_DEF.subKey) }), [t]);
   const visibleItems = session.isAdmin
     ? [...menuItems, adminMenuItem]
     : menuItems;
@@ -288,7 +222,7 @@ export default function ExploreScreen({ navigation }) {
       </View>
 
       <View style={styles.footer}>
-        <Text style={styles.footerText}>Yeni özellikler hazır oldukça burada açılacak</Text>
+        <Text style={styles.footerText}>{t('menu_footer')}</Text>
       </View>
     </ScrollView>
   );

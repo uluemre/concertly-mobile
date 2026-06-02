@@ -8,12 +8,14 @@ import { CommonActions } from '@react-navigation/native';
 import { useTheme } from '../theme';
 import API from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import ArtistCard from '../components/ArtistCard';
 
 export default function ArtistSelectionScreen({ route, navigation }) {
   const { selectedGenres, editMode = false } = route.params;
   const { colors } = useTheme();
   const { updateSession } = useAuth();
+  const { t } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [artists, setArtists] = useState([]);
@@ -30,7 +32,7 @@ export default function ArtistSelectionScreen({ route, navigation }) {
         setArtists(res.data);
       } catch (err) {
         console.error('Artist fetch error:', err);
-        Alert.alert('Hata', 'Sanatçılar yüklenemedi. Devam etmek için Tamamla\'ya basabilirsin.');
+        Alert.alert(t('error'), t('artsel_load_error'));
       } finally {
         setLoading(false);
       }
@@ -71,7 +73,7 @@ export default function ArtistSelectionScreen({ route, navigation }) {
       }
     } catch (err) {
       console.error('Onboarding complete error:', err);
-      Alert.alert('Hata', 'Tercihler kaydedilemedi. Tekrar dene.');
+      Alert.alert(t('error'), t('artsel_save_error'));
     } finally {
       setCompleting(false);
     }
@@ -82,7 +84,7 @@ export default function ArtistSelectionScreen({ route, navigation }) {
       <View style={styles.inner}>
         {editMode ? (
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Text style={styles.backText}>← Geri</Text>
+            <Text style={styles.backText}>{t('back')}</Text>
           </TouchableOpacity>
         ) : (
           <View style={styles.stepIndicator}>
@@ -91,16 +93,14 @@ export default function ArtistSelectionScreen({ route, navigation }) {
           </View>
         )}
 
-        <Text style={styles.title}>Sevdiğin sanatçıları seç</Text>
-        <Text style={styles.subtitle}>
-          Seçtiğin türlere göre {artists.length} sanatçı bulduk. İstediğin kadar seç, hepsini takip edeceğiz.
-        </Text>
+        <Text style={styles.title}>{t('artsel_title')}</Text>
+        <Text style={styles.subtitle}>{t('artsel_subtitle', { count: artists.length })}</Text>
 
         <View style={styles.searchBox}>
           <Text style={styles.searchIcon}>⌕</Text>
           <TextInput
             style={styles.searchInput}
-            placeholder="Sanatçı ara..."
+            placeholder={t('artsel_search')}
             placeholderTextColor={colors.textSecondary}
             value={search}
             onChangeText={setSearch}
@@ -115,15 +115,13 @@ export default function ArtistSelectionScreen({ route, navigation }) {
         {loading ? (
           <View style={styles.emptyContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={styles.emptyText}>Sanatçılar yükleniyor...</Text>
+            <Text style={styles.emptyText}>{t('artsel_loading')}</Text>
           </View>
         ) : filteredArtists.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Text style={styles.emoji}>🎵</Text>
-            <Text style={styles.emptyTitle}>Sanatçı bulunamadı</Text>
-            <Text style={styles.emptyText}>
-              Bu türlerde henüz sanatçı eklenmemiş. Daha sonra Keşfet'ten takip edebilirsin.
-            </Text>
+            <Text style={styles.emptyTitle}>{t('artsel_not_found_title')}</Text>
+            <Text style={styles.emptyText}>{t('artsel_not_found_sub')}</Text>
           </View>
         ) : (
           <FlatList
@@ -148,8 +146,8 @@ export default function ArtistSelectionScreen({ route, navigation }) {
       <View style={styles.bottomBar}>
         <Text style={styles.countText}>
           {selectedIds.length === 0
-            ? 'Seçim zorunlu değil'
-            : `${selectedIds.length} sanatçı seçildi`}
+            ? t('artsel_none_selected')
+            : t('artsel_selected_count', { count: selectedIds.length })}
         </Text>
         <TouchableOpacity
           disabled={completing}
@@ -163,7 +161,7 @@ export default function ArtistSelectionScreen({ route, navigation }) {
             style={styles.button}
           >
             <Text style={styles.buttonText}>
-              {completing ? 'Kaydediliyor...' : editMode ? 'Kaydet' : 'Tamamla'}
+              {completing ? t('artsel_saving') : editMode ? t('artsel_save') : t('artsel_complete')}
             </Text>
           </LinearGradient>
         </TouchableOpacity>

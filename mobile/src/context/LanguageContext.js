@@ -22,8 +22,14 @@ export function LanguageProvider({ children }) {
     try { await AsyncStorage.setItem('appLanguage', l); } catch {}
   }, []);
 
-  const t = useCallback((key) => {
-    return translations[lang]?.[key] ?? translations.tr[key] ?? key;
+  const t = useCallback((key, params) => {
+    let str = translations[lang]?.[key] ?? translations.tr[key] ?? key;
+    if (params && typeof str === 'string') {
+      Object.entries(params).forEach(([k, v]) => {
+        str = str.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v));
+      });
+    }
+    return str;
   }, [lang]);
 
   const value = useMemo(() => ({ lang, setLang, t }), [lang, setLang, t]);

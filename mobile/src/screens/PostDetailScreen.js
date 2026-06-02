@@ -7,6 +7,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
 import { formatTimeAgo } from '../utils/time';
 
@@ -22,6 +23,7 @@ export default function PostDetailScreen({ route, navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { session } = useAuth();
+  const { t } = useLanguage();
 
   const [post, setPost] = useState(initialPost);
   const [comments, setComments] = useState([]);
@@ -47,7 +49,7 @@ export default function PostDetailScreen({ route, navigation }) {
       const res = await API.get(`/posts/${post.id}/comments`);
       setComments(res.data);
     } catch (err) {
-      console.log('Yorum hatası:', err.message);
+      console.log('comment fetch error:', err.message);
     } finally {
       setLoading(false);
     }
@@ -90,23 +92,23 @@ export default function PostDetailScreen({ route, navigation }) {
       setPost(prev => ({ ...prev, commentCount: (prev.commentCount || 0) + 1 }));
       setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
     } catch {
-      Alert.alert('Hata', 'Yorum gönderilemedi.');
+      Alert.alert(t('error'), t('postdetail_error'));
     } finally {
       setSending(false);
     }
   };
 
   const handleDeleteComment = useCallback((commentId) => {
-    Alert.alert('Yorumu Sil', 'Emin misin?', [
-      { text: 'İptal', style: 'cancel' },
+    Alert.alert(t('postdetail_delete_title'), t('postdetail_delete_confirm'), [
+      { text: t('cancel'), style: 'cancel' },
       {
-        text: 'Sil', style: 'destructive', onPress: async () => {
+        text: t('delete'), style: 'destructive', onPress: async () => {
           try {
             await API.delete(`/posts/${post.id}/comments/${commentId}`);
             setComments(prev => prev.filter(c => c.id !== commentId));
             setPost(prev => ({ ...prev, commentCount: Math.max(0, (prev.commentCount || 0) - 1) }));
           } catch {
-            Alert.alert('Hata', 'Yorum silinemedi.');
+            Alert.alert(t('error'), t('postdetail_del_error'));
           }
         },
       },
@@ -217,7 +219,7 @@ export default function PostDetailScreen({ route, navigation }) {
       {/* Yorum başlığı */}
       <View style={styles.commentsDivider}>
         <Text style={styles.commentsTitle}>
-          💬 Yorumlar ({comments.length})
+          {t('postdetail_comments_label')} ({comments.length})
         </Text>
       </View>
     </View>
@@ -230,7 +232,7 @@ export default function PostDetailScreen({ route, navigation }) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Text style={[styles.backText, { color: colors.primary }]}>‹ Geri</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Post</Text>
+        <Text style={styles.headerTitle}>{t('postdetail_title')}</Text>
       </LinearGradient>
 
       <KeyboardAvoidingView
@@ -252,7 +254,7 @@ export default function PostDetailScreen({ route, navigation }) {
             ListEmptyComponent={
               <View style={styles.emptyComments}>
                 <Text style={styles.emptyEmoji}>💭</Text>
-                <Text style={styles.emptyText}>Henüz yorum yok. İlk yorumu sen yap!</Text>
+                <Text style={styles.emptyText}>{t('postdetail_empty')}</Text>
               </View>
             }
           />
@@ -263,7 +265,7 @@ export default function PostDetailScreen({ route, navigation }) {
           <TextInput
             ref={inputRef}
             style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
-            placeholder="Yorum yaz... 🎵"
+            placeholder={t('postdetail_placeholder')}
             placeholderTextColor={colors.textSecondary}
             value={text}
             onChangeText={setText}

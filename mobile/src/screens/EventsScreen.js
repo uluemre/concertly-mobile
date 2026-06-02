@@ -9,6 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import API from '../services/api';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2;
@@ -66,16 +67,18 @@ function CardImage({ item, index, cardImageStyle }) {
 
 const CITIES = ['Tümü', 'İstanbul', 'Ankara', 'İzmir', 'Bursa', 'Antalya', 'Adana', 'Konya', 'Gaziantep', 'Mersin', 'Eskişehir'];
 const GENRES = ['Tümü', 'Rock', 'Pop', 'Rap', 'Elektronik', 'Jazz', 'Klasik', 'Indie', 'R&B', 'Folk'];
-const SORT_OPTIONS = [
-  { key: 'date_asc', label: 'Yakın Tarih' },
-  { key: 'date_desc', label: 'Uzak Tarih' },
-  { key: 'name_asc', label: 'A → Z' },
-];
 
 export default function EventsScreen({ navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { session } = useAuth();
+  const { t } = useLanguage();
+
+  const SORT_OPTIONS = useMemo(() => [
+    { key: 'date_asc', label: t('events_sort_near') },
+    { key: 'date_desc', label: t('events_sort_far') },
+    { key: 'name_asc', label: t('events_sort_az') },
+  ], [t]);
 
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -193,8 +196,8 @@ export default function EventsScreen({ navigation }) {
       <LinearGradient colors={colors.headerGradient} style={styles.header}>
         <View style={styles.headerRow}>
           <View>
-            <Text style={styles.headerTitle}>🎟️ Etkinlikler</Text>
-            <Text style={styles.headerSub}>{filtered.length} etkinlik bulundu</Text>
+            <Text style={styles.headerTitle}>{t('events_header_title')}</Text>
+            <Text style={styles.headerSub}>{t('events_count', { count: filtered.length })}</Text>
           </View>
           <View style={styles.headerBtns}>
             <TouchableOpacity onPress={() => setCityModalVisible(true)} style={[styles.headerBtn, { borderColor: colors.primary + '60' }]} activeOpacity={0.8}>
@@ -208,7 +211,7 @@ export default function EventsScreen({ navigation }) {
               activeOpacity={0.8}
             >
               <Text style={styles.headerBtnIcon}>⚙️</Text>
-              <Text style={[styles.headerBtnText, { color: (selectedGenre || sortKey !== 'date_asc') ? colors.primary : colors.textSecondary }]}>Filtrele</Text>
+              <Text style={[styles.headerBtnText, { color: (selectedGenre || sortKey !== 'date_asc') ? colors.primary : colors.textSecondary }]}>{t('events_filter')}</Text>
               {(selectedGenre || sortKey !== 'date_asc') && <View style={[styles.filterDot, { backgroundColor: colors.primary }]} />}
             </TouchableOpacity>
           </View>
@@ -219,7 +222,7 @@ export default function EventsScreen({ navigation }) {
           <Text style={[styles.searchIcon, { color: colors.textSecondary }]}>⌕</Text>
           <TextInput
             style={[styles.searchInput, { color: colors.text }]}
-            placeholder="Etkinlik, sanatçı ara..."
+            placeholder={t('events_search_hint')}
             placeholderTextColor={colors.textSecondary}
             value={search}
             onChangeText={setSearch}
@@ -243,7 +246,7 @@ export default function EventsScreen({ navigation }) {
         ListEmptyComponent={
           <View style={styles.empty}>
             <Text style={styles.emptyEmoji}>🎭</Text>
-            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>Etkinlik bulunamadı</Text>
+            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t('events_empty')}</Text>
           </View>
         }
       />
@@ -253,13 +256,13 @@ export default function EventsScreen({ navigation }) {
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setFilterModalVisible(false)} />
         <View style={[styles.cityModal, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-            <Text style={[styles.cityModalTitle, { color: colors.text, marginBottom: 0 }]}>Filtrele</Text>
+            <Text style={[styles.cityModalTitle, { color: colors.text, marginBottom: 0 }]}>{t('events_filter')}</Text>
             <TouchableOpacity onPress={() => { setSelectedGenre(null); setSortKey('date_asc'); setStartDate(''); setEndDate(''); }}>
-              <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '700' }}>Sıfırla</Text>
+              <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '700' }}>{t('events_reset')}</Text>
             </TouchableOpacity>
           </View>
 
-          <Text style={[styles.filterSectionLabel, { color: colors.textSecondary }]}>TÜR</Text>
+          <Text style={[styles.filterSectionLabel, { color: colors.textSecondary }]}>{t('events_filter_genre')}</Text>
           <View style={styles.filterChipsWrap}>
             {GENRES.map(genre => {
               const active = genre === 'Tümü' ? !selectedGenre : selectedGenre === genre;
@@ -275,10 +278,10 @@ export default function EventsScreen({ navigation }) {
             })}
           </View>
 
-          <Text style={[styles.filterSectionLabel, { color: colors.textSecondary, marginTop: 20 }]}>TARİH ARALIĞI</Text>
+          <Text style={[styles.filterSectionLabel, { color: colors.textSecondary, marginTop: 20 }]}>{t('events_filter_date_range')}</Text>
           <View style={styles.dateRow}>
             <View style={styles.dateInputWrap}>
-              <Text style={[styles.dateLabel, { color: colors.textSecondary }]}>Başlangıç</Text>
+              <Text style={[styles.dateLabel, { color: colors.textSecondary }]}>{t('events_filter_start')}</Text>
               <TextInput
                 style={[styles.dateInput, { backgroundColor: colors.background, borderColor: startDate ? colors.primary : colors.border, color: colors.text }]}
                 placeholder="GG.AA.YYYY"
@@ -291,7 +294,7 @@ export default function EventsScreen({ navigation }) {
             </View>
             <Text style={[styles.dateSeparator, { color: colors.textSecondary }]}>—</Text>
             <View style={styles.dateInputWrap}>
-              <Text style={[styles.dateLabel, { color: colors.textSecondary }]}>Bitiş</Text>
+              <Text style={[styles.dateLabel, { color: colors.textSecondary }]}>{t('events_filter_end')}</Text>
               <TextInput
                 style={[styles.dateInput, { backgroundColor: colors.background, borderColor: endDate ? colors.primary : colors.border, color: colors.text }]}
                 placeholder="GG.AA.YYYY"
@@ -304,7 +307,7 @@ export default function EventsScreen({ navigation }) {
             </View>
           </View>
 
-          <Text style={[styles.filterSectionLabel, { color: colors.textSecondary, marginTop: 20 }]}>SIRALAMA</Text>
+          <Text style={[styles.filterSectionLabel, { color: colors.textSecondary, marginTop: 20 }]}>{t('events_filter_sort')}</Text>
           <View style={styles.filterChipsWrap}>
             {SORT_OPTIONS.map(opt => {
               const active = sortKey === opt.key;
@@ -324,7 +327,7 @@ export default function EventsScreen({ navigation }) {
             onPress={() => setFilterModalVisible(false)}
             style={[styles.applyBtn, { backgroundColor: colors.primary }]}
           >
-            <Text style={styles.applyBtnText}>Uygula</Text>
+            <Text style={styles.applyBtnText}>{t('events_apply')}</Text>
           </TouchableOpacity>
         </View>
       </Modal>
@@ -333,7 +336,7 @@ export default function EventsScreen({ navigation }) {
       <Modal visible={cityModalVisible} transparent animationType="slide">
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setCityModalVisible(false)} />
         <View style={[styles.cityModal, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Text style={[styles.cityModalTitle, { color: colors.text }]}>Şehir Seç</Text>
+          <Text style={[styles.cityModalTitle, { color: colors.text }]}>{t('events_city_select')}</Text>
           <ScrollView showsVerticalScrollIndicator={false}>
             {CITIES.map(city => {
               const active = city === 'Tümü' ? !selectedCity : selectedCity === city;
@@ -344,7 +347,7 @@ export default function EventsScreen({ navigation }) {
                   style={[styles.cityOption, active && { backgroundColor: colors.primary + '22' }]}
                 >
                   <Text style={[styles.cityOptionText, { color: active ? colors.primary : colors.text }]}>
-                    {city === 'Tümü' ? '🌍 Tüm Türkiye' : `📍 ${city}`}
+                    {city === 'Tümü' ? t('events_all_turkey') : `📍 ${city}`}
                   </Text>
                   {active && <Text style={{ color: colors.primary, fontWeight: '700' }}>✓</Text>}
                 </TouchableOpacity>

@@ -62,25 +62,24 @@ export default function SettingsScreen({ navigation, route }) {
       const res = await API.get(`/spotify/auth-url?userId=${session.userId}`);
       const authUrl = res.data.url;
       await WebBrowser.openBrowserAsync(authUrl);
-      // Tarayıcı kapandıktan sonra durumu yenile
       await fetchSpotifyStatus();
     } catch (err) {
-      Alert.alert('Hata', 'Spotify bağlantısı başlatılamadı.');
+      Alert.alert(t('error'), t('settings_spotify_connect_error'));
     } finally {
       setSpotifyLoading(false);
     }
   };
 
   const handleSpotifyDisconnect = () => {
-    Alert.alert('Spotify Bağlantısını Kes', 'Emin misin?', [
-      { text: 'İptal', style: 'cancel' },
+    Alert.alert(t('settings_spotify_disconnect_title'), t('settings_spotify_disconnect_confirm'), [
+      { text: t('cancel'), style: 'cancel' },
       {
-        text: 'Bağlantıyı Kes', style: 'destructive', onPress: async () => {
+        text: t('settings_spotify_disconnect_btn'), style: 'destructive', onPress: async () => {
           try {
             await API.delete(`/spotify/disconnect/${session.userId}`);
             setSpotifyStatus({ connected: false });
           } catch {
-            Alert.alert('Hata', 'Bağlantı kesilemedi.');
+            Alert.alert(t('error'), t('settings_spotify_disconnect_error'));
           }
         }
       }
@@ -100,7 +99,7 @@ export default function SettingsScreen({ navigation, route }) {
         city: data.city || ''
       });
     } catch (err) {
-      Alert.alert('Hata', 'Profil bilgileri yüklenemedi.');
+      Alert.alert(t('error'), t('settings_load_error'));
     } finally {
       setLoading(false);
     }
@@ -113,8 +112,8 @@ export default function SettingsScreen({ navigation, route }) {
       if (formData.city) {
         await updateSession({ userCity: formData.city });
       }
-      Alert.alert('✅ Başarılı', 'Ayarların başarıyla kaydedildi!', [
-        { text: 'Tamam', onPress: () => navigation.goBack() }
+      Alert.alert(t('settings_save_success'), t('settings_save_success_msg'), [
+        { text: t('confirm'), onPress: () => navigation.goBack() }
       ]);
     } catch (err) {
       const status = err?.response?.status;
@@ -138,14 +137,14 @@ export default function SettingsScreen({ navigation, route }) {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>← Geri</Text>
+          <Text style={styles.backButtonText}>{t('back')}</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Ayarlar</Text>
+        <Text style={styles.headerTitle}>{t('settings_title')}</Text>
         <View style={{ width: 60 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.sectionTitle}>Uygulama Görünümü</Text>
+        <Text style={styles.sectionTitle}>{t('settings_appearance_section')}</Text>
 
         <View style={styles.themeToggleContainer}>
           <Text style={styles.label}>{t('settings_theme')}</Text>
@@ -188,26 +187,26 @@ export default function SettingsScreen({ navigation, route }) {
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Kişisel Bilgiler</Text>
+        <Text style={styles.sectionTitle}>{t('settings_personal_section')}</Text>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Kullanıcı Adı</Text>
+          <Text style={styles.label}>{t('settings_username')}</Text>
           <TextInput
             style={styles.input}
             value={formData.username}
             onChangeText={(val) => setFormData({ ...formData, username: val })}
-            placeholder="@kullanici_adi"
+            placeholder={t('settings_username_placeholder')}
             placeholderTextColor={colors.textSecondary}
           />
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>E-Posta</Text>
+          <Text style={styles.label}>{t('settings_email_label')}</Text>
           <TextInput
             style={styles.input}
             value={formData.email}
             onChangeText={(val) => setFormData({ ...formData, email: val })}
-            placeholder="ornek@email.com"
+            placeholder="email@example.com"
             keyboardType="email-address"
             autoCapitalize="none"
             placeholderTextColor={colors.textSecondary}
@@ -215,7 +214,7 @@ export default function SettingsScreen({ navigation, route }) {
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Telefon Numarası</Text>
+          <Text style={styles.label}>{t('settings_phone_label')}</Text>
           <TextInput
             style={styles.input}
             value={formData.phone}
@@ -227,26 +226,26 @@ export default function SettingsScreen({ navigation, route }) {
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Şehir</Text>
+          <Text style={styles.label}>{t('settings_city')}</Text>
           <TouchableOpacity
             style={styles.citySelector}
             activeOpacity={0.8}
             onPress={() => setCityModalVisible(true)}
           >
             <Text style={formData.city ? styles.inputText : styles.inputPlaceholder}>
-              {formData.city ? formData.city : 'Bir şehir seçin'}
+              {formData.city ? formData.city : t('settings_city_placeholder')}
             </Text>
             <Text style={styles.chevron}>›</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Hakkımda (Bio)</Text>
+          <Text style={styles.label}>{t('settings_bio_label')}</Text>
           <TextInput
             style={[styles.input, styles.textArea]}
             value={formData.bio}
             onChangeText={(val) => setFormData({ ...formData, bio: val })}
-            placeholder="Kendinden bahset..."
+            placeholder={t('settings_bio_placeholder')}
             multiline
             numberOfLines={4}
             maxLength={150}
@@ -254,8 +253,7 @@ export default function SettingsScreen({ navigation, route }) {
           />
         </View>
 
-        {/* SPOTIFY BÖLÜMÜ */}
-        <Text style={styles.sectionTitle}>Spotify Bağlantısı</Text>
+        <Text style={styles.sectionTitle}>{t('settings_spotify')}</Text>
         <View style={styles.spotifyCard}>
           <View style={styles.spotifyRow}>
             <View style={styles.spotifyIconWrap}>
@@ -263,12 +261,12 @@ export default function SettingsScreen({ navigation, route }) {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.spotifyTitle, { color: colors.text }]}>
-                {spotifyStatus?.connected ? 'Spotify Bağlı' : 'Spotify\'ı Bağla'}
+                {spotifyStatus?.connected ? t('settings_spotify_connected') : t('settings_spotify_connect')}
               </Text>
               <Text style={[styles.spotifyDesc, { color: colors.textSecondary }]}>
                 {spotifyStatus?.connected
-                  ? `@${spotifyStatus.spotifyDisplayName || 'Kullanıcı'} · En çok dinlediklerine göre sanatçı önerileri`
-                  : 'En çok dinlediğin sanatçılara göre öneriler al'}
+                  ? `@${spotifyStatus.spotifyDisplayName || '—'} · ${t('settings_spotify_connected_desc')}`
+                  : t('settings_spotify_desc')}
               </Text>
             </View>
             {spotifyStatus?.connected ? (
@@ -285,14 +283,14 @@ export default function SettingsScreen({ navigation, route }) {
                 onPress={() => navigation.navigate('SpotifyRecommendations')}
                 activeOpacity={0.8}
               >
-                <Text style={styles.spotifySecondaryBtnText}>Önerilerimi Gör</Text>
+                <Text style={styles.spotifySecondaryBtnText}>{t('settings_spotify_see_recs')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.spotifySecondaryBtn, { borderColor: '#E94560' }]}
                 onPress={handleSpotifyDisconnect}
                 activeOpacity={0.8}
               >
-                <Text style={[styles.spotifySecondaryBtnText, { color: '#E94560' }]}>Bağlantıyı Kes</Text>
+                <Text style={[styles.spotifySecondaryBtnText, { color: '#E94560' }]}>{t('settings_spotify_disconnect_btn')}</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -308,7 +306,7 @@ export default function SettingsScreen({ navigation, route }) {
               >
                 {spotifyLoading
                   ? <ActivityIndicator color="#fff" />
-                  : <Text style={styles.spotifyConnectBtnText}>Spotify ile Bağlan</Text>
+                  : <Text style={styles.spotifyConnectBtnText}>{t('settings_spotify_connect_btn')}</Text>
                 }
               </LinearGradient>
             </TouchableOpacity>
@@ -325,7 +323,7 @@ export default function SettingsScreen({ navigation, route }) {
             {saving ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.saveButtonText}>Değişiklikleri Kaydet</Text>
+              <Text style={styles.saveButtonText}>{t('settings_save_btn')}</Text>
             )}
           </LinearGradient>
         </TouchableOpacity>
@@ -336,9 +334,9 @@ export default function SettingsScreen({ navigation, route }) {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Şehir Seç</Text>
+              <Text style={styles.modalTitle}>{t('settings_city_modal_title')}</Text>
               <TouchableOpacity onPress={() => setCityModalVisible(false)}>
-                <Text style={styles.modalCloseText}>Kapat</Text>
+                <Text style={styles.modalCloseText}>{t('settings_city_modal_close')}</Text>
               </TouchableOpacity>
             </View>
             <FlatList

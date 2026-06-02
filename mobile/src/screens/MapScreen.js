@@ -8,17 +8,13 @@ import * as Location from 'expo-location';
 import { LinearGradient } from 'expo-linear-gradient';
 import API from '../services/api';
 import { useTheme } from '../theme';
+import { useLanguage } from '../context/LanguageContext';
 
 const { width, height } = Dimensions.get('window');
 
 const TURKEY_CENTER = { latitude: 39.0, longitude: 35.0, latitudeDelta: 10, longitudeDelta: 10 };
 
-const RADIUS_OPTIONS = [
-  { label: 'Tümü', value: null },
-  { label: '10 km', value: 10 },
-  { label: '25 km', value: 25 },
-  { label: '50 km', value: 50 },
-];
+const RADIUS_VALUES = [null, 10, 25, 50];
 
 const GENRE_COLORS = {
   rock: '#E94560',
@@ -60,7 +56,15 @@ function formatDistance(km) {
 export default function MapScreen({ navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { t } = useLanguage();
   const mapRef = useRef(null);
+
+  const RADIUS_OPTIONS = useMemo(() => [
+    { label: t('map_radius_all'), value: null },
+    { label: '10 km', value: 10 },
+    { label: '25 km', value: 25 },
+    { label: '50 km', value: 50 },
+  ], [t]);
 
   const [allEvents, setAllEvents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -144,7 +148,7 @@ export default function MapScreen({ navigation }) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>Konum ve etkinlikler yükleniyor...</Text>
+        <Text style={styles.loadingText}>{t('map_loading')}</Text>
       </View>
     );
   }
@@ -156,15 +160,15 @@ export default function MapScreen({ navigation }) {
       <LinearGradient colors={colors.headerGradient} style={styles.header}>
         <View style={styles.headerRow}>
           <View>
-            <Text style={styles.headerTitle}>🗺️ Konser Haritası</Text>
+            <Text style={styles.headerTitle}>{t('map_title')}</Text>
             <Text style={styles.headerSub}>
-              {filteredEvents.length} etkinlik
-              {locationDenied ? ' · Konum izni yok' : userLocation ? ' · Konumun alındı' : ''}
+              {t('map_events_count', { count: filteredEvents.length })}
+              {locationDenied ? ` · ${t('map_no_location')}` : userLocation ? ` · ${t('map_location_found')}` : ''}
             </Text>
           </View>
           {userLocation && (
             <TouchableOpacity style={styles.locateBtn} onPress={goToUserLocation} activeOpacity={0.8}>
-              <Text style={styles.locateBtnText}>📍 Git</Text>
+              <Text style={styles.locateBtnText}>{t('map_go_location')}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -248,7 +252,7 @@ export default function MapScreen({ navigation }) {
               )}
               {selectedEvent.distanceKm !== null && (
                 <Text style={styles.bottomCardDistance}>
-                  📍 {formatDistance(selectedEvent.distanceKm)} uzakta
+                  📍 {formatDistance(selectedEvent.distanceKm)} {t('map_away')}
                 </Text>
               )}
             </View>
@@ -259,7 +263,7 @@ export default function MapScreen({ navigation }) {
             onPress={() => navigation.navigate('EventDetail', { event: selectedEvent })}
             activeOpacity={0.85}
           >
-            <Text style={styles.bottomCardBtnText}>Detayları Gör ›</Text>
+            <Text style={styles.bottomCardBtnText}>{t('map_details')}</Text>
           </TouchableOpacity>
         </Animated.View>
       )}
@@ -278,7 +282,7 @@ export default function MapScreen({ navigation }) {
                 <View style={[styles.nearbyDot, { backgroundColor: getMarkerColor(event.genre) }]} />
                 <Text style={styles.nearbyName} numberOfLines={1}>{event.name}</Text>
                 {event.distanceKm !== null && (
-                  <Text style={styles.nearbyDist}>{formatDistance(event.distanceKm)}</Text>
+                  <Text style={styles.nearbyDist}>{formatDistance(event.distanceKm)} {t('map_away')}</Text>
                 )}
               </TouchableOpacity>
             ))}

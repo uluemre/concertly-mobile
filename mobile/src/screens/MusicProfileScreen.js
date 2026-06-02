@@ -7,6 +7,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
 
 const { width } = Dimensions.get('window');
@@ -24,6 +25,7 @@ const genreColors = [
 export default function MusicProfileScreen({ navigation }) {
   const { colors } = useTheme();
   const { session } = useAuth();
+  const { t } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [profile, setProfile] = useState(null);
@@ -78,17 +80,17 @@ export default function MusicProfileScreen({ navigation }) {
       {/* HEADER */}
       <LinearGradient colors={['#7C3AED', '#E94560']} style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backText}>← Geri</Text>
+          <Text style={styles.backText}>{t('back')}</Text>
         </TouchableOpacity>
         <Text style={styles.headerEmoji}>✨</Text>
-        <Text style={styles.headerTitle}>Müzik Profilim</Text>
-        <Text style={styles.headerSub}>Tür ve sanatçı tercihlerini yönet</Text>
+        <Text style={styles.headerTitle}>{t('music_title')}</Text>
+        <Text style={styles.headerSub}>{t('music_sub')}</Text>
         <TouchableOpacity
           style={styles.editBtn}
           onPress={() => navigation.navigate('GenreSelection', { editMode: true })}
           activeOpacity={0.85}
         >
-          <Text style={styles.editBtnText}>✏️ Güncelle</Text>
+          <Text style={styles.editBtnText}>{t('music_edit')}</Text>
         </TouchableOpacity>
       </LinearGradient>
 
@@ -97,14 +99,14 @@ export default function MusicProfileScreen({ navigation }) {
         {/* FAVORİ TÜRLER */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Favori Türler</Text>
+            <Text style={styles.sectionTitle}>{t('music_genres')}</Text>
             {genres.length > 0 && (
               <Text style={styles.sectionCount}>{genres.length}</Text>
             )}
           </View>
 
           {genres.length === 0 ? (
-            <Text style={styles.emptySmallText}>Henüz tür seçilmemiş</Text>
+            <Text style={styles.emptySmallText}>{t('music_no_genres')}</Text>
           ) : (
             <View style={styles.genreRow}>
               {visibleGenres.map((g, i) => (
@@ -132,7 +134,7 @@ export default function MusicProfileScreen({ navigation }) {
                   onPress={() => setShowAllGenres(false)}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.genreChipMoreText}>Gizle</Text>
+                  <Text style={styles.genreChipMoreText}>{t('music_hide')}</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -142,7 +144,7 @@ export default function MusicProfileScreen({ navigation }) {
         {/* TAKİP EDİLEN SANATÇILAR */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Takip Edilen Sanatçılar</Text>
+            <Text style={styles.sectionTitle}>{t('music_artists')}</Text>
             {artists.length > 0 && (
               <Text style={styles.sectionCount}>{artists.length}</Text>
             )}
@@ -151,8 +153,8 @@ export default function MusicProfileScreen({ navigation }) {
           {artists.length === 0 ? (
             <View style={styles.emptyLarge}>
               <Text style={styles.emptyEmoji}>🎤</Text>
-              <Text style={styles.emptyTitle}>Henüz sanatçı takip edilmiyor</Text>
-              <Text style={styles.emptySub}>Güncelle butonuna basarak sanatçı takip edebilirsin</Text>
+              <Text style={styles.emptyTitle}>{t('music_no_artists')}</Text>
+              <Text style={styles.emptySub}>{t('music_no_artists_sub')}</Text>
             </View>
           ) : (
             <View style={styles.artistGrid}>
@@ -180,7 +182,7 @@ export default function MusicProfileScreen({ navigation }) {
                   )}
                   <Text style={styles.artistName} numberOfLines={1}>{artist.name}</Text>
                   <Text style={styles.artistFollowers}>
-                    {artist.followerCount > 0 ? `${artist.followerCount} takipçi` : ''}
+                    {artist.followerCount > 0 ? `${artist.followerCount} ${t('music_followers')}` : ''}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -194,7 +196,7 @@ export default function MusicProfileScreen({ navigation }) {
                 >
                   <View style={styles.artistMoreBox}>
                     <Text style={styles.artistMorePlus}>+{hiddenArtistCount}</Text>
-                    <Text style={styles.artistMoreLabel}>daha</Text>
+                    <Text style={styles.artistMoreLabel}>{t('music_more')}</Text>
                   </View>
                   <Text style={styles.artistName}> </Text>
                 </TouchableOpacity>
@@ -209,7 +211,7 @@ export default function MusicProfileScreen({ navigation }) {
                 >
                   <View style={styles.artistMoreBox}>
                     <Text style={styles.artistMorePlus}>↑</Text>
-                    <Text style={styles.artistMoreLabel}>Gizle</Text>
+                    <Text style={styles.artistMoreLabel}>{t('music_hide')}</Text>
                   </View>
                   <Text style={styles.artistName}> </Text>
                 </TouchableOpacity>

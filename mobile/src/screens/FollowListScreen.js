@@ -5,18 +5,20 @@ import {
 } from 'react-native';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
 
 export default function FollowListScreen({ route, navigation }) {
-  const { userId, type } = route.params; // type: 'followers' | 'following'
+  const { userId, type } = route.params;
   const { colors } = useTheme();
   const { session } = useAuth();
+  const { t } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const title = type === 'followers' ? 'Takipçiler' : 'Takip Edilenler';
+  const title = type === 'followers' ? t('follow_followers') : t('follow_following');
 
   useEffect(() => {
     navigation.setOptions({ title });
@@ -28,7 +30,7 @@ export default function FollowListScreen({ route, navigation }) {
       const res = await API.get(`/users/${userId}/${type}`);
       setUsers(res.data);
     } catch (err) {
-      Alert.alert('Hata', 'Liste yüklenemedi.');
+      Alert.alert(t('error'), t('follow_load_error'));
     } finally {
       setLoading(false);
     }
@@ -50,7 +52,7 @@ export default function FollowListScreen({ route, navigation }) {
         )
       );
     } catch (err) {
-      Alert.alert('Hata', 'İşlem gerçekleştirilemedi.');
+      Alert.alert(t('error'), t('follow_action_error'));
     }
   };
 
@@ -86,7 +88,7 @@ export default function FollowListScreen({ route, navigation }) {
               styles.followBtnText,
               item.isFollowedByCurrentUser && styles.followBtnTextActive,
             ]}>
-              {item.isFollowedByCurrentUser ? 'Takip Ediliyor' : 'Takip Et'}
+              {item.isFollowedByCurrentUser ? t('follow_btn_active') : t('follow_btn')}
             </Text>
           </TouchableOpacity>
         )}
@@ -121,7 +123,7 @@ export default function FollowListScreen({ route, navigation }) {
           <View style={styles.empty}>
             <Text style={styles.emptyEmoji}>👥</Text>
             <Text style={styles.emptyText}>
-              {type === 'followers' ? 'Henüz takipçi yok' : 'Henüz kimse takip edilmiyor'}
+              {type === 'followers' ? t('follow_no_followers') : t('follow_no_following')}
             </Text>
           </View>
         }

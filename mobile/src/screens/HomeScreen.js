@@ -9,6 +9,7 @@ import { Image } from 'expo-image';
 import API from '../services/api';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import SearchModal from './SearchModal';
 import FeaturedCard from '../components/home/FeaturedCard';
 import EventRow from '../components/home/EventRow';
@@ -19,26 +20,26 @@ const FEATURED_CARD_WIDTH = width * 0.78;
 const FEATURED_CARD_HEIGHT = 240;
 
 const CATEGORY_GENRE_MAP = {
-  'Konser': ['pop', 'rock', 'indie', 'alternative', 'classical', 'R&B', 'hip-hop', 'country', 'undefined'],
-  'Festival': ['festival', 'world', 'folk'],
-  'DJ': ['electronic', 'house', 'techno', 'dance', 'edm', 'dj'],
-  'Caz': ['jazz', 'blues', 'soul', 'funk'],
-  'Elektronik': ['electronic', 'house', 'techno', 'dance', 'edm', 'trance'],
+  Konser: ['pop', 'rock', 'indie', 'alternative', 'classical', 'R&B', 'hip-hop', 'country', 'undefined'],
+  Festival: ['festival', 'world', 'folk'],
+  DJ: ['electronic', 'house', 'techno', 'dance', 'edm', 'dj'],
+  Caz: ['jazz', 'blues', 'soul', 'funk'],
+  Elektronik: ['electronic', 'house', 'techno', 'dance', 'edm', 'trance'],
 };
 
-const CATEGORIES = [
-  { id: 1, label: 'Tümü',     emoji: '🎪', color: '#E94560' },
-  { id: 2, label: 'Konser',   emoji: '🎸', color: '#7C3AED' },
-  { id: 3, label: 'Festival', emoji: '🎡', color: '#F5A623' },
-  { id: 4, label: 'DJ',       emoji: '🎧', color: '#00D4AA' },
-  { id: 5, label: 'Caz',      emoji: '🎺', color: '#E94560' },
-  { id: 6, label: 'Elektronik', emoji: '🎛️', color: '#7C3AED' },
+const CATEGORY_KEYS = [
+  { id: 1, key: 'cat_all',       genreKey: null,       emoji: '🎪', color: '#E94560' },
+  { id: 2, key: 'cat_concert',   genreKey: 'Konser',   emoji: '🎸', color: '#7C3AED' },
+  { id: 3, key: 'cat_festival',  genreKey: 'Festival', emoji: '🎡', color: '#F5A623' },
+  { id: 4, key: 'cat_dj',        genreKey: 'DJ',       emoji: '🎧', color: '#00D4AA' },
+  { id: 5, key: 'cat_jazz',      genreKey: 'Caz',      emoji: '🎺', color: '#E94560' },
+  { id: 6, key: 'cat_electronic',genreKey: 'Elektronik',emoji: '🎛️',color: '#7C3AED' },
 ];
 
 const CITIES = ['Tümü', 'Istanbul', 'Ankara', 'Izmir', 'Bursa', 'Antalya', 'Adana', 'Konya', 'Gaziantep', 'Mersin', 'Eskisehir'];
 
 function matchesCategory(event, label) {
-  if (label === 'Tümü') return true;
+  if (!label) return true;
   const genres = CATEGORY_GENRE_MAP[label] || [];
   const eg = (event.genre || '').toLowerCase();
   const en = (event.name || '').toLowerCase();
@@ -49,6 +50,9 @@ export default function HomeScreen({ navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { session } = useAuth();
+  const { t } = useLanguage();
+
+  const CATEGORIES = useMemo(() => CATEGORY_KEYS.map(c => ({ ...c, label: t(c.key) })), [t]);
 
   const [events, setEvents] = useState([]);
   const [posts, setPosts] = useState([]);
@@ -102,8 +106,8 @@ export default function HomeScreen({ navigation }) {
   };
 
   const activeCategoryLabel = useMemo(
-    () => CATEGORIES.find(c => c.id === activeCategory)?.label || 'Tümü',
-    [activeCategory]
+    () => CATEGORIES.find(c => c.id === activeCategory)?.genreKey || null,
+    [activeCategory, CATEGORIES]
   );
   const activeCategoryColor = useMemo(
     () => CATEGORIES.find(c => c.id === activeCategory)?.color || colors.primary,
@@ -139,7 +143,7 @@ export default function HomeScreen({ navigation }) {
   if (loading) return (
     <View style={styles.loadingScreen}>
       <ActivityIndicator size="large" color={colors.primary} />
-      <Text style={styles.loadingText}>Yükleniyor...</Text>
+      <Text style={styles.loadingText}>{t('loading')}</Text>
     </View>
   );
 
@@ -155,7 +159,7 @@ export default function HomeScreen({ navigation }) {
         <LinearGradient colors={['#0A0A14', '#12121E', '#0A0A14']} style={styles.header}>
           <Animated.View style={[styles.headerTop, { opacity: headerOpacity, transform: [{ translateY: headerAnim }] }]}>
             <View>
-              <Text style={styles.headerGreeting}>{session.userCity ? `📍 ${session.userCity}` : 'Merhaba 👋'}</Text>
+              <Text style={styles.headerGreeting}>{session.userCity ? `📍 ${session.userCity}` : t('home_greeting')}</Text>
               <Text style={styles.headerBrand}>Concertly</Text>
             </View>
             <Image source={require('../../assets/icon.png')} style={styles.headerLogo} contentFit="contain" />
@@ -168,11 +172,11 @@ export default function HomeScreen({ navigation }) {
               activeOpacity={0.7}
             >
               <Text style={styles.searchIcon}>⌕</Text>
-              <Text style={styles.searchPlaceholder}>Etkinlik, sanatçı, kullanıcı ara...</Text>
+              <Text style={styles.searchPlaceholder}>{t('home_search_placeholder')}</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => setCityModalVisible(true)} style={styles.cityBtn} activeOpacity={0.8}>
               <Text style={styles.cityBtnIcon}>📍</Text>
-              <Text style={styles.cityBtnText} numberOfLines={1}>{selectedCity || 'Tümü'}</Text>
+              <Text style={styles.cityBtnText} numberOfLines={1}>{selectedCity || t('cat_all')}</Text>
               <Text style={styles.cityBtnChevron}>▾</Text>
             </TouchableOpacity>
           </View>
@@ -180,17 +184,17 @@ export default function HomeScreen({ navigation }) {
           <View style={styles.statsStrip}>
             <View style={styles.statStripItem}>
               <Text style={styles.statStripNum}>{events.length}</Text>
-              <Text style={styles.statStripLabel}>Etkinlik</Text>
+              <Text style={styles.statStripLabel}>{t('home_stat_events')}</Text>
             </View>
             <View style={styles.statStripDivider} />
             <View style={styles.statStripItem}>
               <Text style={styles.statStripNum}>{posts.length}</Text>
-              <Text style={styles.statStripLabel}>Post</Text>
+              <Text style={styles.statStripLabel}>{t('home_stat_posts')}</Text>
             </View>
             <View style={styles.statStripDivider} />
             <View style={styles.statStripItem}>
               <Text style={styles.statStripNum}>TR</Text>
-              <Text style={styles.statStripLabel}>Bölge</Text>
+              <Text style={styles.statStripLabel}>{t('home_stat_region')}</Text>
             </View>
           </View>
         </LinearGradient>
@@ -216,16 +220,16 @@ export default function HomeScreen({ navigation }) {
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleRow}>
               <View style={[styles.sectionAccent, { backgroundColor: activeCategoryColor }]} />
-              <Text style={styles.sectionTitle}>Öne Çıkanlar</Text>
+              <Text style={styles.sectionTitle}>{t('home_featured')}</Text>
             </View>
             <TouchableOpacity onPress={() => navigation.navigate('Events')} style={styles.seeAllBtn}>
-              <Text style={[styles.seeAllText, { color: activeCategoryColor }]}>Tümü →</Text>
+              <Text style={[styles.seeAllText, { color: activeCategoryColor }]}>{t('home_see_all_btn')}</Text>
             </TouchableOpacity>
           </View>
           {filteredEvents.length === 0 ? (
             <View style={styles.emptyState}>
               <Text style={styles.emptyEmoji}>🎭</Text>
-              <Text style={styles.emptyText}>Etkinlik bulunamadı</Text>
+              <Text style={styles.emptyText}>{t('home_no_events')}</Text>
             </View>
           ) : (
             <FlatList
@@ -255,7 +259,7 @@ export default function HomeScreen({ navigation }) {
             <View style={styles.sectionHeader}>
               <View style={styles.sectionTitleRow}>
                 <View style={[styles.sectionAccent, { backgroundColor: colors.accent }]} />
-                <Text style={styles.sectionTitle}>Yaklaşan Etkinlikler</Text>
+                <Text style={styles.sectionTitle}>{t('home_upcoming_events')}</Text>
               </View>
             </View>
             {filteredEvents.slice(0, 5).map((item, index) => (
@@ -263,7 +267,7 @@ export default function HomeScreen({ navigation }) {
             ))}
             {filteredEvents.length > 5 && (
               <TouchableOpacity style={styles.moreBtn} onPress={() => navigation.navigate('Events')}>
-                <Text style={styles.moreBtnText}>+{filteredEvents.length - 5} etkinlik daha gör</Text>
+                <Text style={styles.moreBtnText}>{t('home_more_events', { count: filteredEvents.length - 5 })}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -274,13 +278,13 @@ export default function HomeScreen({ navigation }) {
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleRow}>
               <View style={[styles.sectionAccent, { backgroundColor: colors.secondary }]} />
-              <Text style={styles.sectionTitle}>🔥 Trend Postlar</Text>
+              <Text style={styles.sectionTitle}>{t('home_trend_posts')}</Text>
             </View>
           </View>
           {filteredPosts.length === 0 ? (
             <View style={styles.emptyState}>
               <Text style={styles.emptyEmoji}>📭</Text>
-              <Text style={styles.emptyText}>Post bulunamadı</Text>
+              <Text style={styles.emptyText}>{t('home_no_posts')}</Text>
             </View>
           ) : (
             filteredPosts.slice(0, 6).map((item, index) => (
@@ -295,7 +299,7 @@ export default function HomeScreen({ navigation }) {
       <Modal visible={cityModalVisible} transparent animationType="slide">
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setCityModalVisible(false)} />
         <View style={[styles.cityModal, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Text style={[styles.cityModalTitle, { color: colors.text }]}>Şehir Seç</Text>
+          <Text style={[styles.cityModalTitle, { color: colors.text }]}>{t('home_city_select')}</Text>
           <ScrollView showsVerticalScrollIndicator={false}>
             {CITIES.map(city => {
               const active = city === 'Tümü' ? !selectedCity : selectedCity === city;
@@ -306,7 +310,7 @@ export default function HomeScreen({ navigation }) {
                   style={[styles.cityOption, active && { backgroundColor: colors.primary + '22' }]}
                 >
                   <Text style={[styles.cityOptionText, { color: active ? colors.primary : colors.text }]}>
-                    {city === 'Tümü' ? '🌍 Tüm Türkiye' : `📍 ${city}`}
+                    {city === 'Tümü' ? t('home_all_turkey') : `📍 ${city}`}
                   </Text>
                   {active && <Text style={{ color: colors.primary, fontWeight: '700' }}>✓</Text>}
                 </TouchableOpacity>

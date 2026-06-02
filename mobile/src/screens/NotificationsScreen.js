@@ -7,25 +7,27 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../theme';
 import API from '../services/api';
 import { useAuth } from '../context/AuthContext';
-
-const TYPE_CONFIG = {
-  follow:  { icon: '👤', text: 'seni takip etmeye başladı' },
-  like:    { icon: '❤️', text: 'postunu beğendi' },
-  comment: { icon: '💬', text: 'postuna yorum yaptı' },
-};
-
-function timeAgo(dateStr) {
-  const diff = (Date.now() - new Date(dateStr)) / 1000;
-  if (diff < 60) return 'Az önce';
-  if (diff < 3600) return `${Math.floor(diff / 60)}dk önce`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}sa önce`;
-  return `${Math.floor(diff / 86400)}g önce`;
-}
+import { useLanguage } from '../context/LanguageContext';
 
 export default function NotificationsScreen({ navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { setNotificationCount } = useAuth();
+  const { t } = useLanguage();
+
+  const TYPE_CONFIG = useMemo(() => ({
+    follow:  { icon: '👤', text: t('notif_follow') },
+    like:    { icon: '❤️', text: t('notif_like') },
+    comment: { icon: '💬', text: t('notif_comment') },
+  }), [t]);
+
+  const timeAgo = (dateStr) => {
+    const diff = (Date.now() - new Date(dateStr)) / 1000;
+    if (diff < 60) return t('notif_just_now');
+    if (diff < 3600) return `${Math.floor(diff / 60)}${t('notif_min_ago')}`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}${t('notif_hour_ago')}`;
+    return `${Math.floor(diff / 86400)}${t('notif_day_ago')}`;
+  };
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const isMounted = useRef(true);
@@ -61,7 +63,7 @@ export default function NotificationsScreen({ navigation }) {
   };
 
   const renderItem = ({ item }) => {
-    const cfg = TYPE_CONFIG[item.type] || { icon: '🔔', text: 'bir işlem yaptı' };
+    const cfg = TYPE_CONFIG[item.type] || { icon: '🔔', text: t('notif_default') };
     const isUnread = !item.isRead;
 
     return (
@@ -107,7 +109,7 @@ export default function NotificationsScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Bildirimler</Text>
+        <Text style={styles.headerTitle}>{t('notifications_title')}</Text>
       </View>
 
       <FlatList
@@ -119,8 +121,8 @@ export default function NotificationsScreen({ navigation }) {
         ListEmptyComponent={
           <View style={styles.empty}>
             <Text style={styles.emptyEmoji}>🔔</Text>
-            <Text style={styles.emptyTitle}>Henüz bildirim yok</Text>
-            <Text style={styles.emptySub}>Biri seni takip ettiğinde veya postunu beğendiğinde burada görünür</Text>
+            <Text style={styles.emptyTitle}>{t('notifications_empty')}</Text>
+            <Text style={styles.emptySub}>{t('notifications_empty_sub')}</Text>
           </View>
         }
       />

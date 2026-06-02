@@ -8,17 +8,19 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import API from '../services/api';
 import { useTheme } from '../theme';
-
-const POST_TYPES = [
-  { key: 'TEXT', label: '✍️ Yazı' },
-  { key: 'IMAGE', label: '📷 Fotoğraf' },
-  { key: 'POLL', label: '📊 Anket' },
-];
+import { useLanguage } from '../context/LanguageContext';
 
 export default function CreatePostScreen({ route, navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { t } = useLanguage();
   const { event } = route.params;
+
+  const POST_TYPES = useMemo(() => [
+    { key: 'TEXT', label: t('post_type_text') },
+    { key: 'IMAGE', label: t('post_type_image') },
+    { key: 'POLL', label: t('post_type_poll') },
+  ], [t]);
 
   const [postType, setPostType] = useState('TEXT');
   const [content, setContent] = useState('');
@@ -29,7 +31,7 @@ export default function CreatePostScreen({ route, navigation }) {
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('İzin Gerekli', 'Galeri erişimine izin vermeniz gerekiyor.');
+      Alert.alert(t('post_perm_title'), t('post_perm_msg'));
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -60,17 +62,17 @@ export default function CreatePostScreen({ route, navigation }) {
 
   const handlePost = async () => {
     if (!content.trim() && postType !== 'IMAGE') {
-      Alert.alert('Hata', 'İçerik boş olamaz.');
+      Alert.alert(t('error'), t('post_empty_content'));
       return;
     }
     if (postType === 'IMAGE' && !imageUri) {
-      Alert.alert('Hata', 'Lütfen bir fotoğraf seç.');
+      Alert.alert(t('error'), t('post_no_image'));
       return;
     }
     if (postType === 'POLL') {
       const filled = pollOptions.filter(o => o.trim().length > 0);
       if (filled.length < 2) {
-        Alert.alert('Hata', 'En az 2 seçenek girilmeli.');
+        Alert.alert(t('error'), t('post_poll_min'));
         return;
       }
     }
@@ -84,11 +86,11 @@ export default function CreatePostScreen({ route, navigation }) {
         imageUrl: postType === 'IMAGE' ? imageUri : undefined,
         pollOptions: postType === 'POLL' ? pollOptions.filter(o => o.trim()) : undefined,
       });
-      Alert.alert('🎉 Paylaşıldı!', 'Postun yayında!', [
-        { text: 'Tamam', onPress: () => navigation.goBack() }
+      Alert.alert(t('post_success_title'), t('post_success_msg'), [
+        { text: t('confirm'), onPress: () => navigation.goBack() }
       ]);
     } catch (err) {
-      Alert.alert('Hata', 'Post atılamadı, tekrar dene.');
+      Alert.alert(t('error'), t('post_error_msg'));
       console.log(err.message);
     } finally {
       setLoading(false);
@@ -104,9 +106,9 @@ export default function CreatePostScreen({ route, navigation }) {
         {/* HEADER */}
         <LinearGradient colors={['#E94560', '#7C3AED']} style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Text style={styles.backText}>✕ İptal</Text>
+            <Text style={styles.backText}>{t('post_cancel')}</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>🎵 Post At</Text>
+          <Text style={styles.headerTitle}>{t('post_header')}</Text>
           <Text style={styles.headerSub}>{event.name}</Text>
         </LinearGradient>
 
@@ -129,7 +131,7 @@ export default function CreatePostScreen({ route, navigation }) {
 
           {/* ETKİNLİK KARTI */}
           <View style={styles.eventCard}>
-            <Text style={styles.eventCardLabel}>ETKİNLİK</Text>
+            <Text style={styles.eventCardLabel}>{t('post_event_label')}</Text>
             <Text style={styles.eventCardName}>{event.name}</Text>
             {event.artistName && <Text style={styles.eventCardSub}>🎤 {event.artistName}</Text>}
             {event.venueCity && <Text style={styles.eventCardSub}>📍 {event.venueCity}</Text>}
@@ -138,15 +140,11 @@ export default function CreatePostScreen({ route, navigation }) {
           {/* YAZI ALANI */}
           <View style={styles.inputCard}>
             <Text style={styles.inputLabel}>
-              {postType === 'POLL' ? 'Anket sorusu' : 'Ne düşünüyorsun?'}
+              {postType === 'POLL' ? t('post_poll_label') : t('post_question_label')}
             </Text>
             <TextInput
               style={styles.textInput}
-              placeholder={
-                postType === 'POLL'
-                  ? 'Anket sorusunu yaz...'
-                  : 'Konseri anlat, hissettiklerini paylaş... 🎸'
-              }
+              placeholder={postType === 'POLL' ? t('post_poll_placeholder') : t('post_text_placeholder')}
               placeholderTextColor={colors.textSecondary}
               value={content}
               onChangeText={setContent}
@@ -165,7 +163,7 @@ export default function CreatePostScreen({ route, navigation }) {
               ) : (
                 <View style={styles.imagePickerEmpty}>
                   <Text style={styles.imagePickerEmoji}>📷</Text>
-                  <Text style={styles.imagePickerText}>Fotoğraf Seç</Text>
+                  <Text style={styles.imagePickerText}>{t('post_pick_photo')}</Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -178,7 +176,7 @@ export default function CreatePostScreen({ route, navigation }) {
                 <View key={i} style={styles.pollOptionRow}>
                   <TextInput
                     style={styles.pollInput}
-                    placeholder={`Seçenek ${i + 1}`}
+                    placeholder={t('post_option_placeholder', { n: i + 1 })}
                     placeholderTextColor={colors.textSecondary}
                     value={opt}
                     onChangeText={text => updatePollOption(text, i)}
@@ -193,7 +191,7 @@ export default function CreatePostScreen({ route, navigation }) {
               ))}
               {pollOptions.length < 4 && (
                 <TouchableOpacity style={styles.addOptionBtn} onPress={addPollOption}>
-                  <Text style={styles.addOptionText}>+ Seçenek Ekle</Text>
+                  <Text style={styles.addOptionText}>{t('post_add_option')}</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -225,7 +223,7 @@ export default function CreatePostScreen({ route, navigation }) {
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
               >
-                <Text style={styles.submitText}>🚀 Paylaş</Text>
+                <Text style={styles.submitText}>{t('post_share')}</Text>
               </LinearGradient>
             </TouchableOpacity>
           )}

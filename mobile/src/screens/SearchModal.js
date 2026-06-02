@@ -8,6 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import API from '../services/api';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 
 const { width, height } = Dimensions.get('window');
 
@@ -30,7 +31,8 @@ function useDebounce(fn, delay) {
 // ── Arama Modalı ─────────────────────────────────────────────────────────────
 export default function SearchModal({ visible, onClose, navigation }) {
     const { colors } = useTheme();
-  const { session } = useAuth();
+    const { session } = useAuth();
+    const { t } = useLanguage();
     const styles = useMemo(() => createStyles(colors), [colors]);
 
     const [query, setQuery] = useState('');
@@ -160,7 +162,7 @@ export default function SearchModal({ visible, onClose, navigation }) {
             <View style={styles.resultInfo}>
                 <Text style={styles.resultTitle} numberOfLines={1}>{item.name}</Text>
                 <Text style={styles.resultSub}>
-                    {item.followerCount || 0} takipçi
+                    {item.followerCount || 0} {t('search_followers')}
                 </Text>
             </View>
             <Text style={styles.chevron}>›</Text>
@@ -222,7 +224,7 @@ export default function SearchModal({ visible, onClose, navigation }) {
                             <TextInput
                                 ref={inputRef}
                                 style={styles.searchInput}
-                                placeholder="Etkinlik, sanatçı veya kullanıcı ara..."
+                                placeholder={t('search_modal_placeholder')}
                                 placeholderTextColor={colors.textSecondary}
                                 value={query}
                                 onChangeText={handleChangeText}
@@ -240,7 +242,7 @@ export default function SearchModal({ visible, onClose, navigation }) {
                             )}
                         </View>
                         <TouchableOpacity onPress={onClose} style={styles.cancelBtn}>
-                            <Text style={styles.cancelText}>İptal</Text>
+                            <Text style={styles.cancelText}>{t('cancel')}</Text>
                         </TouchableOpacity>
                     </View>
 
@@ -250,9 +252,9 @@ export default function SearchModal({ visible, onClose, navigation }) {
                             <View style={styles.tabBar}>
                                 <Animated.View style={[styles.tabIndicator, { left: tabIndicatorLeft }]} />
                                 {[
-                                    { key: 'events', label: `🎪 Etkinlik (${results.events.length})`, index: 0 },
-                                    { key: 'artists', label: `🎤 Sanatçı (${results.artists.length})`, index: 1 },
-                                    { key: 'users', label: `👤 Kullanıcı (${results.users.length})`, index: 2 },
+                                    { key: 'events', label: `🎪 ${t('search_events')} (${results.events.length})`, index: 0 },
+                                    { key: 'artists', label: `🎤 ${t('search_artists')} (${results.artists.length})`, index: 1 },
+                                    { key: 'users', label: `👤 ${t('search_users')} (${results.users.length})`, index: 2 },
                                 ].map(tab => (
                                     <TouchableOpacity
                                         key={tab.key}
@@ -284,7 +286,7 @@ export default function SearchModal({ visible, onClose, navigation }) {
                     ) : totalResults === 0 ? (
                         <View style={styles.center}>
                             <Text style={styles.hintEmoji}>😕</Text>
-                            <Text style={styles.hintText}>"{query}" için sonuç bulunamadı</Text>
+                            <Text style={styles.hintText}>"{query}" {t('search_no_results_for')}</Text>
                         </View>
                     ) : (
                         <FlatList
@@ -297,7 +299,7 @@ export default function SearchModal({ visible, onClose, navigation }) {
                             ListEmptyComponent={
                                 <View style={styles.center}>
                                     <Text style={styles.hintEmoji}>📭</Text>
-                                    <Text style={styles.hintText}>Bu kategoride sonuç yok</Text>
+                                    <Text style={styles.hintText}>{t('search_category_empty')}</Text>
                                 </View>
                             }
                         />
