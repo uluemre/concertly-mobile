@@ -9,7 +9,7 @@ function getBaseUrl() {
       return `http://${ip}:8082/api`;
     }
   } catch {}
-  return 'http://192.168.1.92:8082/api';
+  return 'http://172.20.10.5:8082/api';
 }
 
 const BASE_URL = getBaseUrl();

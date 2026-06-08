@@ -128,7 +128,8 @@ export default function EventsScreen({ navigation }) {
   };
 
   const filtered = useMemo(() => {
-    let list = [...events];
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    let list = events.filter(e => new Date(e.eventDate) >= today);
 
     if (search.trim()) {
       const q = search.toLowerCase();

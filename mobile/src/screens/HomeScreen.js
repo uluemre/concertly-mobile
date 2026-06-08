@@ -119,8 +119,10 @@ export default function HomeScreen({ navigation }) {
   );
 
   const filteredEvents = useMemo(() => {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
     const q = search.trim().toLowerCase();
     return events.filter(e => {
+      if (new Date(e.eventDate) < today) return false;
       const matchSearch = !q ||
         e.name?.toLowerCase().includes(q) ||
         e.artistName?.toLowerCase().includes(q) ||

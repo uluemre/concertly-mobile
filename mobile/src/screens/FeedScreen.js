@@ -36,7 +36,7 @@ export default function FeedScreen({ navigation }) {
           ? '/posts/feed/trending'
           : `/posts/feed/following?userId=${session.userId}`;
         const res = await API.get(url);
-        if (!cancelled) setPosts(res.data);
+        if (!cancelled) setPosts([...res.data].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
       } catch (err) {
         if (!cancelled) console.log('Feed hatası:', err.message);
       } finally {
@@ -57,7 +57,7 @@ export default function FeedScreen({ navigation }) {
         ? '/posts/feed/trending'
         : `/posts/feed/following?userId=${session.userId}`;
       const res = await API.get(url);
-      if (isMounted.current) setPosts(res.data);
+      if (isMounted.current) setPosts([...res.data].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
     } catch (err) {
       if (isMounted.current) console.log('Feed hatası:', err.message);
     } finally {
