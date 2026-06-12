@@ -5,7 +5,6 @@ import {
   Animated, StatusBar, FlatList, Modal,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Image } from 'expo-image';
 import { useFocusEffect } from '@react-navigation/native';
 import API from '../services/api';
 import { useTheme } from '../theme';
@@ -14,39 +13,13 @@ import { useLanguage } from '../context/LanguageContext';
 import { HomeSkeletonPage } from '../components/SkeletonLoader';
 import SearchModal from './SearchModal';
 import FeaturedCard from '../components/home/FeaturedCard';
-import EventRow from '../components/home/EventRow';
 import HomePostCard from '../components/home/HomePostCard';
 
 const { width } = Dimensions.get('window');
 const FEATURED_CARD_WIDTH = width * 0.78;
 const FEATURED_CARD_HEIGHT = 240;
 
-const CATEGORY_GENRE_MAP = {
-  Konser: ['pop', 'rock', 'indie', 'alternative', 'classical', 'R&B', 'hip-hop', 'country', 'undefined'],
-  Festival: ['festival', 'world', 'folk'],
-  DJ: ['electronic', 'house', 'techno', 'dance', 'edm', 'dj'],
-  Caz: ['jazz', 'blues', 'soul', 'funk'],
-  Elektronik: ['electronic', 'house', 'techno', 'dance', 'edm', 'trance'],
-};
-
-const CATEGORY_KEYS = [
-  { id: 1, key: 'cat_all',       genreKey: null,       emoji: '🎪', color: '#E94560' },
-  { id: 2, key: 'cat_concert',   genreKey: 'Konser',   emoji: '🎸', color: '#7C3AED' },
-  { id: 3, key: 'cat_festival',  genreKey: 'Festival', emoji: '🎡', color: '#F5A623' },
-  { id: 4, key: 'cat_dj',        genreKey: 'DJ',       emoji: '🎧', color: '#00D4AA' },
-  { id: 5, key: 'cat_jazz',      genreKey: 'Caz',      emoji: '🎺', color: '#E94560' },
-  { id: 6, key: 'cat_electronic',genreKey: 'Elektronik',emoji: '🎛️',color: '#7C3AED' },
-];
-
 const CITIES = ['Tümü', 'Istanbul', 'Ankara', 'Izmir', 'Bursa', 'Antalya', 'Adana', 'Konya', 'Gaziantep', 'Mersin', 'Eskisehir'];
-
-function matchesCategory(event, label) {
-  if (!label) return true;
-  const genres = CATEGORY_GENRE_MAP[label] || [];
-  const eg = (event.genre || '').toLowerCase();
-  const en = (event.name || '').toLowerCase();
-  return genres.some(g => eg.includes(g) || en.includes(g));
-}
 
 export default function HomeScreen({ navigation }) {
   const { colors } = useTheme();
@@ -54,13 +27,10 @@ export default function HomeScreen({ navigation }) {
   const { session } = useAuth();
   const { t } = useLanguage();
 
-  const CATEGORIES = useMemo(() => CATEGORY_KEYS.map(c => ({ ...c, label: t(c.key) })), [t]);
-
   const [events, setEvents] = useState([]);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [activeCategory, setActiveCategory] = useState(1);
   const [selectedCity, setSelectedCity] = useState(session.userCity || null);
   const [cityModalVisible, setCityModalVisible] = useState(false);
   const [searchModalVisible, setSearchModalVisible] = useState(false);
@@ -124,27 +94,17 @@ export default function HomeScreen({ navigation }) {
     fetchData(city);
   };
 
-  const activeCategoryLabel = useMemo(
-    () => CATEGORIES.find(c => c.id === activeCategory)?.genreKey || null,
-    [activeCategory, CATEGORIES]
-  );
-  const activeCategoryColor = useMemo(
-    () => CATEGORIES.find(c => c.id === activeCategory)?.color || colors.primary,
-    [activeCategory, colors.primary]
-  );
-
   const filteredEvents = useMemo(() => {
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const q = search.trim().toLowerCase();
     return events.filter(e => {
       if (new Date(e.eventDate) < today) return false;
-      const matchSearch = !q ||
+      return !q ||
         e.name?.toLowerCase().includes(q) ||
         e.artistName?.toLowerCase().includes(q) ||
         e.venueCity?.toLowerCase().includes(q);
-      return matchSearch && matchesCategory(e, activeCategoryLabel);
     });
-  }, [events, search, activeCategoryLabel]);
+  }, [events, search]);
 
   const filteredPosts = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -179,85 +139,49 @@ export default function HomeScreen({ navigation }) {
         <LinearGradient colors={['#0A0A14', '#12121E', '#0A0A14']} style={styles.header}>
           <Animated.View style={[styles.headerTop, { opacity: headerOpacity, transform: [{ translateY: headerAnim }] }]}>
             <View>
-              <Text style={styles.headerGreeting}>{session.userCity ? `📍 ${session.userCity}` : t('home_greeting')}</Text>
               <Text style={styles.headerBrand}>Concertly</Text>
-            </View>
-            <View style={styles.headerRight}>
               <TouchableOpacity
-                style={styles.dmBtn}
-                onPress={() => navigation.navigate('ChatList')}
-                activeOpacity={0.8}
+                onPress={() => setCityModalVisible(true)}
+                style={styles.cityRow}
+                activeOpacity={0.7}
               >
-                <Text style={styles.dmBtnIcon}>💬</Text>
-                {unreadMessages > 0 && (
-                  <View style={styles.dmBadge}>
-                    <Text style={styles.dmBadgeText}>{unreadMessages > 99 ? '99+' : unreadMessages}</Text>
-                  </View>
-                )}
+                <Text style={styles.cityRowText}>📍 {selectedCity || t('home_all_turkey')}</Text>
+                <Text style={styles.cityRowChevron}>▾</Text>
               </TouchableOpacity>
-              <Image source={require('../../assets/icon.png')} style={styles.headerLogo} contentFit="contain" />
             </View>
+            <TouchableOpacity
+              style={styles.dmBtn}
+              onPress={() => navigation.navigate('ChatList')}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.dmBtnIcon}>💬</Text>
+              {unreadMessages > 0 && (
+                <View style={styles.dmBadge}>
+                  <Text style={styles.dmBadgeText}>{unreadMessages > 99 ? '99+' : unreadMessages}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
           </Animated.View>
 
-          <View style={styles.searchRow}>
-            <TouchableOpacity
-              style={[styles.searchBar, styles.searchBarTappable]}
-              onPress={() => setSearchModalVisible(true)}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.searchIcon}>⌕</Text>
-              <Text style={styles.searchPlaceholder}>{t('home_search_placeholder')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => setCityModalVisible(true)} style={styles.cityBtn} activeOpacity={0.8}>
-              <Text style={styles.cityBtnIcon}>📍</Text>
-              <Text style={styles.cityBtnText} numberOfLines={1}>{selectedCity || t('cat_all')}</Text>
-              <Text style={styles.cityBtnChevron}>▾</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.statsStrip}>
-            <View style={styles.statStripItem}>
-              <Text style={styles.statStripNum}>{events.length}</Text>
-              <Text style={styles.statStripLabel}>{t('home_stat_events')}</Text>
-            </View>
-            <View style={styles.statStripDivider} />
-            <View style={styles.statStripItem}>
-              <Text style={styles.statStripNum}>{posts.length}</Text>
-              <Text style={styles.statStripLabel}>{t('home_stat_posts')}</Text>
-            </View>
-            <View style={styles.statStripDivider} />
-            <View style={styles.statStripItem}>
-              <Text style={styles.statStripNum}>TR</Text>
-              <Text style={styles.statStripLabel}>{t('home_stat_region')}</Text>
-            </View>
-          </View>
+          <TouchableOpacity
+            style={styles.searchBar}
+            onPress={() => setSearchModalVisible(true)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.searchIcon}>⌕</Text>
+            <Text style={styles.searchPlaceholder}>{t('home_search_placeholder')}</Text>
+          </TouchableOpacity>
         </LinearGradient>
-
-        {/* KATEGORİLER */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoriesRow} style={styles.categoriesScroll}>
-          {CATEGORIES.map(cat => {
-            const active = activeCategory === cat.id;
-            return (
-              <TouchableOpacity key={cat.id} onPress={() => setActiveCategory(cat.id)} activeOpacity={0.8}>
-                <View style={[styles.catChip, active && { backgroundColor: cat.color + '22', borderColor: cat.color + '80' }]}>
-                  <Text style={styles.catEmoji}>{cat.emoji}</Text>
-                  <Text style={[styles.catLabel, active && { color: cat.color }]}>{cat.label}</Text>
-                  {active && <View style={[styles.catDot, { backgroundColor: cat.color }]} />}
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
 
         {/* ÖNE ÇIKANLAR */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleRow}>
-              <View style={[styles.sectionAccent, { backgroundColor: activeCategoryColor }]} />
+              <View style={[styles.sectionAccent, { backgroundColor: colors.primary }]} />
               <Text style={styles.sectionTitle}>{t('home_featured')}</Text>
             </View>
             <TouchableOpacity onPress={() => navigation.navigate('Events')} style={styles.seeAllBtn}>
-              <Text style={[styles.seeAllText, { color: activeCategoryColor }]}>{t('home_see_all_btn')}</Text>
+              <Text style={[styles.seeAllText, { color: colors.primary }]}>{t('home_see_all_btn')}</Text>
             </TouchableOpacity>
           </View>
           {filteredEvents.length === 0 ? (
@@ -268,7 +192,7 @@ export default function HomeScreen({ navigation }) {
           ) : (
             <FlatList
               horizontal
-              data={filteredEvents.slice(0, 8)}
+              data={filteredEvents.slice(0, 6)}
               keyExtractor={item => `feat-${item.id}`}
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.featuredList}
@@ -287,26 +211,6 @@ export default function HomeScreen({ navigation }) {
           )}
         </View>
 
-        {/* YAKLAŞAN ETKİNLİKLER */}
-        {filteredEvents.length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionTitleRow}>
-                <View style={[styles.sectionAccent, { backgroundColor: colors.accent }]} />
-                <Text style={styles.sectionTitle}>{t('home_upcoming_events')}</Text>
-              </View>
-            </View>
-            {filteredEvents.slice(0, 5).map((item, index) => (
-              <EventRow key={`row-${item.id}`} item={item} index={index} onPress={handleNavigateToEvent} />
-            ))}
-            {filteredEvents.length > 5 && (
-              <TouchableOpacity style={styles.moreBtn} onPress={() => navigation.navigate('Events')}>
-                <Text style={styles.moreBtnText}>{t('home_more_events', { count: filteredEvents.length - 5 })}</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
-
         {/* TRENDING POSTLAR */}
         <View style={[styles.section, { paddingBottom: 40 }]}>
           <View style={styles.sectionHeader}>
@@ -321,9 +225,16 @@ export default function HomeScreen({ navigation }) {
               <Text style={styles.emptyText}>{t('home_no_posts')}</Text>
             </View>
           ) : (
-            filteredPosts.slice(0, 6).map((item, index) => (
-              <HomePostCard key={`post-${item.id}`} item={item} index={index} navigation={navigation} />
-            ))
+            <>
+              {filteredPosts.slice(0, 4).map((item, index) => (
+                <HomePostCard key={`post-${item.id}`} item={item} index={index} navigation={navigation} />
+              ))}
+              {filteredPosts.length > 4 && (
+                <TouchableOpacity style={styles.moreBtn} onPress={() => navigation.navigate('FeedTab')}>
+                  <Text style={styles.moreBtnText}>{t('home_see_all_posts')}</Text>
+                </TouchableOpacity>
+              )}
+            </>
           )}
         </View>
 
@@ -365,12 +276,12 @@ function createStyles(colors) {
     loadingScreen: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background, gap: 14 },
     skeletonScreen: { flex: 1, backgroundColor: colors.background, paddingTop: 56 },
     loadingText: { color: colors.textSecondary, fontSize: 14 },
-    header: { paddingTop: 60, paddingBottom: 20, paddingHorizontal: 20 },
-    headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 22 },
-    headerGreeting: { fontSize: 12, color: colors.textSecondary, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 },
-    headerBrand: { fontSize: 32, fontWeight: '900', color: colors.text, letterSpacing: -0.5 },
-    headerLogo: { width: 48, height: 48, borderRadius: 14 },
-    headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    header: { paddingTop: 60, paddingBottom: 22, paddingHorizontal: 20 },
+    headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+    headerBrand: { fontSize: 30, fontWeight: '900', color: colors.text, letterSpacing: -0.5 },
+    cityRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4, alignSelf: 'flex-start' },
+    cityRowText: { fontSize: 13, color: colors.textSecondary, fontWeight: '600' },
+    cityRowChevron: { fontSize: 11, color: colors.textSecondary },
     dmBtn: {
       width: 44, height: 44, borderRadius: 22,
       backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
@@ -384,42 +295,14 @@ function createStyles(colors) {
       justifyContent: 'center', alignItems: 'center',
     },
     dmBadgeText: { color: '#fff', fontSize: 10, fontWeight: '800' },
-    searchRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 18 },
-    cityBtn: {
-      flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card,
-      borderWidth: 1, borderColor: colors.primary + '60', borderRadius: 14,
-      paddingHorizontal: 10, paddingVertical: 10, gap: 4, minWidth: 80,
-    },
-    cityBtnIcon: { fontSize: 13 },
-    cityBtnText: { color: colors.primary, fontSize: 11, fontWeight: '700', maxWidth: 55 },
-    cityBtnChevron: { color: colors.primary, fontSize: 10 },
     searchBar: {
-      flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card,
+      flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card,
       borderRadius: 16, paddingHorizontal: 16, paddingVertical: 13, gap: 10,
       borderWidth: 1, borderColor: colors.border,
     },
-    searchBarTappable: { borderColor: colors.border },
     searchIcon: { fontSize: 18, color: colors.textSecondary },
     searchPlaceholder: { flex: 1, color: colors.textSecondary, fontSize: 15 },
-    statsStrip: {
-      flexDirection: 'row', backgroundColor: colors.card, borderRadius: 14,
-      borderWidth: 1, borderColor: colors.border, overflow: 'hidden',
-    },
-    statStripItem: { flex: 1, alignItems: 'center', paddingVertical: 12 },
-    statStripNum: { fontSize: 18, fontWeight: '800', color: colors.text, marginBottom: 2 },
-    statStripLabel: { fontSize: 10, color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.8 },
-    statStripDivider: { width: 1, backgroundColor: colors.border },
-    categoriesScroll: { marginTop: 4 },
-    categoriesRow: { paddingHorizontal: 16, paddingVertical: 14, gap: 8 },
-    catChip: {
-      flexDirection: 'row', alignItems: 'center', gap: 6,
-      paddingHorizontal: 14, paddingVertical: 9, borderRadius: 24,
-      backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, marginRight: 2,
-    },
-    catEmoji: { fontSize: 15 },
-    catLabel: { fontSize: 13, color: colors.textSecondary, fontWeight: '600' },
-    catDot: { width: 5, height: 5, borderRadius: 2.5, marginLeft: 2 },
-    section: { paddingHorizontal: 20, marginTop: 8, marginBottom: 4 },
+    section: { paddingHorizontal: 20, marginTop: 18, marginBottom: 4 },
     sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
     sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     sectionAccent: { width: 4, height: 18, borderRadius: 2 },
