@@ -754,6 +754,19 @@ export default function EventDetailScreen({ route, navigation }) {
           </TouchableOpacity>
         )}
 
+        {/* SETLİST TAHMİN LİGİ */}
+        {event.artistName && (
+          <TouchableOpacity
+            onPress={() => navigation.navigate('SetlistPrediction', { eventId: event.id })}
+            style={styles.calendarButton}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.calendarButtonText}>
+              {isExpired ? t('detail_setlist_results_btn') : t('detail_setlist_btn')}
+            </Text>
+          </TouchableOpacity>
+        )}
+
         {/* POST AT BUTONU */}
         {!isExpired && (
           verifying ? (

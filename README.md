@@ -154,6 +154,7 @@ Birim testleri `src/test/java` altındadır (ör. `JwtUtilTest` — token üreti
 
 ## 📄 Ek Dokümanlar
 
+- `ROADMAP.md` — tamamlanan ve planlanan özellikler
 - `CONCERTLY_MASTER_DOKUMAN.md` — kapsamlı proje dokümanı
 - `CONCERTLY_PITCH_DECK.md` — sunum içeriği
 - `CLAUDE.md` — geliştirme ortamı notları

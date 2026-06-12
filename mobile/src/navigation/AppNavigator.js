@@ -61,6 +61,7 @@ import ChatScreen from '../screens/ChatScreen';
 import SongQuizScreen from '../screens/SongQuizScreen';
 import DailySongScreen from '../screens/DailySongScreen';
 import BlindRankScreen from '../screens/BlindRankScreen';
+import SetlistPredictionScreen from '../screens/SetlistPredictionScreen';
 
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
@@ -292,6 +293,7 @@ export default function AppNavigator() {
         <Stack.Screen name="SongQuiz" component={SongQuizScreen} />
         <Stack.Screen name="DailySong" component={DailySongScreen} />
         <Stack.Screen name="BlindRank" component={BlindRankScreen} />
+        <Stack.Screen name="SetlistPrediction" component={SetlistPredictionScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
