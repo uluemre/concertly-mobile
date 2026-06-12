@@ -4,6 +4,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -80,6 +82,86 @@ public class DeezerService {
         public DeezerArtistData(String imageUrl, String name) {
             this.imageUrl = imageUrl;
             this.name = name;
+        }
+    }
+
+    // ── Şarkı testi (quiz) için ek metotlar ──────────────────────────────────
+
+    /** Sanatçı arama — quiz ekranındaki seçim listesi için id'li sonuç döner. */
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> searchArtists(String query, int limit) {
+        List<Map<String, Object>> results = new ArrayList<>();
+        if (query == null || query.isBlank()) return results;
+        try {
+            String url = UriComponentsBuilder
+                .fromUriString("https://api.deezer.com/search/artist")
+                .queryParam("q", query)
+                .queryParam("limit", String.valueOf(limit))
+                .toUriString();
+
+            Map<String, Object> response = restTemplate.getForObject(url, Map.class);
+            if (response == null) return results;
+
+            List<Map<String, Object>> data = (List<Map<String, Object>>) response.get("data");
+            if (data == null) return results;
+
+            for (Map<String, Object> item : data) {
+                Map<String, Object> artist = new LinkedHashMap<>();
+                artist.put("artistId", ((Number) item.get("id")).longValue());
+                artist.put("name", item.get("name"));
+                String img = (String) item.get("picture_medium");
+                artist.put("imageUrl", img != null ? img : "");
+                results.add(artist);
+            }
+        } catch (Exception e) {
+            System.out.println("  ❌ Deezer sanatçı arama hatası: " + e.getMessage());
+        }
+        return results;
+    }
+
+    /** Sanatçının en popüler şarkıları — sadece önizlemesi olanlar, başlığa göre tekilleştirilmiş. */
+    @SuppressWarnings("unchecked")
+    public List<Track> getTopTracks(long artistId, int limit) {
+        List<Track> tracks = new ArrayList<>();
+        try {
+            String url = "https://api.deezer.com/artist/" + artistId + "/top?limit=" + limit;
+            Map<String, Object> response = restTemplate.getForObject(url, Map.class);
+            if (response == null) return tracks;
+
+            List<Map<String, Object>> data = (List<Map<String, Object>>) response.get("data");
+            if (data == null) return tracks;
+
+            java.util.Set<String> seenTitles = new java.util.HashSet<>();
+            for (Map<String, Object> item : data) {
+                String preview = (String) item.get("preview");
+                if (preview == null || preview.isBlank()) continue;
+
+                String title = (String) item.get("title_short");
+                if (title == null) title = (String) item.get("title");
+                if (title == null || !seenTitles.add(title.trim().toLowerCase())) continue;
+
+                String cover = "";
+                Map<String, Object> album = (Map<String, Object>) item.get("album");
+                if (album != null && album.get("cover_medium") != null) {
+                    cover = (String) album.get("cover_medium");
+                }
+                tracks.add(new Track(title.trim(), preview, cover));
+            }
+        } catch (Exception e) {
+            System.out.println("  ❌ Deezer top şarkı hatası (artistId=" + artistId + "): " + e.getMessage());
+        }
+        return tracks;
+    }
+
+    public static class Track {
+        public final String title;
+        public final String previewUrl;
+        public final String coverUrl;
+
+        public Track(String title, String previewUrl, String coverUrl) {
+            this.title = title;
+            this.previewUrl = previewUrl;
+            this.coverUrl = coverUrl;
         }
     }
 }
