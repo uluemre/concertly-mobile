@@ -609,6 +609,26 @@ export const translations = {
     admin_field_lat: 'Enlem (39.908368)',
     admin_field_lng: 'Boylam (32.752193)',
 
+    // DAILY SONG
+    menu_daily_song: 'Günün Şarkısı',
+    menu_daily_song_sub: 'Her gün yeni bir şarkı bil, serini koru!',
+    daily_title: '🎵 Günün Şarkısı',
+    daily_day: 'Gün #{day}',
+    daily_streak: '🔥 {count} gün seri',
+    daily_listen: '▶ Dinle ({sec} sn)',
+    daily_listening: 'Çalıyor...',
+    daily_guess_placeholder: 'Şarkı adını yaz...',
+    daily_skip: '⏭ Pas geç (daha uzun dinle)',
+    daily_skipped: 'Pas geçildi',
+    daily_solved_title: 'Bildin! 🎉',
+    daily_solved_in: '{n}. denemede bildin',
+    daily_failed_title: 'Bugün olmadı 😢',
+    daily_answer_was: 'Cevap',
+    daily_play_full: '▶ Şarkıyı Dinle',
+    daily_stats: 'Bugün {players} kişi oynadı · %{percent} bildi',
+    daily_tomorrow: 'Yarın yeni şarkı! 🌙',
+    daily_load_error: 'Günün şarkısı yüklenemedi.',
+
     // SONG QUIZ
     menu_song_quiz: 'Şarkı Testi',
     menu_song_quiz_sub: 'Favori sanatçını ne kadar biliyorsun?',
@@ -1258,6 +1278,26 @@ export const translations = {
     admin_field_address: 'Address',
     admin_field_lat: 'Latitude (39.908368)',
     admin_field_lng: 'Longitude (32.752193)',
+
+    // DAILY SONG
+    menu_daily_song: 'Daily Song',
+    menu_daily_song_sub: 'Guess a new song every day, keep your streak!',
+    daily_title: '🎵 Daily Song',
+    daily_day: 'Day #{day}',
+    daily_streak: '🔥 {count} day streak',
+    daily_listen: '▶ Listen ({sec}s)',
+    daily_listening: 'Playing...',
+    daily_guess_placeholder: 'Type the song name...',
+    daily_skip: '⏭ Skip (hear more)',
+    daily_skipped: 'Skipped',
+    daily_solved_title: 'You got it! 🎉',
+    daily_solved_in: 'Solved on attempt {n}',
+    daily_failed_title: 'Not today 😢',
+    daily_answer_was: 'Answer',
+    daily_play_full: '▶ Play the Song',
+    daily_stats: '{players} played today · {percent}% solved it',
+    daily_tomorrow: 'New song tomorrow! 🌙',
+    daily_load_error: 'Could not load the daily song.',
 
     // SONG QUIZ
     menu_song_quiz: 'Song Quiz',

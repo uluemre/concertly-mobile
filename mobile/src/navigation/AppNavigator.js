@@ -59,6 +59,7 @@ import ConcertPassportScreen from '../screens/ConcertPassportScreen';
 import ChatListScreen from '../screens/ChatListScreen';
 import ChatScreen from '../screens/ChatScreen';
 import SongQuizScreen from '../screens/SongQuizScreen';
+import DailySongScreen from '../screens/DailySongScreen';
 
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
@@ -288,6 +289,7 @@ export default function AppNavigator() {
         <Stack.Screen name="ChatList" component={ChatListScreen} />
         <Stack.Screen name="Chat" component={ChatScreen} />
         <Stack.Screen name="SongQuiz" component={SongQuizScreen} />
+        <Stack.Screen name="DailySong" component={DailySongScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

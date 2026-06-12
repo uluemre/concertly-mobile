@@ -153,15 +153,105 @@ public class DeezerService {
         return tracks;
     }
 
+    /** Playlist şarkıları — günlük şarkı havuzu için. Önizlemesiz/tekrar eden parçalar elenir. */
+    @SuppressWarnings("unchecked")
+    public List<Track> getPlaylistTracks(long playlistId, int limit) {
+        List<Track> tracks = new ArrayList<>();
+        try {
+            String url = "https://api.deezer.com/playlist/" + playlistId + "/tracks?limit=" + limit;
+            Map<String, Object> response = restTemplate.getForObject(url, Map.class);
+            if (response == null) return tracks;
+
+            List<Map<String, Object>> data = (List<Map<String, Object>>) response.get("data");
+            if (data == null) return tracks;
+
+            java.util.Set<String> seenTitles = new java.util.HashSet<>();
+            for (Map<String, Object> item : data) {
+                String preview = (String) item.get("preview");
+                if (preview == null || preview.isBlank()) continue;
+
+                String title = (String) item.get("title_short");
+                if (title == null) title = (String) item.get("title");
+                if (title == null || !seenTitles.add(title.trim().toLowerCase())) continue;
+
+                String artist = "";
+                Map<String, Object> artistObj = (Map<String, Object>) item.get("artist");
+                if (artistObj != null && artistObj.get("name") != null) {
+                    artist = (String) artistObj.get("name");
+                }
+
+                String cover = "";
+                Map<String, Object> album = (Map<String, Object>) item.get("album");
+                if (album != null && album.get("cover_medium") != null) {
+                    cover = (String) album.get("cover_medium");
+                }
+                tracks.add(new Track(title.trim(), preview, cover, artist));
+            }
+        } catch (Exception e) {
+            System.out.println("  ❌ Deezer playlist hatası (" + playlistId + "): " + e.getMessage());
+        }
+        return tracks;
+    }
+
+    /** Şarkı arama — günlük şarkı tahmin kutusunun otomatik tamamlaması için. */
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> searchTracks(String query, int limit) {
+        List<Map<String, Object>> results = new ArrayList<>();
+        if (query == null || query.isBlank()) return results;
+        try {
+            String url = UriComponentsBuilder
+                .fromUriString("https://api.deezer.com/search/track")
+                .queryParam("q", query)
+                .queryParam("limit", String.valueOf(limit * 2))
+                .toUriString();
+
+            Map<String, Object> response = restTemplate.getForObject(url, Map.class);
+            if (response == null) return results;
+
+            List<Map<String, Object>> data = (List<Map<String, Object>>) response.get("data");
+            if (data == null) return results;
+
+            java.util.Set<String> seen = new java.util.HashSet<>();
+            for (Map<String, Object> item : data) {
+                String title = (String) item.get("title_short");
+                if (title == null) title = (String) item.get("title");
+                if (title == null) continue;
+
+                String artist = "";
+                Map<String, Object> artistObj = (Map<String, Object>) item.get("artist");
+                if (artistObj != null && artistObj.get("name") != null) {
+                    artist = (String) artistObj.get("name");
+                }
+
+                if (!seen.add((title + "|" + artist).toLowerCase())) continue;
+
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("title", title.trim());
+                row.put("artist", artist);
+                results.add(row);
+                if (results.size() >= limit) break;
+            }
+        } catch (Exception e) {
+            System.out.println("  ❌ Deezer şarkı arama hatası: " + e.getMessage());
+        }
+        return results;
+    }
+
     public static class Track {
         public final String title;
         public final String previewUrl;
         public final String coverUrl;
+        public final String artistName;
 
         public Track(String title, String previewUrl, String coverUrl) {
+            this(title, previewUrl, coverUrl, "");
+        }
+
+        public Track(String title, String previewUrl, String coverUrl, String artistName) {
             this.title = title;
             this.previewUrl = previewUrl;
             this.coverUrl = coverUrl;
+            this.artistName = artistName;
         }
     }
 }
