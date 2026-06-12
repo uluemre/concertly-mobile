@@ -74,6 +74,34 @@ public class QuizService {
         return quiz;
     }
 
+    /** Blind Ranking için sanatçının şarkılarından rastgele 10'luk set döner. */
+    public Map<String, Object> buildBlindRank(long artistId, String artistName) {
+        List<DeezerService.Track> tracks = deezerService.getTopTracks(artistId, 50);
+
+        if (tracks.size() < MIN_TRACKS) {
+            throw new IllegalArgumentException("Bu sanatçı için yeterli şarkı bulunamadı");
+        }
+
+        List<DeezerService.Track> pool = new ArrayList<>(tracks);
+        Collections.shuffle(pool);
+
+        List<Map<String, Object>> selected = pool.stream()
+                .limit(QUESTION_COUNT)
+                .map(track -> {
+                    Map<String, Object> row = new LinkedHashMap<String, Object>();
+                    row.put("title", track.title);
+                    row.put("coverUrl", track.coverUrl);
+                    row.put("previewUrl", track.previewUrl);
+                    return row;
+                })
+                .toList();
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("artistName", artistName);
+        result.put("tracks", selected);
+        return result;
+    }
+
     @Transactional
     public void saveScore(Long userId, String artistName, int score,
                           int correctCount, int totalQuestions, long durationMs) {

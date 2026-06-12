@@ -609,6 +609,21 @@ export const translations = {
     admin_field_lat: 'Enlem (39.908368)',
     admin_field_lng: 'Boylam (32.752193)',
 
+    // BLIND RANKING
+    menu_blind_rank: 'Blind Ranking',
+    menu_blind_rank_sub: 'Şarkıları sıralamaya cesaretin var mı?',
+    blind_title: '🏆 Blind Ranking',
+    blind_subtitle: 'Şarkılar tek tek gelir — yerini seç, geri dönüş yok!',
+    blind_song_progress: 'Şarkı {current}/{total}',
+    blind_place_hint: '👇 Bu şarkıyı kaçıncı sıraya koyuyorsun?',
+    blind_empty_slot: 'Boş — buraya koy',
+    blind_listen: '▶ Dinle',
+    blind_pause: '⏸ Durdur',
+    blind_result_title: 'Sıralaman Hazır!',
+    blind_result_sub: 'Senin {artist} sıralaman',
+    blind_play_again: '🔄 Yeni Set',
+    blind_new_artist: '🎤 Başka Sanatçı',
+
     // DAILY SONG
     menu_daily_song: 'Günün Şarkısı',
     menu_daily_song_sub: 'Her gün yeni bir şarkı bil, serini koru!',
@@ -1278,6 +1293,21 @@ export const translations = {
     admin_field_address: 'Address',
     admin_field_lat: 'Latitude (39.908368)',
     admin_field_lng: 'Longitude (32.752193)',
+
+    // BLIND RANKING
+    menu_blind_rank: 'Blind Ranking',
+    menu_blind_rank_sub: 'Dare to rank the songs?',
+    blind_title: '🏆 Blind Ranking',
+    blind_subtitle: 'Songs come one by one — pick a spot, no take-backs!',
+    blind_song_progress: 'Song {current}/{total}',
+    blind_place_hint: '👇 Where does this song rank?',
+    blind_empty_slot: 'Empty — place here',
+    blind_listen: '▶ Listen',
+    blind_pause: '⏸ Pause',
+    blind_result_title: 'Your Ranking Is In!',
+    blind_result_sub: 'Your {artist} ranking',
+    blind_play_again: '🔄 New Set',
+    blind_new_artist: '🎤 Another Artist',
 
     // DAILY SONG
     menu_daily_song: 'Daily Song',

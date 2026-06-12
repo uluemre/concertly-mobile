@@ -91,4 +91,37 @@ class QuizServiceTest {
 
         assertThrows(IllegalArgumentException.class, () -> quizService.buildQuiz(1L, "Bilinmeyen"));
     }
+
+    // ── Blind Ranking ───────────────────────────────────────────────────────
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void blindRankReturnsTenDistinctTracks() {
+        when(deezerService.getTopTracks(anyLong(), anyInt())).thenReturn(tracks(25));
+
+        Map<String, Object> result = quizService.buildBlindRank(1L, "Hadise");
+        List<Map<String, Object>> selected = (List<Map<String, Object>>) result.get("tracks");
+
+        assertEquals("Hadise", result.get("artistName"));
+        assertEquals(10, selected.size());
+        assertEquals(10, selected.stream().map(r -> r.get("title")).distinct().count());
+        selected.forEach(r -> assertNotNull(r.get("previewUrl")));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void blindRankShrinksWithSmallPool() {
+        when(deezerService.getTopTracks(anyLong(), anyInt())).thenReturn(tracks(6));
+
+        Map<String, Object> result = quizService.buildBlindRank(1L, "Az Şarkılı");
+
+        assertEquals(6, ((List<Map<String, Object>>) result.get("tracks")).size());
+    }
+
+    @Test
+    void blindRankRejectsTooFewTracks() {
+        when(deezerService.getTopTracks(anyLong(), anyInt())).thenReturn(tracks(3));
+
+        assertThrows(IllegalArgumentException.class, () -> quizService.buildBlindRank(1L, "Bilinmeyen"));
+    }
 }

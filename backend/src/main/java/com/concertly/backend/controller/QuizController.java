@@ -31,6 +31,11 @@ public class QuizController {
         return quizService.buildQuiz(artistId, artistName);
     }
 
+    @GetMapping("/blind-rank")
+    public Map<String, Object> getBlindRank(@RequestParam long artistId, @RequestParam String artistName) {
+        return quizService.buildBlindRank(artistId, artistName);
+    }
+
     @PostMapping("/score")
     @ResponseStatus(HttpStatus.CREATED)
     public void saveScore(@RequestBody Map<String, Object> body) {
