@@ -5,17 +5,19 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme';
+import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
 
 const FILTERS = [
-  { key: 'all',    label: 'Tümü' },
-  { key: 'active', label: '✅ Aktif' },
-  { key: 'banned', label: '🚫 Banlı' },
-  { key: 'admin',  label: '⚡ Admin' },
+  { key: 'all',    labelKey: 'admin_filter_all' },
+  { key: 'active', labelKey: 'admin_filter_active' },
+  { key: 'banned', labelKey: 'admin_filter_banned' },
+  { key: 'admin',  labelKey: 'admin_filter_admin' },
 ];
 
 export default function AdminUsersScreen({ navigation }) {
   const { colors } = useTheme();
+  const { t } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [users, setUsers] = useState([]);
@@ -57,46 +59,46 @@ export default function AdminUsersScreen({ navigation }) {
 
   const handleBan = (user) => {
     const isBanned = user.isActive === false;
-    const action = isBanned ? 'ban kaldırmak' : 'banlamak';
-    Alert.alert('Emin misin?', `@${user.username} kullanıcısını ${action} istiyorsun.`, [
-      { text: 'İptal', style: 'cancel' },
+    const msg = isBanned ? t('admin_unban_msg', { username: user.username }) : t('admin_ban_msg', { username: user.username });
+    Alert.alert(t('admin_confirm_title'), msg, [
+      { text: t('cancel'), style: 'cancel' },
       {
-        text: isBanned ? 'Aktif Et' : 'Banla',
+        text: isBanned ? t('admin_unban_btn') : t('admin_ban_btn'),
         style: isBanned ? 'default' : 'destructive',
         onPress: async () => {
           try {
             const ep = isBanned ? `/admin/users/${user.id}/unban` : `/admin/users/${user.id}/ban`;
             await API.patch(ep);
             fetchUsers();
-          } catch { Alert.alert('Hata', 'İşlem başarısız.'); }
+          } catch { Alert.alert(t('error'), t('admin_op_failed')); }
         },
       },
     ]);
   };
 
   const handleMakeAdmin = (user) => {
-    Alert.alert('Admin Yap', `@${user.username} kullanıcısını admin yapmak istiyorsun.`, [
-      { text: 'İptal', style: 'cancel' },
+    Alert.alert(t('admin_make_admin_title'), t('admin_make_admin_msg', { username: user.username }), [
+      { text: t('cancel'), style: 'cancel' },
       {
-        text: 'Admin Yap', onPress: async () => {
+        text: t('admin_make_admin_title'), onPress: async () => {
           try {
             await API.patch(`/admin/users/${user.id}/make-admin`);
             fetchUsers();
-          } catch { Alert.alert('Hata', 'İşlem başarısız.'); }
+          } catch { Alert.alert(t('error'), t('admin_op_failed')); }
         },
       },
     ]);
   };
 
   const handleRemoveAdmin = (user) => {
-    Alert.alert('Admin Rolünü Kaldır', `@${user.username} kullanıcısının admin yetkisi kaldırılsın mı?`, [
-      { text: 'İptal', style: 'cancel' },
+    Alert.alert(t('admin_remove_admin_title'), t('admin_remove_admin_msg', { username: user.username }), [
+      { text: t('cancel'), style: 'cancel' },
       {
-        text: 'Kaldır', style: 'destructive', onPress: async () => {
+        text: t('admin_remove_btn'), style: 'destructive', onPress: async () => {
           try {
             await API.patch(`/admin/users/${user.id}/remove-admin`);
             fetchUsers();
-          } catch { Alert.alert('Hata', 'İşlem başarısız.'); }
+          } catch { Alert.alert(t('error'), t('admin_op_failed')); }
         },
       },
     ]);
@@ -130,14 +132,14 @@ export default function AdminUsersScreen({ navigation }) {
                 <View style={styles.badges}>
                   {item.isAdmin && (
                     <View style={[styles.badge, { backgroundColor: '#7C3AED22' }]}>
-                      <Text style={[styles.badgeText, { color: '#7C3AED' }]}>⚡ Admin</Text>
+                      <Text style={[styles.badgeText, { color: '#7C3AED' }]}>{t('admin_badge_admin')}</Text>
                     </View>
                   )}
                   <View style={[styles.badge, {
                     backgroundColor: isBanned ? '#E9456022' : '#00D4AA22',
                   }]}>
                     <Text style={[styles.badgeText, { color: isBanned ? '#E94560' : '#00D4AA' }]}>
-                      {isBanned ? '🚫 Banlı' : '✅ Aktif'}
+                      {isBanned ? t('admin_status_banned') : t('admin_status_active')}
                     </Text>
                   </View>
                 </View>
@@ -146,7 +148,7 @@ export default function AdminUsersScreen({ navigation }) {
               <View style={styles.metaRow}>
                 {item.city && <Text style={[styles.meta, { color: colors.textSecondary }]}>📍 {item.city}</Text>}
                 {item.postCount != null && (
-                  <Text style={[styles.meta, { color: colors.textSecondary }]}>📝 {item.postCount} post</Text>
+                  <Text style={[styles.meta, { color: colors.textSecondary }]}>{t('admin_post_count', { count: item.postCount })}</Text>
                 )}
               </View>
             </View>
@@ -162,7 +164,7 @@ export default function AdminUsersScreen({ navigation }) {
               }]}
             >
               <Text style={[styles.actionBtnText, { color: isBanned ? '#00D4AA' : '#E94560' }]}>
-                {isBanned ? '✅ Aktif Et' : '🚫 Banla'}
+                {isBanned ? t('admin_action_unban') : t('admin_action_ban')}
               </Text>
             </TouchableOpacity>
             {item.isAdmin ? (
@@ -170,14 +172,14 @@ export default function AdminUsersScreen({ navigation }) {
                 onPress={() => handleRemoveAdmin(item)}
                 style={[styles.actionBtn, { backgroundColor: '#7C3AED18', borderColor: '#7C3AED50' }]}
               >
-                <Text style={[styles.actionBtnText, { color: '#7C3AED' }]}>⚡ Admin Kaldır</Text>
+                <Text style={[styles.actionBtnText, { color: '#7C3AED' }]}>{t('admin_action_remove_admin')}</Text>
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
                 onPress={() => handleMakeAdmin(item)}
                 style={[styles.actionBtn, { backgroundColor: '#7C3AED18', borderColor: '#7C3AED50' }]}
               >
-                <Text style={[styles.actionBtnText, { color: '#7C3AED' }]}>⚡ Admin Yap</Text>
+                <Text style={[styles.actionBtnText, { color: '#7C3AED' }]}>{t('admin_action_make_admin')}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -191,11 +193,11 @@ export default function AdminUsersScreen({ navigation }) {
       {/* HEADER */}
       <LinearGradient colors={colors.headerGradient} style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={[styles.backText, { color: colors.primary }]}>‹ Geri</Text>
+          <Text style={[styles.backText, { color: colors.primary }]}>{t('back')}</Text>
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Kullanıcılar</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>{t('admin_users_title')}</Text>
         <Text style={[styles.headerSub, { color: colors.textSecondary }]}>
-          {filtered.length} / {users.length} kullanıcı
+          {t('admin_users_count', { shown: filtered.length, total: users.length })}
         </Text>
 
         {/* SEARCH */}
@@ -203,7 +205,7 @@ export default function AdminUsersScreen({ navigation }) {
           <Text style={{ color: colors.textSecondary, fontSize: 16 }}>⌕</Text>
           <TextInput
             style={[styles.searchInput, { color: colors.text }]}
-            placeholder="Kullanıcı, email, şehir ara..."
+            placeholder={t('admin_users_search')}
             placeholderTextColor={colors.textSecondary}
             value={search}
             onChangeText={setSearch}
@@ -231,7 +233,7 @@ export default function AdminUsersScreen({ navigation }) {
               styles.filterBtnText,
               { color: activeFilter === f.key ? colors.primary : colors.textSecondary },
             ]}>
-              {f.label}
+              {t(f.labelKey)}
             </Text>
           </TouchableOpacity>
         ))}
@@ -249,7 +251,7 @@ export default function AdminUsersScreen({ navigation }) {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Text style={styles.emptyEmoji}>👥</Text>
-              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>Kullanıcı bulunamadı</Text>
+              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t('admin_users_empty')}</Text>
             </View>
           }
         />

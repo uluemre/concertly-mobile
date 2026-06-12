@@ -6,53 +6,55 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../theme';
+import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
 
 const { width } = Dimensions.get('window');
 
 const STAT_CARDS = [
-  { key: 'totalUsers',       label: 'Toplam\nKullanıcı', icon: '👥', gradient: ['#7C3AED', '#5B21B6'] },
-  { key: 'activeUsers',      label: 'Aktif\nKullanıcı',  icon: '✅', gradient: ['#00D4AA', '#059669'] },
-  { key: 'bannedUsers',      label: 'Banlı\nKullanıcı',  icon: '🚫', gradient: ['#E94560', '#BE123C'] },
-  { key: 'newUsersThisWeek', label: 'Bu Hafta\nYeni',    icon: '🌱', gradient: ['#3B82F6', '#1D4ED8'] },
-  { key: 'totalEvents',      label: 'Toplam\nEtkinlik',  icon: '🎵', gradient: ['#F5A623', '#D97706'] },
-  { key: 'pendingEvents',    label: 'Onay\nBekleyen',    icon: '⏳', gradient: ['#EC4899', '#BE185D'] },
-  { key: 'totalPosts',       label: 'Toplam\nPost',      icon: '📝', gradient: ['#8B5CF6', '#6D28D9'] },
-  { key: 'totalAttendance',  label: 'Katılım\nKayıt',    icon: '🎟️', gradient: ['#06B6D4', '#0E7490'] },
+  { key: 'totalUsers',       labelKey: 'admin_stat_total_users',    icon: '👥', gradient: ['#7C3AED', '#5B21B6'] },
+  { key: 'activeUsers',      labelKey: 'admin_stat_active_users',   icon: '✅', gradient: ['#00D4AA', '#059669'] },
+  { key: 'bannedUsers',      labelKey: 'admin_stat_banned_users',   icon: '🚫', gradient: ['#E94560', '#BE123C'] },
+  { key: 'newUsersThisWeek', labelKey: 'admin_stat_new_week',       icon: '🌱', gradient: ['#3B82F6', '#1D4ED8'] },
+  { key: 'totalEvents',      labelKey: 'admin_stat_total_events',   icon: '🎵', gradient: ['#F5A623', '#D97706'] },
+  { key: 'pendingEvents',    labelKey: 'admin_stat_pending_events', icon: '⏳', gradient: ['#EC4899', '#BE185D'] },
+  { key: 'totalPosts',       labelKey: 'admin_stat_total_posts',    icon: '📝', gradient: ['#8B5CF6', '#6D28D9'] },
+  { key: 'totalAttendance',  labelKey: 'admin_stat_attendance',     icon: '🎟️', gradient: ['#06B6D4', '#0E7490'] },
 ];
 
 const NAV_ITEMS = [
   {
-    title: 'Etkinlik Yönetimi',
-    subtitle: 'Ekle, düzenle, onayla, sil',
+    titleKey: 'admin_nav_events_title',
+    subtitleKey: 'admin_nav_events_sub',
     icon: '🎵',
     screen: 'AdminEvents',
     gradient: ['#E94560', '#7C3AED'],
     badge: 'pendingEvents',
-    badgeLabel: 'bekleyen',
+    badgeLabelKey: 'admin_badge_pending',
   },
   {
-    title: 'Kullanıcı Yönetimi',
-    subtitle: 'Listele, banla, admin yap',
+    titleKey: 'admin_nav_users_title',
+    subtitleKey: 'admin_nav_users_sub',
     icon: '👥',
     screen: 'AdminUsers',
     gradient: ['#00D4AA', '#3B82F6'],
     badge: 'bannedUsers',
-    badgeLabel: 'banlı',
+    badgeLabelKey: 'admin_badge_banned',
   },
   {
-    title: 'Post Yönetimi',
-    subtitle: 'Tüm postları görüntüle, sil',
+    titleKey: 'admin_nav_posts_title',
+    subtitleKey: 'admin_nav_posts_sub',
     icon: '📝',
     screen: 'AdminPosts',
     gradient: ['#F5A623', '#E94560'],
     badge: 'totalPosts',
-    badgeLabel: 'post',
+    badgeLabelKey: 'admin_badge_posts',
   },
 ];
 
 export default function AdminScreen({ navigation }) {
   const { colors } = useTheme();
+  const { t } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -67,17 +69,17 @@ export default function AdminScreen({ navigation }) {
     } catch (err) {
       const status = err.response?.status;
       if (status === 403) {
-        setError('Bu sayfaya erişim yetkiniz yok.');
+        setError(t('admin_err_forbidden'));
       } else if (err.code === 'ERR_NETWORK') {
-        setError('Sunucuya bağlanılamadı.');
+        setError(t('admin_err_network'));
       } else {
-        setError('İstatistikler yüklenemedi.');
+        setError(t('admin_err_stats'));
       }
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [t]);
 
   useFocusEffect(useCallback(() => { fetchStats(); }, [fetchStats]));
 
@@ -98,15 +100,15 @@ export default function AdminScreen({ navigation }) {
         <View style={styles.headerBadge}>
           <Text style={styles.headerBadgeText}>⚡ ADMIN</Text>
         </View>
-        <Text style={styles.headerTitle}>Yönetim Paneli</Text>
-        <Text style={styles.headerSub}>Concertly · Sistem kontrolü</Text>
+        <Text style={styles.headerTitle}>{t('admin_panel_title')}</Text>
+        <Text style={styles.headerSub}>{t('admin_panel_sub')}</Text>
 
         <TouchableOpacity
           onPress={() => navigation.navigate('MainApp')}
           style={styles.appBtn}
           activeOpacity={0.8}
         >
-          <Text style={styles.appBtnText}>📱 Uygulamaya Dön</Text>
+          <Text style={styles.appBtnText}>{t('admin_back_to_app')}</Text>
         </TouchableOpacity>
       </LinearGradient>
 
@@ -117,13 +119,13 @@ export default function AdminScreen({ navigation }) {
           <Text style={styles.errorEmoji}>⚠️</Text>
           <Text style={[styles.errorText, { color: colors.text }]}>{error}</Text>
           <TouchableOpacity onPress={fetchStats} style={[styles.retryBtn, { backgroundColor: colors.primary }]}>
-            <Text style={styles.retryBtnText}>Tekrar Dene</Text>
+            <Text style={styles.retryBtnText}>{t('retry')}</Text>
           </TouchableOpacity>
         </View>
       ) : (
         <>
           {/* STAT GRID */}
-          <Text style={styles.sectionTitle}>GENEL BAKIŞ</Text>
+          <Text style={styles.sectionTitle}>{t('admin_overview')}</Text>
           <View style={styles.statsGrid}>
             {STAT_CARDS.map(card => (
               <LinearGradient
@@ -135,13 +137,13 @@ export default function AdminScreen({ navigation }) {
               >
                 <Text style={styles.statIcon}>{card.icon}</Text>
                 <Text style={styles.statValue}>{stats?.[card.key] ?? 0}</Text>
-                <Text style={styles.statLabel}>{card.label}</Text>
+                <Text style={styles.statLabel}>{t(card.labelKey)}</Text>
               </LinearGradient>
             ))}
           </View>
 
           {/* QUICK ACTIONS */}
-          <Text style={styles.sectionTitle}>HIZLI İŞLEMLER</Text>
+          <Text style={styles.sectionTitle}>{t('admin_quick_actions')}</Text>
           <View style={styles.quickActions}>
             <TouchableOpacity
               style={styles.quickBtn}
@@ -150,7 +152,7 @@ export default function AdminScreen({ navigation }) {
             >
               <LinearGradient colors={['#E94560', '#7C3AED']} style={styles.quickBtnGrad}>
                 <Text style={styles.quickBtnIcon}>➕</Text>
-                <Text style={styles.quickBtnText}>Etkinlik Ekle</Text>
+                <Text style={styles.quickBtnText}>{t('admin_add_event')}</Text>
               </LinearGradient>
             </TouchableOpacity>
             <TouchableOpacity
@@ -160,7 +162,7 @@ export default function AdminScreen({ navigation }) {
             >
               <LinearGradient colors={['#F5A623', '#E94560']} style={styles.quickBtnGrad}>
                 <Text style={styles.quickBtnIcon}>✅</Text>
-                <Text style={styles.quickBtnText}>Bekleyenler</Text>
+                <Text style={styles.quickBtnText}>{t('admin_pending_btn')}</Text>
                 {(stats?.pendingEvents ?? 0) > 0 && (
                   <View style={styles.quickBtnBadge}>
                     <Text style={styles.quickBtnBadgeText}>{stats.pendingEvents}</Text>
@@ -171,7 +173,7 @@ export default function AdminScreen({ navigation }) {
           </View>
 
           {/* NAV CARDS */}
-          <Text style={styles.sectionTitle}>YÖNETİM</Text>
+          <Text style={styles.sectionTitle}>{t('admin_management')}</Text>
           {NAV_ITEMS.map(item => (
             <TouchableOpacity
               key={item.screen}
@@ -189,13 +191,13 @@ export default function AdminScreen({ navigation }) {
                   <Text style={styles.navIcon}>{item.icon}</Text>
                 </View>
                 <View style={styles.navInfo}>
-                  <Text style={styles.navTitle}>{item.title}</Text>
-                  <Text style={styles.navSubtitle}>{item.subtitle}</Text>
+                  <Text style={styles.navTitle}>{t(item.titleKey)}</Text>
+                  <Text style={styles.navSubtitle}>{t(item.subtitleKey)}</Text>
                 </View>
                 <View style={styles.navRight}>
                   {stats?.[item.badge] > 0 && (
                     <View style={styles.navBadge}>
-                      <Text style={styles.navBadgeText}>{stats[item.badge]} {item.badgeLabel}</Text>
+                      <Text style={styles.navBadgeText}>{stats[item.badge]} {t(item.badgeLabelKey)}</Text>
                     </View>
                   )}
                   <Text style={styles.navArrow}>›</Text>
@@ -208,22 +210,22 @@ export default function AdminScreen({ navigation }) {
           <View style={[styles.summaryCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={styles.summaryItem}>
               <Text style={styles.summaryNum}>{stats?.totalFollows ?? 0}</Text>
-              <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Takip</Text>
+              <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>{t('admin_sum_follows')}</Text>
             </View>
             <View style={[styles.summaryDivider, { backgroundColor: colors.border }]} />
             <View style={styles.summaryItem}>
               <Text style={styles.summaryNum}>{stats?.totalCommunities ?? 0}</Text>
-              <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Topluluk</Text>
+              <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>{t('admin_sum_communities')}</Text>
             </View>
             <View style={[styles.summaryDivider, { backgroundColor: colors.border }]} />
             <View style={styles.summaryItem}>
               <Text style={styles.summaryNum}>{stats?.adminUsers ?? 0}</Text>
-              <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Admin</Text>
+              <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>{t('admin_sum_admins')}</Text>
             </View>
             <View style={[styles.summaryDivider, { backgroundColor: colors.border }]} />
             <View style={styles.summaryItem}>
               <Text style={styles.summaryNum}>{stats?.approvedEvents ?? 0}</Text>
-              <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Onaylı</Text>
+              <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>{t('admin_sum_approved')}</Text>
             </View>
           </View>
         </>

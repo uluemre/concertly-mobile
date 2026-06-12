@@ -5,17 +5,19 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme';
+import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
 import { formatTimeAgo } from '../utils/time';
 
 const POST_TYPE_CONFIG = {
-  TEXT:  { icon: '💬', label: 'Metin', color: '#7C3AED' },
-  IMAGE: { icon: '🖼️', label: 'Görsel', color: '#3B82F6' },
-  POLL:  { icon: '📊', label: 'Anket', color: '#F5A623' },
+  TEXT:  { icon: '💬', labelKey: 'admin_type_text', color: '#7C3AED' },
+  IMAGE: { icon: '🖼️', labelKey: 'admin_type_image', color: '#3B82F6' },
+  POLL:  { icon: '📊', labelKey: 'admin_type_poll', color: '#F5A623' },
 };
 
 export default function AdminPostsScreen({ navigation }) {
   const { colors } = useTheme();
+  const { t } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [posts, setPosts] = useState([]);
@@ -49,16 +51,16 @@ export default function AdminPostsScreen({ navigation }) {
 
   const handleDelete = (post) => {
     Alert.alert(
-      'Postu Sil',
-      `@${post.username} kullanıcısının postu silinsin mi?\n\n"${(post.content || '').substring(0, 80)}${post.content?.length > 80 ? '...' : ''}"`,
+      t('admin_post_delete_title'),
+      `${t('admin_post_delete_msg', { username: post.username })}\n\n"${(post.content || '').substring(0, 80)}${post.content?.length > 80 ? '...' : ''}"`,
       [
-        { text: 'İptal', style: 'cancel' },
+        { text: t('cancel'), style: 'cancel' },
         {
-          text: 'Sil', style: 'destructive', onPress: async () => {
+          text: t('delete'), style: 'destructive', onPress: async () => {
             try {
               await API.delete(`/admin/posts/${post.id}`);
               setPosts(prev => prev.filter(p => p.id !== post.id));
-            } catch { Alert.alert('Hata', 'Post silinemedi.'); }
+            } catch { Alert.alert(t('error'), t('admin_post_delete_error')); }
           },
         },
       ]
@@ -81,7 +83,7 @@ export default function AdminPostsScreen({ navigation }) {
               <Text style={[styles.username, { color: colors.text }]}>@{item.username}</Text>
               <View style={[styles.typeBadge, { backgroundColor: typeConfig.color + '22' }]}>
                 <Text style={[styles.typeBadgeText, { color: typeConfig.color }]}>
-                  {typeConfig.icon} {typeConfig.label}
+                  {typeConfig.icon} {t(typeConfig.labelKey)}
                 </Text>
               </View>
             </View>
@@ -114,7 +116,7 @@ export default function AdminPostsScreen({ navigation }) {
             onPress={() => handleDelete(item)}
             style={[styles.deleteBtn, { backgroundColor: '#E9456018', borderColor: '#E9456050' }]}
           >
-            <Text style={[styles.deleteBtnText, { color: '#E94560' }]}>🗑 Sil</Text>
+            <Text style={[styles.deleteBtnText, { color: '#E94560' }]}>{t('admin_action_delete')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -126,13 +128,13 @@ export default function AdminPostsScreen({ navigation }) {
       {/* HEADER */}
       <LinearGradient colors={colors.headerGradient} style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={[styles.backText, { color: colors.primary }]}>‹ Geri</Text>
+          <Text style={[styles.backText, { color: colors.primary }]}>{t('back')}</Text>
         </TouchableOpacity>
         <View style={styles.headerTop}>
           <View>
-            <Text style={[styles.headerTitle, { color: colors.text }]}>Post Yönetimi</Text>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>{t('admin_posts_title')}</Text>
             <Text style={[styles.headerSub, { color: colors.textSecondary }]}>
-              {filtered.length} / {posts.length} post
+              {t('admin_posts_count', { shown: filtered.length, total: posts.length })}
             </Text>
           </View>
           <View style={[styles.totalBadge, { backgroundColor: colors.primary + '22', borderColor: colors.primary + '50' }]}>
@@ -147,7 +149,7 @@ export default function AdminPostsScreen({ navigation }) {
           <Text style={{ color: colors.textSecondary, fontSize: 16 }}>⌕</Text>
           <TextInput
             style={[styles.searchInput, { color: colors.text }]}
-            placeholder="Kullanıcı, içerik, etkinlik ara..."
+            placeholder={t('admin_posts_search')}
             placeholderTextColor={colors.textSecondary}
             value={search}
             onChangeText={setSearch}
@@ -167,7 +169,7 @@ export default function AdminPostsScreen({ navigation }) {
               <View key={type} style={[styles.typeStat, { backgroundColor: cfg.color + '18', borderColor: cfg.color + '40' }]}>
                 <Text style={styles.typeStatIcon}>{cfg.icon}</Text>
                 <Text style={[styles.typeStatNum, { color: cfg.color }]}>{count}</Text>
-                <Text style={[styles.typeStatLabel, { color: cfg.color }]}>{cfg.label}</Text>
+                <Text style={[styles.typeStatLabel, { color: cfg.color }]}>{t(cfg.labelKey)}</Text>
               </View>
             );
           })}
@@ -187,7 +189,7 @@ export default function AdminPostsScreen({ navigation }) {
             <View style={styles.empty}>
               <Text style={styles.emptyEmoji}>📭</Text>
               <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-                {search ? 'Arama sonucu bulunamadı' : 'Henüz post yok'}
+                {search ? t('admin_no_search_results') : t('admin_posts_empty')}
               </Text>
             </View>
           }

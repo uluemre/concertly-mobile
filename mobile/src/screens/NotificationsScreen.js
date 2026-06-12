@@ -19,6 +19,7 @@ export default function NotificationsScreen({ navigation }) {
     follow:  { icon: '👤', text: t('notif_follow') },
     like:    { icon: '❤️', text: t('notif_like') },
     comment: { icon: '💬', text: t('notif_comment') },
+    message: { icon: '✉️', text: t('notif_message') },
   }), [t]);
 
   const timeAgo = (dateStr) => {
@@ -57,6 +58,14 @@ export default function NotificationsScreen({ navigation }) {
   };
 
   const handlePress = (item) => {
+    if (item.type === 'message' && item.actorId) {
+      navigation.navigate('Chat', {
+        userId: item.actorId,
+        username: item.actorUsername,
+        profileImageUrl: item.actorProfileImageUrl,
+      });
+      return;
+    }
     if (item.actorId) {
       navigation.navigate('UserProfile', { userId: item.actorId });
     }

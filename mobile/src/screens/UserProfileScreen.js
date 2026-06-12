@@ -196,34 +196,55 @@ export default function UserProfileScreen({ route, navigation }) {
             </View>
           </View>
 
-          {/* TAKİP BUTONU */}
-          <TouchableOpacity
-            onPress={handleFollowToggle}
-            disabled={followLoading}
-            style={styles.followButtonWrapper}
-            activeOpacity={0.85}
-          >
-            {following ? (
-              <View style={styles.followingButton}>
-                {followLoading
-                  ? <ActivityIndicator size="small" color={colors.primary} />
-                  : <Text style={styles.followingText}>{t('user_profile_following')}</Text>
-                }
-              </View>
-            ) : (
+          {/* TAKİP + MESAJ BUTONLARI */}
+          <View style={styles.actionRow}>
+            <TouchableOpacity
+              onPress={handleFollowToggle}
+              disabled={followLoading}
+              style={styles.followButtonWrapper}
+              activeOpacity={0.85}
+            >
+              {following ? (
+                <View style={styles.followingButton}>
+                  {followLoading
+                    ? <ActivityIndicator size="small" color={colors.primary} />
+                    : <Text style={styles.followingText}>{t('user_profile_following')}</Text>
+                  }
+                </View>
+              ) : (
+                <LinearGradient
+                  colors={['#E94560', '#7C3AED']}
+                  style={styles.followButton}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                >
+                  {followLoading
+                    ? <ActivityIndicator size="small" color={colors.text} />
+                    : <Text style={styles.followText}>{t('user_profile_follow')}</Text>
+                  }
+                </LinearGradient>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Chat', {
+                userId,
+                username: profile?.username,
+                profileImageUrl: profile?.profileImageUrl,
+              })}
+              style={styles.messageButtonWrapper}
+              activeOpacity={0.85}
+            >
               <LinearGradient
-                colors={['#E94560', '#7C3AED']}
+                colors={['#3B82F6', '#00D4AA']}
                 style={styles.followButton}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
               >
-                {followLoading
-                  ? <ActivityIndicator size="small" color={colors.text} />
-                  : <Text style={styles.followText}>{t('user_profile_follow')}</Text>
-                }
+                <Text style={styles.followText}>{t('profile_message_btn')}</Text>
               </LinearGradient>
-            )}
-          </TouchableOpacity>
+            </TouchableOpacity>
+          </View>
 
         </Animated.View>
       </LinearGradient>
@@ -407,7 +428,9 @@ function createStyles(colors) {
     statDivider: { width: 1, height: 32, backgroundColor: colors.border },
 
     // TAKİP BUTONU
-    followButtonWrapper: { width: '100%' },
+    actionRow: { flexDirection: 'row', width: '100%', gap: 10 },
+    followButtonWrapper: { flex: 1 },
+    messageButtonWrapper: { flex: 1 },
     followButton: { paddingVertical: 14, borderRadius: 14, alignItems: 'center' },
     followText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
     followingButton: {

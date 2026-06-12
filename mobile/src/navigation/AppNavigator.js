@@ -56,6 +56,8 @@ import VenueProfileScreen from '../screens/VenueProfileScreen';
 import PostDetailScreen from '../screens/PostDetailScreen';
 import ConcertBuddyMatchScreen from '../screens/ConcertBuddyMatchScreen';
 import ConcertPassportScreen from '../screens/ConcertPassportScreen';
+import ChatListScreen from '../screens/ChatListScreen';
+import ChatScreen from '../screens/ChatScreen';
 
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
@@ -282,6 +284,8 @@ export default function AppNavigator() {
         <Stack.Screen name="PostDetail" component={PostDetailScreen} />
         <Stack.Screen name="ConcertBuddyMatch" component={ConcertBuddyMatchScreen} />
         <Stack.Screen name="ConcertPassport" component={ConcertPassportScreen} />
+        <Stack.Screen name="ChatList" component={ChatListScreen} />
+        <Stack.Screen name="Chat" component={ChatScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

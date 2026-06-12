@@ -1,0 +1,15 @@
+# Geçici / deneme dosyaları
+tmp_hash/
+
+# Loglar
+*.log
+
+# IDE
+.idea/workspace.xml
+.idea/usage.statistics.xml
+.idea/shelf/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db

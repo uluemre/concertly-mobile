@@ -73,6 +73,22 @@ function MatchOverlay({ matchedUser, onClose, navigation, t }) {
         </View>
         <TouchableOpacity
           style={styles.matchProfileBtn}
+          onPress={() => {
+            onClose();
+            navigation.navigate('Chat', {
+              userId: matchedUser.userId,
+              username: matchedUser.username,
+              profileImageUrl: matchedUser.profileImageUrl,
+            });
+          }}
+          activeOpacity={0.85}
+        >
+          <LinearGradient colors={['#E94560', '#7C3AED']} style={styles.matchProfileBtnGrad}>
+            <Text style={styles.matchProfileBtnText}>{t('buddy_send_message')}</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.matchProfileBtn}
           onPress={() => { onClose(); navigation.navigate('UserProfile', { userId: matchedUser.userId }); }}
           activeOpacity={0.85}
         >
@@ -434,7 +450,19 @@ export default function ConcertBuddyMatchScreen({ navigation }) {
                     </Text>
                   ) : null}
                 </View>
-                <Text style={[styles.matchRowChevron, { color: colors.textSecondary }]}>›</Text>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('Chat', {
+                    userId: m.userId,
+                    username: m.username,
+                    profileImageUrl: m.profileImageUrl,
+                  })}
+                  activeOpacity={0.85}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <LinearGradient colors={['#E94560', '#7C3AED']} style={styles.matchRowMsgBtn}>
+                    <Text style={styles.matchRowMsgBtnText}>💬</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
               </TouchableOpacity>
             ))
           )}
@@ -596,6 +624,11 @@ const styles = StyleSheet.create({
   matchRowCity: { fontSize: 12, marginBottom: 2 },
   matchRowGenres: { fontSize: 11 },
   matchRowChevron: { fontSize: 24, fontWeight: '300' },
+  matchRowMsgBtn: {
+    width: 42, height: 42, borderRadius: 21,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  matchRowMsgBtnText: { fontSize: 18 },
 
   // Eşleşme overlay
   matchOverlay: {

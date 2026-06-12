@@ -6,12 +6,13 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme';
+import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
 
 const TABS = [
-  { key: 'pending', label: '⏳ Bekleyen' },
-  { key: 'approved', label: '✅ Onaylı' },
-  { key: 'all', label: '📋 Tümü' },
+  { key: 'pending', labelKey: 'admin_tab_pending' },
+  { key: 'approved', labelKey: 'admin_tab_approved' },
+  { key: 'all', labelKey: 'admin_tab_all' },
 ];
 
 const INITIAL_FORM = {
@@ -22,28 +23,29 @@ const INITIAL_FORM = {
 };
 
 const FORM_FIELDS = [
-  { key: 'name',          label: 'Etkinlik Adı *',         multiline: false },
-  { key: 'description',   label: 'Açıklama',               multiline: true  },
-  { key: 'eventDate',     label: 'Tarih (2026-06-15T20:00)', multiline: false },
-  { key: 'ticketUrl',     label: 'Bilet URL',               multiline: false },
-  { key: 'artistName',    label: 'Sanatçı Adı',             multiline: false },
-  { key: 'artistGenre',   label: 'Tür (Pop, Rock, vs.)',    multiline: false },
-  { key: 'venueName',     label: 'Mekan Adı',               multiline: false },
-  { key: 'venueCity',     label: 'Şehir',                   multiline: false },
-  { key: 'venueCountry',  label: 'Ülke',                    multiline: false },
-  { key: 'venueAddress',  label: 'Adres',                   multiline: false },
-  { key: 'venueLatitude', label: 'Enlem (39.908368)',        multiline: false, numeric: true },
-  { key: 'venueLongitude',label: 'Boylam (32.752193)',       multiline: false, numeric: true },
+  { key: 'name',          labelKey: 'admin_field_name',        multiline: false },
+  { key: 'description',   labelKey: 'admin_field_description', multiline: true  },
+  { key: 'eventDate',     labelKey: 'admin_field_date',        multiline: false },
+  { key: 'ticketUrl',     labelKey: 'admin_field_ticket_url',  multiline: false },
+  { key: 'artistName',    labelKey: 'admin_field_artist_name', multiline: false },
+  { key: 'artistGenre',   labelKey: 'admin_field_genre',       multiline: false },
+  { key: 'venueName',     labelKey: 'admin_field_venue_name',  multiline: false },
+  { key: 'venueCity',     labelKey: 'admin_field_city',        multiline: false },
+  { key: 'venueCountry',  labelKey: 'admin_field_country',     multiline: false },
+  { key: 'venueAddress',  labelKey: 'admin_field_address',     multiline: false },
+  { key: 'venueLatitude', labelKey: 'admin_field_lat',         multiline: false, numeric: true },
+  { key: 'venueLongitude',labelKey: 'admin_field_lng',         multiline: false, numeric: true },
 ];
 
-function formatDate(dateStr) {
+function formatDate(dateStr, lang) {
   if (!dateStr) return '—';
   const d = new Date(dateStr);
-  return d.toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleDateString(lang === 'en' ? 'en-US' : 'tr-TR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
 export default function AdminEventsScreen({ navigation, route }) {
   const { colors } = useTheme();
+  const { t, lang } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const tabAnim = useRef(new Animated.Value(0)).current;
 
@@ -110,7 +112,7 @@ export default function AdminEventsScreen({ navigation, route }) {
   };
 
   const handleSave = async () => {
-    if (!form.name.trim()) { Alert.alert('Hata', 'Etkinlik adı zorunlu.'); return; }
+    if (!form.name.trim()) { Alert.alert(t('error'), t('admin_name_required')); return; }
     setSaving(true);
     try {
       const payload = {
@@ -135,35 +137,35 @@ export default function AdminEventsScreen({ navigation, route }) {
       setModalVisible(false);
       fetchEvents();
     } catch {
-      Alert.alert('Hata', 'İşlem başarısız.');
+      Alert.alert(t('error'), t('admin_op_failed'));
     } finally {
       setSaving(false);
     }
   };
 
   const handleApprove = (ev) => {
-    Alert.alert('Onayla', `"${ev.name}" onaylansın mı?`, [
-      { text: 'İptal', style: 'cancel' },
+    Alert.alert(t('admin_approve_title'), t('admin_approve_msg', { name: ev.name }), [
+      { text: t('cancel'), style: 'cancel' },
       {
-        text: 'Onayla', onPress: async () => {
+        text: t('admin_approve_title'), onPress: async () => {
           try {
             await API.patch(`/admin/events/${ev.id}/approve`);
             fetchEvents();
-          } catch { Alert.alert('Hata', 'Onaylanamadı.'); }
+          } catch { Alert.alert(t('error'), t('admin_approve_error')); }
         },
       },
     ]);
   };
 
   const handleDelete = (ev) => {
-    Alert.alert('Sil', `"${ev.name}" silinsin mi?`, [
-      { text: 'İptal', style: 'cancel' },
+    Alert.alert(t('admin_event_delete_title'), t('admin_event_delete_msg', { name: ev.name }), [
+      { text: t('cancel'), style: 'cancel' },
       {
-        text: 'Sil', style: 'destructive', onPress: async () => {
+        text: t('delete'), style: 'destructive', onPress: async () => {
           try {
             await API.delete(`/admin/events/${ev.id}`);
             fetchEvents();
-          } catch { Alert.alert('Hata', 'Silinemedi.'); }
+          } catch { Alert.alert(t('error'), t('admin_event_delete_error')); }
         },
       },
     ]);
@@ -201,14 +203,14 @@ export default function AdminEventsScreen({ navigation, route }) {
             backgroundColor: item.isApproved ? '#00D4AA22' : '#F5A62322',
           }]}>
             <Text style={[styles.statusBadgeText, { color: item.isApproved ? '#00D4AA' : '#F5A623' }]}>
-              {item.isApproved ? 'Onaylı' : 'Bekliyor'}
+              {item.isApproved ? t('admin_status_approved_label') : t('admin_status_pending_label')}
             </Text>
           </View>
         </View>
 
         <View style={styles.cardDetails}>
           <Text style={[styles.cardDetail, { color: colors.textSecondary }]}>
-            📅 {formatDate(item.eventDate)}
+            📅 {formatDate(item.eventDate, lang)}
           </Text>
           {item.genre && (
             <View style={[styles.genrePill, { backgroundColor: colors.primary + '22' }]}>
@@ -223,20 +225,20 @@ export default function AdminEventsScreen({ navigation, route }) {
               onPress={() => handleApprove(item)}
               style={[styles.actionBtn, { backgroundColor: '#00D4AA20', borderColor: '#00D4AA50' }]}
             >
-              <Text style={[styles.actionBtnText, { color: '#00D4AA' }]}>✓ Onayla</Text>
+              <Text style={[styles.actionBtnText, { color: '#00D4AA' }]}>{t('admin_action_approve')}</Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity
             onPress={() => openEdit(item)}
             style={[styles.actionBtn, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}
           >
-            <Text style={[styles.actionBtnText, { color: colors.primary }]}>✏️ Düzenle</Text>
+            <Text style={[styles.actionBtnText, { color: colors.primary }]}>{t('admin_action_edit')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => handleDelete(item)}
             style={[styles.actionBtn, { backgroundColor: '#E9456020', borderColor: '#E9456050' }]}
           >
-            <Text style={[styles.actionBtnText, { color: '#E94560' }]}>🗑 Sil</Text>
+            <Text style={[styles.actionBtnText, { color: '#E94560' }]}>{t('admin_action_delete')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -248,16 +250,16 @@ export default function AdminEventsScreen({ navigation, route }) {
       {/* HEADER */}
       <LinearGradient colors={colors.headerGradient} style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={[styles.backText, { color: colors.primary }]}>‹ Geri</Text>
+          <Text style={[styles.backText, { color: colors.primary }]}>{t('back')}</Text>
         </TouchableOpacity>
         <View style={styles.headerRow}>
           <View>
-            <Text style={[styles.headerTitle, { color: colors.text }]}>Etkinlikler</Text>
-            <Text style={[styles.headerSub, { color: colors.textSecondary }]}>{filtered.length} etkinlik</Text>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>{t('admin_events_title')}</Text>
+            <Text style={[styles.headerSub, { color: colors.textSecondary }]}>{t('admin_events_count', { count: filtered.length })}</Text>
           </View>
           <TouchableOpacity onPress={openCreate} activeOpacity={0.85}>
             <LinearGradient colors={['#E94560', '#7C3AED']} style={styles.addBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-              <Text style={styles.addBtnText}>+ Ekle</Text>
+              <Text style={styles.addBtnText}>{t('admin_add_btn')}</Text>
             </LinearGradient>
           </TouchableOpacity>
         </View>
@@ -267,7 +269,7 @@ export default function AdminEventsScreen({ navigation, route }) {
           <Text style={{ color: colors.textSecondary, fontSize: 16 }}>⌕</Text>
           <TextInput
             style={[styles.searchInput, { color: colors.text }]}
-            placeholder="Etkinlik, sanatçı, şehir ara..."
+            placeholder={t('admin_events_search')}
             placeholderTextColor={colors.textSecondary}
             value={search}
             onChangeText={setSearch}
@@ -286,7 +288,7 @@ export default function AdminEventsScreen({ navigation, route }) {
         {TABS.map((tab, idx) => (
           <TouchableOpacity key={tab.key} style={styles.tab} onPress={() => switchTab(tab.key, idx)}>
             <Text style={[styles.tabText, { color: activeTab === tab.key ? colors.primary : colors.textSecondary }]}>
-              {tab.label}
+              {t(tab.labelKey)}
             </Text>
           </TouchableOpacity>
         ))}
@@ -305,7 +307,7 @@ export default function AdminEventsScreen({ navigation, route }) {
             <View style={styles.empty}>
               <Text style={styles.emptyEmoji}>🎭</Text>
               <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-                {search ? 'Arama sonucu bulunamadı' : 'Etkinlik yok'}
+                {search ? t('admin_no_search_results') : t('admin_events_empty')}
               </Text>
             </View>
           }
@@ -319,7 +321,7 @@ export default function AdminEventsScreen({ navigation, route }) {
             <View style={[styles.modalBox, { backgroundColor: colors.background, borderColor: colors.border }]}>
               <View style={styles.modalHeader}>
                 <Text style={[styles.modalTitle, { color: colors.text }]}>
-                  {editingEvent ? '✏️ Etkinliği Düzenle' : '➕ Yeni Etkinlik'}
+                  {editingEvent ? t('admin_modal_edit') : t('admin_modal_new')}
                 </Text>
                 <TouchableOpacity onPress={() => setModalVisible(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                   <Text style={{ color: colors.textSecondary, fontSize: 22 }}>✕</Text>
@@ -329,14 +331,14 @@ export default function AdminEventsScreen({ navigation, route }) {
               <ScrollView showsVerticalScrollIndicator={false}>
                 {FORM_FIELDS.map(field => (
                   <View key={field.key}>
-                    <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{field.label}</Text>
+                    <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t(field.labelKey)}</Text>
                     <TextInput
                       style={[
                         styles.input,
                         { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
                         field.multiline && { height: 80, textAlignVertical: 'top' },
                       ]}
-                      placeholder={field.label}
+                      placeholder={t(field.labelKey)}
                       placeholderTextColor={colors.textSecondary}
                       value={form[field.key]}
                       onChangeText={v => setForm(f => ({ ...f, [field.key]: v }))}
@@ -351,7 +353,7 @@ export default function AdminEventsScreen({ navigation, route }) {
                     onPress={() => setModalVisible(false)}
                     style={[styles.cancelBtn, { borderColor: colors.border }]}
                   >
-                    <Text style={[styles.cancelBtnText, { color: colors.textSecondary }]}>İptal</Text>
+                    <Text style={[styles.cancelBtnText, { color: colors.textSecondary }]}>{t('cancel')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity onPress={handleSave} disabled={saving} style={{ flex: 1 }}>
                     <LinearGradient
@@ -361,7 +363,7 @@ export default function AdminEventsScreen({ navigation, route }) {
                     >
                       {saving
                         ? <ActivityIndicator size="small" color="#fff" />
-                        : <Text style={styles.saveBtnText}>💾 Kaydet</Text>}
+                        : <Text style={styles.saveBtnText}>{t('admin_save_btn')}</Text>}
                     </LinearGradient>
                   </TouchableOpacity>
                 </View>

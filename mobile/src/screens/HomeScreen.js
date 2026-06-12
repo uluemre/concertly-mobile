@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
+import { useFocusEffect } from '@react-navigation/native';
 import API from '../services/api';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
@@ -63,6 +64,7 @@ export default function HomeScreen({ navigation }) {
   const [selectedCity, setSelectedCity] = useState(session.userCity || null);
   const [cityModalVisible, setCityModalVisible] = useState(false);
   const [searchModalVisible, setSearchModalVisible] = useState(false);
+  const [unreadMessages, setUnreadMessages] = useState(0);
 
   const headerAnim = useRef(new Animated.Value(-20)).current;
   const headerOpacity = useRef(new Animated.Value(0)).current;
@@ -71,6 +73,19 @@ export default function HomeScreen({ navigation }) {
   useEffect(() => {
     return () => { isMounted.current = false; };
   }, []);
+
+  // Okunmamış mesaj sayısı — ekran odaktayken periyodik tazelenir
+  useFocusEffect(useCallback(() => {
+    const fetchUnread = async () => {
+      try {
+        const res = await API.get('/messages/unread-count');
+        if (isMounted.current) setUnreadMessages(res.data.count ?? 0);
+      } catch {}
+    };
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 15000);
+    return () => clearInterval(interval);
+  }, []));
 
   useEffect(() => {
     Animated.parallel([
@@ -167,7 +182,21 @@ export default function HomeScreen({ navigation }) {
               <Text style={styles.headerGreeting}>{session.userCity ? `📍 ${session.userCity}` : t('home_greeting')}</Text>
               <Text style={styles.headerBrand}>Concertly</Text>
             </View>
-            <Image source={require('../../assets/icon.png')} style={styles.headerLogo} contentFit="contain" />
+            <View style={styles.headerRight}>
+              <TouchableOpacity
+                style={styles.dmBtn}
+                onPress={() => navigation.navigate('ChatList')}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.dmBtnIcon}>💬</Text>
+                {unreadMessages > 0 && (
+                  <View style={styles.dmBadge}>
+                    <Text style={styles.dmBadgeText}>{unreadMessages > 99 ? '99+' : unreadMessages}</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+              <Image source={require('../../assets/icon.png')} style={styles.headerLogo} contentFit="contain" />
+            </View>
           </Animated.View>
 
           <View style={styles.searchRow}>
@@ -341,6 +370,20 @@ function createStyles(colors) {
     headerGreeting: { fontSize: 12, color: colors.textSecondary, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 },
     headerBrand: { fontSize: 32, fontWeight: '900', color: colors.text, letterSpacing: -0.5 },
     headerLogo: { width: 48, height: 48, borderRadius: 14 },
+    headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    dmBtn: {
+      width: 44, height: 44, borderRadius: 22,
+      backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    dmBtnIcon: { fontSize: 19 },
+    dmBadge: {
+      position: 'absolute', top: -4, right: -4,
+      minWidth: 18, height: 18, borderRadius: 9,
+      backgroundColor: '#E94560', paddingHorizontal: 4,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    dmBadgeText: { color: '#fff', fontSize: 10, fontWeight: '800' },
     searchRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 18 },
     cityBtn: {
       flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card,
