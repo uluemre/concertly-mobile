@@ -22,6 +22,7 @@ export default function NotificationsScreen({ navigation }) {
     message:        { icon: '✉️', text: t('notif_message') },
     new_event:      { icon: '🎤', text: t('notif_new_event') },
     event_reminder: { icon: '🎫', text: t('notif_event_reminder') },
+    daily_song:     { icon: '📅', text: t('notif_daily_song') },
   }), [t]);
 
   const timeAgo = (dateStr) => {
@@ -66,6 +67,10 @@ export default function NotificationsScreen({ navigation }) {
         username: item.actorUsername,
         profileImageUrl: item.actorProfileImageUrl,
       });
+      return;
+    }
+    if (item.type === 'daily_song') {
+      navigation.navigate('DailySong');
       return;
     }
     // Etkinlik bildirimleri (turne duyurusu, hatırlatma) → etkinlik detayına git

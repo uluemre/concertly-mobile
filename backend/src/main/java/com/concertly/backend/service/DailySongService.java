@@ -27,6 +27,7 @@ public class DailySongService {
     private final DeezerService deezerService;
     private final DailySongPlayRepository playRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     private final long playlistId;
 
@@ -37,11 +38,24 @@ public class DailySongService {
     public DailySongService(DeezerService deezerService,
                             DailySongPlayRepository playRepository,
                             UserRepository userRepository,
+                            NotificationService notificationService,
                             @Value("${daily.song.playlist.id:7678032782}") long playlistId) {
         this.deezerService = deezerService;
         this.playRepository = playRepository;
         this.userRepository = userRepository;
+        this.notificationService = notificationService;
         this.playlistId = playlistId;
+    }
+
+    /** Her sabah 10:00 — tüm aktif kullanıcılara günün şarkısı duyurusu (kullanıcı/gün başına tek sefer). */
+    @org.springframework.scheduling.annotation.Scheduled(cron = "${daily.song.notify.cron:0 0 10 * * *}")
+    public void announceDailySong() {
+        long today = LocalDate.now().toEpochDay();
+        long dayNumber = today - LAUNCH_EPOCH_DAY + 1;
+        userRepository.findAll().forEach(u ->
+                notificationService.sendSystem(u.getId(), "daily_song", "daily_song", today,
+                        "Gün #" + dayNumber));
+        System.out.println("🎵 Günün şarkısı duyurusu gönderildi (gün #" + dayNumber + ")");
     }
 
     // ── Günün şarkısı ───────────────────────────────────────────────────────

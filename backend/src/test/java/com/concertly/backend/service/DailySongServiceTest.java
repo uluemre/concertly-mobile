@@ -27,12 +27,13 @@ class DailySongServiceTest {
     @Mock private DeezerService deezerService;
     @Mock private DailySongPlayRepository playRepository;
     @Mock private UserRepository userRepository;
+    @Mock private NotificationService notificationService;
 
     private DailySongService service;
 
     @BeforeEach
     void setUp() {
-        service = new DailySongService(deezerService, playRepository, userRepository, 1L);
+        service = new DailySongService(deezerService, playRepository, userRepository, notificationService, 1L);
     }
 
     // ── Başlık eşleştirme ───────────────────────────────────────────────────
