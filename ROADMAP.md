@@ -31,7 +31,7 @@
 - [x] Setlist Tahmin Ligi — konser öncesi tahmin, topluluk doğrulamalı puanlama
 - [x] Oyun Merkezi — tüm oyunlar tek 🎮 kartı altında, günlük şarkı durum rozeti
 - [x] Müzik Kimliğim (Wrapped) — konser geçmişinden kişilik + istatistik kartları
-- [x] Oyunlar için demo verisi (seed_games_data.sql)
+- [x] Oyunlar için demo verisi (backend/seeds/seed_games_data.sql)
 - [x] TR/EN çoklu dil desteği (tüm ekranlar)
 
 ## 📋 Planlananlar
@@ -47,14 +47,14 @@
 
 ### Keşif / Bilgi
 - [ ] Yaklaşan albüm ve yeni şarkılar
-- [ ] Sanatçı turne duyuruları
+- [x] Sanatçı turne duyuruları — sync yeni etkinlik ekleyince takipçilere bildirim
 - [ ] Smart Ticket Alerts (fiyat düşüşü bildirimi)
 - [ ] Pre-Concert Hype Mode
 
 ### Altyapı / Teknik
 - [ ] E-posta düzenlemesi
 - [ ] Konser doğrulamayı tek seferlik yap, database'e işle (test et)
-- [ ] Kaydedilen konser yaklaşınca bildirim
+- [x] Kaydedilen konser yaklaşınca bildirim — günlük 09:00 hatırlatma görevi
 - [ ] Sanatçı profil görsellerini etkinliklere aktar
 - [ ] Gideceğin konserleri takvime ekleyen eklenti
 - [ ] Apple widgets

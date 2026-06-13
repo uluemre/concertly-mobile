@@ -2,8 +2,9 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Animated,
   Modal, TextInput, KeyboardAvoidingView, Platform,
-  Alert, Image, Share,
+  Alert, Share,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import API from '../../services/api';
 import { useTheme } from '../../theme';
@@ -252,7 +253,7 @@ export default React.memo(function PostCard({
         </TouchableOpacity>
       ) : null}
       {item.postType === 'IMAGE' && item.imageUrl && (
-        <Image source={{ uri: item.imageUrl }} style={styles.postImage} resizeMode="cover" />
+        <Image source={{ uri: item.imageUrl }} style={styles.postImage} contentFit="cover" transition={150} />
       )}
       {item.postType === 'POLL' && item.pollOptions && (
         <PollCard postId={item.id} options={item.pollOptions} />

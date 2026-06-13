@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
-import API from '../services/api';
+import API, { uploadImage } from '../services/api';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -79,11 +79,18 @@ export default function CreatePostScreen({ route, navigation }) {
 
     setLoading(true);
     try {
+      // Fotoğraf önce sunucuya yüklenir — cihazdaki yerel yol başka
+      // telefonlardan erişilemez, sunucu yolu herkes için çalışır
+      let serverImageUrl;
+      if (postType === 'IMAGE' && imageUri) {
+        serverImageUrl = await uploadImage(imageUri);
+      }
+
       await API.post('/posts', {
         eventId: event.id,
         content: content.trim(),
         postType,
-        imageUrl: postType === 'IMAGE' ? imageUri : undefined,
+        imageUrl: serverImageUrl,
         pollOptions: postType === 'POLL' ? pollOptions.filter(o => o.trim()) : undefined,
       });
       Alert.alert(t('post_success_title'), t('post_success_msg'), [

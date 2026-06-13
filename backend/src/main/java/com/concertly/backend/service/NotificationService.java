@@ -37,6 +37,21 @@ public class NotificationService {
         } catch (Exception ignored) {}
     }
 
+    /** Aktörsüz sistem bildirimi (turne duyurusu, konser hatırlatması vb.). Aynı bildirimi tekrar göndermez. */
+    public void sendSystem(Long recipientId, String type, String entityType, Long entityId, String message) {
+        try {
+            if (notificationRepository.existsByRecipientIdAndTypeAndEntityId(recipientId, type, entityId)) return;
+            User recipient = userRepository.findById(recipientId).orElseThrow();
+            Notification n = new Notification();
+            n.setRecipient(recipient);
+            n.setType(type);
+            n.setEntityType(entityType);
+            n.setEntityId(entityId);
+            n.setMessage(message);
+            notificationRepository.save(n);
+        } catch (Exception ignored) {}
+    }
+
     public List<NotificationResponse> getForUser(Long userId) {
         return notificationRepository.findByRecipientIdOrderByCreatedAtDesc(userId)
                 .stream()

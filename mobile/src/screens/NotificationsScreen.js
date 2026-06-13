@@ -16,10 +16,12 @@ export default function NotificationsScreen({ navigation }) {
   const { t } = useLanguage();
 
   const TYPE_CONFIG = useMemo(() => ({
-    follow:  { icon: '👤', text: t('notif_follow') },
-    like:    { icon: '❤️', text: t('notif_like') },
-    comment: { icon: '💬', text: t('notif_comment') },
-    message: { icon: '✉️', text: t('notif_message') },
+    follow:         { icon: '👤', text: t('notif_follow') },
+    like:           { icon: '❤️', text: t('notif_like') },
+    comment:        { icon: '💬', text: t('notif_comment') },
+    message:        { icon: '✉️', text: t('notif_message') },
+    new_event:      { icon: '🎤', text: t('notif_new_event') },
+    event_reminder: { icon: '🎫', text: t('notif_event_reminder') },
   }), [t]);
 
   const timeAgo = (dateStr) => {
@@ -57,13 +59,21 @@ export default function NotificationsScreen({ navigation }) {
     }
   };
 
-  const handlePress = (item) => {
+  const handlePress = async (item) => {
     if (item.type === 'message' && item.actorId) {
       navigation.navigate('Chat', {
         userId: item.actorId,
         username: item.actorUsername,
         profileImageUrl: item.actorProfileImageUrl,
       });
+      return;
+    }
+    // Etkinlik bildirimleri (turne duyurusu, hatırlatma) → etkinlik detayına git
+    if (item.entityType === 'event' && item.entityId) {
+      try {
+        const res = await API.get(`/events/${item.entityId}`);
+        navigation.navigate('EventDetail', { event: res.data });
+      } catch {}
       return;
     }
     if (item.actorId) {
@@ -86,7 +96,7 @@ export default function NotificationsScreen({ navigation }) {
             <Image source={{ uri: item.actorProfileImageUrl }} style={styles.avatar} />
           ) : (
             <View style={styles.avatarPlaceholder}>
-              <Text style={styles.avatarEmoji}>👤</Text>
+              <Text style={styles.avatarEmoji}>{item.actorUsername ? '👤' : '🎵'}</Text>
             </View>
           )}
           <View style={styles.typeBadge}>
@@ -96,9 +106,12 @@ export default function NotificationsScreen({ navigation }) {
 
         <View style={styles.body}>
           <Text style={styles.message} numberOfLines={2}>
-            <Text style={styles.actor}>@{item.actorUsername}</Text>
+            <Text style={styles.actor}>{item.actorUsername ? `@${item.actorUsername}` : 'Concertly'}</Text>
             {' '}{cfg.text}
           </Text>
+          {item.message ? (
+            <Text style={styles.message} numberOfLines={1}>{item.message}</Text>
+          ) : null}
           <Text style={styles.time}>{timeAgo(item.createdAt)}</Text>
         </View>
 

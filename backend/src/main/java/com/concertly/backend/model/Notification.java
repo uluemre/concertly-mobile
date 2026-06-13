@@ -20,10 +20,13 @@ public class Notification {
     private User actor;
 
     @Column(nullable = false)
-    private String type;        // like, comment, follow, event_reminder
+    private String type;        // like, comment, follow, new_event, event_reminder
 
     private String entityType;  // post, event, user
     private Long entityId;
+
+    /** Sistem bildirimleri için özel metin (etkinlik/sanatçı adı vb.) */
+    private String message;
 
     private Boolean isRead = false;
 
@@ -40,6 +43,8 @@ public class Notification {
     public void setEntityType(String entityType) { this.entityType = entityType; }
     public Long getEntityId() { return entityId; }
     public void setEntityId(Long entityId) { this.entityId = entityId; }
+    public String getMessage() { return message; }
+    public void setMessage(String message) { this.message = message; }
     public Boolean getIsRead() { return isRead; }
     public void setIsRead(Boolean isRead) { this.isRead = isRead; }
     public LocalDateTime getCreatedAt() { return createdAt; }

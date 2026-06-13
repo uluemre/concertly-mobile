@@ -11,6 +11,7 @@ public class NotificationResponse {
     private Long actorId;
     private String actorUsername;
     private String actorProfileImageUrl;
+    private String message;
     private Boolean isRead;
     private LocalDateTime createdAt;
 
@@ -23,6 +24,7 @@ public class NotificationResponse {
         dto.actorId              = n.getActor() != null ? n.getActor().getId() : null;
         dto.actorUsername        = n.getActor() != null ? n.getActor().getUsername() : null;
         dto.actorProfileImageUrl = n.getActor() != null ? n.getActor().getProfileImageUrl() : null;
+        dto.message              = n.getMessage();
         dto.isRead               = n.getIsRead();
         dto.createdAt            = n.getCreatedAt();
         return dto;
@@ -35,6 +37,7 @@ public class NotificationResponse {
     public Long getActorId() { return actorId; }
     public String getActorUsername() { return actorUsername; }
     public String getActorProfileImageUrl() { return actorProfileImageUrl; }
+    public String getMessage() { return message; }
     public Boolean getIsRead() { return isRead; }
     public LocalDateTime getCreatedAt() { return createdAt; }
 }

@@ -1,6 +1,9 @@
 # Geçici / deneme dosyaları
 tmp_hash/
 
+# Kullanıcı yüklemeleri (çalışma zamanı verisi)
+uploads/
+
 # Loglar
 *.log
 

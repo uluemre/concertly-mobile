@@ -10,4 +10,5 @@ public interface EventBookmarkRepository extends JpaRepository<EventBookmark, Lo
     Optional<EventBookmark> findByUserIdAndEventId(Long userId, Long eventId);
     boolean existsByUserIdAndEventId(Long userId, Long eventId);
     List<EventBookmark> findAllByUserIdOrderByCreatedAtDesc(Long userId);
+    List<EventBookmark> findAllByEventId(Long eventId);
 }

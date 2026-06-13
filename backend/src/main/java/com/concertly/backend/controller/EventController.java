@@ -32,12 +32,20 @@ public class EventController {
     @GetMapping
     public List<EventResponse> getEvents(
             @RequestParam(value = "city", required = false) String city,
-            @RequestParam(value = "genres", required = false) String genresCsv) {
+            @RequestParam(value = "genres", required = false) String genresCsv,
+            @RequestParam(value = "limit", required = false) Integer limit) {
+        List<EventResponse> events;
         if (genresCsv != null && !genresCsv.isBlank()) {
             List<String> genres = Arrays.asList(genresCsv.split(","));
-            return eventService.getRecommendedEvents(city, genres);
+            events = eventService.getRecommendedEvents(city, genres);
+        } else {
+            events = eventService.getAllEvents(city);
         }
-        return eventService.getAllEvents(city);
+        // limit verilmezse eski davranış korunur (tam liste)
+        if (limit != null && limit > 0 && events.size() > limit) {
+            return events.subList(0, limit);
+        }
+        return events;
     }
 
     @GetMapping("/{id}")

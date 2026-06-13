@@ -13,6 +13,8 @@ function getBaseUrl() {
 }
 
 const BASE_URL = getBaseUrl();
+// Yüklenen görsellerin sunulduğu kök adres (örn. http://192.168.1.5:8082)
+const SERVER_ORIGIN = BASE_URL.replace(/\/api$/, '');
 
 if (__DEV__) console.log('API Base URL:', BASE_URL);
 
@@ -20,6 +22,23 @@ const API = axios.create({
   baseURL: BASE_URL,
   timeout: 15000,
 });
+
+// Backend görselleri "/uploads/<dosya>" göreli yoluyla saklar — cihaz hangi
+// ağdan bağlanırsa bağlansın çalışsın diye tam URL'ye burada çevrilir.
+function absolutizeUploads(value) {
+  if (typeof value === 'string') {
+    return value.startsWith('/uploads/') ? SERVER_ORIGIN + value : value;
+  }
+  if (Array.isArray(value)) {
+    for (let i = 0; i < value.length; i++) value[i] = absolutizeUploads(value[i]);
+    return value;
+  }
+  if (value && typeof value === 'object') {
+    for (const key of Object.keys(value)) value[key] = absolutizeUploads(value[key]);
+    return value;
+  }
+  return value;
+}
 
 // Modül düzeyi token değişkenleri — context'ten güncellenir
 let _authToken = null;
@@ -66,7 +85,10 @@ API.interceptors.request.use((config) => {
 });
 
 API.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    response.data = absolutizeUploads(response.data);
+    return response;
+  },
   async (error) => {
     const originalRequest = error.config;
     const status = error.response?.status;
@@ -126,6 +148,30 @@ API.interceptors.response.use(
 
 export function getApiUrl() {
   return BASE_URL;
+}
+
+/**
+ * Cihazdaki görseli sunucuya yükler, veritabanına yazılacak GÖRELİ yolu döner.
+ * (Göreli saklanır ki IP değişince eski görseller kırılmasın.)
+ */
+export async function uploadImage(localUri) {
+  const filename = localUri.split('/').pop() || `photo-${Date.now()}.jpg`;
+  const extMatch = /\.(\w+)$/.exec(filename);
+  const ext = extMatch ? extMatch[1].toLowerCase() : 'jpg';
+
+  const formData = new FormData();
+  formData.append('file', {
+    uri: localUri,
+    name: filename,
+    type: `image/${ext === 'jpg' ? 'jpeg' : ext}`,
+  });
+
+  const res = await API.post('/media/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 30000, // büyük görseller için daha geniş süre
+  });
+  // interceptor tam URL'ye çevirmiş olabilir — saklamak için göreli hale getir
+  return res.data.url.replace(SERVER_ORIGIN, '');
 }
 
 export default API;

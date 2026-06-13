@@ -10,7 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
-import API from '../services/api';
+import API, { uploadImage } from '../services/api';
 import { useTheme } from '../theme';
 import BadgeGrid from '../components/profile/BadgeGrid';
 
@@ -98,8 +98,10 @@ export default function ProfileScreen({ navigation }) {
       const localUri = result.assets[0].uri;
       setUploadingPhoto(true);
       try {
+        // Önce sunucuya yükle — yerel yol diğer cihazlardan görünmez
+        const serverUrl = await uploadImage(localUri);
         await API.put(`/users/${session.userId}/profile`, {
-          profileImageUrl: localUri,
+          profileImageUrl: serverUrl,
         });
         setProfile(prev => ({ ...prev, profileImageUrl: localUri }));
         Alert.alert(t('success'), t('profile_photo_updated'));

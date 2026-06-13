@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  ScrollView, ActivityIndicator, RefreshControl, Dimensions,
+  ScrollView, ActivityIndicator, RefreshControl, Dimensions, Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
@@ -60,6 +60,22 @@ export default function AdminScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
+  const [syncing, setSyncing] = useState(false);
+
+  const handleSync = async () => {
+    if (syncing) return;
+    setSyncing(true);
+    try {
+      // Sync uzun sürebilir — varsayılan 15 sn timeout yetmez
+      const res = await API.post('/events/sync', null, { timeout: 600000 });
+      Alert.alert(t('success'), String(res.data));
+      fetchStats();
+    } catch {
+      Alert.alert(t('error'), t('admin_sync_error'));
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const fetchStats = useCallback(async () => {
     setError(null);
@@ -168,6 +184,23 @@ export default function AdminScreen({ navigation }) {
                     <Text style={styles.quickBtnBadgeText}>{stats.pendingEvents}</Text>
                   </View>
                 )}
+              </LinearGradient>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.quickBtn}
+              onPress={handleSync}
+              disabled={syncing}
+              activeOpacity={0.8}
+            >
+              <LinearGradient colors={['#3B82F6', '#00D4AA']} style={styles.quickBtnGrad}>
+                {syncing ? (
+                  <ActivityIndicator size="small" color="#fff" style={{ marginBottom: 6 }} />
+                ) : (
+                  <Text style={styles.quickBtnIcon}>🔄</Text>
+                )}
+                <Text style={styles.quickBtnText}>
+                  {syncing ? t('admin_syncing') : t('admin_sync_btn')}
+                </Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>

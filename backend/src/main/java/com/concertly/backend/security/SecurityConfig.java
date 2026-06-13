@@ -72,6 +72,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/demo/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/artists/enrich").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/artists/enrich").permitAll()
+                        // Yüklenen görseller — <Image> etiketleri auth header gönderemez
+                        .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
                         .anyRequest().authenticated()
 
                 )

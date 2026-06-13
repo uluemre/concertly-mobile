@@ -520,6 +520,9 @@ export const translations = {
     admin_badge_posts: 'post',
     admin_add_event: 'Etkinlik Ekle',
     admin_pending_btn: 'Bekleyenler',
+    admin_sync_btn: 'Veri Çek',
+    admin_syncing: 'Çekiliyor...',
+    admin_sync_error: 'Senkronizasyon başarısız. Backend loglarına bak.',
     admin_sum_follows: 'Takip',
     admin_sum_communities: 'Topluluk',
     admin_sum_admins: 'Admin',
@@ -731,6 +734,8 @@ export const translations = {
 
     // MESSAGES
     notif_message: 'sana mesaj gönderdi',
+    notif_new_event: 'takip ettiğin sanatçıdan yeni konser! 🎉',
+    notif_event_reminder: 'konser günü yaklaşıyor!',
     messages_title: 'Mesajlar',
     messages_subtitle: 'Konser arkadaşlarınla sohbet',
     messages_empty_title: 'Henüz mesajın yok',
@@ -1265,6 +1270,9 @@ export const translations = {
     admin_badge_posts: 'posts',
     admin_add_event: 'Add Event',
     admin_pending_btn: 'Pending',
+    admin_sync_btn: 'Sync Data',
+    admin_syncing: 'Syncing...',
+    admin_sync_error: 'Sync failed. Check backend logs.',
     admin_sum_follows: 'Follows',
     admin_sum_communities: 'Communities',
     admin_sum_admins: 'Admins',
@@ -1476,6 +1484,8 @@ export const translations = {
 
     // MESSAGES
     notif_message: 'sent you a message',
+    notif_new_event: 'new concert from an artist you follow! 🎉',
+    notif_event_reminder: 'concert day is coming up!',
     messages_title: 'Messages',
     messages_subtitle: 'Chat with your concert buddies',
     messages_empty_title: 'No messages yet',

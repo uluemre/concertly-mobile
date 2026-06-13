@@ -69,10 +69,11 @@ export default function HomeScreen({ navigation }) {
     const activeCity = city !== undefined ? city : selectedCity;
     const genres = session.favoriteGenres;
     let url = '/events';
-    const params = [];
+    // Ana sayfa en fazla 6 öne çıkan gösteriyor — tüm listeyi (≈1MB) indirmeye gerek yok
+    const params = ['limit=40'];
     if (activeCity) params.push(`city=${encodeURIComponent(activeCity)}`);
     if (genres) params.push(`genres=${encodeURIComponent(genres)}`);
-    if (params.length) url += '?' + params.join('&');
+    url += '?' + params.join('&');
 
     setLoading(true);
     Promise.all([API.get(url), API.get('/posts/feed/trending')])

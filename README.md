@@ -80,6 +80,8 @@ CREATE DATABASE concertly_mobile;
 
 > Şema `spring.jpa.hibernate.ddl-auto=update` ile ilk açılışta otomatik oluşur; ayrı migration aracı yok.
 
+**Demo verisi (opsiyonel):** `backend/seeds/` altındaki SQL dosyalarını pgAdmin'de sırayla çalıştır (`seed_fake_data.sql` → `seed_buddy_data.sql` → `seed_games_data.sql`). Sahte kullanıcılar, postlar, buddy eşleşmeleri ve oyun skorlarıyla uygulama dolu görünür. Hepsi idempotent — tekrar çalıştırmak güvenlidir.
+
 ### 2) Backend
 
 ```bash
@@ -155,6 +157,7 @@ Birim testleri `src/test/java` altındadır (ör. `JwtUtilTest` — token üreti
 ## 📄 Ek Dokümanlar
 
 - `ROADMAP.md` — tamamlanan ve planlanan özellikler
-- `CONCERTLY_MASTER_DOKUMAN.md` — kapsamlı proje dokümanı
-- `CONCERTLY_PITCH_DECK.md` — sunum içeriği
+- `docs/CONCERTLY_MASTER_DOKUMAN.md` — kapsamlı proje dokümanı
+- `docs/CONCERTLY_PITCH_DECK.md` — sunum içeriği
+- `docs/CONCERTLY_PRESENTATION_BLUEPRINT.md` — sunum planı
 - `CLAUDE.md` — geliştirme ortamı notları

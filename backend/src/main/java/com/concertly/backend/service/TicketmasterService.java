@@ -23,19 +23,36 @@ public class TicketmasterService {
     private final VenueRepository venueRepository;
     private final SpotifyService spotifyService;
     private final DeezerService deezerService;
+    private final com.concertly.backend.repository.ArtistFollowRepository artistFollowRepository;
+    private final NotificationService notificationService;
     private final RestTemplate restTemplate;
 
     public TicketmasterService(EventRepository eventRepository,
             ArtistRepository artistRepository,
             VenueRepository venueRepository,
             SpotifyService spotifyService,
-            DeezerService deezerService) {
+            DeezerService deezerService,
+            com.concertly.backend.repository.ArtistFollowRepository artistFollowRepository,
+            NotificationService notificationService) {
         this.eventRepository = eventRepository;
         this.artistRepository = artistRepository;
         this.venueRepository = venueRepository;
         this.spotifyService = spotifyService;
         this.deezerService = deezerService;
+        this.artistFollowRepository = artistFollowRepository;
+        this.notificationService = notificationService;
         this.restTemplate = new RestTemplate();
+    }
+
+    /** Her sabah 06:00'da yeni etkinlikleri otomatik çeker (cron override edilebilir). */
+    @org.springframework.scheduling.annotation.Scheduled(cron = "${ticketmaster.sync.cron:0 0 6 * * *}")
+    public void scheduledSync() {
+        System.out.println("⏰ Günlük Ticketmaster senkronizasyonu başlıyor...");
+        try {
+            syncTurkeyEvents();
+        } catch (Exception e) {
+            System.out.println("⚠️ Zamanlanmış sync hatası: " + e.getMessage());
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -166,6 +183,9 @@ public class TicketmasterService {
                 count++;
                 System.out.println("  ✅ " + name + " | " + artist.getName() + " | " + eventDate.toLocalDate());
 
+                // Turne duyurusu: bu sanatçıyı takip edenlere bildirim
+                notifyArtistFollowers(event, artist);
+
             } catch (Exception ex) {
                 String msg = ex.getMessage();
                 if (msg != null && (msg.contains("unique") || msg.contains("duplicate") || msg.contains("Unique"))) {
@@ -178,12 +198,29 @@ public class TicketmasterService {
         return count;
     }
 
+    /** Yeni etkinlik eklenince sanatçının takipçilerine "turne duyurusu" bildirimi düşer. */
+    private void notifyArtistFollowers(Event event, Artist artist) {
+        try {
+            if (artist == null || artist.getId() == null) return;
+            String city = event.getVenue() != null && event.getVenue().getCity() != null
+                    ? " (" + event.getVenue().getCity() + ")" : "";
+            String message = artist.getName() + " — " + event.getName() + city;
+            artistFollowRepository.findAllByArtistId(artist.getId()).forEach(follow ->
+                    notificationService.sendSystem(
+                            follow.getUser().getId(), "new_event", "event", event.getId(), message));
+        } catch (Exception e) {
+            System.out.println("  ⚠️ Takipçi bildirimi hatası: " + e.getMessage());
+        }
+    }
+
     private String extractBestImage(List<Map<String, Object>> images) {
         if (images == null || images.isEmpty()) return null;
 
+        // Telefon kartları için ~640px ideal: 1024-2048'lik varyantlar
+        // 3-4 kat fazla bant genişliği harcıyor, görünür fark yok.
         Map<String, Object> best16x9 = null;
         Map<String, Object> bestAny = null;
-        int best16x9Width = 0;
+        int best16x9Width = Integer.MAX_VALUE;
         int bestAnyWidth = 0;
 
         for (Map<String, Object> img : images) {
@@ -195,7 +232,8 @@ public class TicketmasterService {
             String ratio = (String) img.get("ratio");
             boolean is16x9 = ratio != null && ratio.contains("16_9");
 
-            if (is16x9 && width >= 640 && width > best16x9Width) {
+            // 16:9 + en az 500px olanlardan EN KÜÇÜĞÜNÜ seç (tipik: 640px)
+            if (is16x9 && width >= 500 && width < best16x9Width) {
                 best16x9Width = width;
                 best16x9 = img;
             }

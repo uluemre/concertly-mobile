@@ -14,6 +14,7 @@ public interface EventRepository extends JpaRepository<Event, Long> {
 
     List<Event> findByArtistIdOrderByEventDateDesc(Long artistId);
     List<Event> findByVenueIdOrderByEventDateAsc(Long venueId);
+    List<Event> findByEventDateBetween(java.time.LocalDateTime start, java.time.LocalDateTime end);
 
     // 🔥 SEARCH QUERY EKLENDİ
     @Query("""
