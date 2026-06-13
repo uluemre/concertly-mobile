@@ -5,10 +5,14 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
+
+const GOAL_OPTIONS = [5, 10, 15, 20, 25, 30, 50];
+const GOAL_STORAGE_KEY = 'passport_concert_goal';
 
 const { width } = Dimensions.get('window');
 
@@ -49,27 +53,53 @@ export default function ConcertPassportScreen({ navigation, route }) {
 
   const [passport, setPassport] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [goal, setGoal] = useState(10);
+  const goalAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    AsyncStorage.getItem(GOAL_STORAGE_KEY).then(v => { if (v) setGoal(Number(v)); });
     API.get(`/users/${targetUserId}/passport`)
       .then(res => setPassport(res.data))
       .catch(err => console.log('passport error:', err.message))
       .finally(() => setLoading(false));
   }, [targetUserId]);
 
+  // Bu yılki konser sayısı
+  const thisYearCount = useMemo(() => {
+    if (!passport?.concertsByYear) return 0;
+    const year = String(new Date().getFullYear());
+    return Number(passport.concertsByYear[year] || 0);
+  }, [passport]);
+
+  useEffect(() => {
+    const pct = goal > 0 ? Math.min(thisYearCount / goal, 1) : 0;
+    Animated.timing(goalAnim, { toValue: pct, duration: 900, useNativeDriver: false }).start();
+  }, [thisYearCount, goal]);
+
+  const cycleGoal = () => {
+    const idx = GOAL_OPTIONS.indexOf(goal);
+    const next = GOAL_OPTIONS[(idx + 1) % GOAL_OPTIONS.length];
+    setGoal(next);
+    AsyncStorage.setItem(GOAL_STORAGE_KEY, String(next));
+  };
+
   const handleShare = async () => {
     if (!passport) return;
     const year = new Date().getFullYear();
+    const topArtist = passport.topArtists?.[0]?.name;
     const msg = `🎸 ${year} Konser Pasaportu\n\n`
       + `🎟️ ${passport.totalConcerts} konser\n`
       + `✅ ${passport.verifiedConcerts} doğrulanmış\n`
       + `🎤 ${passport.uniqueArtists} farklı sanatçı\n`
-      + `📍 ${passport.uniqueCities} farklı şehir\n\n`
-      + `Concertly ile müziği yaşa 🎵`;
+      + `📍 ${passport.uniqueCities} farklı şehir\n`
+      + (topArtist ? `⭐ En çok: ${topArtist}\n` : '')
+      + `\nConcertly ile müziği yaşa 🎵`;
     Share.share({ message: msg });
   };
 
   const yearGroups = useMemo(() => passport ? groupByYear(passport.events) : [], [passport]);
+  const earnedBadges = useMemo(() => (passport?.badges || []).filter(b => b.earned), [passport]);
+  const lockedBadges = useMemo(() => (passport?.badges || []).filter(b => !b.earned), [passport]);
 
   if (loading) return (
     <View style={[styles.container, styles.centered]}>
@@ -108,27 +138,158 @@ export default function ConcertPassportScreen({ navigation, route }) {
               <StatBox value={passport.uniqueCities}     label="Şehir"       emoji="📍" />
             </View>
 
-            {/* Yıl bar chart */}
-            {Object.keys(passport.concertsByYear || {}).length > 0 && (
-              <View style={styles.yearBars}>
-                {Object.entries(passport.concertsByYear)
-                  .sort(([a], [b]) => Number(a) - Number(b))
-                  .map(([year, count]) => {
-                    const maxCount = Math.max(...Object.values(passport.concertsByYear));
-                    const pct = maxCount > 0 ? (count / maxCount) : 0;
-                    return (
-                      <View key={year} style={styles.yearBarItem}>
-                        <Text style={styles.yearBarCount}>{count}</Text>
-                        <View style={styles.yearBarTrack}>
-                          <View style={[styles.yearBarFill, { height: `${Math.max(pct * 100, 8)}%` }]} />
-                        </View>
-                        <Text style={styles.yearBarLabel}>{year}</Text>
-                      </View>
-                    );
-                  })}
+            {/* Yıllık hedef */}
+            {isOwn && (
+              <View style={styles.goalWrap}>
+                <View style={styles.goalHeader}>
+                  <Text style={styles.goalLabel}>
+                    🎯 {new Date().getFullYear()} Hedefi
+                  </Text>
+                  <TouchableOpacity onPress={cycleGoal} style={styles.goalBtn}>
+                    <Text style={styles.goalBtnText}>{goal} konser ›</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.goalTrack}>
+                  <Animated.View
+                    style={[
+                      styles.goalFill,
+                      { width: goalAnim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }) },
+                    ]}
+                  />
+                </View>
+
+                <View style={styles.goalFooter}>
+                  <Text style={styles.goalProgress}>
+                    {thisYearCount} / {goal} konser
+                  </Text>
+                  <Text style={styles.goalPct}>
+                    %{Math.round(Math.min(thisYearCount / goal, 1) * 100)}
+                  </Text>
+                </View>
+
+                {thisYearCount >= goal && (
+                  <Text style={styles.goalDone}>🎉 Hedefe ulaştın!</Text>
+                )}
               </View>
             )}
           </LinearGradient>
+        )}
+
+        {/* ROZETLER */}
+        {passport?.badges?.length > 0 && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>🏅 Rozetler</Text>
+
+            {/* Kazanılmış */}
+            {earnedBadges.length > 0 && (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.badgeScroll}>
+                {earnedBadges.map(badge => (
+                  <View key={badge.code} style={styles.badgeCard}>
+                    <LinearGradient
+                      colors={['#E94560', '#7C3AED']}
+                      style={styles.badgeIconWrap}
+                      start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                    >
+                      <Text style={styles.badgeEmoji}>{badge.icon}</Text>
+                    </LinearGradient>
+                    <Text style={[styles.badgeName, { color: colors.text }]} numberOfLines={2}>
+                      {badge.name}
+                    </Text>
+                    <Text style={[styles.badgeDesc, { color: colors.textSecondary }]} numberOfLines={2}>
+                      {badge.description}
+                    </Text>
+                  </View>
+                ))}
+              </ScrollView>
+            )}
+
+            {/* Kilitli */}
+            {lockedBadges.length > 0 && (
+              <View style={styles.lockedRow}>
+                <Text style={[styles.lockedLabel, { color: colors.textSecondary }]}>Kilitli</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  {lockedBadges.map(badge => (
+                    <View key={badge.code} style={[styles.badgeCard, styles.badgeCardLocked]}>
+                      <View style={[styles.badgeIconWrap, { backgroundColor: colors.border }]}>
+                        <Text style={[styles.badgeEmoji, { opacity: 0.35 }]}>{badge.icon}</Text>
+                      </View>
+                      <Text style={[styles.badgeName, { color: colors.textSecondary }]} numberOfLines={2}>
+                        {badge.name}
+                      </Text>
+                      {badge.required > 0 && (
+                        <View style={styles.progressWrap}>
+                          <View style={[styles.progressTrack, { backgroundColor: colors.border }]}>
+                            <View style={[
+                              styles.progressFill,
+                              { width: `${Math.round((badge.progress / badge.required) * 100)}%` },
+                            ]} />
+                          </View>
+                          <Text style={[styles.progressText, { color: colors.textSecondary }]}>
+                            {badge.progress}/{badge.required}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* TOP SANATÇILAR */}
+        {passport?.topArtists?.length > 0 && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>🎤 En Çok Gittiğin Sanatçılar</Text>
+            {passport.topArtists.map((item, i) => {
+              const maxCount = passport.topArtists[0].count;
+              const pct = maxCount > 0 ? item.count / maxCount : 0;
+              return (
+                <View key={item.name} style={styles.topArtistRow}>
+                  <Text style={[styles.topArtistRank, { color: colors.textSecondary }]}>
+                    {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`}
+                  </Text>
+                  <View style={styles.topArtistInfo}>
+                    <View style={styles.topArtistNameRow}>
+                      <Text style={[styles.topArtistName, { color: colors.text }]}>{item.name}</Text>
+                      <Text style={[styles.topArtistCount, { color: colors.textSecondary }]}>
+                        {item.count} konser
+                      </Text>
+                    </View>
+                    <View style={[styles.topArtistTrack, { backgroundColor: colors.border }]}>
+                      <LinearGradient
+                        colors={['#E94560', '#7C3AED']}
+                        start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                        style={[styles.topArtistFill, { width: `${Math.round(pct * 100)}%` }]}
+                      />
+                    </View>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        )}
+
+        {/* TÜR DAĞILIMI */}
+        {passport?.topGenres?.length > 0 && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>🎵 Müzik Tadın</Text>
+            <View style={styles.genreChips}>
+              {passport.topGenres.map((item, i) => {
+                const color = genreColor(item.genre);
+                const sizes = [22, 18, 16, 14, 13];
+                return (
+                  <View key={item.genre} style={[styles.genreChip, { backgroundColor: color + '22', borderColor: color + '60' }]}>
+                    <Text style={[styles.genreChipText, { color, fontSize: sizes[i] || 13 }]}>
+                      {item.genre}
+                    </Text>
+                    <Text style={[styles.genreChipCount, { color }]}>×{item.count}</Text>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
         )}
 
         {/* BOŞ DURUM */}
@@ -154,24 +315,18 @@ export default function ConcertPassportScreen({ navigation, route }) {
               </Text>
             </View>
 
-            {events.map((ev, i) => (
+            {events.map((ev) => (
               <TouchableOpacity
                 key={ev.id}
                 style={[styles.eventCard, { backgroundColor: colors.card, borderColor: colors.border }]}
                 onPress={() => navigation.navigate('EventDetail', { event: ev })}
                 activeOpacity={0.85}
               >
-                {/* Sol renk çizgisi */}
                 <View style={[styles.eventAccent, { backgroundColor: genreColor(ev.genre) }]} />
 
-                {/* Görsel */}
                 <View style={styles.eventImgWrap}>
                   {ev.imageUrl ? (
-                    <Image
-                      source={{ uri: ev.imageUrl }}
-                      style={styles.eventImg}
-                      contentFit="cover"
-                    />
+                    <Image source={{ uri: ev.imageUrl }} style={styles.eventImg} contentFit="cover" />
                   ) : (
                     <LinearGradient
                       colors={[genreColor(ev.genre) + 'CC', genreColor(ev.genre) + '44']}
@@ -185,9 +340,13 @@ export default function ConcertPassportScreen({ navigation, route }) {
                       <Text style={styles.verifiedText}>✅</Text>
                     </View>
                   )}
+                  {passport?.bingoEventIds?.includes(ev.id) && (
+                    <View style={[styles.verifiedBadge, { bottom: -4, right: 18, backgroundColor: '#1a0a2e' }]}>
+                      <Text style={styles.verifiedText}>🎲</Text>
+                    </View>
+                  )}
                 </View>
 
-                {/* Bilgi */}
                 <View style={styles.eventInfo}>
                   <Text style={[styles.eventName, { color: colors.text }]} numberOfLines={2}>
                     {ev.name}
@@ -208,8 +367,8 @@ export default function ConcertPassportScreen({ navigation, route }) {
                     </Text>
                   </View>
                   {ev.genre && (
-                    <View style={[styles.genreChip, { backgroundColor: genreColor(ev.genre) + '22', borderColor: genreColor(ev.genre) + '60' }]}>
-                      <Text style={[styles.genreChipText, { color: genreColor(ev.genre) }]}>{ev.genre}</Text>
+                    <View style={[styles.genreChipSmall, { backgroundColor: genreColor(ev.genre) + '22', borderColor: genreColor(ev.genre) + '60' }]}>
+                      <Text style={[styles.genreChipSmallText, { color: genreColor(ev.genre) }]}>{ev.genre}</Text>
                     </View>
                   )}
                 </View>
@@ -230,11 +389,7 @@ function StatBox({ value, label, emoji }) {
   const [display, setDisplay] = useState(0);
 
   useEffect(() => {
-    Animated.timing(animVal, {
-      toValue: value,
-      duration: 900,
-      useNativeDriver: false,
-    }).start();
+    Animated.timing(animVal, { toValue: value, duration: 900, useNativeDriver: false }).start();
     const id = animVal.addListener(({ value: v }) => setDisplay(Math.round(v)));
     return () => animVal.removeListener(id);
   }, [value]);
@@ -275,20 +430,74 @@ function createStyles(colors) {
     },
     statsGrid: { flexDirection: 'row', marginBottom: 24 },
 
-    // YIL BAR CHART
-    yearBars: {
-      flexDirection: 'row', alignItems: 'flex-end',
-      height: 60, gap: 8, paddingTop: 8,
+    // HEDEF PROGRESS
+    goalWrap: { marginTop: 8 },
+    goalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+    goalLabel: { color: 'rgba(255,255,255,0.9)', fontSize: 13, fontWeight: '700' },
+    goalBtn: {
+      backgroundColor: 'rgba(255,255,255,0.15)',
+      paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10,
     },
-    yearBarItem: { flex: 1, alignItems: 'center', height: '100%', justifyContent: 'flex-end' },
-    yearBarCount: { fontSize: 10, color: 'rgba(255,255,255,0.8)', fontWeight: '700', marginBottom: 3 },
-    yearBarTrack: {
-      width: '100%', flex: 1, maxHeight: 40,
-      backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 4,
-      justifyContent: 'flex-end', overflow: 'hidden',
+    goalBtnText: { color: '#fff', fontSize: 12, fontWeight: '800' },
+    goalTrack: {
+      height: 10, borderRadius: 5,
+      backgroundColor: 'rgba(255,255,255,0.2)',
+      overflow: 'hidden',
     },
-    yearBarFill: { width: '100%', backgroundColor: 'rgba(255,255,255,0.7)', borderRadius: 4 },
-    yearBarLabel: { fontSize: 10, color: 'rgba(255,255,255,0.7)', marginTop: 4, fontWeight: '600' },
+    goalFill: {
+      height: '100%', borderRadius: 5,
+      backgroundColor: 'rgba(255,255,255,0.85)',
+    },
+    goalFooter: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 },
+    goalProgress: { color: 'rgba(255,255,255,0.8)', fontSize: 12, fontWeight: '600' },
+    goalPct: { color: 'rgba(255,255,255,0.8)', fontSize: 12, fontWeight: '800' },
+    goalDone: { color: '#fff', fontSize: 13, fontWeight: '900', textAlign: 'center', marginTop: 8 },
+
+    // BÖLÜM
+    section: { paddingHorizontal: 16, marginTop: 8, marginBottom: 4 },
+    sectionTitle: { fontSize: 16, fontWeight: '900', marginBottom: 14, letterSpacing: 0.3 },
+
+    // ROZETLER
+    badgeScroll: { marginBottom: 4 },
+    badgeCard: {
+      width: 110, marginRight: 12,
+      alignItems: 'center', paddingVertical: 12,
+    },
+    badgeCardLocked: { opacity: 0.7 },
+    badgeIconWrap: {
+      width: 64, height: 64, borderRadius: 32,
+      justifyContent: 'center', alignItems: 'center',
+      marginBottom: 8,
+    },
+    badgeEmoji: { fontSize: 30 },
+    badgeName: { fontSize: 12, fontWeight: '800', textAlign: 'center', marginBottom: 3 },
+    badgeDesc: { fontSize: 10, textAlign: 'center', lineHeight: 14 },
+    lockedRow: { marginTop: 8 },
+    lockedLabel: { fontSize: 11, fontWeight: '700', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 },
+    progressWrap: { width: '100%', alignItems: 'center', marginTop: 4 },
+    progressTrack: { width: '80%', height: 4, borderRadius: 2, overflow: 'hidden' },
+    progressFill: { height: '100%', backgroundColor: '#7C3AED', borderRadius: 2 },
+    progressText: { fontSize: 9, marginTop: 3, fontWeight: '700' },
+
+    // TOP SANATÇILAR
+    topArtistRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
+    topArtistRank: { width: 32, fontSize: 18, textAlign: 'center' },
+    topArtistInfo: { flex: 1 },
+    topArtistNameRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 },
+    topArtistName: { fontSize: 14, fontWeight: '800', flex: 1 },
+    topArtistCount: { fontSize: 12, fontWeight: '600' },
+    topArtistTrack: { height: 6, borderRadius: 3, overflow: 'hidden' },
+    topArtistFill: { height: '100%', borderRadius: 3 },
+
+    // TÜR DAĞILIMI
+    genreChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+    genreChip: {
+      flexDirection: 'row', alignItems: 'center', gap: 4,
+      paddingHorizontal: 14, paddingVertical: 8,
+      borderRadius: 20, borderWidth: 1,
+    },
+    genreChipText: { fontWeight: '900' },
+    genreChipCount: { fontSize: 11, fontWeight: '700', opacity: 0.75 },
 
     // BOŞ
     emptyState: { alignItems: 'center', paddingVertical: 60, paddingHorizontal: 32 },
@@ -331,11 +540,11 @@ function createStyles(colors) {
     eventMeta: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 6 },
     eventCity: { fontSize: 11 },
     eventDate: { fontSize: 11 },
-    genreChip: {
+    genreChipSmall: {
       alignSelf: 'flex-start', borderWidth: 1, borderRadius: 8,
       paddingHorizontal: 7, paddingVertical: 2,
     },
-    genreChipText: { fontSize: 10, fontWeight: '700' },
+    genreChipSmallText: { fontSize: 10, fontWeight: '700' },
     chevron: { fontSize: 22, paddingRight: 12 },
   });
 }

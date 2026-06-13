@@ -22,7 +22,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.concertly.backend.exception.ResourceNotFoundException;
 import java.time.LocalDateTime;
+import java.util.Random;
 
 @Service
 public class AuthService {
@@ -175,5 +177,41 @@ public class AuthService {
         response.setFavoriteGenres(saved.getFavoriteGenres());
         response.setOnboardingCompleted(saved.getOnboardingCompleted());
         return response;
+    }
+
+    @Transactional
+    public void forgotPassword(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Bu e-posta kayıtlı değil"));
+
+        String token = String.format("%06d", new Random().nextInt(1_000_000));
+        user.setResetToken(token);
+        user.setResetTokenExpiry(LocalDateTime.now().plusMinutes(30));
+        userRepository.save(user);
+
+        // Gerçek ortamda e-posta gönder; şimdilik konsola yaz
+        System.out.println("===== ŞİFRE SIFIRLAMA KODU =====");
+        System.out.println("Kullanıcı: " + email);
+        System.out.println("Kod: " + token);
+        System.out.println("================================");
+    }
+
+    @Transactional
+    public void resetPassword(String email, String token, String newPassword) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Kullanıcı bulunamadı"));
+
+        if (user.getResetToken() == null
+                || !user.getResetToken().equals(token)
+                || user.getResetTokenExpiry() == null
+                || user.getResetTokenExpiry().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Kod geçersiz veya süresi dolmuş");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setResetToken(null);
+        user.setResetTokenExpiry(null);
+        user.setUpdatedAt(LocalDateTime.now());
+        userRepository.save(user);
     }
 }

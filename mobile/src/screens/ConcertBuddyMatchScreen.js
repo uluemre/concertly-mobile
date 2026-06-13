@@ -79,6 +79,7 @@ function MatchOverlay({ matchedUser, onClose, navigation, t }) {
               userId: matchedUser.userId,
               username: matchedUser.username,
               profileImageUrl: matchedUser.profileImageUrl,
+              sharedEventName: matchedUser.sharedEvents?.[0]?.name ?? null,
             });
           }}
           activeOpacity={0.85}
@@ -455,6 +456,7 @@ export default function ConcertBuddyMatchScreen({ navigation }) {
                     userId: m.userId,
                     username: m.username,
                     profileImageUrl: m.profileImageUrl,
+                    sharedEventName: m.sharedEvents?.[0]?.name ?? null,
                   })}
                   activeOpacity={0.85}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}

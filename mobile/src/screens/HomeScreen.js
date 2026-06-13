@@ -35,6 +35,7 @@ export default function HomeScreen({ navigation }) {
   const [cityModalVisible, setCityModalVisible] = useState(false);
   const [searchModalVisible, setSearchModalVisible] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const [daily, setDaily] = useState(null);
 
   const headerAnim = useRef(new Animated.Value(-20)).current;
   const headerOpacity = useRef(new Animated.Value(0)).current;
@@ -43,6 +44,11 @@ export default function HomeScreen({ navigation }) {
   useEffect(() => {
     return () => { isMounted.current = false; };
   }, []);
+
+  // Günlük şarkı durumu — ekran odaktayken güncelle
+  useFocusEffect(useCallback(() => {
+    API.get('/daily-song/today').then(res => setDaily(res.data)).catch(() => {});
+  }, []));
 
   // Okunmamış mesaj sayısı — ekran odaktayken periyodik tazelenir
   useFocusEffect(useCallback(() => {
@@ -173,6 +179,46 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.searchPlaceholder}>{t('home_search_placeholder')}</Text>
           </TouchableOpacity>
         </LinearGradient>
+
+        {/* GÜNLÜK ŞARKI WIDGET */}
+        <TouchableOpacity
+          onPress={() => navigation.navigate('DailySong')}
+          activeOpacity={0.85}
+          style={styles.dailyWidget}
+        >
+          <LinearGradient
+            colors={daily?.finished
+              ? (daily?.solved ? ['#00897B', '#00D4AA'] : ['#7f1d1d', '#E94560'])
+              : ['#1a0a2e', '#2d1b69']}
+            style={styles.dailyWidgetGrad}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+          >
+            <View style={styles.dailyLeft}>
+              <Text style={styles.dailyEmoji}>
+                {daily?.finished ? (daily?.solved ? '✅' : '❌') : '🎵'}
+              </Text>
+              <View>
+                <Text style={styles.dailyLabel}>{t('menu_daily_song')}</Text>
+                <Text style={styles.dailyStatus}>
+                  {!daily && t('games_daily_waiting')}
+                  {daily?.finished && daily?.solved && t('games_daily_done')}
+                  {daily?.finished && !daily?.solved && t('games_daily_missed')}
+                  {daily && !daily.finished && t('games_daily_waiting')}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.dailyRight}>
+              {daily?.streak > 0 && (
+                <View style={styles.dailyStreak}>
+                  <Text style={styles.dailyStreakText}>🔥 {daily.streak}</Text>
+                </View>
+              )}
+              {!daily?.finished && (
+                <Text style={styles.dailyPlayBtn}>{t('bingo_start') ? '▶ Oyna' : '▶ Oyna'}</Text>
+              )}
+            </View>
+          </LinearGradient>
+        </TouchableOpacity>
 
         {/* ÖNE ÇIKANLAR */}
         <View style={styles.section}>
@@ -313,6 +359,16 @@ function createStyles(colors) {
     featuredList: { paddingRight: 20, gap: 14, paddingBottom: 4 },
     moreBtn: { marginTop: 4, paddingVertical: 14, borderRadius: 14, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, alignItems: 'center' },
     moreBtnText: { color: colors.textSecondary, fontSize: 13, fontWeight: '700' },
+    dailyWidget: { marginHorizontal: 16, marginTop: 12, marginBottom: 4, borderRadius: 16, overflow: 'hidden' },
+    dailyWidgetGrad: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14 },
+    dailyLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+    dailyEmoji: { fontSize: 28 },
+    dailyLabel: { color: '#fff', fontSize: 14, fontWeight: '800' },
+    dailyStatus: { color: 'rgba(255,255,255,0.75)', fontSize: 12, marginTop: 2 },
+    dailyRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    dailyStreak: { backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
+    dailyStreakText: { color: '#fff', fontSize: 13, fontWeight: '800' },
+    dailyPlayBtn: { color: '#fff', fontSize: 13, fontWeight: '800', backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
     emptyState: { alignItems: 'center', paddingVertical: 36 },
     emptyEmoji: { fontSize: 44, marginBottom: 10 },
     emptyText: { color: colors.textSecondary, fontSize: 14 },

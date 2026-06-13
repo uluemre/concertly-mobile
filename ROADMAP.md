@@ -34,6 +34,23 @@
 - [x] Oyunlar için demo verisi (backend/seeds/seed_games_data.sql)
 - [x] TR/EN çoklu dil desteği (tüm ekranlar)
 
+## 🔧 QA Düzeltmeleri (13 Haziran 2026)
+
+### ✅ Tamamlananlar
+- [x] API timeout & network hata mesajları (`getErrorMessage` helper)
+- [x] Login → Welcome ekranı kaldırıldı, direkt MainApp'e yönlendirme
+- [x] Daily Song widget — ana sayfanın üstüne eklendi (streak + durum + oyna butonu)
+- [x] CommunitiesScreen filtre listesi i18n'e taşındı (TR/EN)
+- [x] Chat polling AppState kontrolüne alındı (arka planda durduruluyor)
+- [x] Concert Buddy chat'ine ortak etkinlik bağlamı eklendi (header'da görünüyor)
+- [x] Şifre sıfırlama — backend (forgot-password + reset-password endpoint) + mobile (2 ekran + login linki)
+
+### 📋 Sıradaki QA Görevleri
+- [ ] Push notification (EAS development build + FCM) — en kritik DAU sorunu
+- [ ] Feed tekrarı çözümü — Home önizleme / Feed tam liste ayrımı
+- [ ] Map lazy load — viewport bazlı etkinlik yükleme
+- [ ] Şifre sıfırlama gerçek e-posta gönderimi (JavaMailSender + SMTP)
+
 ## 📋 Planlananlar
 
 ### Sosyal / İçerik

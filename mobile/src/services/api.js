@@ -93,7 +93,10 @@ API.interceptors.response.use(
     const originalRequest = error.config;
     const status = error.response?.status;
 
-    if (error.code === 'ERR_NETWORK') {
+    if (error.code === 'ECONNABORTED') {
+      error.userMessage = 'İstek zaman aşımına uğradı. Bağlantını kontrol et.';
+    } else if (error.code === 'ERR_NETWORK') {
+      error.userMessage = 'Sunucuya ulaşılamıyor. İnternet bağlantını kontrol et.';
       console.error('Ağ hatası: Backend çalışmıyor veya IP yanlış. URL:', BASE_URL);
     }
 
@@ -148,6 +151,12 @@ API.interceptors.response.use(
 
 export function getApiUrl() {
   return BASE_URL;
+}
+
+export function getErrorMessage(error, fallback = 'Bir hata oluştu. Lütfen tekrar dene.') {
+  if (error?.userMessage) return error.userMessage;
+  if (error?.response?.data?.message) return error.response.data.message;
+  return fallback;
 }
 
 /**

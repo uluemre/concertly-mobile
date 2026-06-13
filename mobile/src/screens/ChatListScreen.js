@@ -1,7 +1,7 @@
-import React, { useState, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, FlatList,
-  ActivityIndicator, RefreshControl, Image,
+  ActivityIndicator, RefreshControl, Image, AppState,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
@@ -41,8 +41,18 @@ export default function ChatListScreen({ navigation }) {
 
   useFocusEffect(useCallback(() => {
     fetchConversations();
-    pollRef.current = setInterval(fetchConversations, 8000);
-    return () => clearInterval(pollRef.current);
+    const startPolling = () => {
+      clearInterval(pollRef.current);
+      if (AppState.currentState === 'active') {
+        pollRef.current = setInterval(fetchConversations, 8000);
+      }
+    };
+    startPolling();
+    const sub = AppState.addEventListener('change', state => {
+      if (state === 'active') startPolling();
+      else clearInterval(pollRef.current);
+    });
+    return () => { clearInterval(pollRef.current); sub.remove(); };
   }, [fetchConversations]));
 
   const openChat = (c) => {

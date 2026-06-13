@@ -11,6 +11,8 @@ import com.concertly.backend.service.AuthService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -52,5 +54,17 @@ public class AuthController {
     public UserResponse saveOnboardingPreferences(@RequestBody OnboardingRequest request) {
         Long userId = JwtUtil.getCurrentUserId();
         return authService.saveOnboardingPreferences(userId, request);
+    }
+
+    @PostMapping("/forgot-password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void forgotPassword(@RequestBody Map<String, String> body) {
+        authService.forgotPassword(body.get("email"));
+    }
+
+    @PostMapping("/reset-password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void resetPassword(@RequestBody Map<String, String> body) {
+        authService.resetPassword(body.get("email"), body.get("token"), body.get("newPassword"));
     }
 }

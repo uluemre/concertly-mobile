@@ -1,9 +1,12 @@
 package com.concertly.backend.service;
 
 import com.concertly.backend.dto.request.UpdateProfileRequest;
+import com.concertly.backend.dto.response.BadgeResponse;
 import com.concertly.backend.dto.response.EventResponse;
 import com.concertly.backend.dto.response.PassportResponse;
 import com.concertly.backend.dto.response.PassportResponse.PassportEventDto;
+import com.concertly.backend.dto.response.PassportResponse.TopArtistDto;
+import com.concertly.backend.dto.response.PassportResponse.TopGenreDto;
 import com.concertly.backend.dto.response.PostResponse;
 import com.concertly.backend.dto.response.UserResponse;
 import com.concertly.backend.exception.ResourceNotFoundException;
@@ -12,6 +15,7 @@ import com.concertly.backend.model.Event;
 import com.concertly.backend.model.EventAttendance;
 import com.concertly.backend.model.Post;
 import com.concertly.backend.model.User;
+import com.concertly.backend.repository.BingoCardRepository;
 import com.concertly.backend.repository.CommentRepository;
 import com.concertly.backend.repository.EventAttendanceRepository;
 import com.concertly.backend.repository.EventVerificationRepository;
@@ -37,19 +41,25 @@ public class UserService {
     private final CommentRepository commentRepository;
     private final EventAttendanceRepository attendanceRepository;
     private final EventVerificationRepository verificationRepository;
+    private final BingoCardRepository bingoCardRepository;
+    private final BadgeService badgeService;
 
     public UserService(UserRepository userRepository,
             PostRepository postRepository,
             LikeRepository likeRepository,
             CommentRepository commentRepository,
             EventAttendanceRepository attendanceRepository,
-            EventVerificationRepository verificationRepository) {
+            EventVerificationRepository verificationRepository,
+            BingoCardRepository bingoCardRepository,
+            BadgeService badgeService) {
         this.userRepository       = userRepository;
         this.postRepository       = postRepository;
         this.likeRepository       = likeRepository;
         this.commentRepository    = commentRepository;
         this.attendanceRepository = attendanceRepository;
         this.verificationRepository = verificationRepository;
+        this.bingoCardRepository  = bingoCardRepository;
+        this.badgeService         = badgeService;
     }
 
     // 🔥 CORE METHOD (eksik olan buydu)
@@ -196,7 +206,37 @@ public class UserService {
                 })
                 .toList();
 
+        Set<Long> bingoEventIds = bingoCardRepository.findByUserIdOrderByCreatedAtDesc(userId)
+                .stream()
+                .filter(c -> c.isHasBingo() && c.getEventId() != null)
+                .map(c -> c.getEventId())
+                .collect(Collectors.toSet());
+
+        // Top sanatçılar (en çok gidilen, max 5)
+        List<TopArtistDto> topArtists = goingAttendances.stream()
+                .filter(a -> a.getEvent().getArtist() != null && a.getEvent().getArtist().getName() != null)
+                .collect(Collectors.groupingBy(a -> a.getEvent().getArtist().getName(), Collectors.counting()))
+                .entrySet().stream()
+                .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+                .limit(5)
+                .map(e -> new TopArtistDto(e.getKey(), e.getValue().intValue()))
+                .toList();
+
+        // Tür dağılımı (max 5)
+        List<TopGenreDto> topGenres = goingAttendances.stream()
+                .filter(a -> a.getEvent().getGenre() != null && !a.getEvent().getGenre().isBlank())
+                .collect(Collectors.groupingBy(a -> a.getEvent().getGenre(), Collectors.counting()))
+                .entrySet().stream()
+                .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+                .limit(5)
+                .map(e -> new TopGenreDto(e.getKey(), e.getValue().intValue()))
+                .toList();
+
+        // Rozetler (kazanılmış + kilitli + ilerleme)
+        List<BadgeResponse> badges = badgeService.getAllBadgesWithStatus(userId);
+
         return new PassportResponse(totalConcerts, verifiedConcerts,
-                artistNames.size(), cities.size(), byYear, events);
+                artistNames.size(), cities.size(), byYear, events, bingoEventIds,
+                badges, topArtists, topGenres);
     }
 }

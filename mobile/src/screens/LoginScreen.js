@@ -70,7 +70,7 @@ export default function LoginScreen({ navigation }) {
       if (res.data.isAdmin) {
         navigation.replace('Admin');
       } else {
-        navigation.replace('Welcome', { username: res.data.username });
+        navigation.replace('MainApp');
       }
     } catch (err) {
       Alert.alert(t('error'), t('login_error'));
@@ -138,6 +138,15 @@ export default function LoginScreen({ navigation }) {
               </LinearGradient>
             </TouchableOpacity>
           )}
+
+          <TouchableOpacity
+            onPress={() => navigation.navigate('ForgotPassword')}
+            style={styles.linkArea}
+          >
+            <Text style={[styles.link, { textAlign: 'center' }]}>
+              <Text style={styles.linkBold}>{t('forgot_link')}</Text>
+            </Text>
+          </TouchableOpacity>
 
           <TouchableOpacity
             onPress={() => navigation.navigate('Register')}

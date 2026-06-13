@@ -10,14 +10,22 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
 
-const filters = ['Tümü', 'Rock', 'Festival', 'Elektronik', 'Şehir', 'Caz'];
+// key: i18n key, apiValue: backend'e gönderilecek değer (null = hepsi)
+const FILTERS = [
+  { key: 'all',        labelKey: 'community_filter_all',        apiValue: null },
+  { key: 'Rock',       labelKey: 'community_filter_rock',       apiValue: 'Rock' },
+  { key: 'Festival',   labelKey: 'community_filter_festival',   apiValue: 'Festival' },
+  { key: 'Elektronik', labelKey: 'community_filter_electronic', apiValue: 'Elektronik' },
+  { key: 'Şehir',      labelKey: 'community_filter_city',       apiValue: 'Şehir' },
+  { key: 'Caz',        labelKey: 'community_filter_jazz',       apiValue: 'Caz' },
+];
 
 export default function CommunitiesScreen({ navigation }) {
   const { colors } = useTheme();
   const { session } = useAuth();
   const { t } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const [activeFilter, setActiveFilter] = useState('Tümü');
+  const [activeFilter, setActiveFilter] = useState('all');
   const [query, setQuery] = useState('');
   const [communities, setCommunities] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -27,7 +35,9 @@ export default function CommunitiesScreen({ navigation }) {
     try {
       setLoading(true);
       const favGenres = session.favoriteGenres;
-      const hasFilters = (type && type !== 'Tümü') || (q && q.trim());
+      const filterDef = FILTERS.find(f => f.key === type);
+      const apiValue = filterDef?.apiValue ?? null;
+      const hasFilters = apiValue || (q && q.trim());
 
       let res;
       if (favGenres && !hasFilters) {
@@ -35,7 +45,7 @@ export default function CommunitiesScreen({ navigation }) {
         res = await API.get(`/communities/recommended?genres=${encodeURIComponent(favGenres)}`);
       } else {
         const params = {};
-        if (type && type !== 'Tümü') params.type = type;
+        if (apiValue) params.type = apiValue;
         if (q && q.trim()) params.q = q.trim();
         res = await API.get('/communities', { params });
       }
@@ -122,14 +132,14 @@ export default function CommunitiesScreen({ navigation }) {
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
-        {filters.map(filter => (
+        {FILTERS.map(filter => (
           <TouchableOpacity
-            key={filter}
-            onPress={() => setActiveFilter(filter)}
-            style={[styles.filterChip, activeFilter === filter && styles.filterChipActive]}
+            key={filter.key}
+            onPress={() => setActiveFilter(filter.key)}
+            style={[styles.filterChip, activeFilter === filter.key && styles.filterChipActive]}
           >
-            <Text style={[styles.filterText, activeFilter === filter && styles.filterTextActive]}>
-              {filter}
+            <Text style={[styles.filterText, activeFilter === filter.key && styles.filterTextActive]}>
+              {t(filter.labelKey)}
             </Text>
           </TouchableOpacity>
         ))}

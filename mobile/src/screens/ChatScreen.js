@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, FlatList, TextInput,
-  ActivityIndicator, KeyboardAvoidingView, Platform, Image, Alert,
+  ActivityIndicator, KeyboardAvoidingView, Platform, Image, Alert, AppState,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
@@ -18,7 +18,7 @@ function formatClock(dateStr, lang) {
 }
 
 export default function ChatScreen({ navigation, route }) {
-  const { userId, username, profileImageUrl } = route.params;
+  const { userId, username, profileImageUrl, sharedEventName } = route.params;
   const { colors } = useTheme();
   const { session } = useAuth();
   const { t, lang } = useLanguage();
@@ -43,8 +43,18 @@ export default function ChatScreen({ navigation, route }) {
 
   useFocusEffect(useCallback(() => {
     fetchMessages();
-    pollRef.current = setInterval(fetchMessages, 4000);
-    return () => clearInterval(pollRef.current);
+    const startPolling = () => {
+      clearInterval(pollRef.current);
+      if (AppState.currentState === 'active') {
+        pollRef.current = setInterval(fetchMessages, 4000);
+      }
+    };
+    startPolling();
+    const sub = AppState.addEventListener('change', state => {
+      if (state === 'active') startPolling();
+      else clearInterval(pollRef.current);
+    });
+    return () => { clearInterval(pollRef.current); sub.remove(); };
   }, [fetchMessages]));
 
   const handleSend = async () => {
@@ -113,7 +123,14 @@ export default function ChatScreen({ navigation, route }) {
               <Text style={styles.headerAvatarText}>{username?.charAt(0).toUpperCase()}</Text>
             )}
           </LinearGradient>
-          <Text style={[styles.headerUsername, { color: colors.text }]}>@{username}</Text>
+          <View>
+            <Text style={[styles.headerUsername, { color: colors.text }]}>@{username}</Text>
+            {sharedEventName && (
+              <Text style={[styles.headerEvent, { color: colors.textSecondary }]} numberOfLines={1}>
+                🎪 {sharedEventName}
+              </Text>
+            )}
+          </View>
         </TouchableOpacity>
       </LinearGradient>
 
@@ -185,6 +202,7 @@ function createStyles(colors) {
     headerAvatarImg: { width: 40, height: 40, borderRadius: 20 },
     headerAvatarText: { color: '#fff', fontSize: 16, fontWeight: '900' },
     headerUsername: { fontSize: 17, fontWeight: '800' },
+    headerEvent: { fontSize: 11, marginTop: 1 },
 
     bubbleRow: { marginBottom: 10, flexDirection: 'row' },
     bubbleRowMine: { justifyContent: 'flex-end' },
