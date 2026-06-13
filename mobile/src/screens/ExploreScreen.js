@@ -15,7 +15,6 @@ const MENU_ITEM_DEFS = [
   { id: 1, titleKey: 'menu_communities',   subKey: 'menu_communities_sub',   emoji: '👥', gradient: ['#00D4AA', '#7C3AED'], screen: 'Communities',       available: true  },
   { id: 2, titleKey: 'menu_events_item',   subKey: 'menu_events_item_sub',   emoji: '🎵', gradient: ['#E94560', '#7C3AED'], screen: 'Events',            available: true  },
   { id: 3, titleKey: 'menu_feed_item',     subKey: 'menu_feed_item_sub',     emoji: '🔥', gradient: ['#F5A623', '#E94560'], screen: 'FeedTab',           available: true  },
-  { id: 6, titleKey: 'menu_music_profile', subKey: 'menu_music_profile_sub', emoji: '✨', gradient: ['#7C3AED', '#E94560'], screen: 'MusicProfile',      available: true  },
   { id: 7, titleKey: 'menu_map_item',      subKey: 'menu_map_item_sub',      emoji: '🗺️', gradient: ['#00D4AA', '#00A8FF'], screen: 'Map',               available: true  },
   { id: 4, titleKey: 'menu_buddy_item',    subKey: 'menu_buddy_item_sub',    emoji: '🎸', gradient: ['#E94560', '#F5A623'], screen: 'ConcertBuddyMatch', available: true  },
   { id: 9, titleKey: 'menu_games',         subKey: 'menu_games_sub',         emoji: '🎮', gradient: ['#7C3AED', '#EC4899'], screen: 'Games',             available: true  },
@@ -218,7 +217,7 @@ export default function ExploreScreen({ navigation }) {
             navigation={navigation}
             styles={styles}
             colors={colors}
-            isSetupCard={item.id === 6 && !hasMusicProfile}
+            isSetupCard={item.id === 10 && !hasMusicProfile}
           />
         ))}
       </View>

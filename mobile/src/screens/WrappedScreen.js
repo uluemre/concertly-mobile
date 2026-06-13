@@ -220,6 +220,13 @@ export default function WrappedScreen({ navigation }) {
                 <Text style={styles.passportBtnText}>{t('wrapped_open_passport')}</Text>
               </LinearGradient>
             </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('MusicProfile')}
+              activeOpacity={0.8}
+              style={[styles.prefsBtn, { borderColor: colors.border }]}
+            >
+              <Text style={[styles.prefsBtnText, { color: colors.textSecondary }]}>{t('wrapped_edit_prefs')}</Text>
+            </TouchableOpacity>
           </FadeIn>
         </>
       ) : (
@@ -240,6 +247,13 @@ export default function WrappedScreen({ navigation }) {
               >
                 <Text style={styles.passportBtnText}>{t('wrapped_browse_events')}</Text>
               </LinearGradient>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('MusicProfile')}
+              activeOpacity={0.8}
+              style={[styles.prefsBtn, { borderColor: colors.border }]}
+            >
+              <Text style={[styles.prefsBtnText, { color: colors.textSecondary }]}>{t('wrapped_edit_prefs')}</Text>
             </TouchableOpacity>
           </View>
         </FadeIn>
@@ -293,6 +307,11 @@ function createStyles(colors) {
     passportBtnWrap: { marginHorizontal: 16, marginTop: 20 },
     passportBtn: { paddingVertical: 15, paddingHorizontal: 28, borderRadius: 16, alignItems: 'center' },
     passportBtnText: { color: '#fff', fontSize: 15, fontWeight: '800' },
+    prefsBtn: {
+      marginTop: 10, paddingVertical: 13, paddingHorizontal: 24, borderRadius: 16,
+      alignItems: 'center', borderWidth: 1,
+    },
+    prefsBtnText: { fontSize: 13, fontWeight: '700' },
 
     emptyWrap: { alignItems: 'center', paddingHorizontal: 32, paddingTop: 40, gap: 12 },
     emptyEmoji: { fontSize: 56 },
