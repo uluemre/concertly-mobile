@@ -197,6 +197,7 @@ public class UserService {
                             e.getId(),
                             e.getName(),
                             e.getEventDate().format(fmt),
+                            e.getArtist() != null ? e.getArtist().getId() : null,
                             e.getArtist() != null ? e.getArtist().getName() : null,
                             e.getVenue() != null ? e.getVenue().getCity() : null,
                             img,

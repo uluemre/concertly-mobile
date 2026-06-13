@@ -270,17 +270,18 @@ export default function HomeScreen({ navigation }) {
             <View style={styles.emptyState}>
               <Text style={styles.emptyEmoji}>📭</Text>
               <Text style={styles.emptyText}>{t('home_no_posts')}</Text>
+              <TouchableOpacity style={styles.moreBtn} onPress={() => navigation.navigate('FeedTab')}>
+                <Text style={styles.moreBtnText}>{t('home_see_all_posts')}</Text>
+              </TouchableOpacity>
             </View>
           ) : (
             <>
               {filteredPosts.slice(0, 4).map((item, index) => (
                 <HomePostCard key={`post-${item.id}`} item={item} index={index} navigation={navigation} />
               ))}
-              {filteredPosts.length > 4 && (
-                <TouchableOpacity style={styles.moreBtn} onPress={() => navigation.navigate('FeedTab')}>
-                  <Text style={styles.moreBtnText}>{t('home_see_all_posts')}</Text>
-                </TouchableOpacity>
-              )}
+              <TouchableOpacity style={styles.moreBtn} onPress={() => navigation.navigate('FeedTab')}>
+                <Text style={styles.moreBtnText}>{t('home_see_all_posts')}</Text>
+              </TouchableOpacity>
             </>
           )}
         </View>

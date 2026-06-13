@@ -44,6 +44,10 @@ public class EventResponse {
     private Long createdByUserId;
     private String createdByUsername;
 
+    // Konser puanı (opsiyonel — past-events endpoint'inde doldurulur)
+    private Double avgRating;
+    private Integer reviewCount;
+
     public static EventResponse from(Event event) {
         EventResponse dto = new EventResponse();
 
@@ -196,4 +200,10 @@ public class EventResponse {
     public String getCreatedByUsername() {
         return createdByUsername;
     }
+
+    public Double getAvgRating() { return avgRating; }
+    public Integer getReviewCount() { return reviewCount; }
+
+    public void setAvgRating(Double avgRating) { this.avgRating = avgRating; }
+    public void setReviewCount(Integer reviewCount) { this.reviewCount = reviewCount; }
 }

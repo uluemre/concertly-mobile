@@ -90,6 +90,7 @@ export default function EventsScreen({ navigation }) {
   const [selectedCity, setSelectedCity] = useState(session.userCity || null);
   const [selectedGenre, setSelectedGenre] = useState(null);
   const [sortKey, setSortKey] = useState('date_asc');
+  const [showPast, setShowPast] = useState(false);
   const [cityModalVisible, setCityModalVisible] = useState(false);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [startDate, setStartDate] = useState('');
@@ -129,7 +130,14 @@ export default function EventsScreen({ navigation }) {
 
   const filtered = useMemo(() => {
     const today = new Date(); today.setHours(0, 0, 0, 0);
-    let list = events.filter(e => new Date(e.eventDate) >= today);
+    let list = events.filter(e =>
+      showPast ? new Date(e.eventDate) < today : new Date(e.eventDate) >= today
+    );
+
+    // Geçmişte varsayılan sıra: en yeni önce
+    if (showPast && sortKey === 'date_asc') {
+      list = [...list].sort((a, b) => new Date(b.eventDate) - new Date(a.eventDate));
+    }
 
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -239,6 +247,28 @@ export default function EventsScreen({ navigation }) {
               <Text style={{ color: colors.textSecondary, fontSize: 15 }}>✕</Text>
             </TouchableOpacity>
           )}
+        </View>
+
+        {/* YAKLAŞAN / GEÇMİŞ TOGGLE */}
+        <View style={styles.toggleRow}>
+          <TouchableOpacity
+            onPress={() => setShowPast(false)}
+            style={[styles.togglePill, !showPast && { backgroundColor: colors.primary }]}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.toggleText, { color: !showPast ? '#fff' : colors.textSecondary }]}>
+              🗓 Yaklaşan
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setShowPast(true)}
+            style={[styles.togglePill, showPast && { backgroundColor: colors.primary }]}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.toggleText, { color: showPast ? '#fff' : colors.textSecondary }]}>
+              🕐 Geçmiş
+            </Text>
+          </TouchableOpacity>
         </View>
       </LinearGradient>
 
@@ -388,6 +418,13 @@ function createStyles(colors) {
     searchBar: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 11, gap: 8 },
     searchIcon: { fontSize: 17 },
     searchInput: { flex: 1, fontSize: 14 },
+
+    toggleRow: { flexDirection: 'row', gap: 8, marginTop: 10 },
+    togglePill: {
+      paddingHorizontal: 16, paddingVertical: 7, borderRadius: 20,
+      backgroundColor: 'rgba(255,255,255,0.1)',
+    },
+    toggleText: { fontSize: 13, fontWeight: '700' },
 
     filterSectionLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 1.2, marginBottom: 10 },
     filterChipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

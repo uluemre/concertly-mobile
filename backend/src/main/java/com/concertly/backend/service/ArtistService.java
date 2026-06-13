@@ -12,6 +12,7 @@ import com.concertly.backend.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -25,6 +26,7 @@ public class ArtistService {
     private final LikeRepository         likeRepository;
     private final CommentRepository      commentRepository;
     private final SpotifyService         spotifyService;
+    private final EventReviewRepository  eventReviewRepository;
 
     public ArtistService(ArtistRepository artistRepository,
                          ArtistFollowRepository artistFollowRepository,
@@ -33,7 +35,8 @@ public class ArtistService {
                          PostRepository postRepository,
                          LikeRepository likeRepository,
                          CommentRepository commentRepository,
-                         SpotifyService spotifyService) {
+                         SpotifyService spotifyService,
+                         EventReviewRepository eventReviewRepository) {
         this.artistRepository       = artistRepository;
         this.artistFollowRepository = artistFollowRepository;
         this.userRepository         = userRepository;
@@ -42,6 +45,7 @@ public class ArtistService {
         this.likeRepository         = likeRepository;
         this.commentRepository      = commentRepository;
         this.spotifyService         = spotifyService;
+        this.eventReviewRepository  = eventReviewRepository;
     }
 
     // ✅ SANATÇI PROFİLİ
@@ -180,6 +184,26 @@ public class ArtistService {
         artistRepository.saveAll(all);
         System.out.println("📊 " + enriched + " zenginlestirildi, " + skipped + " zaten tamdi");
         return enriched;
+    }
+
+    // ✅ GEÇMİŞ ETKİNLİKLER (puan dahil)
+    public List<EventResponse> getArtistPastEvents(Long artistId) {
+        if (!artistRepository.existsById(artistId)) {
+            throw new ResourceNotFoundException("Sanatçı bulunamadı: " + artistId);
+        }
+        return eventRepository.findByArtistIdOrderByEventDateDesc(artistId)
+                .stream()
+                .filter(e -> e.getEventDate().isBefore(LocalDateTime.now()))
+                .map(e -> {
+                    EventResponse dto = EventResponse.from(e);
+                    int count = eventReviewRepository.countByEventId(e.getId());
+                    if (count > 0) {
+                        dto.setAvgRating(eventReviewRepository.findAvgRatingByEventId(e.getId()));
+                        dto.setReviewCount(count);
+                    }
+                    return dto;
+                })
+                .toList();
     }
 
     // ✅ TAKİBİ BIRAK

@@ -65,6 +65,8 @@ export default function EventDetailScreen({ route, navigation }) {
   const { t } = useLanguage();
   const { event } = route.params;
   const confettiRef = useRef(null);
+  const scrollViewRef = useRef(null);
+  const reviewsOffsetY = useRef(0);
 
   // Attendance button scale animations
   const goingScale      = useRef(new Animated.Value(1)).current;
@@ -368,7 +370,7 @@ export default function EventDetailScreen({ route, navigation }) {
 
   return (
     <>
-    <ScrollView style={styles.container}>
+    <ScrollView ref={scrollViewRef} style={styles.container}>
       {/* HERO */}
       {(event.imageUrl || event.artistImageUrl) && !imageError ? (
         <View>
@@ -767,6 +769,20 @@ export default function EventDetailScreen({ route, navigation }) {
           </TouchableOpacity>
         )}
 
+        {/* YORUM PILL — geçmiş etkinliklerde scroll kısayolu */}
+        {isExpired && (
+          <TouchableOpacity
+            style={styles.reviewPill}
+            onPress={() => scrollViewRef.current?.scrollTo({ y: reviewsOffsetY.current, animated: true })}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.reviewPillText}>
+              ⭐ {reviews.length > 0 ? `${reviews.length} yorum · ${avgRating} puan` : 'Değerlendir'}
+            </Text>
+            <Text style={styles.reviewPillChevron}>↓</Text>
+          </TouchableOpacity>
+        )}
+
         {/* POST AT BUTONU */}
         {!isExpired && (
           verifying ? (
@@ -792,7 +808,10 @@ export default function EventDetailScreen({ route, navigation }) {
 
         {/* ── DEĞERLENDİRMELER (sadece geçmiş etkinlikler) ── */}
         {isExpired && (
-          <View style={styles.reviewSection}>
+          <View
+            style={styles.reviewSection}
+            onLayout={e => { reviewsOffsetY.current = e.nativeEvent.layout.y; }}
+          >
             {/* Özet */}
             <View style={styles.reviewHeader}>
               <Text style={styles.sectionTitle}>{t('review_title')}</Text>
@@ -1211,6 +1230,15 @@ function createStyles(colors) {
       borderWidth: 1.5, borderColor: colors.border,
     },
     calendarButtonText: { color: colors.text, fontSize: 15, fontWeight: '700' },
+
+    reviewPill: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      backgroundColor: '#F5A62322', borderWidth: 1.5, borderColor: '#F5A62366',
+      borderRadius: 20, paddingHorizontal: 18, paddingVertical: 13,
+      marginTop: 12,
+    },
+    reviewPillText: { color: '#F5A623', fontSize: 15, fontWeight: '800' },
+    reviewPillChevron: { color: '#F5A623', fontSize: 18, fontWeight: '700' },
 
     imageLoadingOverlay: {
       position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,

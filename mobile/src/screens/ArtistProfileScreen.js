@@ -85,6 +85,7 @@ export default function ArtistProfileScreen({ route, navigation }) {
 
   const [artist, setArtist] = useState(null);
   const [events, setEvents] = useState([]);
+  const [pastEvents, setPastEvents] = useState([]);
   const [posts, setPosts] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -106,15 +107,17 @@ export default function ArtistProfileScreen({ route, navigation }) {
 
   const fetchAll = async () => {
     try {
-      const [artistRes, eventsRes, postsRes, reviewsRes] = await Promise.all([
+      const [artistRes, eventsRes, postsRes, reviewsRes, pastEventsRes] = await Promise.all([
         API.get(`/artists/${artistId}?currentUserId=${session.userId}`),
         API.get(`/artists/${artistId}/events`),
         API.get(`/artists/${artistId}/posts`),
         API.get(`/artists/${artistId}/reviews`),
+        API.get(`/artists/${artistId}/past-events`),
       ]);
       setArtist(artistRes.data);
       setFollowing(artistRes.data.isFollowedByCurrentUser || false);
-      setEvents(eventsRes.data);
+      setEvents(eventsRes.data.filter(e => new Date(e.eventDate) >= new Date()));
+      setPastEvents(pastEventsRes.data);
       setPosts(postsRes.data);
       setReviews(reviewsRes.data);
       const mine = reviewsRes.data.find(r => r.userId === session.userId);
@@ -334,44 +337,98 @@ export default function ArtistProfileScreen({ route, navigation }) {
       <View style={styles.content}>
 
         {activeTab === 'events' && (
-          events.length === 0 ? (
-            <View style={styles.empty}>
-              <Text style={styles.emptyEmoji}>🎭</Text>
-              <Text style={styles.emptyText}>{t('artist_no_events')}</Text>
-            </View>
-          ) : (
-            <View style={styles.eventGrid}>
-              {events.map((item, index) => (
-                <TouchableOpacity
-                  key={item.id}
-                  style={styles.eventCard}
-                  onPress={() => navigation.navigate('EventDetail', { event: item })}
-                  activeOpacity={0.85}
-                >
-                  <LinearGradient
-                    colors={gradientSets[index % gradientSets.length]}
-                    style={styles.eventCardGradient}
-                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          <View>
+            {/* YAKLAŞAN ETKİNLİKLER */}
+            {events.length === 0 ? (
+              <View style={styles.empty}>
+                <Text style={styles.emptyEmoji}>🎭</Text>
+                <Text style={styles.emptyText}>{t('artist_no_events')}</Text>
+              </View>
+            ) : (
+              <View style={styles.eventGrid}>
+                {events.map((item, index) => (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={styles.eventCard}
+                    onPress={() => navigation.navigate('EventDetail', { event: item })}
+                    activeOpacity={0.85}
                   >
-                    <Text style={styles.eventEmoji}>{eventEmojis[index % eventEmojis.length]}</Text>
-                    <View style={styles.eventCardBody}>
-                      <Text style={styles.eventName} numberOfLines={2}>{item.name}</Text>
-                      <Text style={styles.eventDate}>
-                        📅 {new Date(item.eventDate).toLocaleDateString('tr-TR', {
+                    <LinearGradient
+                      colors={gradientSets[index % gradientSets.length]}
+                      style={styles.eventCardGradient}
+                      start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                    >
+                      <Text style={styles.eventEmoji}>{eventEmojis[index % eventEmojis.length]}</Text>
+                      <View style={styles.eventCardBody}>
+                        <Text style={styles.eventName} numberOfLines={2}>{item.name}</Text>
+                        <Text style={styles.eventDate}>
+                          📅 {new Date(item.eventDate).toLocaleDateString('tr-TR', {
+                            day: 'numeric', month: 'short', year: 'numeric',
+                          })}
+                        </Text>
+                        {item.venueCity && <Text style={styles.eventCity}>📍 {item.venueCity}</Text>}
+                      </View>
+                      <View style={[
+                        styles.approvedDot,
+                        { backgroundColor: item.isApproved ? '#00D4AA' : '#F5A623' },
+                      ]} />
+                    </LinearGradient>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            {/* SON KONSERLER */}
+            {pastEvents.length > 0 && (
+              <View style={styles.pastSection}>
+                <View style={styles.pastSectionHeader}>
+                  <View style={[styles.pastSectionLine, { backgroundColor: colors.border }]} />
+                  <Text style={[styles.pastSectionTitle, { color: colors.textSecondary }]}>Son Konserler</Text>
+                  <View style={[styles.pastSectionLine, { backgroundColor: colors.border }]} />
+                </View>
+
+                {pastEvents.map((item) => (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={[styles.pastCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+                    onPress={() => navigation.navigate('EventDetail', { event: item })}
+                    activeOpacity={0.85}
+                  >
+                    <View style={styles.pastCardLeft}>
+                      <Text style={[styles.pastCardDate, { color: colors.textSecondary }]}>
+                        {new Date(item.eventDate).toLocaleDateString('tr-TR', {
                           day: 'numeric', month: 'short', year: 'numeric',
                         })}
                       </Text>
-                      {item.venueCity && <Text style={styles.eventCity}>📍 {item.venueCity}</Text>}
+                      <Text style={[styles.pastCardName, { color: colors.text }]} numberOfLines={1}>
+                        {item.name}
+                      </Text>
+                      {item.venueCity && (
+                        <Text style={[styles.pastCardCity, { color: colors.textSecondary }]}>
+                          📍 {item.venueCity}
+                        </Text>
+                      )}
                     </View>
-                    <View style={[
-                      styles.approvedDot,
-                      { backgroundColor: item.isApproved ? '#00D4AA' : '#F5A623' },
-                    ]} />
-                  </LinearGradient>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )
+
+                    <View style={styles.pastCardRight}>
+                      {item.avgRating != null && item.avgRating > 0 ? (
+                        <>
+                          <StarDisplay value={item.avgRating} size={13} />
+                          <Text style={[styles.pastCardRating, { color: colors.textSecondary }]}>
+                            {Number(item.avgRating).toFixed(1)} · {item.reviewCount} yorum
+                          </Text>
+                        </>
+                      ) : (
+                        <Text style={[styles.pastCardNoRating, { color: colors.textSecondary }]}>
+                          Henüz puan yok
+                        </Text>
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
         )}
 
         {activeTab === 'posts' && (
@@ -616,5 +673,24 @@ function createStyles(colors) {
     emptyEmoji: { fontSize: 52, marginBottom: 14 },
     emptyText: { color: colors.textSecondary, fontSize: 15, fontWeight: '700' },
     emptySubText: { fontSize: 13, marginTop: 6 },
+
+    // SON KONSERLER
+    pastSection: { marginTop: 24 },
+    pastSectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
+    pastSectionLine: { flex: 1, height: 1 },
+    pastSectionTitle: { fontSize: 12, fontWeight: '800', letterSpacing: 1.2, textTransform: 'uppercase' },
+    pastCard: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      borderRadius: 14, borderWidth: 1,
+      paddingHorizontal: 14, paddingVertical: 12,
+      marginBottom: 8,
+    },
+    pastCardLeft: { flex: 1, paddingRight: 12 },
+    pastCardDate: { fontSize: 11, fontWeight: '600', marginBottom: 3 },
+    pastCardName: { fontSize: 14, fontWeight: '800', marginBottom: 3 },
+    pastCardCity: { fontSize: 11 },
+    pastCardRight: { alignItems: 'flex-end', gap: 4 },
+    pastCardRating: { fontSize: 11, fontWeight: '600' },
+    pastCardNoRating: { fontSize: 11, fontStyle: 'italic' },
   });
 }

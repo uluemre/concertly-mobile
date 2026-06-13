@@ -52,17 +52,20 @@ public class PassportResponse {
         private Long   id;
         private String name;
         private String eventDate;
+        private Long   artistId;
         private String artistName;
         private String venueCity;
         private String imageUrl;
         private String genre;
         private boolean verified;
 
-        public PassportEventDto(Long id, String name, String eventDate, String artistName,
+        public PassportEventDto(Long id, String name, String eventDate,
+                                Long artistId, String artistName,
                                 String venueCity, String imageUrl, String genre, boolean verified) {
             this.id         = id;
             this.name       = name;
             this.eventDate  = eventDate;
+            this.artistId   = artistId;
             this.artistName = artistName;
             this.venueCity  = venueCity;
             this.imageUrl   = imageUrl;
@@ -73,6 +76,7 @@ public class PassportResponse {
         public Long    getId()         { return id; }
         public String  getName()       { return name; }
         public String  getEventDate()  { return eventDate; }
+        public Long    getArtistId()   { return artistId; }
         public String  getArtistName() { return artistName; }
         public String  getVenueCity()  { return venueCity; }
         public String  getImageUrl()   { return imageUrl; }

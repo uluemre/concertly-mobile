@@ -38,6 +38,11 @@ public class ArtistController {
         return artistService.getArtistPosts(id);
     }
 
+    @GetMapping("/{id}/past-events")
+    public List<EventResponse> getArtistPastEvents(@PathVariable Long id) {
+        return artistService.getArtistPastEvents(id);
+    }
+
     @PostMapping("/{id}/follow")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void follow(@PathVariable Long id) {

@@ -352,9 +352,21 @@ export default function ConcertPassportScreen({ navigation, route }) {
                     {ev.name}
                   </Text>
                   {ev.artistName && (
-                    <Text style={[styles.eventArtist, { color: colors.textSecondary }]} numberOfLines={1}>
-                      🎤 {ev.artistName}
-                    </Text>
+                    ev.artistId ? (
+                      <TouchableOpacity
+                        onPress={() => navigation.navigate('ArtistProfile', { artistId: ev.artistId, artistName: ev.artistName })}
+                        activeOpacity={0.7}
+                        hitSlop={{ top: 8, bottom: 8, left: 0, right: 0 }}
+                      >
+                        <Text style={[styles.eventArtist, styles.eventArtistLink]} numberOfLines={1}>
+                          🎤 {ev.artistName} ›
+                        </Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <Text style={[styles.eventArtist, { color: colors.textSecondary }]} numberOfLines={1}>
+                        🎤 {ev.artistName}
+                      </Text>
+                    )
                   )}
                   <View style={styles.eventMeta}>
                     {ev.venueCity && (
@@ -536,7 +548,8 @@ function createStyles(colors) {
     verifiedText: { fontSize: 12 },
     eventInfo: { flex: 1, paddingVertical: 12, paddingRight: 4 },
     eventName: { fontSize: 14, fontWeight: '800', marginBottom: 3, lineHeight: 18 },
-    eventArtist: { fontSize: 12, marginBottom: 4 },
+    eventArtist: { fontSize: 12, marginBottom: 4, color: colors.textSecondary },
+    eventArtistLink: { color: colors.primary, fontWeight: '700' },
     eventMeta: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 6 },
     eventCity: { fontSize: 11 },
     eventDate: { fontSize: 11 },
