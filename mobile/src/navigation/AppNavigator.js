@@ -62,6 +62,8 @@ import SongQuizScreen from '../screens/SongQuizScreen';
 import DailySongScreen from '../screens/DailySongScreen';
 import BlindRankScreen from '../screens/BlindRankScreen';
 import SetlistPredictionScreen from '../screens/SetlistPredictionScreen';
+import GamesScreen from '../screens/GamesScreen';
+import WrappedScreen from '../screens/WrappedScreen';
 
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
@@ -294,6 +296,8 @@ export default function AppNavigator() {
         <Stack.Screen name="DailySong" component={DailySongScreen} />
         <Stack.Screen name="BlindRank" component={BlindRankScreen} />
         <Stack.Screen name="SetlistPrediction" component={SetlistPredictionScreen} />
+        <Stack.Screen name="Games" component={GamesScreen} />
+        <Stack.Screen name="Wrapped" component={WrappedScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

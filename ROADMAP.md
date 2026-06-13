@@ -28,6 +28,10 @@
 - [x] Mesajlaşma (DM) — buddy eşleşmesi sonrası sohbet, ana sayfada Instagram tarzı giriş
 - [x] Günün Şarkısı (Heardle) — günlük şarkı tahmini, seri (streak), istatistikler
 - [x] Blind Ranking — şarkıları geri dönüşsüz sırala
+- [x] Setlist Tahmin Ligi — konser öncesi tahmin, topluluk doğrulamalı puanlama
+- [x] Oyun Merkezi — tüm oyunlar tek 🎮 kartı altında, günlük şarkı durum rozeti
+- [x] Müzik Kimliğim (Wrapped) — konser geçmişinden kişilik + istatistik kartları
+- [x] Oyunlar için demo verisi (seed_games_data.sql)
 - [x] TR/EN çoklu dil desteği (tüm ekranlar)
 
 ## 📋 Planlananlar
@@ -44,8 +48,6 @@
 ### Keşif / Bilgi
 - [ ] Yaklaşan albüm ve yeni şarkılar
 - [ ] Sanatçı turne duyuruları
-- [ ] Konser playlist tahmini *(→ "Setlist Tahmin Ligi" olarak oyunlaştırılabilir, aşağıda)*
-- [ ] Müzik kişiliğim / Concertly Wrapped
 - [ ] Smart Ticket Alerts (fiyat düşüşü bildirimi)
 - [ ] Pre-Concert Hype Mode
 
@@ -74,7 +76,7 @@
 - [ ] **Anı Kapsülü** — doğrulanmış konserde 10 sn ses/video kaydet, pasaporta mühürlensin; 1 yıl sonra "o gün bu konserdeydin" bildirimi
 
 ### Oyunlaştırma
-- [ ] **Setlist Tahmin Ligi** — konser öncesi 10 şarkılık setlist tahmini; konser sonrası gerçek setlist'le puanlama, lig tablosu *(playlist tahmini + hype mode'u birleştirir)*
+- [x] ~~Setlist Tahmin Ligi~~ → tamamlandı (13 Haziran 2026)
 - [ ] **Canlı Intro Savaşı** — gerçek zamanlı 1v1: şarkı çalar, önce basan puanı alır *(WebSocket — Sesli Odalar sprintiyle birlikte)*
 
 ### Topluluk Verisi
@@ -82,7 +84,6 @@
 - [ ] **Mekan İpuçları** — mekan profillerinde kategorili öneriler: 🔊 ses, 👀 görüş, 🚇 ulaşım
 
 ### Önerilen sıra
-1. **Setlist Tahmin Ligi** — 3 mevcut maddeyi tek özellikte birleştiriyor, anket altyapısı hazır
-2. **Anı Kapsülü** — retention mekaniği
-3. **Festival Modu** — yaz/festival sezonu
-4. **WebSocket sprinti** — Sesli Odalar + Canlı Intro Savaşı + Canlı Setlist birlikte
+1. **Anı Kapsülü** — retention mekaniği
+2. **Festival Modu** — yaz/festival sezonu
+3. **WebSocket sprinti** — Sesli Odalar + Canlı Intro Savaşı + Canlı Setlist birlikte

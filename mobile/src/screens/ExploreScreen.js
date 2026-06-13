@@ -18,9 +18,8 @@ const MENU_ITEM_DEFS = [
   { id: 6, titleKey: 'menu_music_profile', subKey: 'menu_music_profile_sub', emoji: '✨', gradient: ['#7C3AED', '#E94560'], screen: 'MusicProfile',      available: true  },
   { id: 7, titleKey: 'menu_map_item',      subKey: 'menu_map_item_sub',      emoji: '🗺️', gradient: ['#00D4AA', '#00A8FF'], screen: 'Map',               available: true  },
   { id: 4, titleKey: 'menu_buddy_item',    subKey: 'menu_buddy_item_sub',    emoji: '🎸', gradient: ['#E94560', '#F5A623'], screen: 'ConcertBuddyMatch', available: true  },
-  { id: 9, titleKey: 'menu_song_quiz',     subKey: 'menu_song_quiz_sub',     emoji: '🎤', gradient: ['#7C3AED', '#EC4899'], screen: 'SongQuiz',          available: true  },
-  { id: 10, titleKey: 'menu_daily_song',   subKey: 'menu_daily_song_sub',    emoji: '📅', gradient: ['#00D4AA', '#F5A623'], screen: 'DailySong',         available: true  },
-  { id: 11, titleKey: 'menu_blind_rank',   subKey: 'menu_blind_rank_sub',    emoji: '🏆', gradient: ['#F5A623', '#7C3AED'], screen: 'BlindRank',         available: true  },
+  { id: 9, titleKey: 'menu_games',         subKey: 'menu_games_sub',         emoji: '🎮', gradient: ['#7C3AED', '#EC4899'], screen: 'Games',             available: true  },
+  { id: 10, titleKey: 'menu_wrapped',      subKey: 'menu_wrapped_sub',       emoji: '✨', gradient: ['#EC4899', '#F5A623'], screen: 'Wrapped',           available: true  },
   { id: 5, titleKey: 'menu_live_rooms',    subKey: 'menu_live_rooms_sub',    emoji: '💬', gradient: ['#FF6B35', '#F7C59F'], screen: null,                available: false },
   { id: 8, titleKey: 'menu_ticket_alerts', subKey: 'menu_ticket_alerts_sub', emoji: '🔔', gradient: ['#1a1a2e', '#0f3460'], screen: null,                available: false },
 ];
