@@ -17,11 +17,11 @@ export default function FeedScreen({ navigation }) {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { session } = useAuth();
   const { t } = useLanguage();
-  const [activeTab, setActiveTab] = useState('trending');
+  const [activeTab, setActiveTab] = useState('following');
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const tabIndicator = useRef(new Animated.Value(0)).current;
+  const tabIndicator = useRef(new Animated.Value(1)).current;
   const isMounted = useRef(true);
 
   useEffect(() => {

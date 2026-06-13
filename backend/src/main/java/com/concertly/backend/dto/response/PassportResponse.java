@@ -85,16 +85,19 @@ public class PassportResponse {
     }
 
     public static class TopArtistDto {
+        private Long   artistId;
         private String name;
-        private int count;
+        private int    count;
 
-        public TopArtistDto(String name, int count) {
-            this.name  = name;
-            this.count = count;
+        public TopArtistDto(Long artistId, String name, int count) {
+            this.artistId = artistId;
+            this.name     = name;
+            this.count    = count;
         }
 
-        public String getName()  { return name; }
-        public int    getCount() { return count; }
+        public Long   getArtistId() { return artistId; }
+        public String getName()     { return name; }
+        public int    getCount()    { return count; }
     }
 
     public static class TopGenreDto {

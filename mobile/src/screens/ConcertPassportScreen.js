@@ -246,13 +246,20 @@ export default function ConcertPassportScreen({ navigation, route }) {
               const maxCount = passport.topArtists[0].count;
               const pct = maxCount > 0 ? item.count / maxCount : 0;
               return (
-                <View key={item.name} style={styles.topArtistRow}>
+                <TouchableOpacity
+                  key={item.name}
+                  style={styles.topArtistRow}
+                  activeOpacity={item.artistId ? 0.7 : 1}
+                  onPress={() => item.artistId && navigation.navigate('ArtistProfile', { artistId: item.artistId, artistName: item.name })}
+                >
                   <Text style={[styles.topArtistRank, { color: colors.textSecondary }]}>
                     {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`}
                   </Text>
                   <View style={styles.topArtistInfo}>
                     <View style={styles.topArtistNameRow}>
-                      <Text style={[styles.topArtistName, { color: colors.text }]}>{item.name}</Text>
+                      <Text style={[styles.topArtistName, { color: item.artistId ? colors.primary : colors.text }]}>
+                        {item.name}{item.artistId ? ' ›' : ''}
+                      </Text>
                       <Text style={[styles.topArtistCount, { color: colors.textSecondary }]}>
                         {item.count} konser
                       </Text>
@@ -265,7 +272,7 @@ export default function ConcertPassportScreen({ navigation, route }) {
                       />
                     </View>
                   </View>
-                </View>
+                </TouchableOpacity>
               );
             })}
           </View>

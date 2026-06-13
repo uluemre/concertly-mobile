@@ -829,6 +829,17 @@ export default function EventDetailScreen({ route, navigation }) {
               <Text style={styles.myReviewTitle}>
                 {reviews.find(r => r.userId === session.userId) ? t('review_my_update') : t('review_my_title')}
               </Text>
+              {event.artistId && (
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('ArtistProfile', { artistId: event.artistId, artistName: event.artistName })}
+                  activeOpacity={0.7}
+                  style={styles.artistHintBtn}
+                >
+                  <Text style={[styles.artistHintText, { color: colors.primary }]}>
+                    🎤 {event.artistName} profilini değerlendirmek için buraya dokun
+                  </Text>
+                </TouchableOpacity>
+              )}
               <View style={styles.starsRow}>
                 {[1, 2, 3, 4, 5].map(star => (
                   <TouchableOpacity key={star} onPress={() => setMyRating(star)} activeOpacity={0.7}>
@@ -1057,7 +1068,9 @@ function createStyles(colors) {
     myReviewCard: {
       borderRadius: 16, borderWidth: 1, padding: 16, marginBottom: 16,
     },
-    myReviewTitle: { fontSize: 14, fontWeight: '700', color: colors.text, marginBottom: 12 },
+    myReviewTitle: { fontSize: 14, fontWeight: '700', color: colors.text, marginBottom: 8 },
+    artistHintBtn: { marginBottom: 12 },
+    artistHintText: { fontSize: 12, fontWeight: '600' },
     starsRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
     star: { fontSize: 32, color: colors.border },
     starActive: { color: '#F5A623' },

@@ -272,7 +272,7 @@ export default function ArtistProfileScreen({ route, navigation }) {
             </View>
             <View style={styles.statDivider} />
             <View style={styles.stat}>
-              <Text style={styles.statNumber}>{events.length}</Text>
+              <Text style={styles.statNumber}>{events.length + pastEvents.length}</Text>
               <Text style={styles.statLabel}>{t('artist_events_label')}</Text>
             </View>
             <View style={styles.statDivider} />

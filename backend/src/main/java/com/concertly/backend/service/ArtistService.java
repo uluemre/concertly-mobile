@@ -198,7 +198,8 @@ public class ArtistService {
                     EventResponse dto = EventResponse.from(e);
                     int count = eventReviewRepository.countByEventId(e.getId());
                     if (count > 0) {
-                        dto.setAvgRating(eventReviewRepository.findAvgRatingByEventId(e.getId()));
+                        Double avg = eventReviewRepository.findAvgRatingByEventId(e.getId());
+                        dto.setAvgRating(avg != null ? avg : 0.0);
                         dto.setReviewCount(count);
                     }
                     return dto;

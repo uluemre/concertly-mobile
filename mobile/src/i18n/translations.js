@@ -204,7 +204,7 @@ export const translations = {
     user_profile_following_count: 'Takip',
 
     // REVIEW
-    review_title: '⭐ Değerlendirmeler',
+    review_title: '⭐ Konser Değerlendirmeleri',
     review_my_title: 'Bu Konseri Değerlendir',
     review_my_update: 'Değerlendirmeni Güncelle',
     review_submit: 'Gönder',
@@ -1020,7 +1020,7 @@ export const translations = {
     user_profile_following_count: 'Following',
 
     // REVIEW
-    review_title: '⭐ Reviews',
+    review_title: '⭐ Concert Reviews',
     review_my_title: 'Rate This Concert',
     review_my_update: 'Update Your Review',
     review_submit: 'Submit',

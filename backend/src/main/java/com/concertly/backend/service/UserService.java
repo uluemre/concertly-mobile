@@ -213,14 +213,21 @@ public class UserService {
                 .map(c -> c.getEventId())
                 .collect(Collectors.toSet());
 
-        // Top sanatçılar (en çok gidilen, max 5)
-        List<TopArtistDto> topArtists = goingAttendances.stream()
+        // Top sanatçılar (en çok gidilen, max 5) — ID ve isim birlikte
+        Map<Long, String> topArtistNames  = new java.util.HashMap<>();
+        Map<Long, Long>   topArtistCounts = new java.util.HashMap<>();
+        goingAttendances.stream()
                 .filter(a -> a.getEvent().getArtist() != null && a.getEvent().getArtist().getName() != null)
-                .collect(Collectors.groupingBy(a -> a.getEvent().getArtist().getName(), Collectors.counting()))
-                .entrySet().stream()
-                .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+                .forEach(a -> {
+                    Long   id   = a.getEvent().getArtist().getId();
+                    String name = a.getEvent().getArtist().getName();
+                    topArtistNames.putIfAbsent(id, name);
+                    topArtistCounts.merge(id, 1L, Long::sum);
+                });
+        List<TopArtistDto> topArtists = topArtistCounts.entrySet().stream()
+                .sorted(Map.Entry.<Long, Long>comparingByValue().reversed())
                 .limit(5)
-                .map(e -> new TopArtistDto(e.getKey(), e.getValue().intValue()))
+                .map(e -> new TopArtistDto(e.getKey(), topArtistNames.get(e.getKey()), e.getValue().intValue()))
                 .toList();
 
         // Tür dağılımı (max 5)

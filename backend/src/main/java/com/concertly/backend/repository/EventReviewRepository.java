@@ -13,6 +13,6 @@ public interface EventReviewRepository extends JpaRepository<EventReview, Long> 
     Optional<EventReview> findByUserIdAndEventId(Long userId, Long eventId);
     int countByEventId(Long eventId);
 
-    @Query("SELECT COALESCE(AVG(r.rating), 0) FROM EventReview r WHERE r.event.id = :eventId")
+    @Query("SELECT AVG(r.rating) FROM EventReview r WHERE r.event.id = :eventId")
     Double findAvgRatingByEventId(@Param("eventId") Long eventId);
 }
