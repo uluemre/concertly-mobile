@@ -176,8 +176,14 @@ public class ArtistService {
                 if (a.getImageUrl() == null && sd.imageUrl != null) a.setImageUrl(sd.imageUrl);
                 if (a.getGenre() == null && sd.genre != null) a.setGenre(sd.genre);
                 if (a.getSpotifyId() == null && sd.spotifyId != null) a.setSpotifyId(sd.spotifyId);
+                if (sd.popularity != null) a.setPopularity(sd.popularity);
+                if (sd.followerCount != null) a.setSpotifyFollowers(sd.followerCount.longValue());
+                if (!sd.rawGenres.isEmpty()) {
+                    a.setGenreTags(String.join(", ", sd.rawGenres));
+                }
                 enriched++;
-                System.out.println("  ✅ image=" + (sd.imageUrl != null) + " genre=" + sd.genre);
+                System.out.println("  ✅ image=" + (sd.imageUrl != null) + " genre=" + sd.genre
+                        + " popularity=" + sd.popularity);
             }
         }
 

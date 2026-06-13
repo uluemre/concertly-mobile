@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, ScrollView,
   TouchableOpacity, ActivityIndicator,
   Animated, Dimensions, Alert, Image,
-  TextInput, KeyboardAvoidingView, Platform,
+  TextInput, KeyboardAvoidingView, Platform, Linking,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import API from '../services/api';
@@ -61,6 +61,13 @@ function StarDisplay({ value, size = 14 }) {
       ))}
     </View>
   );
+}
+
+function formatFollowers(n) {
+  if (!n) return '0';
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace('.0', '') + 'M';
+  if (n >= 1_000) return (n / 1_000).toFixed(0) + 'K';
+  return String(n);
 }
 
 const { width } = Dimensions.get('window');
@@ -239,76 +246,120 @@ export default function ArtistProfileScreen({ route, navigation }) {
         </TouchableOpacity>
 
         <Animated.View style={[styles.heroInner, { transform: [{ scale: scaleAnim }] }]}>
-          {artist?.imageUrl ? (
-            <Image source={{ uri: artist.imageUrl }} style={styles.avatar} />
-          ) : (
-            <LinearGradient colors={getGenreGradient(artist?.genre)} style={styles.avatarPlaceholder}>
-              <Text style={styles.avatarLetter}>
-                {getInitials(artist?.name || artistName)}
-              </Text>
-            </LinearGradient>
-          )}
-
-          <View style={styles.micBadge}>
-            <Text style={styles.micEmoji}>🎤</Text>
-          </View>
-
-          <Text style={styles.artistName}>{artist?.name || artistName}</Text>
-
-          {/* Ortalama puan — yorum varsa göster */}
-          {avgRating !== null && (
-            <View style={styles.avgRatingRow}>
-              <StarDisplay value={avgRating} size={16} />
-              <Text style={styles.avgRatingText}>
-                {avgRating.toFixed(1)} ({reviews.length} yorum)
-              </Text>
-            </View>
-          )}
-
-          <View style={styles.statsRow}>
-            <View style={styles.stat}>
-              <Text style={styles.statNumber}>{artist?.followerCount || 0}</Text>
-              <Text style={styles.statLabel}>{t('artist_followers')}</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.stat}>
-              <Text style={styles.statNumber}>{events.length + pastEvents.length}</Text>
-              <Text style={styles.statLabel}>{t('artist_events_label')}</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.stat}>
-              <Text style={styles.statNumber}>{reviews.length}</Text>
-              <Text style={styles.statLabel}>Yorum</Text>
-            </View>
-          </View>
-
-          <TouchableOpacity
-            onPress={handleFollowToggle}
-            disabled={followLoading}
-            style={styles.followWrapper}
-            activeOpacity={0.85}
-          >
-            {following ? (
-              <View style={styles.followingButton}>
-                {followLoading
-                  ? <ActivityIndicator size="small" color={colors.primary} />
-                  : <Text style={styles.followingText}>{t('artist_following')}</Text>
-                }
-              </View>
+          {/* Sol: avatar */}
+          <View style={styles.avatarCol}>
+            {artist?.imageUrl ? (
+              <Image source={{ uri: artist.imageUrl }} style={styles.avatar} />
             ) : (
-              <LinearGradient
-                colors={['#E94560', '#7C3AED']}
-                style={styles.followButton}
-                start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-              >
-                {followLoading
-                  ? <ActivityIndicator size="small" color={colors.text} />
-                  : <Text style={styles.followText}>{t('artist_follow')}</Text>
-                }
+              <LinearGradient colors={getGenreGradient(artist?.genre)} style={styles.avatarPlaceholder}>
+                <Text style={styles.avatarLetter}>
+                  {getInitials(artist?.name || artistName)}
+                </Text>
               </LinearGradient>
             )}
-          </TouchableOpacity>
+          </View>
+
+          {/* Sağ: bilgiler */}
+          <View style={styles.infoCol}>
+            <Text style={styles.artistName} numberOfLines={2}>{artist?.name || artistName}</Text>
+
+            {/* Yıldızlar */}
+            {avgRating !== null && (
+              <View style={styles.avgRatingRow}>
+                <StarDisplay value={avgRating} size={14} />
+                <Text style={styles.avgRatingText}>{avgRating.toFixed(1)}</Text>
+                <Text style={styles.avgRatingCount}>({reviews.length})</Text>
+              </View>
+            )}
+
+            {/* Genre tag'leri */}
+            {(artist?.genreTags || artist?.genre) && (
+              <Text style={styles.genreTagsText} numberOfLines={2}>
+                🎵 {artist.genreTags || artist.genre}
+              </Text>
+            )}
+
+            {/* Spotify takipçi */}
+            {artist?.spotifyFollowers != null && (
+              <Text style={styles.spotifyFollowersText}>
+                🎧 {formatFollowers(artist.spotifyFollowers)} Spotify takipçi
+              </Text>
+            )}
+
+            {/* Popülerlik barı */}
+            {artist?.popularity != null && (
+              <View style={styles.popularityRow}>
+                <Text style={styles.popularityLabel}>Popülerlik</Text>
+                <View style={[styles.popularityTrack, { backgroundColor: colors.border }]}>
+                  <LinearGradient
+                    colors={['#1DB954', '#00D4AA']}
+                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                    style={[styles.popularityFill, { width: `${artist.popularity}%` }]}
+                  />
+                </View>
+                <Text style={styles.popularityValue}>{artist.popularity}</Text>
+              </View>
+            )}
+
+            {/* Butonlar */}
+            <View style={styles.heroActions}>
+              <TouchableOpacity
+                onPress={handleFollowToggle}
+                disabled={followLoading}
+                style={styles.followWrapper}
+                activeOpacity={0.85}
+              >
+                {following ? (
+                  <View style={[styles.followingButton, { borderColor: colors.primary }]}>
+                    {followLoading
+                      ? <ActivityIndicator size="small" color={colors.primary} />
+                      : <Text style={[styles.followingText, { color: colors.primary }]}>{t('artist_following')}</Text>
+                    }
+                  </View>
+                ) : (
+                  <LinearGradient
+                    colors={['#E94560', '#7C3AED']}
+                    style={styles.followButton}
+                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                  >
+                    {followLoading
+                      ? <ActivityIndicator size="small" color="#fff" />
+                      : <Text style={styles.followText}>{t('artist_follow')}</Text>
+                    }
+                  </LinearGradient>
+                )}
+              </TouchableOpacity>
+
+              {artist?.spotifyId && (
+                <TouchableOpacity
+                  style={styles.spotifyMiniBtn}
+                  activeOpacity={0.8}
+                  onPress={() => Linking.openURL(`https://open.spotify.com/artist/${artist.spotifyId}`)}
+                >
+                  <Text style={styles.spotifyMiniBtnText}>↗</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
         </Animated.View>
+
+        {/* Stats bar */}
+        <View style={styles.statsRow}>
+          <View style={styles.stat}>
+            <Text style={styles.statNumber}>{artist?.followerCount || 0}</Text>
+            <Text style={styles.statLabel}>{t('artist_followers')}</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.stat}>
+            <Text style={styles.statNumber}>{events.length + pastEvents.length}</Text>
+            <Text style={styles.statLabel}>{t('artist_events_label')}</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.stat}>
+            <Text style={styles.statNumber}>{reviews.length}</Text>
+            <Text style={styles.statLabel}>Yorum</Text>
+          </View>
+        </View>
       </LinearGradient>
 
       {/* ── SEKMELER ────────────────────────────────────────────────────── */}
@@ -567,37 +618,50 @@ function createStyles(colors) {
     },
     backButton: { marginBottom: 24 },
     backText: { color: colors.textSecondary, fontSize: 15, fontWeight: '600' },
-    heroInner: { alignItems: 'center' },
-    avatar: { width: 110, height: 110, borderRadius: 55, borderWidth: 3, borderColor: colors.border, marginBottom: 6 },
-    avatarPlaceholder: { width: 110, height: 110, borderRadius: 55, justifyContent: 'center', alignItems: 'center', marginBottom: 6 },
-    avatarLetter: { fontSize: 52, fontWeight: '900', color: 'rgba(255,255,255,0.95)', letterSpacing: -1 },
-    micBadge: {
-      width: 32, height: 32, borderRadius: 16, backgroundColor: colors.card,
-      justifyContent: 'center', alignItems: 'center',
-      borderWidth: 2, borderColor: colors.border, marginBottom: 12, marginTop: -16,
-    },
-    micEmoji: { fontSize: 14 },
-    artistName: { fontSize: 26, fontWeight: 'bold', color: colors.text, marginBottom: 8, textAlign: 'center' },
+    heroInner: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 20, gap: 16 },
+    avatarCol: { alignItems: 'center' },
+    avatar: { width: 100, height: 100, borderRadius: 50, borderWidth: 3, borderColor: colors.border },
+    avatarPlaceholder: { width: 100, height: 100, borderRadius: 50, justifyContent: 'center', alignItems: 'center' },
+    avatarLetter: { fontSize: 44, fontWeight: '900', color: 'rgba(255,255,255,0.95)' },
+    infoCol: { flex: 1, paddingTop: 2 },
+    artistName: { fontSize: 22, fontWeight: 'bold', color: colors.text, marginBottom: 6, lineHeight: 27 },
 
-    avgRatingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 },
-    avgRatingText: { color: colors.textSecondary, fontSize: 13, fontWeight: '600' },
+    avgRatingRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 6 },
+    avgRatingText: { color: '#F5A623', fontSize: 13, fontWeight: '700' },
+    avgRatingCount: { color: colors.textSecondary, fontSize: 11 },
+
+    genreTagsText: { color: colors.textSecondary, fontSize: 12, marginBottom: 5, lineHeight: 17 },
+    spotifyFollowersText: { color: colors.textSecondary, fontSize: 12, marginBottom: 5 },
+    popularityRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
+    popularityLabel: { color: colors.textSecondary, fontSize: 11 },
+    popularityTrack: { flex: 1, height: 5, borderRadius: 3, overflow: 'hidden' },
+    popularityFill: { height: '100%', borderRadius: 3 },
+    popularityValue: { color: colors.textSecondary, fontSize: 11, minWidth: 22, textAlign: 'right' },
+
+    heroActions: { flexDirection: 'row', gap: 8, alignItems: 'center', marginTop: 4 },
+    followWrapper: { flex: 1 },
+    followButton: { paddingVertical: 10, borderRadius: 12, alignItems: 'center' },
+    followText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
+    followingButton: { paddingVertical: 10, borderRadius: 12, alignItems: 'center', borderWidth: 2 },
+    followingText: { fontWeight: 'bold', fontSize: 14 },
+    spotifyMiniBtn: {
+      width: 38, height: 38, borderRadius: 10,
+      backgroundColor: '#1DB954' + '20',
+      borderWidth: 1, borderColor: '#1DB954',
+      justifyContent: 'center', alignItems: 'center',
+    },
+    spotifyMiniBtnText: { color: '#1DB954', fontSize: 18, fontWeight: '700' },
 
     statsRow: {
       flexDirection: 'row', alignItems: 'center',
       backgroundColor: colors.card, borderRadius: 16,
       paddingVertical: 14, paddingHorizontal: 24, gap: 20,
-      marginBottom: 20, borderWidth: 1, borderColor: colors.border, width: '100%',
+      borderWidth: 1, borderColor: colors.border, width: '100%',
     },
     stat: { alignItems: 'center', flex: 1 },
     statNumber: { fontSize: 20, fontWeight: 'bold', color: colors.text },
     statLabel: { fontSize: 11, color: colors.textSecondary, marginTop: 3 },
     statDivider: { width: 1, height: 32, backgroundColor: colors.border },
-
-    followWrapper: { width: '100%' },
-    followButton: { paddingVertical: 14, borderRadius: 14, alignItems: 'center' },
-    followText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
-    followingButton: { paddingVertical: 14, borderRadius: 14, alignItems: 'center', borderWidth: 2, borderColor: colors.primary },
-    followingText: { color: colors.primary, fontWeight: 'bold', fontSize: 15 },
 
     // SEKMELER
     tabBarWrapper: { backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.border, paddingHorizontal: 16, paddingVertical: 10 },

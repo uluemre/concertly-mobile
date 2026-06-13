@@ -34,6 +34,10 @@ public class Artist {
 
     private String externalId;
 
+    private Integer popularity;
+    private Long    spotifyFollowers;
+    private String  genreTags;
+
     public Long getId() {
         return id;
     }
@@ -61,4 +65,13 @@ public class Artist {
     public void setExternalId(String externalId) {
         this.externalId = externalId;
     }
+
+    public Integer getPopularity()            { return popularity; }
+    public void    setPopularity(Integer p)   { this.popularity = p; }
+
+    public Long getSpotifyFollowers()         { return spotifyFollowers; }
+    public void setSpotifyFollowers(Long f)   { this.spotifyFollowers = f; }
+
+    public String getGenreTags()              { return genreTags; }
+    public void   setGenreTags(String g)      { this.genreTags = g; }
 }

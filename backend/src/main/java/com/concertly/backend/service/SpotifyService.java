@@ -131,7 +131,14 @@ public class SpotifyService {
             Map<String, Object> followers = (Map<String, Object>) best.get("followers");
             Integer followerCount = followers != null ? (Integer) followers.get("total") : null;
 
-            return new SpotifyArtistData(imageUrl, genre, spotifyId, name, followerCount);
+            Integer popularity = (Integer) best.get("popularity");
+
+            // Ham genre tag'leri (ilk 3, Spotify'ın sağladığı)
+            List<String> rawGenres = spotifyGenres != null
+                    ? spotifyGenres.stream().limit(3).toList()
+                    : List.of();
+
+            return new SpotifyArtistData(imageUrl, genre, spotifyId, name, followerCount, popularity, rawGenres);
 
         } catch (Exception e) {
             String msg = e.getMessage();
@@ -186,19 +193,24 @@ public class SpotifyService {
     }
 
     public static class SpotifyArtistData {
-        public final String imageUrl;
-        public final String genre;
-        public final String spotifyId;
-        public final String name;
+        public final String  imageUrl;
+        public final String  genre;
+        public final String  spotifyId;
+        public final String  name;
         public final Integer followerCount;
+        public final Integer popularity;
+        public final List<String> rawGenres;
 
         public SpotifyArtistData(String imageUrl, String genre, String spotifyId,
-                                  String name, Integer followerCount) {
-            this.imageUrl = imageUrl;
-            this.genre = genre;
-            this.spotifyId = spotifyId;
-            this.name = name;
+                                  String name, Integer followerCount,
+                                  Integer popularity, List<String> rawGenres) {
+            this.imageUrl      = imageUrl;
+            this.genre         = genre;
+            this.spotifyId     = spotifyId;
+            this.name          = name;
             this.followerCount = followerCount;
+            this.popularity    = popularity;
+            this.rawGenres     = rawGenres != null ? rawGenres : List.of();
         }
     }
 }
