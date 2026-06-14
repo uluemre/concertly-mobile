@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
-import API from '../services/api';
+import API, { getErrorMessage } from '../services/api';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -30,6 +30,7 @@ export default function HomeScreen({ navigation }) {
   const [events, setEvents] = useState([]);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [search, setSearch] = useState('');
   const [selectedCity, setSelectedCity] = useState(session.userCity || null);
   const [cityModalVisible, setCityModalVisible] = useState(false);
@@ -87,8 +88,9 @@ export default function HomeScreen({ navigation }) {
         if (!isMounted.current) return;
         setEvents(evRes.data);
         setPosts(postRes.data);
+        setError(null);
       })
-      .catch(err => { if (isMounted.current) console.log('HomeScreen fetch error:', err.message); })
+      .catch(err => { if (isMounted.current) setError(getErrorMessage(err)); })
       .finally(() => {
         if (isMounted.current) setLoading(false);
       });
@@ -130,6 +132,17 @@ export default function HomeScreen({ navigation }) {
   if (loading) return (
     <View style={styles.skeletonScreen}>
       <HomeSkeletonPage />
+    </View>
+  );
+
+  if (error && events.length === 0 && posts.length === 0) return (
+    <View style={styles.errorScreen}>
+      <Text style={styles.errorEmoji}>📡</Text>
+      <Text style={styles.errorTitle}>{t('load_failed')}</Text>
+      <Text style={styles.errorText}>{error}</Text>
+      <TouchableOpacity onPress={() => fetchData()} activeOpacity={0.85} style={styles.retryBtn}>
+        <Text style={styles.retryBtnText}>{t('retry')}</Text>
+      </TouchableOpacity>
     </View>
   );
 
@@ -322,6 +335,12 @@ function createStyles(colors) {
     scrollContent: { paddingBottom: 24 },
     loadingScreen: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background, gap: 14 },
     skeletonScreen: { flex: 1, backgroundColor: colors.background, paddingTop: 56 },
+    errorScreen: { flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 40 },
+    errorEmoji: { fontSize: 52, marginBottom: 14 },
+    errorTitle: { color: colors.text, fontSize: 17, fontWeight: '800', marginBottom: 8 },
+    errorText: { color: colors.textSecondary, fontSize: 13, textAlign: 'center', lineHeight: 20, marginBottom: 20 },
+    retryBtn: { backgroundColor: colors.primary, paddingHorizontal: 28, paddingVertical: 12, borderRadius: 14 },
+    retryBtnText: { color: '#fff', fontSize: 14, fontWeight: '800' },
     loadingText: { color: colors.textSecondary, fontSize: 14 },
     header: { paddingTop: 60, paddingBottom: 22, paddingHorizontal: 20 },
     headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },

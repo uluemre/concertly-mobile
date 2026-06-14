@@ -245,7 +245,8 @@ Flagship özellik ilk açılışta soğuk; kullanıcı geri dönmek için sebep 
 
 ## TUR 4 — QA AUDIT
 
-### Bulgu 4.1 — 🔴 Hata durumları sessizce yutuluyor: "yüklenemedi" ile "boş" ayırt edilemiyor, retry yok
+### Bulgu 4.1 — ✅ KISMEN UYGULANDI (15 Haz) — Hata durumları sessizce yutuluyor (Home + Feed yapıldı)
+> Home ve Feed artık `getErrorMessage(err)` ile hata state'i tutuyor; veri yoksa "İçerik yüklenemedi" + mesaj + **Tekrar Dene** ekranı gösteriyor (boş ≠ hata). Kalan: EventDetail/diğer GET'ler hâlâ yutuyor (ArtistProfile için bkz. 7.1).
 
 **Problem**
 Ana liste ekranları ağ/sunucu hatalarını yutuyor ve boş-durum gösteriyor. `HomeScreen.fetchData` → `.catch(err => console.log(...))` ve sonra "🎭 Etkinlik yok" gösterir. `FeedScreen` → catch sadece `console.log`, ardından `ListEmptyComponent` ("Henüz post yok") render edilir. `EventDetailScreen`'deki tüm GET'ler `.catch(() => {})`. Hâlbuki `api.js` içinde tam da bunun için `getErrorMessage()` + `error.userMessage` ("Sunucuya ulaşılamıyor", "Zaman aşımı") altyapısı var ama bu ekranlarda **hiç kullanılmıyor**.
@@ -334,7 +335,8 @@ Yeni özellik değil — mevcut bildirim borusuna teslimat ucu tak: `expo-notifi
 
 ---
 
-### Bulgu 5.2 — Ana sosyal yüzey (Feed) yeni kullanıcıda varsayılan olarak boş açılıyor
+### Bulgu 5.2 — ✅ UYGULANDI (15 Haz) — Ana sosyal yüzey (Feed) yeni kullanıcıda boş açılıyor
+> FeedScreen takip akışı ilk yüklemede boşsa bir kez otomatik `trending`'e geçiyor (`autoSwitchedRef`), böylece yeni kullanıcı dolu içerik görüyor.
 
 **Problem**
 `FeedScreen` varsayılan sekmesi `activeTab='following'`. Yeni kullanıcı kimseyi takip etmediği için ana sosyal akış bomboş açılıyor (yalnızca "trending'e geç" CTA'sı görünüyor). Onboarding'de seçilen sanatçılar da kullanıcı postu üretmediğinden following feed'i doldurmuyor.

@@ -111,34 +111,43 @@ export default function ArtistProfileScreen({ route, navigation }) {
   }, [artistId]);
 
   const fetchAll = async () => {
-    try {
-      const [artistRes, eventsRes, postsRes, reviewsRes, pastEventsRes] = await Promise.all([
-        API.get(`/artists/${artistId}?currentUserId=${session.userId}`),
-        API.get(`/artists/${artistId}/events`),
-        API.get(`/artists/${artistId}/posts`),
-        API.get(`/artists/${artistId}/reviews`),
-        API.get(`/artists/${artistId}/past-events`),
-      ]);
-      setArtist(artistRes.data);
-      setFollowing(artistRes.data.isFollowedByCurrentUser || false);
-      setEvents(eventsRes.data.filter(e => new Date(e.eventDate) >= new Date()));
-      setPastEvents(pastEventsRes.data);
-      setPosts(postsRes.data);
-      setReviews(reviewsRes.data);
-      const mine = reviewsRes.data.find(r => r.userId === session.userId);
-      if (mine) { setMyRating(mine.rating); setReviewText(mine.comment || ''); }
+    // Parçalı yükleme: ana sanatçı verisi başarısızsa sayfayı açma; ikincil
+    // çağrılar (etkinlik/post/yorum) başarısızsa sadece o sekme boş kalsın —
+    // tek bir yavaş/hatalı çağrı koca sayfayı çökertmesin.
+    const [artistRes, eventsRes, postsRes, reviewsRes, pastEventsRes] = await Promise.allSettled([
+      API.get(`/artists/${artistId}?currentUserId=${session.userId}`),
+      API.get(`/artists/${artistId}/events`),
+      API.get(`/artists/${artistId}/posts`),
+      API.get(`/artists/${artistId}/reviews`),
+      API.get(`/artists/${artistId}/past-events`),
+    ]);
 
-      Animated.parallel([
-        Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
-        Animated.spring(scaleAnim, { toValue: 1, tension: 60, friction: 8, useNativeDriver: true }),
-      ]).start();
-    } catch (err) {
-      console.log('artist fetch error:', err.message);
+    if (artistRes.status !== 'fulfilled') {
+      console.log('artist fetch error:', artistRes.reason?.message);
       Alert.alert(t('error'), t('artist_load_error'));
       navigation.goBack();
-    } finally {
-      setLoading(false);
+      return;
     }
+
+    setArtist(artistRes.value.data);
+    setFollowing(artistRes.value.data.isFollowedByCurrentUser || false);
+    setEvents(eventsRes.status === 'fulfilled'
+      ? eventsRes.value.data.filter(e => new Date(e.eventDate) >= new Date())
+      : []);
+    setPastEvents(pastEventsRes.status === 'fulfilled' ? pastEventsRes.value.data : []);
+    setPosts(postsRes.status === 'fulfilled' ? postsRes.value.data : []);
+    if (reviewsRes.status === 'fulfilled') {
+      setReviews(reviewsRes.value.data);
+      const mine = reviewsRes.value.data.find(r => r.userId === session.userId);
+      if (mine) { setMyRating(mine.rating); setReviewText(mine.comment || ''); }
+    }
+
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
+      Animated.spring(scaleAnim, { toValue: 1, tension: 60, friction: 8, useNativeDriver: true }),
+    ]).start();
+
+    setLoading(false);
   };
 
   const handleFollowToggle = async () => {

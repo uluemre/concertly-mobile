@@ -5,7 +5,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import API from '../services/api';
+import API, { getErrorMessage } from '../services/api';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -21,8 +21,10 @@ export default function FeedScreen({ navigation }) {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState(null);
   const tabIndicator = useRef(new Animated.Value(1)).current;
   const isMounted = useRef(true);
+  const autoSwitchedRef = useRef(false);
 
   useEffect(() => {
     return () => { isMounted.current = false; };
@@ -30,17 +32,30 @@ export default function FeedScreen({ navigation }) {
 
   useEffect(() => {
     let cancelled = false;
+    let switching = false;
     const doFetch = async () => {
       try {
         const url = activeTab === 'trending'
           ? '/posts/feed/trending'
           : `/posts/feed/following?userId=${session.userId}`;
         const res = await API.get(url);
-        if (!cancelled) setPosts([...res.data].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+        if (cancelled) return;
+        const sorted = [...res.data].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        // 5.2: takip akışı boşsa (yeni kullanıcı) bir kez otomatik trending'e geç
+        if (activeTab === 'following' && sorted.length === 0 && !autoSwitchedRef.current) {
+          autoSwitchedRef.current = true;
+          switching = true;
+          switchTab('trending');
+          return;
+        }
+
+        setPosts(sorted);
+        setError(null);
       } catch (err) {
-        if (!cancelled) console.log('Feed hatası:', err.message);
+        if (!cancelled) setError(getErrorMessage(err));
       } finally {
-        if (!cancelled) {
+        if (!cancelled && !switching) {
           setLoading(false);
           setRefreshing(false);
         }
@@ -57,11 +72,14 @@ export default function FeedScreen({ navigation }) {
         ? '/posts/feed/trending'
         : `/posts/feed/following?userId=${session.userId}`;
       const res = await API.get(url);
-      if (isMounted.current) setPosts([...res.data].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+      if (isMounted.current) {
+        setPosts([...res.data].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+        setError(null);
+      }
     } catch (err) {
-      if (isMounted.current) console.log('Feed hatası:', err.message);
+      if (isMounted.current) setError(getErrorMessage(err));
     } finally {
-      if (isMounted.current) setRefreshing(false);
+      if (isMounted.current) { setRefreshing(false); setLoading(false); }
     }
   }, [activeTab]);
 
@@ -123,6 +141,21 @@ export default function FeedScreen({ navigation }) {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.loadingText}>{t('feed_loading')}</Text>
+        </View>
+      ) : (error && posts.length === 0) ? (
+        <View style={styles.empty}>
+          <Text style={styles.emptyEmoji}>📡</Text>
+          <Text style={styles.emptyTitle}>{t('load_failed')}</Text>
+          <Text style={styles.emptySubtext}>{error}</Text>
+          <TouchableOpacity
+            onPress={() => { setError(null); setLoading(true); fetchPosts(); }}
+            activeOpacity={0.85}
+            style={styles.emptyCtaWrap}
+          >
+            <LinearGradient colors={['#E94560', '#7C3AED']} style={styles.emptyCta} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+              <Text style={styles.emptyCtaText}>{t('retry')}</Text>
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
       ) : (
         <FlatList

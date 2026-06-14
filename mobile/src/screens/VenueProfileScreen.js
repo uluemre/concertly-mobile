@@ -52,23 +52,25 @@ export default function VenueProfileScreen({ route, navigation }) {
   useEffect(() => { fetchAll(); }, []);
 
   const fetchAll = async () => {
-    try {
-      const [vRes, eRes, rRes] = await Promise.all([
-        API.get(`/venues/${venueId}`),
-        API.get(`/venues/${venueId}/events`),
-        API.get(`/venues/${venueId}/reviews`),
-      ]);
-      setVenue(vRes.data);
-      setEvents(eRes.data);
-      setReviews(rRes.data);
-      if (vRes.data.myRating) {
-        setMyRating(vRes.data.myRating);
-      }
-    } catch {
+    // Parçalı yükleme: mekan verisi başarısızsa uyar; etkinlik/yorum çağrıları
+    // başarısızsa sadece o bölüm boş kalsın, sayfa yine de açılsın.
+    const [vRes, eRes, rRes] = await Promise.allSettled([
+      API.get(`/venues/${venueId}`),
+      API.get(`/venues/${venueId}/events`),
+      API.get(`/venues/${venueId}/reviews`),
+    ]);
+
+    if (vRes.status !== 'fulfilled') {
       Alert.alert(t('error'), t('venue_load_error'));
-    } finally {
       setLoading(false);
+      return;
     }
+
+    setVenue(vRes.value.data);
+    if (vRes.value.data.myRating) setMyRating(vRes.value.data.myRating);
+    setEvents(eRes.status === 'fulfilled' ? eRes.value.data : []);
+    setReviews(rRes.status === 'fulfilled' ? rRes.value.data : []);
+    setLoading(false);
   };
 
   // Takvim için: hangi günde hangi etkinlik var
