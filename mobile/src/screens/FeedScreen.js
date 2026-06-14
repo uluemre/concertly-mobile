@@ -12,6 +12,8 @@ import { useLanguage } from '../context/LanguageContext';
 import PostCard from '../components/feed/PostCard';
 import AnimatedListItem from '../components/AnimatedListItem';
 
+const PAGE_SIZE = 20;
+
 export default function FeedScreen({ navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -22,66 +24,75 @@ export default function FeedScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
+  const [loadingMore, setLoadingMore] = useState(false);
   const tabIndicator = useRef(new Animated.Value(1)).current;
   const isMounted = useRef(true);
   const autoSwitchedRef = useRef(false);
+  const pageRef = useRef(0);
+  const hasMoreRef = useRef(true);
 
   useEffect(() => {
     return () => { isMounted.current = false; };
   }, []);
 
+  // Tek sayfa yükle (reset=baştan, değilse sıradaki sayfayı ekle). Sunucu createdAt'e
+  // göre sıralı döndürüyor; istemci sıralamasına gerek yok.
+  const loadFeed = useCallback(async ({ reset, tab }) => {
+    const activeT = tab || activeTab;
+    const page = reset ? 0 : pageRef.current;
+    try {
+      const base = activeT === 'trending'
+        ? '/posts/feed/trending'
+        : `/posts/feed/following?userId=${session.userId}`;
+      const sep = base.includes('?') ? '&' : '?';
+      const res = await API.get(`${base}${sep}page=${page}&size=${PAGE_SIZE}`);
+      if (!isMounted.current) return { switched: false };
+      const data = res.data || [];
+
+      // 5.2: takip akışı ilk sayfada boşsa bir kez otomatik trending'e geç
+      if (reset && activeT === 'following' && data.length === 0 && !autoSwitchedRef.current) {
+        autoSwitchedRef.current = true;
+        switchTab('trending');
+        return { switched: true };
+      }
+
+      setPosts(prev => reset ? data : [...prev, ...data]);
+      setError(null);
+      pageRef.current = page + 1;
+      hasMoreRef.current = data.length === PAGE_SIZE;
+    } catch (err) {
+      if (isMounted.current) setError(getErrorMessage(err));
+    }
+    return { switched: false };
+  }, [activeTab, session.userId]);
+
+  // Sekme değişince baştan yükle
   useEffect(() => {
     let cancelled = false;
-    let switching = false;
-    const doFetch = async () => {
-      try {
-        const url = activeTab === 'trending'
-          ? '/posts/feed/trending'
-          : `/posts/feed/following?userId=${session.userId}`;
-        const res = await API.get(url);
-        if (cancelled) return;
-        const sorted = [...res.data].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-        // 5.2: takip akışı boşsa (yeni kullanıcı) bir kez otomatik trending'e geç
-        if (activeTab === 'following' && sorted.length === 0 && !autoSwitchedRef.current) {
-          autoSwitchedRef.current = true;
-          switching = true;
-          switchTab('trending');
-          return;
-        }
-
-        setPosts(sorted);
-        setError(null);
-      } catch (err) {
-        if (!cancelled) setError(getErrorMessage(err));
-      } finally {
-        if (!cancelled && !switching) {
-          setLoading(false);
-          setRefreshing(false);
-        }
-      }
-    };
-    doFetch();
+    setLoading(true);
+    pageRef.current = 0;
+    hasMoreRef.current = true;
+    (async () => {
+      const r = await loadFeed({ reset: true, tab: activeTab });
+      if (!cancelled && !r.switched && isMounted.current) setLoading(false);
+    })();
     return () => { cancelled = true; };
   }, [activeTab]);
 
-  const fetchPosts = useCallback(async () => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    try {
-      const url = activeTab === 'trending'
-        ? '/posts/feed/trending'
-        : `/posts/feed/following?userId=${session.userId}`;
-      const res = await API.get(url);
-      if (isMounted.current) {
-        setPosts([...res.data].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
-        setError(null);
-      }
-    } catch (err) {
-      if (isMounted.current) setError(getErrorMessage(err));
-    } finally {
-      if (isMounted.current) { setRefreshing(false); setLoading(false); }
-    }
-  }, [activeTab]);
+    pageRef.current = 0;
+    hasMoreRef.current = true;
+    await loadFeed({ reset: true });
+    if (isMounted.current) setRefreshing(false);
+  }, [loadFeed]);
+
+  const onEndReached = useCallback(async () => {
+    if (loadingMore || !hasMoreRef.current || loading || error) return;
+    setLoadingMore(true);
+    await loadFeed({ reset: false });
+    if (isMounted.current) setLoadingMore(false);
+  }, [loadFeed, loadingMore, loading, error]);
 
   const switchTab = (tab) => {
     setActiveTab(tab);
@@ -148,7 +159,11 @@ export default function FeedScreen({ navigation }) {
           <Text style={styles.emptyTitle}>{t('load_failed')}</Text>
           <Text style={styles.emptySubtext}>{error}</Text>
           <TouchableOpacity
-            onPress={() => { setError(null); setLoading(true); fetchPosts(); }}
+            onPress={() => {
+              setError(null); setLoading(true);
+              pageRef.current = 0; hasMoreRef.current = true;
+              loadFeed({ reset: true }).then(() => isMounted.current && setLoading(false));
+            }}
             activeOpacity={0.85}
             style={styles.emptyCtaWrap}
           >
@@ -164,8 +179,13 @@ export default function FeedScreen({ navigation }) {
           renderItem={renderPost}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          onEndReached={onEndReached}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={
+            loadingMore ? <ActivityIndicator color={colors.primary} style={{ marginVertical: 20 }} /> : null
+          }
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={fetchPosts} tintColor={colors.primary} />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
           }
           ListEmptyComponent={
             <View style={styles.empty}>

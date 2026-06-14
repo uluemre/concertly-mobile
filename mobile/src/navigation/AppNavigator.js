@@ -4,7 +4,7 @@ import React, { useEffect, useRef } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Text, View, ActivityIndicator, Animated } from 'react-native';
+import { Text, View, ActivityIndicator, Animated, AppState } from 'react-native';
 import API, { setSessionExpiredHandler } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -80,17 +80,24 @@ function TabNavigator() {
   const { session, notificationCount, setNotificationCount } = useAuth();
 
   useEffect(() => {
+    if (!session.authToken) return;
+    let interval = null;
     const fetchCount = async () => {
-      if (!session.authToken) return;
       try {
         const res = await API.get('/notifications/unread-count');
         setNotificationCount(res.data.count ?? 0);
       } catch {}
     };
-
-    fetchCount();
-    const interval = setInterval(fetchCount, 20000);
-    return () => clearInterval(interval);
+    // Yalnızca uygulama önplandayken poll et — arka planda boşa istek atma (10.3)
+    const start = () => {
+      clearInterval(interval);
+      fetchCount();
+      interval = setInterval(fetchCount, 30000);
+    };
+    const stop = () => clearInterval(interval);
+    if (AppState.currentState === 'active') start();
+    const sub = AppState.addEventListener('change', s => (s === 'active' ? start() : stop()));
+    return () => { stop(); sub.remove(); };
   }, [session.authToken]);
 
   return (

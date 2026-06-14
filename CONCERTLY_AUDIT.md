@@ -673,7 +673,8 @@ Anahtarları repodan çıkar, gerçek değerleri rotate et, yalnızca env/secret
 
 ---
 
-### Bulgu 10.2 — Feed/etkinlik uçlarında sayfalama yok → veri büyüdükçe ölçeklenmez
+### Bulgu 10.2 — ✅ UYGULANDI (15 Haz) — Feed uçlarında sayfalama yok
+> `/posts/feed/trending` ve `/following` artık `page` + `size` (varsayılan 20) alıyor; repo `Pageable` ile sıralı sayfa dönüyor. FeedScreen sonsuz kaydırma (`onEndReached` + footer spinner), pull-to-refresh ve "Tekrar Dene" sayfayı sıfırlıyor. (Events için zaten `limit`/`upcoming` vardı — 4.3.)
 
 **Problem**
 `/posts/feed/trending`, `/posts/feed/following` ve `/events` tüm listeyi tek seferde dönüyor (HomeScreen yorumu etkinlik listesinin ≈1MB olduğunu not ediyor; Home `limit=40` ile sınırlıyor ama Feed hiç sınırlamıyor). Sayfalama/sonsuz kaydırma yok. Ayrıca prod'da `spring.jpa.show-sql=true` (her sorguyu loglar) ve `ddl-auto=update` (şema otomatik mutasyonu, migration aracı yok).
@@ -689,7 +690,8 @@ Feed/event uçlarına `page`+`size` (Spring `Pageable`) ekle, mobilde `onEndReac
 
 **Tahmini Efor:** 1 gün (sayfalama) + 30 dk (prod ayarları)
 
-### Bulgu 10.3 — Polling tabanlı "gerçek zamanlı" katman QPS tavanına çarpar
+### Bulgu 10.3 — ✅ KISMEN UYGULANDI (15 Haz) — Polling QPS tavanına çarpar
+> Kısa-vade hafifletme yapıldı: bildirim sayacı (AppNavigator) ve Home mesaj-sayacı poll'ları artık yalnızca uygulama **önplandayken** çalışıyor (AppState), aralıklar 30 sn'ye çıkarıldı; arka planda boşa istek atılmıyor. Chat/ChatList zaten AppState'e bağlıydı. **Kalan (ayrı sprint):** gerçek WebSocket/STOMP migrasyonu (auth'lu, reconnect'li) — ROADMAP'teki Sesli Odalar sprintiyle birlikte planlanmalı; test gerektirir, körlemesine yapılmamalı.
 
 **Problem**
 Chat 4 sn, bildirim sayacı 20 sn, okunmamış mesaj 15 sn'de bir poll ediyor. Her aktif istemci, çoğu boş dönen sabit bir istek akışı üretiyor. N kullanıcıda bu, sürekli yüksek ve büyük ölçüde israf olan bir QPS demek — üstelik hâlâ gerçek-zamanlı değil.

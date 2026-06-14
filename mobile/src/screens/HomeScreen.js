@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react'
 import {
   View, Text, StyleSheet,
   TouchableOpacity, ScrollView, Dimensions,
-  Animated, StatusBar, FlatList, Modal,
+  Animated, StatusBar, FlatList, Modal, AppState,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
@@ -60,17 +60,20 @@ export default function HomeScreen({ navigation }) {
       .catch(() => {});
   }, [session.userId]));
 
-  // Okunmamış mesaj sayısı — ekran odaktayken periyodik tazelenir
+  // Okunmamış mesaj sayısı — ekran odaktayken ve yalnızca önplandayken tazelenir (10.3)
   useFocusEffect(useCallback(() => {
+    let interval = null;
     const fetchUnread = async () => {
       try {
         const res = await API.get('/messages/unread-count');
         if (isMounted.current) setUnreadMessages(res.data.count ?? 0);
       } catch {}
     };
-    fetchUnread();
-    const interval = setInterval(fetchUnread, 15000);
-    return () => clearInterval(interval);
+    const start = () => { clearInterval(interval); fetchUnread(); interval = setInterval(fetchUnread, 30000); };
+    const stop = () => clearInterval(interval);
+    if (AppState.currentState === 'active') start();
+    const sub = AppState.addEventListener('change', s => (s === 'active' ? start() : stop()));
+    return () => { stop(); sub.remove(); };
   }, []));
 
   useEffect(() => {

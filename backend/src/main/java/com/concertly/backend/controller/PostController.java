@@ -29,9 +29,11 @@ public class PostController {
     }
 
     @GetMapping("/feed/trending")
-    public List<PostResponse> getTrending() {
+    public List<PostResponse> getTrending(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
         Long userId = JwtUtil.getCurrentUserId();
-        return postService.getTrendingFeed(userId);
+        return postService.getTrendingFeed(userId, page, size);
     }
 
     @PostMapping("/{postId}/poll/vote")
@@ -41,9 +43,11 @@ public class PostController {
     }
 
     @GetMapping("/feed/following")
-    public List<PostResponse> getFollowingFeed() {
+    public List<PostResponse> getFollowingFeed(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
         Long userId = JwtUtil.getCurrentUserId();
-        return postService.getFollowingFeed(userId);
+        return postService.getFollowingFeed(userId, page, size);
     }
 
     @PostMapping("/{postId}/like")

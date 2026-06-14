@@ -7,6 +7,7 @@ import com.concertly.backend.exception.AlreadyExistsException;
 import com.concertly.backend.exception.ResourceNotFoundException;
 import com.concertly.backend.model.*;
 import com.concertly.backend.repository.*;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -123,24 +124,24 @@ public class PostService {
         return toResponse(saved, userId);
     }
 
-    // ✅ TRENDING FEED
-    public List<PostResponse> getTrendingFeed(Long currentUserId) {
+    // ✅ TRENDING FEED (sayfalı)
+    public List<PostResponse> getTrendingFeed(Long currentUserId, int page, int size) {
         Set<Long> hidden = moderationService.getHiddenUserIds(currentUserId);
-        return postRepository.findAll()
+        return postRepository.findByOrderByCreatedAtDesc(PageRequest.of(page, size))
                 .stream()
                 .filter(p -> p.getUser() == null || !hidden.contains(p.getUser().getId()))
                 .map(p -> toResponse(p, currentUserId))
                 .toList();
     }
 
-    // ✅ FOLLOWING FEED
-    public List<PostResponse> getFollowingFeed(Long userId) {
+    // ✅ FOLLOWING FEED (sayfalı)
+    public List<PostResponse> getFollowingFeed(Long userId, int page, int size) {
         if (!userRepository.existsById(userId)) {
             throw new ResourceNotFoundException("Kullanıcı bulunamadı: " + userId);
         }
 
         Set<Long> hidden = moderationService.getHiddenUserIds(userId);
-        return postRepository.getFollowingFeed(userId)
+        return postRepository.getFollowingFeed(userId, PageRequest.of(page, size))
                 .stream()
                 .filter(p -> p.getUser() == null || !hidden.contains(p.getUser().getId()))
                 .map(p -> toResponse(p, userId))
