@@ -24,8 +24,6 @@ const gradientSets = [
   ['#7C3AED', '#F5A623'],
 ];
 
-const genreColors = ['#E94560', '#7C3AED', '#F5A623', '#00D4AA', '#3B82F6', '#EC4899', '#10B981', '#F97316'];
-
 export default function ProfileScreen({ navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -242,41 +240,58 @@ export default function ProfileScreen({ navigation }) {
         </View>
       </View>
 
+      {/* TAKİP EDİLEN SANATÇILAR */}
+      {followedArtists.length > 0 && (
+        <View style={styles.followedSection}>
+          <Text style={styles.followedTitle}>{t('profile_followed_artists')}</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.followedRow}
+          >
+            {followedArtists.map(a => (
+              <TouchableOpacity
+                key={a.id}
+                style={styles.followedItem}
+                onPress={() => navigation.navigate('ArtistProfile', { artistId: a.id, artistName: a.name })}
+                activeOpacity={0.8}
+              >
+                {a.imageUrl ? (
+                  <Image source={{ uri: a.imageUrl }} style={styles.followedAvatar} />
+                ) : (
+                  <View style={styles.followedAvatarPlaceholder}>
+                    <Text style={styles.followedAvatarLetter}>
+                      {(a.name || '?').charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+                )}
+                <Text style={styles.followedName} numberOfLines={1}>{a.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+
       {/* SEKMELER */}
       <View style={styles.tabs}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'posts' && styles.tabActive]}
-          onPress={() => setActiveTab('posts')}
-        >
-          <Text style={[styles.tabText, activeTab === 'posts' && styles.tabTextActive]}>
-            {t('profile_posts')} ({posts.length})
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'events' && styles.tabActive]}
-          onPress={() => setActiveTab('events')}
-        >
-          <Text style={[styles.tabText, activeTab === 'events' && styles.tabTextActive]}>
-            {t('profile_events')} ({events.length})
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'bookmarks' && styles.tabActive]}
-          onPress={() => setActiveTab('bookmarks')}
-        >
-          <Text style={[styles.tabText, activeTab === 'bookmarks' && styles.tabTextActive]}>
-            🔖 ({bookmarks.length})
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'badges' && styles.tabActive]}
-          onPress={() => setActiveTab('badges')}
-        >
-          <Text style={[styles.tabText, activeTab === 'badges' && styles.tabTextActive]}>
-            🏅 ({badges.filter(b => b.earned).length}/{badges.length})
-          </Text>
-        </TouchableOpacity>
-
+        {[
+          { key: 'posts',     icon: '📝', count: posts.length },
+          { key: 'events',    icon: '🎫', count: events.length },
+          { key: 'bookmarks', icon: '🔖', count: bookmarks.length },
+          { key: 'badges',    icon: '🏅', count: `${badges.filter(b => b.earned).length}/${badges.length}` },
+        ].map(tab => (
+          <TouchableOpacity
+            key={tab.key}
+            style={[styles.tab, activeTab === tab.key && styles.tabActive]}
+            onPress={() => setActiveTab(tab.key)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.tabIcon}>{tab.icon}</Text>
+            <Text style={[styles.tabCount, activeTab === tab.key && styles.tabCountActive]}>
+              {tab.count}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
       {/* İÇERİK */}
@@ -410,24 +425,37 @@ export default function ProfileScreen({ navigation }) {
         )}
       </View>
 
-      {/* KONSER PASAPORTU */}
-      <View style={styles.passportArea}>
+      {/* MÜZİK KİMLİĞİ + KONSER PASAPORTU */}
+      <View style={styles.shortcutRow}>
         <TouchableOpacity
+          style={styles.shortcutCard}
+          onPress={() => navigation.navigate('Wrapped')}
+          activeOpacity={0.85}
+        >
+          <LinearGradient
+            colors={['#1DB954', '#0A6B2E']}
+            style={styles.shortcutGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <Text style={styles.shortcutEmoji}>🎧</Text>
+            <Text style={styles.shortcutTitle}>{t('profile_music_identity')}</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.shortcutCard}
           onPress={() => navigation.navigate('ConcertPassport')}
           activeOpacity={0.85}
         >
           <LinearGradient
-            colors={['#1A0A2E', '#0A1628']}
-            style={styles.passportButton}
+            colors={['#7C3AED', '#1A0A2E']}
+            style={styles.shortcutGradient}
             start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
+            end={{ x: 1, y: 1 }}
           >
-            <Text style={styles.passportEmoji}>🎟️</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.passportTitle}>Konser Pasaportu</Text>
-              <Text style={styles.passportSub}>Gittiğin konserlerin tarihi</Text>
-            </View>
-            <Text style={styles.passportChevron}>›</Text>
+            <Text style={styles.shortcutEmoji}>🎟️</Text>
+            <Text style={styles.shortcutTitle}>{t('profile_passport')}</Text>
           </LinearGradient>
         </TouchableOpacity>
       </View>
@@ -573,22 +601,25 @@ function createStyles(colors) {
     },
     tab: {
       flex: 1,
-      paddingVertical: 16,
+      paddingVertical: 12,
       alignItems: 'center',
+      gap: 3,
       borderBottomWidth: 3,
       borderBottomColor: 'transparent',
     },
     tabActive: {
       borderBottomColor: colors.primary,
     },
-    tabText: {
-      fontSize: 14,
-      color: colors.textSecondary,
-      fontWeight: '600',
+    tabIcon: {
+      fontSize: 20,
     },
-    tabTextActive: {
-      color: colors.text,
+    tabCount: {
+      fontSize: 12,
+      color: colors.textSecondary,
       fontWeight: '700',
+    },
+    tabCountActive: {
+      color: colors.text,
     },
 
     // CONTENT
@@ -642,35 +673,33 @@ function createStyles(colors) {
     emptyText: { color: colors.text, fontSize: 16, fontWeight: '600', marginBottom: 6 },
     emptySubText: { color: colors.textSecondary, fontSize: 13, textAlign: 'center' },
 
-    // MUSIC TAB
-    musicSection: { marginBottom: 24 },
-    musicSectionTitle: { fontSize: 15, fontWeight: '700', color: colors.text, marginBottom: 12 },
-    genreRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-    genreChip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20 },
-    genreChipText: { color: '#fff', fontSize: 13, fontWeight: '700' },
-
-    artistGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-    artistCard: { width: (width - 64) / 3, alignItems: 'center' },
-    artistImage: { width: (width - 64) / 3, height: (width - 64) / 3, borderRadius: 12, marginBottom: 6 },
-    artistImagePlaceholder: {
-      width: (width - 64) / 3, height: (width - 64) / 3, borderRadius: 12,
-      backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
+    // TAKİP EDİLEN SANATÇILAR
+    followedSection: { marginTop: 16, marginBottom: 4 },
+    followedTitle: {
+      fontSize: 13, fontWeight: '700', color: colors.text,
+      paddingHorizontal: 16, marginBottom: 12,
+      textTransform: 'uppercase', letterSpacing: 0.5,
+    },
+    followedRow: { paddingHorizontal: 16, gap: 16 },
+    followedItem: { alignItems: 'center', width: 64 },
+    followedAvatar: {
+      width: 60, height: 60, borderRadius: 30,
+      borderWidth: 2, borderColor: colors.primary, marginBottom: 6,
+    },
+    followedAvatarPlaceholder: {
+      width: 60, height: 60, borderRadius: 30,
+      backgroundColor: colors.card, borderWidth: 2, borderColor: colors.border,
       justifyContent: 'center', alignItems: 'center', marginBottom: 6,
     },
-    artistImageEmoji: { fontSize: 32 },
-    artistName: { fontSize: 12, color: colors.text, fontWeight: '600', textAlign: 'center' },
+    followedAvatarLetter: { fontSize: 24, fontWeight: '800', color: colors.primary },
+    followedName: { fontSize: 11, color: colors.textSecondary, fontWeight: '600', textAlign: 'center' },
 
-    // PASSPORT
-    passportArea: { paddingHorizontal: 16, paddingBottom: 8 },
-    passportButton: {
-      flexDirection: 'row', alignItems: 'center', gap: 12,
-      padding: 16, borderRadius: 16,
-      borderWidth: 1, borderColor: '#2A1A4E',
-    },
-    passportEmoji: { fontSize: 28 },
-    passportTitle: { color: '#fff', fontSize: 15, fontWeight: '800', marginBottom: 2 },
-    passportSub: { color: 'rgba(255,255,255,0.5)', fontSize: 12 },
-    passportChevron: { color: 'rgba(255,255,255,0.4)', fontSize: 24 },
+    // KISAYOL KARTLARI (Müzik Kimliği + Pasaport)
+    shortcutRow: { flexDirection: 'row', gap: 12, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 8 },
+    shortcutCard: { flex: 1, borderRadius: 16, overflow: 'hidden' },
+    shortcutGradient: { padding: 16, minHeight: 96, justifyContent: 'space-between' },
+    shortcutEmoji: { fontSize: 26, marginBottom: 8 },
+    shortcutTitle: { color: '#fff', fontSize: 14, fontWeight: '800' },
 
     // LOGOUT
     logoutArea: { padding: 16, paddingBottom: 32 },

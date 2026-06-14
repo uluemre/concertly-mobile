@@ -43,7 +43,6 @@ import SettingsScreen from '../screens/SettingsScreen';
 import MapScreen from '../screens/MapScreen';
 import FollowListScreen from '../screens/FollowListScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
-import MusicProfileScreen from '../screens/MusicProfileScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
 import GenreSelectionScreen from '../screens/GenreSelectionScreen';
 import ArtistSelectionScreen from '../screens/ArtistSelectionScreen';
@@ -276,11 +275,6 @@ export default function AppNavigator() {
         <Stack.Screen
           name="FollowList"
           component={FollowListScreen}
-        />
-
-        <Stack.Screen
-          name="MusicProfile"
-          component={MusicProfileScreen}
         />
 
         {/* ADMIN */}

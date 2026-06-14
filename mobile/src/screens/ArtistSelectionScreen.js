@@ -62,12 +62,12 @@ export default function ArtistSelectionScreen({ route, navigation }) {
         favoriteGenres: selectedGenres.join(','),
       });
       if (editMode) {
-        navigation.navigate('MusicProfile');
+        navigation.navigate('MainApp');
       } else {
         navigation.dispatch(
           CommonActions.reset({
-            index: 1,
-            routes: [{ name: 'MainApp' }, { name: 'MusicProfile' }],
+            index: 0,
+            routes: [{ name: 'MainApp' }],
           })
         );
       }

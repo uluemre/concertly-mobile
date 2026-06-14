@@ -221,7 +221,7 @@ export default function WrappedScreen({ navigation }) {
               </LinearGradient>
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => navigation.navigate('MusicProfile')}
+              onPress={() => navigation.navigate('GenreSelection', { editMode: true })}
               activeOpacity={0.8}
               style={[styles.prefsBtn, { borderColor: colors.border }]}
             >
@@ -249,7 +249,7 @@ export default function WrappedScreen({ navigation }) {
               </LinearGradient>
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => navigation.navigate('MusicProfile')}
+              onPress={() => navigation.navigate('GenreSelection', { editMode: true })}
               activeOpacity={0.8}
               style={[styles.prefsBtn, { borderColor: colors.border }]}
             >
