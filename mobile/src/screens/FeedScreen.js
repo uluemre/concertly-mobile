@@ -143,6 +143,22 @@ export default function FeedScreen({ navigation }) {
               <Text style={styles.emptySubtext}>
                 {activeTab === 'following' ? t('feed_empty_following_sub') : t('feed_empty_sub')}
               </Text>
+              <TouchableOpacity
+                onPress={() => activeTab === 'following' ? switchTab('trending') : navigation.navigate('Events')}
+                activeOpacity={0.85}
+                style={styles.emptyCtaWrap}
+              >
+                <LinearGradient
+                  colors={['#E94560', '#7C3AED']}
+                  style={styles.emptyCta}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                >
+                  <Text style={styles.emptyCtaText}>
+                    {activeTab === 'following' ? t('feed_empty_following_cta') : t('feed_empty_cta')}
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
             </View>
           }
         />
@@ -177,5 +193,8 @@ function createStyles(colors) {
     emptyEmoji: { fontSize: 56, marginBottom: 16 },
     emptyTitle: { fontSize: 17, fontWeight: 'bold', color: colors.text, marginBottom: 8, textAlign: 'center' },
     emptySubtext: { fontSize: 13, color: colors.textSecondary, textAlign: 'center', lineHeight: 20 },
+    emptyCtaWrap: { marginTop: 20 },
+    emptyCta: { paddingVertical: 12, paddingHorizontal: 28, borderRadius: 14, alignItems: 'center' },
+    emptyCtaText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
   });
 }

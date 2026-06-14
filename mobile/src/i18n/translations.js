@@ -80,8 +80,10 @@ export const translations = {
     feed_loading: 'Postlar yükleniyor...',
     feed_empty_following_title: 'Takip ettiğin kimse yok',
     feed_empty_following_sub: 'Kullanıcıları takip et, onların postlarını burada gör',
+    feed_empty_following_cta: '🔥 Trending\'e Göz At',
     feed_empty_title: 'Henüz post yok',
     feed_empty_sub: 'İlk postu sen at! Bir konsere git 🎸',
+    feed_empty_cta: '🎫 Etkinlikleri Keşfet',
     feed_comment: 'Yorum yaz... 🎸',
     feed_first_comment: 'İlk yorumu sen yap!',
 
@@ -371,8 +373,6 @@ export const translations = {
     artist_no_posts: 'Bu sanatçı için henüz post yok',
     artist_load_error: 'Sanatçı profili yüklenemedi.',
     artist_action_error: 'İşlem gerçekleştirilemedi.',
-    artist_tab_events: '🎪 Etkinlikler ({count})',
-    artist_tab_posts: '🔥 Postlar ({count})',
 
     // ARTIST SELECTION
     artsel_title: 'Sevdiğin sanatçıları seç',
@@ -408,26 +408,13 @@ export const translations = {
     map_away: 'uzakta',
     map_radius_all: 'Tümü',
 
-    // MUSIC PROFILE
-    music_title: 'Müzik Profilim',
-    music_sub: 'Tür ve sanatçı tercihlerini yönet',
-    music_edit: '✏️ Güncelle',
-    music_genres: 'Favori Türler',
-    music_no_genres: 'Henüz tür seçilmemiş',
-    music_hide: 'Gizle',
-    music_artists: 'Takip Edilen Sanatçılar',
-    music_no_artists: 'Henüz sanatçı takip edilmiyor',
-    music_no_artists_sub: 'Güncelle butonuna basarak sanatçı takip edebilirsin',
-    music_more: 'daha',
-    music_followers: 'takipçi',
 
     // USER PROFILE (extra)
     userprofile_bio_empty: 'Bio henüz eklenmemiş',
     userprofile_no_posts: 'Henüz post yok',
     userprofile_no_events: 'Henüz etkinlik yok',
-    userprofile_tab_posts: '🎵 Postlar ({count})',
-    userprofile_tab_events: '🎪 Etkinlikler ({count})',
     userprofile_load_error: 'Profil yüklenemedi.',
+    userprofile_followed_artists: 'Takip Ettiği Sanatçılar',
     userprofile_action_error: 'İşlem gerçekleştirilemedi.',
 
     // VENUE PROFILE
@@ -900,8 +887,10 @@ export const translations = {
     feed_loading: 'Loading posts...',
     feed_empty_following_title: "You're not following anyone",
     feed_empty_following_sub: 'Follow users to see their posts here',
+    feed_empty_following_cta: '🔥 Browse Trending',
     feed_empty_title: 'No posts yet',
     feed_empty_sub: 'Be the first! Go to a concert 🎸',
+    feed_empty_cta: '🎫 Explore Events',
     feed_comment: 'Write a comment... 🎸',
     feed_first_comment: 'Be the first to comment!',
 
@@ -1191,8 +1180,6 @@ export const translations = {
     artist_no_posts: 'No posts for this artist yet',
     artist_load_error: 'Failed to load artist profile.',
     artist_action_error: 'Action failed.',
-    artist_tab_events: '🎪 Events ({count})',
-    artist_tab_posts: '🔥 Posts ({count})',
 
     // ARTIST SELECTION
     artsel_title: 'Select your favorite artists',
@@ -1228,26 +1215,13 @@ export const translations = {
     map_away: 'away',
     map_radius_all: 'All',
 
-    // MUSIC PROFILE
-    music_title: 'My Music Profile',
-    music_sub: 'Manage your genre and artist preferences',
-    music_edit: '✏️ Update',
-    music_genres: 'Favorite Genres',
-    music_no_genres: 'No genres selected yet',
-    music_hide: 'Hide',
-    music_artists: 'Followed Artists',
-    music_no_artists: 'Not following any artists yet',
-    music_no_artists_sub: 'Press Update to follow artists',
-    music_more: 'more',
-    music_followers: 'followers',
 
     // USER PROFILE (extra)
     userprofile_bio_empty: 'No bio added yet',
     userprofile_no_posts: 'No posts yet',
     userprofile_no_events: 'No events yet',
-    userprofile_tab_posts: '🎵 Posts ({count})',
-    userprofile_tab_events: '🎪 Events ({count})',
     userprofile_load_error: 'Failed to load profile.',
+    userprofile_followed_artists: 'Artists They Follow',
     userprofile_action_error: 'Action failed.',
 
     // VENUE PROFILE

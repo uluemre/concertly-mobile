@@ -72,7 +72,6 @@ function formatFollowers(n) {
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2;
-const TAB_COUNT = 3;
 
 const gradientSets = [
   ['#E94560', '#7C3AED'],
@@ -106,7 +105,6 @@ export default function ArtistProfileScreen({ route, navigation }) {
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.96)).current;
-  const tabAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     fetchAll();
@@ -201,19 +199,6 @@ export default function ArtistProfileScreen({ route, navigation }) {
       },
     ]);
   };
-
-  const switchTab = (tab, index) => {
-    setActiveTab(tab);
-    Animated.spring(tabAnim, {
-      toValue: index,
-      tension: 70, friction: 10, useNativeDriver: false,
-    }).start();
-  };
-
-  const tabIndicatorLeft = tabAnim.interpolate({
-    inputRange: [0, 1, 2],
-    outputRange: ['0%', `${100 / TAB_COUNT}%`, `${(200 / TAB_COUNT)}%`],
-  });
 
   const avgRating = reviews.length
     ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length)
@@ -363,25 +348,24 @@ export default function ArtistProfileScreen({ route, navigation }) {
       </LinearGradient>
 
       {/* ── SEKMELER ────────────────────────────────────────────────────── */}
-      <View style={styles.tabBarWrapper}>
-        <View style={styles.tabBar}>
-          <Animated.View style={[styles.tabIndicator, { left: tabIndicatorLeft }]} />
-          <TouchableOpacity style={styles.tabBtn} onPress={() => switchTab('events', 0)}>
-            <Text style={[styles.tabText, activeTab === 'events' && styles.tabTextActive]}>
-              {t('artist_tab_events', { count: events.length })}
+      <View style={styles.tabs}>
+        {[
+          { key: 'events',  icon: '🎫', count: events.length },
+          { key: 'posts',   icon: '📝', count: posts.length },
+          { key: 'reviews', icon: '⭐', count: reviews.length },
+        ].map(tab => (
+          <TouchableOpacity
+            key={tab.key}
+            style={[styles.tab, activeTab === tab.key && styles.tabActive]}
+            onPress={() => setActiveTab(tab.key)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.tabIcon}>{tab.icon}</Text>
+            <Text style={[styles.tabCount, activeTab === tab.key && styles.tabCountActive]}>
+              {tab.count}
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.tabBtn} onPress={() => switchTab('posts', 1)}>
-            <Text style={[styles.tabText, activeTab === 'posts' && styles.tabTextActive]}>
-              {t('artist_tab_posts', { count: posts.length })}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.tabBtn} onPress={() => switchTab('reviews', 2)}>
-            <Text style={[styles.tabText, activeTab === 'reviews' && styles.tabTextActive]}>
-              ⭐ {reviews.length}
-            </Text>
-          </TouchableOpacity>
-        </View>
+        ))}
       </View>
 
       {/* ── İÇERİK ──────────────────────────────────────────────────────── */}
@@ -663,17 +647,13 @@ function createStyles(colors) {
     statLabel: { fontSize: 11, color: colors.textSecondary, marginTop: 3 },
     statDivider: { width: 1, height: 32, backgroundColor: colors.border },
 
-    // SEKMELER
-    tabBarWrapper: { backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.border, paddingHorizontal: 16, paddingVertical: 10 },
-    tabBar: { flexDirection: 'row', backgroundColor: colors.cardAlt, borderRadius: 12, padding: 4, position: 'relative', overflow: 'hidden' },
-    tabIndicator: {
-      position: 'absolute', top: 4, bottom: 4,
-      width: `${100 / TAB_COUNT}%`,
-      backgroundColor: colors.primary, borderRadius: 8,
-    },
-    tabBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', zIndex: 1 },
-    tabText: { fontSize: 12, fontWeight: '600', color: colors.textSecondary },
-    tabTextActive: { color: colors.text },
+    // SEKMELER (emoji + sayı, profil ekranıyla aynı)
+    tabs: { flexDirection: 'row', backgroundColor: colors.background, borderBottomWidth: 1, borderBottomColor: colors.border },
+    tab: { flex: 1, paddingVertical: 12, alignItems: 'center', gap: 3, borderBottomWidth: 3, borderBottomColor: 'transparent' },
+    tabActive: { borderBottomColor: colors.primary },
+    tabIcon: { fontSize: 20 },
+    tabCount: { fontSize: 12, fontWeight: '700', color: colors.textSecondary },
+    tabCountActive: { color: colors.text },
 
     content: { padding: 16, paddingBottom: 48 },
 

@@ -32,6 +32,7 @@ export default function UserProfileScreen({ route, navigation }) {
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
   const [events, setEvents] = useState([]);
+  const [followedArtists, setFollowedArtists] = useState([]);
   const [loading, setLoading] = useState(true);
   const [following, setFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
@@ -39,7 +40,6 @@ export default function UserProfileScreen({ route, navigation }) {
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
-  const tabAnim = useRef(new Animated.Value(0)).current;
 
   const isOwnProfile = session.userId === userId;
 
@@ -54,16 +54,18 @@ export default function UserProfileScreen({ route, navigation }) {
 
   const fetchAll = async () => {
     try {
-      const [profileRes, postsRes, eventsRes] = await Promise.all([
+      const [profileRes, postsRes, eventsRes, artistsRes] = await Promise.all([
         API.get(`/users/${userId}/profile?currentUserId=${session.userId}`),
         API.get(`/users/${userId}/posts`),
         API.get(`/users/${userId}/events`),
+        API.get(`/users/${userId}/followed-artists`),
       ]);
 
       setProfile(profileRes.data);
       setFollowing(profileRes.data.isFollowedByCurrentUser || false);
       setPosts(postsRes.data);
       setEvents(eventsRes.data);
+      setFollowedArtists(artistsRes.data);
 
       Animated.parallel([
         Animated.timing(fadeAnim, {
@@ -109,19 +111,6 @@ export default function UserProfileScreen({ route, navigation }) {
       setFollowLoading(false);
     }
   };
-
-  const switchTab = (tab) => {
-    setActiveTab(tab);
-    Animated.spring(tabAnim, {
-      toValue: tab === 'posts' ? 0 : 1,
-      tension: 70, friction: 10, useNativeDriver: false,
-    }).start();
-  };
-
-  const tabIndicatorLeft = tabAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0%', '50%'],
-  });
 
   if (loading) return (
     <View style={styles.loadingContainer}>
@@ -254,21 +243,56 @@ export default function UserProfileScreen({ route, navigation }) {
         </View>
       </LinearGradient>
 
-      {/* ── ANİMASYONLU SEKMELER ─────────────────────────────────────────── */}
-      <View style={styles.tabBarWrapper}>
-        <View style={styles.tabBar}>
-          <Animated.View style={[styles.tabIndicator, { left: tabIndicatorLeft }]} />
-          <TouchableOpacity style={styles.tabBtn} onPress={() => switchTab('posts')}>
-            <Text style={[styles.tabText, activeTab === 'posts' && styles.tabTextActive]}>
-              {t('userprofile_tab_posts', { count: posts.length })}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.tabBtn} onPress={() => switchTab('events')}>
-            <Text style={[styles.tabText, activeTab === 'events' && styles.tabTextActive]}>
-              {t('userprofile_tab_events', { count: events.length })}
-            </Text>
-          </TouchableOpacity>
+      {/* ── TAKİP ETTİĞİ SANATÇILAR ──────────────────────────────────────── */}
+      {followedArtists.length > 0 && (
+        <View style={styles.followedSection}>
+          <Text style={styles.followedTitle}>{t('userprofile_followed_artists')}</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.followedRow}
+          >
+            {followedArtists.map(a => (
+              <TouchableOpacity
+                key={a.id}
+                style={styles.followedItem}
+                onPress={() => navigation.navigate('ArtistProfile', { artistId: a.id, artistName: a.name })}
+                activeOpacity={0.8}
+              >
+                {a.imageUrl ? (
+                  <Image source={{ uri: a.imageUrl }} style={styles.followedAvatar} />
+                ) : (
+                  <View style={styles.followedAvatarPlaceholder}>
+                    <Text style={styles.followedAvatarLetter}>
+                      {(a.name || '?').charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+                )}
+                <Text style={styles.followedName} numberOfLines={1}>{a.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
+      )}
+
+      {/* ── SEKMELER (emoji + sayı) ──────────────────────────────────────── */}
+      <View style={styles.tabs}>
+        {[
+          { key: 'posts',  icon: '📝', count: posts.length },
+          { key: 'events', icon: '🎫', count: events.length },
+        ].map(tab => (
+          <TouchableOpacity
+            key={tab.key}
+            style={[styles.tab, activeTab === tab.key && styles.tabActive]}
+            onPress={() => setActiveTab(tab.key)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.tabIcon}>{tab.icon}</Text>
+            <Text style={[styles.tabCount, activeTab === tab.key && styles.tabCountActive]}>
+              {tab.count}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
       {/* ── İÇERİK ───────────────────────────────────────────────────────── */}
@@ -431,27 +455,34 @@ function createStyles(colors) {
     },
     followingText: { color: colors.primary, fontWeight: 'bold', fontSize: 14 },
 
-    // ANİMASYONLU SEKMELER
-    tabBarWrapper: {
-      backgroundColor: colors.card,
-      borderBottomWidth: 1, borderBottomColor: colors.border,
-      paddingHorizontal: 16, paddingVertical: 10,
+    // TAKİP ETTİĞİ SANATÇILAR
+    followedSection: { marginTop: 16, marginBottom: 4 },
+    followedTitle: {
+      fontSize: 13, fontWeight: '700', color: colors.text,
+      paddingHorizontal: 16, marginBottom: 12,
+      textTransform: 'uppercase', letterSpacing: 0.5,
     },
-    tabBar: {
-      flexDirection: 'row',
-      backgroundColor: colors.cardAlt,
-      borderRadius: 12, padding: 4,
-      position: 'relative', overflow: 'hidden',
+    followedRow: { paddingHorizontal: 16, gap: 16 },
+    followedItem: { alignItems: 'center', width: 64 },
+    followedAvatar: {
+      width: 60, height: 60, borderRadius: 30,
+      borderWidth: 2, borderColor: colors.primary, marginBottom: 6,
     },
-    tabIndicator: {
-      position: 'absolute',
-      top: 4, bottom: 4, width: '50%',
-      backgroundColor: colors.primary,
-      borderRadius: 8,
+    followedAvatarPlaceholder: {
+      width: 60, height: 60, borderRadius: 30,
+      backgroundColor: colors.card, borderWidth: 2, borderColor: colors.border,
+      justifyContent: 'center', alignItems: 'center', marginBottom: 6,
     },
-    tabBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', zIndex: 1 },
-    tabText: { fontSize: 13, fontWeight: '600', color: colors.textSecondary },
-    tabTextActive: { color: colors.text },
+    followedAvatarLetter: { fontSize: 24, fontWeight: '800', color: colors.primary },
+    followedName: { fontSize: 11, color: colors.textSecondary, fontWeight: '600', textAlign: 'center' },
+
+    // SEKMELER (emoji + sayı, profil ekranıyla aynı)
+    tabs: { flexDirection: 'row', backgroundColor: colors.background, borderBottomWidth: 1, borderBottomColor: colors.border },
+    tab: { flex: 1, paddingVertical: 12, alignItems: 'center', gap: 3, borderBottomWidth: 3, borderBottomColor: 'transparent' },
+    tabActive: { borderBottomColor: colors.primary },
+    tabIcon: { fontSize: 20 },
+    tabCount: { fontSize: 12, fontWeight: '700', color: colors.textSecondary },
+    tabCountActive: { color: colors.text },
 
     // İÇERİK
     content: { padding: 16, paddingBottom: 32 },
