@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   View, Text, StyleSheet, TextInput,
   TouchableOpacity, ScrollView, Alert,
-  ActivityIndicator, Modal, FlatList, Linking
+  ActivityIndicator, Modal, FlatList
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as WebBrowser from 'expo-web-browser';

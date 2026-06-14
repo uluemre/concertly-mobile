@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity,
+  Text, TextInput, TouchableOpacity,
   StyleSheet, Alert, ActivityIndicator,
   KeyboardAvoidingView, Platform,
 } from 'react-native';
