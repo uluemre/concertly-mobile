@@ -21,6 +21,7 @@ export default function DailySongScreen({ navigation }) {
   const [suggestions, setSuggestions] = useState([]);
   const [wrongGuesses, setWrongGuesses] = useState([]);
   const [submitting, setSubmitting] = useState(false);
+  const [playError, setPlayError] = useState(false);
 
   const soundRef = useRef(null);
   const stopTimerRef = useRef(null);
@@ -37,7 +38,12 @@ export default function DailySongScreen({ navigation }) {
   }, []);
 
   useEffect(() => {
-    Audio.setAudioModeAsync({ playsInSilentModeIOS: true }).catch(() => {});
+    Audio.setAudioModeAsync({
+      playsInSilentModeIOS: true,
+      allowsRecordingIOS: false,
+      shouldDuckAndroid: true,
+      staysActiveInBackground: false,
+    }).catch(() => {});
     fetchToday();
     return () => {
       clearTimeout(searchTimerRef.current);
@@ -75,16 +81,39 @@ export default function DailySongScreen({ navigation }) {
 
   const playSnippet = async () => {
     if (playing) { stopSound(); return; }
-    if (!game?.previewUrl) return;
+    if (!game?.previewUrl) { setPlayError(true); return; }
+    setPlayError(false);
+
+    // Durmayı gerçek çalma pozisyonuna bağla — buffer gecikmesi snippet'i yemesin.
+    const onStatus = (status) => {
+      if (!status.isLoaded) {
+        if (status.error) {
+          console.log('daily-song status error:', status.error);
+          stopSound();
+          setPlayError(true);
+        }
+        return;
+      }
+      if (status.didJustFinish || status.positionMillis >= allowedMs) {
+        stopSound();
+      }
+    };
+
     try {
       const { sound } = await Audio.Sound.createAsync(
         { uri: game.previewUrl },
-        { shouldPlay: true }
+        { shouldPlay: true, progressUpdateIntervalMillis: 100 },
+        onStatus
       );
       soundRef.current = sound;
       setPlaying(true);
-      stopTimerRef.current = setTimeout(stopSound, allowedMs);
-    } catch {}
+      // Güvenlik ağı: pozisyon güncellemesi hiç gelmezse yine de dur.
+      stopTimerRef.current = setTimeout(stopSound, allowedMs + 4000);
+    } catch (e) {
+      console.log('daily-song play error:', e?.message);
+      setPlaying(false);
+      setPlayError(true);
+    }
   };
 
   // ── Tahmin arama (otomatik tamamlama) ───────────────────────────────────
@@ -217,6 +246,9 @@ export default function DailySongScreen({ navigation }) {
             <Text style={[styles.playHint, { color: colors.textSecondary }]}>
               {playing ? t('daily_listening') : t('daily_listen', { sec: allowedMs / 1000 })}
             </Text>
+            {playError && (
+              <Text style={[styles.playHint, { color: '#E94560' }]}>{t('daily_play_error')}</Text>
+            )}
           </View>
 
           {/* TAHMİN */}
