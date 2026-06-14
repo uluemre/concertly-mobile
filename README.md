@@ -1,4 +1,214 @@
-# 🎵 Concertly
+# 🎵 EN- Concertly
+
+**A full-stack social platform for concert and live event enthusiasts.** Discover concerts, share location-verified experiences, find concert buddies, follow artists, and connect with fellow music fans.
+
+|                       |                                        |
+| --------------------- | -------------------------------------- |
+| 📱 **Frontend**       | React Native (Expo)                    |
+| ⚙️ **Backend**        | Spring Boot 3.5 · Java 17 · PostgreSQL |
+| 🔐 **Authentication** | JWT (Access + Refresh Tokens)          |
+| 🌍 **Languages**      | English / Turkish                      |
+| 🎨 **Theme**          | Dark / Light Mode                      |
+
+---
+
+## ✨ Features
+
+### User Features
+
+* 🎫 **Event Discovery** — Browse concerts and festivals by city, genre, and artist (Ticketmaster integration)
+* 📍 **Location-Verified Posts** — Create verified posts when you are within 200 meters of an event venue
+* 🤝 **Concert Buddy Matching** — Swipe-based matching system for people attending the same concert
+* 🛂 **Concert Passport** — Track attended events and earn achievement badges
+* ⭐ **Event & Venue Reviews** — Rate and review concerts and venues
+* 👥 **Communities** — Join groups based on music preferences and participate in discussions
+* 🎧 **Spotify Integration** — Personalized artist and concert recommendations based on listening history
+* 📊 **Social Feed** — Text, image, and poll posts with likes, comments, and follows
+* 🗺️ **Interactive Map** — View nearby events directly on a map
+* 🔔 **Notifications**, 🏅 **Achievements**, and 📅 **Calendar Integration**
+
+### Admin Features
+
+* 📊 Analytics dashboard with user, event, post, and engagement metrics
+* 🎵 Event management: create, edit, approve, and remove events
+* 👥 User management: ban/unban users and manage admin roles
+* 📝 Content moderation tools
+
+---
+
+## 🗂️ Project Structure
+
+```text
+concertly-mobile/
+├── mobile/                  # React Native (Expo) application
+│   └── src/
+│       ├── screens/         # 30+ screens
+│       ├── components/      # Shared UI components
+│       ├── navigation/      # Navigation system
+│       ├── context/         # Auth & Language contexts
+│       ├── i18n/            # Localization files
+│       ├── services/        # API services and token refresh
+│       └── theme.js         # Theme configuration
+│
+├── backend/                 # Spring Boot REST API
+│   └── src/main/java/com/concertly/backend/
+│       ├── controller/
+│       ├── service/
+│       ├── repository/
+│       ├── model/
+│       ├── security/
+│       └── exception/
+│
+└── screenshots/             # Application screenshots
+```
+
+---
+
+## 🚀 Installation
+
+### Prerequisites
+
+* Node.js 18+
+* Java 17+
+* PostgreSQL
+* Expo Go (for mobile testing)
+
+### 1. Database Setup
+
+Create a PostgreSQL database:
+
+```sql
+CREATE DATABASE concertly_mobile;
+```
+
+The schema is automatically generated using:
+
+```properties
+spring.jpa.hibernate.ddl-auto=update
+```
+
+### 2. Backend
+
+```bash
+cd backend
+./mvnw spring-boot:run
+```
+
+Default server:
+
+```text
+http://localhost:8082
+```
+
+Environment variables:
+
+| Variable              | Description               |
+| --------------------- | ------------------------- |
+| DB_URL                | PostgreSQL connection URL |
+| DB_USERNAME           | Database username         |
+| DB_PASSWORD           | Database password         |
+| JWT_SECRET            | JWT signing secret        |
+| SPOTIFY_CLIENT_ID     | Spotify API Client ID     |
+| SPOTIFY_CLIENT_SECRET | Spotify API Secret        |
+| TICKETMASTER_API_KEY  | Ticketmaster API Key      |
+
+Run tests:
+
+```bash
+./mvnw test
+```
+
+Build:
+
+```bash
+./mvnw package
+```
+
+### 3. Mobile App
+
+```bash
+cd mobile
+npm install
+npm start
+```
+
+Scan the generated QR code with Expo Go.
+
+Both your computer and mobile device must be connected to the same network.
+
+---
+
+## 🔌 API Overview
+
+All endpoints are available under:
+
+```text
+/api
+```
+
+Authentication uses JWT Bearer tokens.
+
+### Main Endpoint Groups
+
+| Category       | Examples                                      |
+| -------------- | --------------------------------------------- |
+| Authentication | Register, Login, Refresh Token                |
+| Events         | Event listing, details, attendance, bookmarks |
+| Social         | Posts, comments, likes, polls                 |
+| Concert Buddy  | Matching and swipe actions                    |
+| Communities    | Groups and community posts                    |
+| Spotify        | Music recommendations                         |
+| Admin          | Statistics and moderation                     |
+
+---
+
+## 🧪 Testing
+
+```bash
+cd backend
+./mvnw test
+```
+
+Unit tests are located under:
+
+```text
+src/test/java
+```
+
+Example:
+
+```text
+JwtUtilTest
+```
+
+---
+
+## 🌍 Internationalization
+
+Concertly supports multiple languages through a centralized translation system.
+
+* English and Turkish translations
+* Dynamic language switching
+* Persistent user preferences using AsyncStorage
+
+---
+
+## 📄 Documentation
+
+* ROADMAP.md — Project roadmap
+* CONCERTLY_MASTER_DOKUMAN.md — Detailed project documentation
+* CONCERTLY_PITCH_DECK.md — Pitch deck content
+* CONCERTLY_PRESENTATION_BLUEPRINT.md — Presentation plan
+* CLAUDE.md — Development environment notes
+
+---
+
+## 🎯 Vision
+
+Concertly aims to become a dedicated social platform for live music enthusiasts by combining event discovery, social networking, community building, and real-world concert experiences into a single ecosystem.
+
+
+# 🎵 TR-Concertly
 
 **Konser ve etkinlik keşfi için full-stack sosyal uygulama.** Konserleri keşfet, konum doğrulamalı post at, konser arkadaşı bul, sanatçıları takip et — müziği yaşa, anları paylaş.
 
