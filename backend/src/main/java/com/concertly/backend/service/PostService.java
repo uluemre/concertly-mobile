@@ -15,6 +15,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -29,6 +30,7 @@ public class PostService {
     private final PollOptionRepository pollOptionRepository;
     private final PollVoteRepository pollVoteRepository;
     private final BadgeService badgeService;
+    private final ModerationService moderationService;
 
     public PostService(PostRepository postRepository,
                        UserRepository userRepository,
@@ -38,7 +40,8 @@ public class PostService {
                        NotificationService notificationService,
                        PollOptionRepository pollOptionRepository,
                        PollVoteRepository pollVoteRepository,
-                       BadgeService badgeService) {
+                       BadgeService badgeService,
+                       ModerationService moderationService) {
         this.postRepository      = postRepository;
         this.userRepository      = userRepository;
         this.eventRepository     = eventRepository;
@@ -48,6 +51,7 @@ public class PostService {
         this.pollOptionRepository = pollOptionRepository;
         this.pollVoteRepository   = pollVoteRepository;
         this.badgeService         = badgeService;
+        this.moderationService    = moderationService;
     }
 
     private PostResponse toResponse(Post post) {
@@ -121,8 +125,10 @@ public class PostService {
 
     // ✅ TRENDING FEED
     public List<PostResponse> getTrendingFeed(Long currentUserId) {
+        Set<Long> hidden = moderationService.getHiddenUserIds(currentUserId);
         return postRepository.findAll()
                 .stream()
+                .filter(p -> p.getUser() == null || !hidden.contains(p.getUser().getId()))
                 .map(p -> toResponse(p, currentUserId))
                 .toList();
     }
@@ -133,8 +139,10 @@ public class PostService {
             throw new ResourceNotFoundException("Kullanıcı bulunamadı: " + userId);
         }
 
+        Set<Long> hidden = moderationService.getHiddenUserIds(userId);
         return postRepository.getFollowingFeed(userId)
                 .stream()
+                .filter(p -> p.getUser() == null || !hidden.contains(p.getUser().getId()))
                 .map(p -> toResponse(p, userId))
                 .toList();
     }

@@ -66,6 +66,7 @@ import WrappedScreen from '../screens/WrappedScreen';
 import ConcertBingoScreen from '../screens/ConcertBingoScreen';
 import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
 import ResetPasswordScreen from '../screens/ResetPasswordScreen';
+import BlockedUsersScreen from '../screens/BlockedUsersScreen';
 
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
@@ -298,6 +299,7 @@ export default function AppNavigator() {
         <Stack.Screen name="ConcertBingo" component={ConcertBingoScreen} />
         <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
         <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
+        <Stack.Screen name="BlockedUsers" component={BlockedUsersScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

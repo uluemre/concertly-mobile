@@ -313,6 +313,16 @@ export default function SettingsScreen({ navigation, route }) {
           )}
         </View>
 
+        <Text style={styles.sectionTitle}>{t('settings_privacy_section')}</Text>
+        <TouchableOpacity
+          style={styles.privacyRow}
+          onPress={() => navigation.navigate('BlockedUsers')}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.privacyRowText}>🚫  {t('settings_blocked_users')}</Text>
+          <Text style={styles.chevron}>›</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity onPress={handleSave} disabled={saving} activeOpacity={0.85}>
           <LinearGradient
             colors={['#E94560', '#7C3AED']}
@@ -444,6 +454,18 @@ function createStyles(colors) {
     inputText: { color: colors.text, fontSize: 15 },
     inputPlaceholder: { color: colors.textSecondary, fontSize: 15 },
     chevron: { color: colors.textSecondary, fontSize: 20 },
+    privacyRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 24,
+    },
+    privacyRowText: { color: colors.text, fontSize: 15, fontWeight: '600' },
     saveButton: {
       padding: 16,
       borderRadius: 14,

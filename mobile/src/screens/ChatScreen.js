@@ -73,6 +73,45 @@ export default function ChatScreen({ navigation, route }) {
     }
   };
 
+  const submitReport = async (reason) => {
+    try {
+      await API.post('/reports', { targetType: 'USER', targetId: userId, reason });
+      Alert.alert(t('mod_reported_title'), t('mod_reported_msg'));
+    } catch {
+      Alert.alert('', t('mod_error'));
+    }
+  };
+
+  const handleModeration = () => {
+    Alert.alert(t('mod_options_title'), `@${username}`, [
+      {
+        text: t('mod_report'), onPress: () => Alert.alert(t('mod_reason_title'), null, [
+          { text: t('mod_reason_spam'), onPress: () => submitReport('SPAM') },
+          { text: t('mod_reason_harassment'), onPress: () => submitReport('HARASSMENT') },
+          { text: t('mod_reason_inappropriate'), onPress: () => submitReport('INAPPROPRIATE') },
+          { text: t('mod_cancel'), style: 'cancel' },
+        ]),
+      },
+      {
+        text: t('mod_block'), style: 'destructive', onPress: () => Alert.alert(t('mod_block_title'), t('mod_block_msg'), [
+          { text: t('mod_cancel'), style: 'cancel' },
+          {
+            text: t('mod_block'), style: 'destructive', onPress: async () => {
+              try {
+                await API.post(`/users/${userId}/block`);
+                Alert.alert('', t('mod_blocked_msg'));
+                navigation.goBack();
+              } catch {
+                Alert.alert('', t('mod_error'));
+              }
+            },
+          },
+        ]),
+      },
+      { text: t('mod_cancel'), style: 'cancel' },
+    ]);
+  };
+
   // FlatList inverted çalışır → en yeni mesaj başa gelecek şekilde ters çevir
   const inverted = useMemo(() => [...messages].reverse(), [messages]);
 
@@ -131,6 +170,9 @@ export default function ChatScreen({ navigation, route }) {
               </Text>
             )}
           </View>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={handleModeration} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <Text style={[styles.moreText, { color: colors.text }]}>⋯</Text>
         </TouchableOpacity>
       </LinearGradient>
 
@@ -203,6 +245,7 @@ function createStyles(colors) {
     headerAvatarText: { color: '#fff', fontSize: 16, fontWeight: '900' },
     headerUsername: { fontSize: 17, fontWeight: '800' },
     headerEvent: { fontSize: 11, marginTop: 1 },
+    moreText: { fontSize: 26, fontWeight: '700', paddingHorizontal: 4, letterSpacing: 1 },
 
     bubbleRow: { marginBottom: 10, flexDirection: 'row' },
     bubbleRowMine: { justifyContent: 'flex-end' },

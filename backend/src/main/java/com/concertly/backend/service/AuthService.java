@@ -155,6 +155,10 @@ public class AuthService {
             user.setFavoriteGenres(String.join(",", request.getGenres()));
         }
 
+        if (request.getCity() != null && !request.getCity().isBlank()) {
+            user.setCity(request.getCity());
+        }
+
         if (request.getArtistIds() != null) {
             for (Long artistId : request.getArtistIds()) {
                 if (artistFollowRepository.findByUserIdAndArtistId(user.getId(), artistId).isEmpty()) {

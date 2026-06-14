@@ -12,7 +12,7 @@ import { useLanguage } from '../context/LanguageContext';
 import ArtistCard from '../components/ArtistCard';
 
 export default function ArtistSelectionScreen({ route, navigation }) {
-  const { selectedGenres, editMode = false } = route.params;
+  const { selectedGenres, selectedCity, editMode = false } = route.params;
   const { colors } = useTheme();
   const { updateSession } = useAuth();
   const { t } = useLanguage();
@@ -56,10 +56,12 @@ export default function ArtistSelectionScreen({ route, navigation }) {
       await API.post('/auth/onboarding', {
         genres: selectedGenres,
         artistIds: selectedIds,
+        city: selectedCity,
       });
       await updateSession({
         onboardingCompleted: true,
         favoriteGenres: selectedGenres.join(','),
+        ...(selectedCity ? { userCity: selectedCity } : {}),
       });
       if (editMode) {
         navigation.navigate('MainApp');

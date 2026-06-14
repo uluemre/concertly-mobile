@@ -112,6 +112,45 @@ export default function UserProfileScreen({ route, navigation }) {
     }
   };
 
+  const submitReport = async (reason) => {
+    try {
+      await API.post('/reports', { targetType: 'USER', targetId: userId, reason });
+      Alert.alert(t('mod_reported_title'), t('mod_reported_msg'));
+    } catch {
+      Alert.alert('', t('mod_error'));
+    }
+  };
+
+  const handleModeration = () => {
+    Alert.alert(t('mod_options_title'), profile ? `@${profile.username}` : null, [
+      {
+        text: t('mod_report'), onPress: () => Alert.alert(t('mod_reason_title'), null, [
+          { text: t('mod_reason_spam'), onPress: () => submitReport('SPAM') },
+          { text: t('mod_reason_harassment'), onPress: () => submitReport('HARASSMENT') },
+          { text: t('mod_reason_inappropriate'), onPress: () => submitReport('INAPPROPRIATE') },
+          { text: t('mod_cancel'), style: 'cancel' },
+        ]),
+      },
+      {
+        text: t('mod_block'), style: 'destructive', onPress: () => Alert.alert(t('mod_block_title'), t('mod_block_msg'), [
+          { text: t('mod_cancel'), style: 'cancel' },
+          {
+            text: t('mod_block'), style: 'destructive', onPress: async () => {
+              try {
+                await API.post(`/users/${userId}/block`);
+                Alert.alert('', t('mod_blocked_msg'));
+                navigation.goBack();
+              } catch {
+                Alert.alert('', t('mod_error'));
+              }
+            },
+          },
+        ]),
+      },
+      { text: t('mod_cancel'), style: 'cancel' },
+    ]);
+  };
+
   if (loading) return (
     <View style={styles.loadingContainer}>
       <ActivityIndicator size="large" color={colors.primary} />
@@ -127,9 +166,14 @@ export default function UserProfileScreen({ route, navigation }) {
       <LinearGradient colors={colors.headerGradient} style={styles.hero}>
         <View style={styles.heroBgCircle} />
 
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backText}>{t('back')}</Text>
-        </TouchableOpacity>
+        <View style={styles.topBar}>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <Text style={styles.backText}>{t('back')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleModeration} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Text style={styles.moreText}>⋯</Text>
+          </TouchableOpacity>
+        </View>
 
         <Animated.View style={[styles.heroInner, { transform: [{ scale: scaleAnim }] }]}>
 
@@ -417,8 +461,10 @@ function createStyles(colors) {
       position: 'absolute', width: 300, height: 300, borderRadius: 150,
       backgroundColor: colors.primary + '15', top: -80, right: -80,
     },
-    backButton: { marginBottom: 24 },
+    topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
+    backButton: {},
     backText: { color: colors.textSecondary, fontSize: 15, fontWeight: '600' },
+    moreText: { color: colors.text, fontSize: 26, fontWeight: '700', letterSpacing: 1, paddingHorizontal: 4 },
     heroInner: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 20, gap: 16 },
     avatarCol: { alignItems: 'center' },
     infoCol: { flex: 1, paddingTop: 2 },

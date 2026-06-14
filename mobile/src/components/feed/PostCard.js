@@ -8,6 +8,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import API from '../../services/api';
 import { useTheme } from '../../theme';
+import { useLanguage } from '../../context/LanguageContext';
 import { formatTimeAgo } from '../../utils/time';
 import PollCard from './PollCard';
 import CommentModal from './CommentModal';
@@ -23,6 +24,7 @@ export default React.memo(function PostCard({
   item, index, currentUserId, navigation, onDelete, onEdit,
 }) {
   const { colors } = useTheme();
+  const { t } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const scaleAnim = useRef(new Animated.Value(1)).current;
@@ -135,12 +137,55 @@ export default React.memo(function PostCard({
     ]);
   };
 
-  const handleOptions = () => {
-    Alert.alert('Post İşlemleri', null, [
-      { text: 'Düzenle', onPress: () => { setEditText(item.content || ''); setShowEditModal(true); } },
-      { text: 'Sil', style: 'destructive', onPress: handleDelete },
-      { text: 'İptal', style: 'cancel' },
+  const submitReport = async (reason) => {
+    try {
+      await API.post('/reports', { targetType: 'POST', targetId: item.id, reason });
+      Alert.alert(t('mod_reported_title'), t('mod_reported_msg'));
+    } catch {
+      Alert.alert('', t('mod_error'));
+    }
+  };
+
+  const handleReport = () => {
+    Alert.alert(t('mod_reason_title'), null, [
+      { text: t('mod_reason_spam'), onPress: () => submitReport('SPAM') },
+      { text: t('mod_reason_harassment'), onPress: () => submitReport('HARASSMENT') },
+      { text: t('mod_reason_inappropriate'), onPress: () => submitReport('INAPPROPRIATE') },
+      { text: t('mod_cancel'), style: 'cancel' },
     ]);
+  };
+
+  const handleBlock = () => {
+    Alert.alert(t('mod_block_title'), t('mod_block_msg'), [
+      { text: t('mod_cancel'), style: 'cancel' },
+      {
+        text: t('mod_block'), style: 'destructive', onPress: async () => {
+          try {
+            await API.post(`/users/${item.userId}/block`);
+            Alert.alert('', t('mod_blocked_msg'));
+            onDelete?.(item.id);
+          } catch {
+            Alert.alert('', t('mod_error'));
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleOptions = () => {
+    if (isOwner) {
+      Alert.alert('Post İşlemleri', null, [
+        { text: 'Düzenle', onPress: () => { setEditText(item.content || ''); setShowEditModal(true); } },
+        { text: 'Sil', style: 'destructive', onPress: handleDelete },
+        { text: 'İptal', style: 'cancel' },
+      ]);
+    } else {
+      Alert.alert(t('mod_options_title'), null, [
+        { text: t('mod_report'), onPress: handleReport },
+        { text: t('mod_block'), style: 'destructive', onPress: handleBlock },
+        { text: t('mod_cancel'), style: 'cancel' },
+      ]);
+    }
   };
 
   const handleEditSave = async () => {
@@ -208,11 +253,9 @@ export default React.memo(function PostCard({
         </TouchableOpacity>
         <View style={styles.headerRight}>
           <Text style={styles.postTime}>{formatTimeAgo(item.createdAt)}</Text>
-          {isOwner && (
-            <TouchableOpacity onPress={handleOptions} style={styles.optionsBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Text style={styles.optionsIcon}>⋯</Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity onPress={handleOptions} style={styles.optionsBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Text style={styles.optionsIcon}>⋯</Text>
+          </TouchableOpacity>
         </View>
       </View>
 

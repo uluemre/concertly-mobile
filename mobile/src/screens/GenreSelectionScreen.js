@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, Animated
+  View, Text, StyleSheet, TouchableOpacity, Animated, ScrollView
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme';
@@ -25,6 +25,8 @@ const GENRES = [
   { name: 'Classical', emoji: '🎻', accent: '#7C3AED' },
 ];
 
+const CITIES = ['Istanbul', 'Ankara', 'Izmir', 'Bursa', 'Antalya', 'Adana', 'Konya', 'Gaziantep', 'Mersin', 'Eskisehir'];
+
 export default function GenreSelectionScreen({ navigation, route }) {
   const editMode = route.params?.editMode ?? false;
   const { colors } = useTheme();
@@ -36,9 +38,10 @@ export default function GenreSelectionScreen({ navigation, route }) {
     ? session.favoriteGenres.split(',').map(g => g.trim()).filter(Boolean)
     : [];
   const [selectedGenres, setSelectedGenres] = useState(initialGenres);
+  const [selectedCity, setSelectedCity] = useState(session.userCity || null);
   const buttonPulse = useRef(new Animated.Value(1)).current;
 
-  const canContinue = selectedGenres.length >= 3;
+  const canContinue = selectedGenres.length >= 3 && !!selectedCity;
 
   const toggleGenre = (genre) => {
     setSelectedGenres(prev =>
@@ -64,7 +67,7 @@ export default function GenreSelectionScreen({ navigation, route }) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.inner}>
+      <ScrollView style={styles.inner} contentContainerStyle={styles.innerContent} showsVerticalScrollIndicator={false}>
         {editMode ? (
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Text style={styles.backText}>{t('back')}</Text>
@@ -76,9 +79,30 @@ export default function GenreSelectionScreen({ navigation, route }) {
           </View>
         )}
 
+        {/* ŞEHİR */}
+        <Text style={styles.cityLabel}>{t('onb_city_label')}</Text>
+        <Text style={styles.cityHint}>{t('onb_city_hint')}</Text>
+        <View style={styles.cityRow}>
+          {CITIES.map(city => {
+            const active = selectedCity === city;
+            return (
+              <TouchableOpacity
+                key={city}
+                onPress={() => setSelectedCity(city)}
+                activeOpacity={0.8}
+                style={[styles.cityChip, active && styles.cityChipActive]}
+              >
+                <Text style={[styles.cityChipText, active && styles.cityChipTextActive]}>
+                  {city}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
         <Text style={styles.title}>{t('genre_title')}</Text>
         <Text style={styles.subtitle}>
-          {canContinue
+          {selectedGenres.length >= 3
             ? t('genre_sub_enough', { count: selectedGenres.length })
             : t('genre_sub_need')}
         </Text>
@@ -96,11 +120,13 @@ export default function GenreSelectionScreen({ navigation, route }) {
             />
           ))}
         </View>
-      </View>
+      </ScrollView>
 
       <View style={styles.bottomBar}>
         <Text style={styles.countText}>
-          {selectedGenres.length === 0
+          {!selectedCity
+            ? t('onb_need_city')
+            : selectedGenres.length === 0
             ? t('genre_count_none')
             : t('genre_sub_enough', { count: selectedGenres.length })}
         </Text>
@@ -109,6 +135,7 @@ export default function GenreSelectionScreen({ navigation, route }) {
             disabled={!canContinue}
             onPress={() => navigation.navigate('ArtistSelection', {
               selectedGenres,
+              selectedCity,
               editMode,
             })}
           >
@@ -136,6 +163,46 @@ function createStyles(colors) {
       flex: 1,
       paddingTop: 60,
       paddingHorizontal: 20,
+    },
+    innerContent: {
+      paddingBottom: 24,
+    },
+    cityLabel: {
+      color: colors.text,
+      fontSize: 18,
+      fontWeight: '800',
+      marginBottom: 4,
+    },
+    cityHint: {
+      color: colors.textSecondary,
+      fontSize: 13,
+      marginBottom: 14,
+    },
+    cityRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+      marginBottom: 28,
+    },
+    cityChip: {
+      paddingHorizontal: 14,
+      paddingVertical: 9,
+      borderRadius: 20,
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    cityChipActive: {
+      backgroundColor: '#E94560',
+      borderColor: '#E94560',
+    },
+    cityChipText: {
+      color: colors.textSecondary,
+      fontSize: 13,
+      fontWeight: '700',
+    },
+    cityChipTextActive: {
+      color: '#fff',
     },
     backBtn: { marginBottom: 24 },
     backText: { color: colors.textSecondary, fontSize: 15, fontWeight: '600' },

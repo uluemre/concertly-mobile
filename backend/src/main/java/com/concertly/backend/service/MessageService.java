@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 public class MessageService {
@@ -20,13 +21,16 @@ public class MessageService {
     private final MessageRepository messageRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final ModerationService moderationService;
 
     public MessageService(MessageRepository messageRepository,
                           UserRepository userRepository,
-                          NotificationService notificationService) {
+                          NotificationService notificationService,
+                          ModerationService moderationService) {
         this.messageRepository = messageRepository;
         this.userRepository = userRepository;
         this.notificationService = notificationService;
+        this.moderationService = moderationService;
     }
 
     @Transactional
@@ -36,6 +40,9 @@ public class MessageService {
         }
         if (senderId.equals(receiverId)) {
             throw new IllegalArgumentException("Kendine mesaj gönderemezsin");
+        }
+        if (moderationService.getHiddenUserIds(senderId).contains(receiverId)) {
+            throw new IllegalArgumentException("Bu kullanıcıyla mesajlaşamazsın");
         }
         User sender = userRepository.findById(senderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Kullanıcı bulunamadı: " + senderId));
@@ -67,6 +74,7 @@ public class MessageService {
     @Transactional(readOnly = true)
     public List<ConversationResponse> getConversations(Long myId) {
         List<Message> all = messageRepository.findAllInvolving(myId); // createdAt DESC
+        Set<Long> hidden = moderationService.getHiddenUserIds(myId);
 
         Map<Long, Message> latestByPartner = new LinkedHashMap<>();
         Map<Long, Long> unreadByPartner = new LinkedHashMap<>();
@@ -74,6 +82,7 @@ public class MessageService {
         for (Message m : all) {
             boolean fromMe = m.getSender().getId().equals(myId);
             Long partnerId = fromMe ? m.getReceiver().getId() : m.getSender().getId();
+            if (hidden.contains(partnerId)) continue; // engellenen/engelleyen sohbetleri gizle
 
             latestByPartner.putIfAbsent(partnerId, m);
             if (!fromMe && !Boolean.TRUE.equals(m.getIsRead())) {
