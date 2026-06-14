@@ -152,4 +152,15 @@ public class QuizService {
 
         return result;
     }
+
+    /** Kullanıcının quiz özeti: oynadığı oyun sayısı + en yüksek skoru (profil için). */
+    public Map<String, Object> getMyStats(Long userId) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("gamesPlayed", quizScoreRepository.countByUserId(userId));
+        result.put("bestScore", quizScoreRepository
+                .findFirstByUserIdOrderByScoreDescDurationMsAsc(userId)
+                .map(QuizScore::getScore)
+                .orElse(0));
+        return result;
+    }
 }

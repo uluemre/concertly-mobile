@@ -548,6 +548,10 @@ export const translations = {
     // PROFILE (extra)
     profile_stat_posts: 'Post',
     profile_stat_events: 'Etkinlik',
+    profile_games_title: 'Oyun Başarıların',
+    profile_game_streak: 'Günlük Seri',
+    profile_game_quiz: 'Quiz Oyunu',
+    profile_game_best: 'En Yüksek Skor',
     profile_logout_btn: 'Çıkış Yap',
     profile_post_actions: 'Post İşlemleri',
     profile_post_edit_action: 'Düzenle',
@@ -1441,6 +1445,10 @@ export const translations = {
     // PROFILE (extra)
     profile_stat_posts: 'Posts',
     profile_stat_events: 'Events',
+    profile_games_title: 'Your Game Stats',
+    profile_game_streak: 'Daily Streak',
+    profile_game_quiz: 'Quiz Games',
+    profile_game_best: 'Best Score',
     profile_logout_btn: 'Sign Out',
     profile_post_actions: 'Post Options',
     profile_post_edit_action: 'Edit',

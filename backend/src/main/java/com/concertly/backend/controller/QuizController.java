@@ -54,4 +54,9 @@ public class QuizController {
     public Map<String, Object> leaderboard(@RequestParam String artist) {
         return quizService.getLeaderboard(artist, JwtUtil.getCurrentUserId());
     }
+
+    @GetMapping("/my-stats")
+    public Map<String, Object> myStats() {
+        return quizService.getMyStats(JwtUtil.getCurrentUserId());
+    }
 }

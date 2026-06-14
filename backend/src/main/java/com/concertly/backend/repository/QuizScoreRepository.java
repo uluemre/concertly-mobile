@@ -11,4 +11,8 @@ public interface QuizScoreRepository extends JpaRepository<QuizScore, Long> {
     List<QuizScore> findTop10ByArtistNameIgnoreCaseOrderByScoreDescDurationMsAsc(String artistName);
 
     Optional<QuizScore> findFirstByArtistNameIgnoreCaseAndUserIdOrderByScoreDescDurationMsAsc(String artistName, Long userId);
+
+    long countByUserId(Long userId);
+
+    Optional<QuizScore> findFirstByUserIdOrderByScoreDescDurationMsAsc(Long userId);
 }

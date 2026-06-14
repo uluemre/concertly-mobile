@@ -35,6 +35,7 @@ export default function ProfileScreen({ navigation }) {
   const [bookmarks, setBookmarks] = useState([]);
   const [followedArtists, setFollowedArtists] = useState([]);
   const [badges, setBadges] = useState([]);
+  const [gameStats, setGameStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('posts');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -70,6 +71,19 @@ export default function ProfileScreen({ navigation }) {
       setFollowedArtists(artistsRes.data);
       setBookmarks(bookmarksRes.data);
       setBadges(badgesRes.data);
+
+      // Oyun başarıları — opsiyonel, hata profili bozmasın
+      try {
+        const [dailyRes, quizRes] = await Promise.all([
+          API.get('/daily-song/today'),
+          API.get('/quiz/my-stats'),
+        ]);
+        setGameStats({
+          streak: dailyRes.data?.streak || 0,
+          quizGames: quizRes.data?.gamesPlayed || 0,
+          quizBest: quizRes.data?.bestScore || 0,
+        });
+      } catch {}
     } catch (err) {
       console.log('Profil hatası:', err.message);
     } finally {
@@ -247,6 +261,38 @@ export default function ProfileScreen({ navigation }) {
           </View>
         </View>
       </View>
+
+      {/* OYUN BAŞARILARI */}
+      {gameStats && (
+        <View style={styles.gameSection}>
+          <TouchableOpacity
+            style={styles.gameCard}
+            onPress={() => navigation.navigate('Games')}
+            activeOpacity={0.85}
+          >
+            <View style={styles.gameCardHeader}>
+              <Text style={styles.gameCardTitle}>🎮 {t('profile_games_title')}</Text>
+              <Text style={styles.gameCardChevron}>›</Text>
+            </View>
+            <View style={styles.gameStatsRow}>
+              <View style={styles.gameStat}>
+                <Text style={styles.gameStatValue}>🔥 {gameStats.streak}</Text>
+                <Text style={styles.gameStatLabel}>{t('profile_game_streak')}</Text>
+              </View>
+              <View style={styles.gameStatDivider} />
+              <View style={styles.gameStat}>
+                <Text style={styles.gameStatValue}>🎤 {gameStats.quizGames}</Text>
+                <Text style={styles.gameStatLabel}>{t('profile_game_quiz')}</Text>
+              </View>
+              <View style={styles.gameStatDivider} />
+              <View style={styles.gameStat}>
+                <Text style={styles.gameStatValue}>🏆 {gameStats.quizBest}</Text>
+                <Text style={styles.gameStatLabel}>{t('profile_game_best')}</Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* TAKİP EDİLEN SANATÇILAR */}
       {followedArtists.length > 0 && (
@@ -685,6 +731,29 @@ function createStyles(colors) {
     emptyEmoji: { fontSize: 52, marginBottom: 14 },
     emptyText: { color: colors.text, fontSize: 16, fontWeight: '600', marginBottom: 6 },
     emptySubText: { color: colors.textSecondary, fontSize: 13, textAlign: 'center' },
+
+    // OYUN BAŞARILARI
+    gameSection: { paddingHorizontal: 16, marginTop: 12 },
+    gameCard: {
+      backgroundColor: colors.card,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: 16,
+    },
+    gameCardHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 14,
+    },
+    gameCardTitle: { fontSize: 14, fontWeight: '800', color: colors.text },
+    gameCardChevron: { fontSize: 20, color: colors.textSecondary },
+    gameStatsRow: { flexDirection: 'row', alignItems: 'center' },
+    gameStat: { flex: 1, alignItems: 'center' },
+    gameStatValue: { fontSize: 18, fontWeight: '800', color: colors.text },
+    gameStatLabel: { fontSize: 10, color: colors.textSecondary, marginTop: 4, textTransform: 'uppercase', letterSpacing: 0.6, fontWeight: '700', textAlign: 'center' },
+    gameStatDivider: { width: 1, height: 30, backgroundColor: colors.border },
 
     // TAKİP EDİLEN SANATÇILAR
     followedSection: { marginTop: 16, marginBottom: 4 },
