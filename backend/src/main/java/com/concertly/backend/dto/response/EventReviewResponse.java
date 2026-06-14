@@ -12,13 +12,19 @@ public class EventReviewResponse {
     private Integer rating;
     private String comment;
     private LocalDateTime createdAt;
+    private boolean attended;
 
     public static EventReviewResponse from(EventReview r) {
+        return from(r, false);
+    }
+
+    public static EventReviewResponse from(EventReview r, boolean attended) {
         EventReviewResponse dto = new EventReviewResponse();
         dto.id = r.getId();
         dto.rating = r.getRating();
         dto.comment = r.getComment();
         dto.createdAt = r.getCreatedAt();
+        dto.attended = attended;
         if (r.getUser() != null) {
             dto.userId = r.getUser().getId();
             dto.username = r.getUser().getUsername();
@@ -34,4 +40,5 @@ public class EventReviewResponse {
     public Integer getRating() { return rating; }
     public String getComment() { return comment; }
     public LocalDateTime getCreatedAt() { return createdAt; }
+    public boolean isAttended() { return attended; }
 }

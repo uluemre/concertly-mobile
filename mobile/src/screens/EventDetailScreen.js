@@ -807,7 +807,15 @@ export default function EventDetailScreen({ route, navigation }) {
               )}
             </View>
 
-            {/* Puan ver */}
+            {/* Puan ver — yalnızca katılanlar (Gidiyorum / doğrulanmış) */}
+            {!(attendance === 'GOING' || isVerified) ? (
+              <View style={[styles.reviewLockedCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <Text style={styles.reviewLockedEmoji}>🎟️</Text>
+                <Text style={[styles.reviewLockedText, { color: colors.textSecondary }]}>
+                  {t('review_need_attendance')}
+                </Text>
+              </View>
+            ) : (
             <View style={[styles.myReviewCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <Text style={styles.myReviewTitle}>
                 {reviews.find(r => r.userId === session.userId) ? t('review_my_update') : t('review_my_title')}
@@ -856,6 +864,7 @@ export default function EventDetailScreen({ route, navigation }) {
                 </TouchableOpacity>
               </View>
             </View>
+            )}
 
             {/* Değerlendirme listesi */}
             {reviewsLoading ? (
@@ -869,7 +878,14 @@ export default function EventDetailScreen({ route, navigation }) {
                         <Text style={styles.reviewAvatarText}>{r.username?.charAt(0).toUpperCase()}</Text>
                       </View>
                       <View>
-                        <Text style={[styles.reviewUsername, { color: colors.text }]}>@{r.username}</Text>
+                        <View style={styles.reviewNameRow}>
+                          <Text style={[styles.reviewUsername, { color: colors.text }]}>@{r.username}</Text>
+                          {r.attended && (
+                            <View style={styles.attendedBadge}>
+                              <Text style={styles.attendedBadgeText}>{t('review_attended_badge')}</Text>
+                            </View>
+                          )}
+                        </View>
                         <Text style={[styles.reviewTime, { color: colors.textSecondary }]}>{formatTimeAgo(r.createdAt)}</Text>
                       </View>
                     </View>
@@ -1058,6 +1074,18 @@ function createStyles(colors) {
     myReviewCard: {
       borderRadius: 16, borderWidth: 1, padding: 16, marginBottom: 16,
     },
+    reviewLockedCard: {
+      borderRadius: 16, borderWidth: 1, padding: 16, marginBottom: 16,
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+    },
+    reviewLockedEmoji: { fontSize: 26 },
+    reviewLockedText: { flex: 1, fontSize: 13, lineHeight: 19 },
+    reviewNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    attendedBadge: {
+      backgroundColor: 'rgba(0,212,170,0.15)', borderWidth: 1, borderColor: 'rgba(0,212,170,0.4)',
+      borderRadius: 8, paddingHorizontal: 6, paddingVertical: 1,
+    },
+    attendedBadgeText: { color: '#00D4AA', fontSize: 10, fontWeight: '800' },
     myReviewTitle: { fontSize: 14, fontWeight: '700', color: colors.text, marginBottom: 8 },
     artistHintBtn: { marginBottom: 12 },
     artistHintText: { fontSize: 12, fontWeight: '600' },

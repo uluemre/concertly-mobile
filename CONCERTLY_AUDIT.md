@@ -427,7 +427,8 @@ Eşleşme olasılığı düşüyor (havuz bölünmüş), kullanıcı özelliği 
 
 **Tahmini Efor:** 3 gün
 
-### Bulgu 6.3 — Değerlendirmeler katılıma bağlı değil → puanlar güvenilmez
+### Bulgu 6.3 — ✅ KISMEN UYGULANDI (15 Haz) — Değerlendirmeler katılıma bağlı değil (event yapıldı)
+> **Event reviews:** Backend yalnızca katılanların (Gidiyorum / konumla doğrulanmış) puan vermesine izin veriyor (POST 403'le korunuyor); GET her review'a `attended` flag'i dönüyor. EventDetail: katılmayana form yerine "katılanlar değerlendirebilir" kartı, listede katılanlara "✅ Katıldı" rozeti. **Kalan:** ArtistProfile + VenueProfile review yüzeyleri (sanatçı/mekan için "katıldı" semantiği daha karmaşık — ayrı ele alınacak).
 
 **Problem**
 `EventDetailScreen` geçmiş etkinliklerde herkese puan+yorum bırakmaya izin veriyor; kullanıcının o konsere "Gidiyorum" demiş veya konumla doğrulanmış olması koşulu yok. Konsere gitmemiş biri de etkinliği/sanatçıyı puanlayabiliyor.
