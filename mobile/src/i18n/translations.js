@@ -777,6 +777,8 @@ export const translations = {
     games_daily_done: '✓ Bugünkü şarkıyı bildin',
     games_daily_missed: 'Bugün olmadı — yarın yenisi var',
     games_daily_waiting: '🔔 Bugünkü şarkı seni bekliyor!',
+    games_daily_keep_streak: '{count} günlük serini kaybetme — bugün oyna!',
+    games_daily_streak_safe: '🔥 {count} günlük seri! Yarın da gel',
 
     // SETLIST TAHMİN LİGİ
     detail_setlist_btn: '🎯 Setlist Tahmini',
@@ -1667,6 +1669,8 @@ export const translations = {
     games_daily_done: '✓ You got today\'s song',
     games_daily_missed: 'Not today — a new one tomorrow',
     games_daily_waiting: '🔔 Today\'s song is waiting for you!',
+    games_daily_keep_streak: 'Don\'t lose your {count}-day streak — play today!',
+    games_daily_streak_safe: '🔥 {count}-day streak! Come back tomorrow',
 
     // SETLIST PREDICTION LEAGUE
     detail_setlist_btn: '🎯 Setlist Prediction',

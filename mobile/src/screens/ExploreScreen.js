@@ -19,8 +19,6 @@ const MENU_ITEM_DEFS = [
   { id: 7, titleKey: 'menu_map_item', subKey: 'menu_map_item_sub', emoji: '🗺️', gradient: ['#00D4AA', '#00A8FF'], screen: 'Map', available: true },
   { id: 4, titleKey: 'menu_buddy_item', subKey: 'menu_buddy_item_sub', emoji: '🎸', gradient: ['#E94560', '#F5A623'], screen: 'ConcertBuddyMatch', available: true },
   { id: 9, titleKey: 'menu_games', subKey: 'menu_games_sub', emoji: '🎮', gradient: ['#7C3AED', '#EC4899'], screen: 'Games', available: true },
-  { id: 5, titleKey: 'menu_live_rooms', subKey: 'menu_live_rooms_sub', emoji: '💬', gradient: ['#FF6B35', '#F7C59F'], screen: null, available: false },
-  { id: 8, titleKey: 'menu_ticket_alerts', subKey: 'menu_ticket_alerts_sub', emoji: '🔔', gradient: ['#1a1a2e', '#0f3460'], screen: null, available: false },
 ];
 
 function AnimatedCard({ item, index, navigation, styles, colors, isSetupCard }) {
