@@ -209,7 +209,8 @@ Onboarding'e tür seçiminden önce/sonra tek bir "şehrin?" adımı ekle (HomeS
 
 ---
 
-### Bulgu 3.2 — İlk pasaport: sıfırlar duvarı, "nasıl doldururum" rehberi yok
+### Bulgu 3.2 — ✅ UYGULANDI (15 Haz) — İlk pasaport: sıfırlar duvarı, rehber yok
+> `totalConcerts === 0` ve kendi pasaportunda: stats kartının altında yönlendirici boş-durum kartı ("Pasaportun seni bekliyor" + nasıl mühür kazanılır + "🎟️ Konserleri Keşfet" → Events).
 
 **Problem**
 Yeni kullanıcı pasaportu açtığında stats kartı 0/0/0/0, yıllık hedef %0, tüm rozetler kilitli, top sanatçı/tür listeleri boş (koşullu render edildiği için hiç görünmüyor). Hiçbir boş-durum yönlendirmesi yok: "Pasaportunu başlatmak için bir konsere "Gidiyorum" işaretle / mekanda doğrula" gibi bir CTA mevcut değil.

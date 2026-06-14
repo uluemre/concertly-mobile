@@ -176,6 +176,24 @@ export default function ConcertPassportScreen({ navigation, route }) {
           </LinearGradient>
         )}
 
+        {/* BOŞ DURUM — henüz konser yok, kullanıcıyı yönlendir */}
+        {isOwn && passport && passport.totalConcerts === 0 && (
+          <View style={[styles.emptyCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Text style={styles.emptyEmoji}>🎟️</Text>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('passport_empty_title')}</Text>
+            <Text style={[styles.emptySub, { color: colors.textSecondary }]}>{t('passport_empty_sub')}</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Events')} activeOpacity={0.85} style={{ width: '100%' }}>
+              <LinearGradient
+                colors={['#E94560', '#7C3AED']}
+                start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                style={styles.emptyCta}
+              >
+                <Text style={styles.emptyCtaText}>{t('passport_empty_cta')}</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* ROZETLER */}
         {passport?.badges?.length > 0 && (
           <View style={styles.section}>
@@ -448,6 +466,17 @@ function createStyles(colors) {
       shadowOpacity: 0.3, shadowRadius: 16, elevation: 10,
     },
     statsGrid: { flexDirection: 'row', marginBottom: 24 },
+
+    // BOŞ DURUM
+    emptyCard: {
+      marginHorizontal: 16, marginBottom: 8, borderRadius: 20, borderWidth: 1,
+      padding: 24, alignItems: 'center',
+    },
+    emptyEmoji: { fontSize: 44, marginBottom: 12 },
+    emptyTitle: { fontSize: 17, fontWeight: '800', marginBottom: 8, textAlign: 'center' },
+    emptySub: { fontSize: 13, lineHeight: 19, textAlign: 'center', marginBottom: 18 },
+    emptyCta: { paddingVertical: 14, borderRadius: 14, alignItems: 'center' },
+    emptyCtaText: { color: '#fff', fontSize: 15, fontWeight: '800' },
 
     // HEDEF PROGRESS
     goalWrap: { marginTop: 8 },
