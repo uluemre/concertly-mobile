@@ -12,7 +12,7 @@ import { useLanguage } from '../context/LanguageContext';
 export default function NotificationsScreen({ navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const { setNotificationCount } = useAuth();
+  const { session, setNotificationCount } = useAuth();
   const { t } = useLanguage();
 
   const TYPE_CONFIG = useMemo(() => ({
@@ -40,6 +40,58 @@ export default function NotificationsScreen({ navigation }) {
     return () => { isMounted.current = false; };
   }, []);
 
+  // Aynı türden bildirimleri grupla: aynı gönderiye beğeni/yorum, aynı kişiden mesaj, takipler
+  const grouped = useMemo(() => {
+    const groups = [];
+    const indexByKey = {};
+    for (const n of notifications) {
+      let key;
+      if (n.type === 'like' || n.type === 'comment') key = `${n.type}:${n.entityId}`;
+      else if (n.type === 'message') key = `message:${n.actorId}`;
+      else if (n.type === 'follow') key = 'follow';
+      else key = `single:${n.id}`;
+
+      const idx = indexByKey[key];
+      if (idx === undefined) {
+        indexByKey[key] = groups.length;
+        groups.push({
+          key,
+          type: n.type,
+          rep: n,                                   // en yeni (liste tarihe göre azalan sıralı)
+          count: 1,
+          actors: n.actorUsername ? [n.actorUsername] : [],
+          isUnread: !n.isRead,
+        });
+      } else {
+        const g = groups[idx];
+        g.count += 1;
+        if (n.actorUsername && !g.actors.includes(n.actorUsername)) g.actors.push(n.actorUsername);
+        if (!n.isRead) g.isUnread = true;
+      }
+    }
+    return groups;
+  }, [notifications]);
+
+  // Bir grup için aktör etiketi + metin (1'den fazlaysa grup metni)
+  const getLine = (g) => {
+    const cfg = TYPE_CONFIG[g.type] || { icon: '🔔', text: t('notif_default') };
+    const others = g.actors.length - 1;
+    if ((g.type === 'like' || g.type === 'comment' || g.type === 'follow') && others > 0) {
+      const key = g.type === 'like' ? 'notif_like_group'
+        : g.type === 'comment' ? 'notif_comment_group'
+        : 'notif_follow_group';
+      return { actor: `@${g.actors[0]}`, text: t(key, { count: others }), icon: cfg.icon };
+    }
+    if (g.type === 'message' && g.count > 1) {
+      return { actor: `@${g.rep.actorUsername}`, text: t('notif_message_group', { count: g.count }), icon: cfg.icon };
+    }
+    return {
+      actor: g.rep.actorUsername ? `@${g.rep.actorUsername}` : 'Concertly',
+      text: cfg.text,
+      icon: cfg.icon,
+    };
+  };
+
   useFocusEffect(
     useCallback(() => {
       fetchAndMarkRead();
@@ -60,7 +112,13 @@ export default function NotificationsScreen({ navigation }) {
     }
   };
 
-  const handlePress = async (item) => {
+  const handlePress = async (g) => {
+    // Gruplu takip (1'den fazla kişi) → tek profil yerine kendi takipçi listene
+    if (g.type === 'follow' && g.actors.length > 1) {
+      navigation.navigate('FollowList', { userId: session.userId, type: 'followers' });
+      return;
+    }
+    const item = g.rep;
     if (item.type === 'message' && item.actorId) {
       navigation.navigate('Chat', {
         userId: item.actorId,
@@ -86,38 +144,39 @@ export default function NotificationsScreen({ navigation }) {
     }
   };
 
-  const renderItem = ({ item }) => {
-    const cfg = TYPE_CONFIG[item.type] || { icon: '🔔', text: t('notif_default') };
-    const isUnread = !item.isRead;
+  const renderItem = ({ item: g }) => {
+    const line = getLine(g);
+    const rep = g.rep;
+    const isUnread = g.isUnread;
 
     return (
       <TouchableOpacity
         style={[styles.row, isUnread && styles.rowUnread]}
-        onPress={() => handlePress(item)}
+        onPress={() => handlePress(g)}
         activeOpacity={0.75}
       >
         <View style={styles.avatarWrap}>
-          {item.actorProfileImageUrl ? (
-            <Image source={{ uri: item.actorProfileImageUrl }} style={styles.avatar} />
+          {rep.actorProfileImageUrl ? (
+            <Image source={{ uri: rep.actorProfileImageUrl }} style={styles.avatar} />
           ) : (
             <View style={styles.avatarPlaceholder}>
-              <Text style={styles.avatarEmoji}>{item.actorUsername ? '👤' : '🎵'}</Text>
+              <Text style={styles.avatarEmoji}>{rep.actorUsername ? '👤' : '🎵'}</Text>
             </View>
           )}
           <View style={styles.typeBadge}>
-            <Text style={styles.typeBadgeText}>{cfg.icon}</Text>
+            <Text style={styles.typeBadgeText}>{line.icon}</Text>
           </View>
         </View>
 
         <View style={styles.body}>
           <Text style={styles.message} numberOfLines={2}>
-            <Text style={styles.actor}>{item.actorUsername ? `@${item.actorUsername}` : 'Concertly'}</Text>
-            {' '}{cfg.text}
+            <Text style={styles.actor}>{line.actor}</Text>
+            {' '}{line.text}
           </Text>
-          {item.message ? (
-            <Text style={styles.message} numberOfLines={1}>{item.message}</Text>
+          {g.count === 1 && rep.message ? (
+            <Text style={styles.message} numberOfLines={1}>{rep.message}</Text>
           ) : null}
-          <Text style={styles.time}>{timeAgo(item.createdAt)}</Text>
+          <Text style={styles.time}>{timeAgo(rep.createdAt)}</Text>
         </View>
 
         {isUnread && <View style={styles.dot} />}
@@ -140,10 +199,10 @@ export default function NotificationsScreen({ navigation }) {
       </View>
 
       <FlatList
-        data={notifications}
-        keyExtractor={item => String(item.id)}
+        data={grouped}
+        keyExtractor={g => g.key}
         renderItem={renderItem}
-        contentContainerStyle={notifications.length === 0 && styles.emptyContainer}
+        contentContainerStyle={grouped.length === 0 && styles.emptyContainer}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         ListEmptyComponent={
           <View style={styles.empty}>
