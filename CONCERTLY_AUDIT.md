@@ -137,7 +137,8 @@ Coğrafi olarak mekanda olmayan herkes "Post At"e basıp duvara toslar; içerik 
 
 ---
 
-### Bulgu 2.2 — EventDetail'de eşit ağırlıkta CTA yığını (karar yorgunluğu)
+### Bulgu 2.2 — ✅ UYGULANDI (15 Haz) — EventDetail'de eşit ağırlıkta CTA yığını
+> Setlist butonu kaldırıldı; Bilet Al + Takvime Ekle hero sağ-üstte ikon butonlara taşındı (🎟️ 📅 🔖). İçerikteki büyük CTA yığını belirgin şekilde azaldı.
 
 **Problem**
 Yaklaşan bir etkinlik ekranında alt alta neredeyse aynı stilde tam-genişlik butonlar: Katılım (Gidiyorum/İlgileniyorum), Konser Arkadaşı katıl, Bilet Al, Takvime Ekle, Setlist Tahmin Ligi, Post At. Görsel hiyerarşi yok — birincil eylem (bilet/gidiyorum) ile ikincil/oyun eylemi (setlist tahmini) aynı boyut ve ağırlıkta.
@@ -462,7 +463,8 @@ Puan vermeyi en az "Gidiyorum" işaretlemiş (tercihen konumla doğrulanmış) k
 
 ## TUR 7 — ARTIST & VENUE AUDIT
 
-### Bulgu 7.1 — 🔴 ArtistProfile tek bir yan endpoint hatasında tüm sayfadan atıyor (Promise.all all-or-nothing)
+### Bulgu 7.1 — ✅ UYGULANDI (15 Haz) — ArtistProfile/VenueProfile tek hatada tüm sayfadan atıyor
+> `Promise.all` → `Promise.allSettled`; ana sanatçı/mekan verisi gelirse sayfa açılır, ikincil çağrı (post/yorum/etkinlik) hatası sadece o bölümü boş bırakır.
 
 **Problem**
 `ArtistProfileScreen.fetchAll` 5 endpoint'i `Promise.all` ile paralel çekiyor (artist, events, posts, reviews, past-events). `Promise.all` ilk reddedişte tümden reddeder; `catch` bloğu ise hata alert'i gösterip `navigation.goBack()` yapıyor. Yani ikincil bir endpoint (örn. `/reviews` veya `/past-events`) tek seferlik hata/timeout verirse, sanatçının tüm profili açılmıyor ve kullanıcı geri atılıyor — oysa ana sanatçı verisi başarıyla gelmiş olabilir.
@@ -480,7 +482,8 @@ Sanatçıya tıklayan kullanıcı sebepsiz yere geri atılıyor, "uygulama bozuk
 
 ---
 
-### Bulgu 7.2 — Sanatçı "Takip Et" eyleminin somut bir karşılığı yok (dead-end)
+### Bulgu 7.2 — ✅ UYGULANDI (15 Haz) — Sanatçı "Takip Et" eyleminin somut karşılığı yok
+> Home, takip edilen sanatçıların yaklaşan etkinliklerini öne sıralıyor + FeaturedCard'da "🔔 Takip ettiğin" rozeti.
 
 **Problem**
 Kullanıcı bir sanatçıyı takip edebiliyor ama bunun uygulama-içi görünür getirisi yok: HomeScreen etkinlikleri `favoriteGenres` + şehir ile filtreliyor, **takip edilen sanatçılara göre değil**. Takipçilere turne duyurusu bildirimi üretiliyor ama o da push olmadığı için ulaşmıyor (bkz. 5.1). Sonuçta "Takip Et" butonuna basmanın kullanıcıya dönen anlamlı bir faydası kalmıyor.
@@ -517,7 +520,8 @@ Mevcut Home etkinlik sıralamasında takip edilen sanatçıların yaklaşan etki
 
 ## TUR 8 — GAMIFICATION AUDIT
 
-### Bulgu 8.1 — 🔴 Oyun başarıları kimliğe/profile bağlı değil → oyunlar kapalı bir döngü (status yok)
+### Bulgu 8.1 — ✅ UYGULANDI (15 Haz) — Oyun başarıları profile bağlı değil
+> Profile "🎮 Oyun Başarıların" kartı: 🔥 günlük seri, 🎤 quiz oyunu, 🏆 en yüksek skor; karttan Games'e kısayol. Backend `GET /api/quiz/my-stats`.
 
 **Problem**
 Daily Song streak'i, Song Quiz skoru, Blind Rank sıralamaları üretiliyor ama hiçbiri profilde görünmüyor. `ProfileScreen` yalnızca konser rozetlerini (`BadgeGrid`, katılım kaynaklı) ve Pasaport kısayolunu gösteriyor; oyun çıktıları yalnızca Home widget'ı ve Games hub'ında, kişiye özel ve geçici. Sonuç: oyunlar status üretmiyor, başkalarına görünmüyor, Pasaport/profil kimliğini beslemiyor.
@@ -535,7 +539,8 @@ Yeni oyun değil — mevcut çıktıları mevcut profile bağla: Profil'e "🔥 
 
 ---
 
-### Bulgu 8.2 — Games hub'ındaki "Setlist" kartı oyuna değil Events listesine atıyor (yanıltıcı dead-end)
+### Bulgu 8.2 — ✅ UYGULANDI (15 Haz) — Games "Setlist" kartı yanıltıcı dead-end
+> Kart Events'i "setlist seçim modu"nda açıyor (banner + konsera dokun → SetlistPrediction). Ek olarak EventDetail'deki setlist butonu kaldırıldı (tek giriş Games).
 
 **Problem**
 `GamesScreen` GAME_DEFS'te setlist kartının `screen: 'Events'`. Yani "Setlist Tahmin Ligi" oyununa tıklayan kullanıcı bir oyuna değil, ham etkinlik listesine düşüyor; oradan bir etkinlik bulup EventDetail'den setlist'e girmesi gerektiğini bilmiyor. Hiçbir açıklama/yönlendirme yok.
@@ -643,7 +648,8 @@ Paylaşılan bağlantı en iyi ihtimalle ana ekrana düşer (içeriğe değil); 
 
 > **Önce olumlu (güvenlik):** Kimlik sunucu-taraflı türetiliyor — like/follow/yorum uçları client'ın `?userId=` parametresini **yok sayıp** `JwtUtil.getCurrentUserId()` kullanıyor (21 controller). Korkulan IDOR/kimlik sahteleme yok. (Mobildeki `?userId=` parametreleri artık ölü/gereksiz; temizlik işi, güvenlik açığı değil.)
 
-### Bulgu 10.1 — 🔴 Gerçek gizli anahtarlar repoya gömülü (JWT default secret + Spotify/Ticketmaster/DB)
+### Bulgu 10.1 — ✅ KOD TARAFI UYGULANDI (15 Haz) — Gizli anahtarlar repoya gömülü
+> `application.properties` takipten çıkarıldı (`git rm --cached`; .gitignore zaten kapsıyordu, dosya diskte duruyor). Placeholder'lı `application.properties.example` eklendi (show-sql=false dahil). **KALAN — sadece Emre yapabilir:** anahtarlar git geçmişinde olduğu için Spotify/Ticketmaster panelinden YENİ anahtar üret (rotate), JWT secret'ı değiştir, DB şifresini güncelle. Geçmişten tamamen silmek istersen `git filter-repo`/BFG gerekir.
 
 **Problem**
 `application.properties` env değişkeni yoksa devreye giren **çalışır defaultlar** içeriyor: `jwt.secret` ("...change-in-production..."), Spotify client id/secret, Ticketmaster API key, DB şifresi — hepsi git'e commit'li ve anahtarlar gerçek görünüyor. Prod'da env set edilmezse JWT default secret ile token'lar taklit edilebilir (tüm hesaplar tehlikeye girer).

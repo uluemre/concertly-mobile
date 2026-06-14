@@ -1,0 +1,37 @@
+# Concertly backend yapılandırma ŞABLONU
+# -----------------------------------------------------------------------------
+# Bu dosyayı kopyalayıp `application.properties` olarak kaydet ve değerleri doldur.
+#   cp application.properties.example application.properties
+# Gerçek `application.properties` .gitignore'da — secret'lar ASLA commit edilmez.
+# Değerleri ortam değişkeninden (env) ya da doğrudan bu dosyaya yazabilirsin.
+# -----------------------------------------------------------------------------
+
+spring.datasource.url=${DB_URL:jdbc:postgresql://localhost:5432/concertly_mobile}
+spring.datasource.username=${DB_USERNAME:postgres}
+spring.datasource.password=${DB_PASSWORD:CHANGE_ME}
+
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=false
+spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect
+
+spring.jackson.serialization.write-dates-as-timestamps=false
+spring.jackson.deserialization.fail-on-unknown-properties=false
+server.port=8082
+
+# Görsel yükleme
+app.upload.dir=${UPLOAD_DIR:uploads}
+spring.servlet.multipart.max-file-size=10MB
+spring.servlet.multipart.max-request-size=12MB
+
+# JWT — en az 32 karakterlik GÜÇLÜ, rastgele bir secret üret (prod'da mutlaka değiştir)
+jwt.secret=${JWT_SECRET:CHANGE_ME_USE_A_LONG_RANDOM_SECRET_32CHARS_MIN}
+jwt.expiration.ms=3600000
+jwt.refresh.expiration.days=30
+
+# Spotify — https://developer.spotify.com/dashboard
+spotify.client.id=${SPOTIFY_CLIENT_ID:CHANGE_ME}
+spotify.client.secret=${SPOTIFY_CLIENT_SECRET:CHANGE_ME}
+spotify.redirect.uri=${SPOTIFY_REDIRECT_URI:http://localhost:8082/api/spotify/callback}
+
+# Ticketmaster — https://developer.ticketmaster.com
+ticketmaster.api.key=${TICKETMASTER_API_KEY:CHANGE_ME}
