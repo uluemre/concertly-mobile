@@ -97,7 +97,10 @@ export default function BlindRankScreen({ navigation }) {
       });
       soundRef.current = sound;
       setPlaying(true);
-    } catch {}
+    } catch (e) {
+      console.log('blind-rank play error:', e?.message);
+      setPlaying(false);
+    }
   };
 
   const placeInSlot = (index) => {

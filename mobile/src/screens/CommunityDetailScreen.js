@@ -125,7 +125,7 @@ export default function CommunityDetailScreen({ route, navigation }) {
   if (!community) {
     return (
       <View style={[styles.container, styles.loadingContainer]}>
-        <Text style={styles.errorText}>Topluluk yüklenemedi.</Text>
+        <Text style={styles.errorText}>{t('communities_load_error')}</Text>
       </View>
     );
   }
@@ -137,7 +137,7 @@ export default function CommunityDetailScreen({ route, navigation }) {
         style={styles.hero}
       >
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backText}>← Geri</Text>
+          <Text style={styles.backText}>{t('back')}</Text>
         </TouchableOpacity>
         <Text style={styles.heroEmoji}>{community.emoji}</Text>
         <Text style={styles.heroTitle}>{community.name}</Text>
@@ -146,17 +146,17 @@ export default function CommunityDetailScreen({ route, navigation }) {
         <View style={styles.heroStats}>
           <View style={styles.heroStat}>
             <Text style={styles.heroStatNumber}>{community.memberCount.toLocaleString('tr-TR')}</Text>
-            <Text style={styles.heroStatLabel}>Üye</Text>
+            <Text style={styles.heroStatLabel}>{t('communities_stat_members')}</Text>
           </View>
           <View style={styles.heroDivider} />
           <View style={styles.heroStat}>
             <Text style={styles.heroStatNumber}>{community.postCount}</Text>
-            <Text style={styles.heroStatLabel}>Post</Text>
+            <Text style={styles.heroStatLabel}>{t('communities_stat_posts')}</Text>
           </View>
           <View style={styles.heroDivider} />
           <View style={styles.heroStat}>
             <Text style={styles.heroStatNumber}>{community.city}</Text>
-            <Text style={styles.heroStatLabel}>Bölge</Text>
+            <Text style={styles.heroStatLabel}>{t('communities_stat_region')}</Text>
           </View>
         </View>
 
@@ -227,7 +227,7 @@ export default function CommunityDetailScreen({ route, navigation }) {
                   ♥ {post.likeCount}
                 </Text>
               </TouchableOpacity>
-              <Text style={styles.postAction}>Yanıtla</Text>
+              <Text style={styles.postAction}>{t('communities_reply')}</Text>
             </View>
           </View>
         ))}

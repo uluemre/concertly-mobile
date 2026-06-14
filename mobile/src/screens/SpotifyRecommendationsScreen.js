@@ -35,7 +35,7 @@ export default function SpotifyRecommendationsScreen({ navigation }) {
       );
       setFollowingIds(followed);
     } catch (err) {
-      Alert.alert('Hata', 'Öneriler yüklenemedi.');
+      Alert.alert(t('error'), t('spotify_load_error'));
     } finally {
       setLoading(false);
     }
@@ -58,7 +58,7 @@ export default function SpotifyRecommendationsScreen({ navigation }) {
   const handleBulkFollow = async () => {
     const unfollowed = artists.filter(a => a.appArtistId && !followingIds.has(a.appArtistId));
     if (unfollowed.length === 0) {
-      Alert.alert('Zaten takip ediyorsun', 'Tüm sanatçıları zaten takip ediyorsun.');
+      Alert.alert(t('spotify_already_following'));
       return;
     }
     setBulkFollowing(true);
@@ -67,7 +67,7 @@ export default function SpotifyRecommendationsScreen({ navigation }) {
       await API.post('/artists/bulk-follow', { artistIds: ids });
       setFollowingIds(prev => new Set([...prev, ...ids]));
     } catch {
-      Alert.alert('Hata', 'Toplu takip sırasında hata oluştu.');
+      Alert.alert(t('error'), t('spotify_bulk_error'));
     } finally {
       setBulkFollowing(false);
     }
@@ -100,7 +100,7 @@ export default function SpotifyRecommendationsScreen({ navigation }) {
               </View>
             ) : null}
             {!inApp && (
-              <Text style={styles.notInApp}>Uygulamada yok</Text>
+              <Text style={styles.notInApp}>{t('spotify_not_in_app')}</Text>
             )}
           </View>
         </View>
@@ -129,7 +129,7 @@ export default function SpotifyRecommendationsScreen({ navigation }) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Text style={styles.backBtnText}>{t('back')}</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Spotify Önerileri</Text>
+        <Text style={styles.headerTitle}>{t('spotify_title')}</Text>
         <View style={{ width: 60 }} />
       </View>
 
@@ -155,7 +155,7 @@ export default function SpotifyRecommendationsScreen({ navigation }) {
             <View style={styles.listHeader}>
               <LinearGradient colors={['#1DB954', '#191414']} style={styles.heroBanner} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
                 <Text style={styles.heroIcon}>🎵</Text>
-                <Text style={styles.heroTitle}>En Çok Dinlediklerin</Text>
+                <Text style={styles.heroTitle}>{t('spotify_hero_title')}</Text>
                 <Text style={styles.heroSubtitle}>
                   {appMatchCount} {t('spotify_in_app')}
                 </Text>
@@ -174,7 +174,7 @@ export default function SpotifyRecommendationsScreen({ navigation }) {
                   >
                     {bulkFollowing
                       ? <ActivityIndicator color="#fff" />
-                      : <Text style={styles.bulkBtnText}>Hepsini Takip Et ({appMatchCount})</Text>
+                      : <Text style={styles.bulkBtnText}>{t('spotify_follow_all', { count: appMatchCount })}</Text>
                     }
                   </LinearGradient>
                 </TouchableOpacity>

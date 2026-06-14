@@ -274,7 +274,7 @@ export default function ArtistProfileScreen({ route, navigation }) {
             {/* Popülerlik barı */}
             {artist?.popularity != null && (
               <View style={styles.popularityRow}>
-                <Text style={styles.popularityLabel}>Popülerlik</Text>
+                <Text style={styles.popularityLabel}>{t('artist_popularity')}</Text>
                 <View style={[styles.popularityTrack, { backgroundColor: colors.border }]}>
                   <LinearGradient
                     colors={['#1DB954', '#00D4AA']}
@@ -342,7 +342,7 @@ export default function ArtistProfileScreen({ route, navigation }) {
           <View style={styles.statDivider} />
           <View style={styles.stat}>
             <Text style={styles.statNumber}>{reviews.length}</Text>
-            <Text style={styles.statLabel}>Yorum</Text>
+            <Text style={styles.statLabel}>{t('artist_reviews_label')}</Text>
           </View>
         </View>
       </LinearGradient>
@@ -418,7 +418,7 @@ export default function ArtistProfileScreen({ route, navigation }) {
               <View style={styles.pastSection}>
                 <View style={styles.pastSectionHeader}>
                   <View style={[styles.pastSectionLine, { backgroundColor: colors.border }]} />
-                  <Text style={[styles.pastSectionTitle, { color: colors.textSecondary }]}>Son Konserler</Text>
+                  <Text style={[styles.pastSectionTitle, { color: colors.textSecondary }]}>{t('artist_past_concerts')}</Text>
                   <View style={[styles.pastSectionLine, { backgroundColor: colors.border }]} />
                 </View>
 
@@ -509,19 +509,19 @@ export default function ArtistProfileScreen({ route, navigation }) {
             {/* YORUM FORMU */}
             <View style={[styles.reviewForm, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <Text style={[styles.reviewFormTitle, { color: colors.text }]}>
-                {myReview ? 'Yorumunu Güncelle' : 'Bu Sanatçıyı Değerlendir'}
+                {myReview ? t('artist_review_form_title_edit') : t('artist_review_form_title_new')}
               </Text>
               <View style={styles.reviewStarRow}>
                 <StarRating value={myRating} onChange={setMyRating} size={32} />
                 {myReview && (
                   <TouchableOpacity onPress={handleDeleteReview} style={styles.deleteReviewBtn}>
-                    <Text style={styles.deleteReviewText}>Sil</Text>
+                    <Text style={styles.deleteReviewText}>{t('delete')}</Text>
                   </TouchableOpacity>
                 )}
               </View>
               <TextInput
                 style={[styles.reviewInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
-                placeholder="Yorumun (isteğe bağlı)..."
+                placeholder={t('artist_review_placeholder')}
                 placeholderTextColor={colors.textSecondary}
                 value={reviewText}
                 onChangeText={setReviewText}
@@ -539,7 +539,7 @@ export default function ArtistProfileScreen({ route, navigation }) {
                   start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
                 >
                   <Text style={styles.reviewSubmitText}>
-                    {reviewLoading ? 'Kaydediliyor...' : myReview ? 'Güncelle' : 'Yorum Yap'}
+                    {reviewLoading ? t('artist_review_saving') : myReview ? t('artist_review_update') : t('artist_review_submit')}
                   </Text>
                 </LinearGradient>
               </TouchableOpacity>
@@ -549,9 +549,9 @@ export default function ArtistProfileScreen({ route, navigation }) {
             {reviews.length === 0 ? (
               <View style={styles.empty}>
                 <Text style={styles.emptyEmoji}>💬</Text>
-                <Text style={styles.emptyText}>Henüz yorum yapılmamış.</Text>
+                <Text style={styles.emptyText}>{t('artist_no_reviews')}</Text>
                 <Text style={[styles.emptySubText, { color: colors.textSecondary }]}>
-                  İlk yorumu sen yap!
+                  {t('artist_no_reviews_sub')}
                 </Text>
               </View>
             ) : (

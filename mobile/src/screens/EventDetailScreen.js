@@ -425,7 +425,7 @@ export default function EventDetailScreen({ route, navigation }) {
         >
           <View style={styles.heroTopActions}>
             <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-              <Text style={styles.backText}>← Geri</Text>
+              <Text style={styles.backText}>{t('back')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.bookmarkButton} onPress={handleBookmark} activeOpacity={0.8}>
               <Text style={styles.bookmarkIcon}>{bookmarked ? '🔖' : '🏷️'}</Text>

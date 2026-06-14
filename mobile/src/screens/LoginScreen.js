@@ -113,7 +113,7 @@ export default function LoginScreen({ navigation }) {
           />
           <TextInput
             style={styles.input}
-            placeholder="Şifre"
+            placeholder={t('password')}
             placeholderTextColor={colors.textSecondary}
             value={password}
             onChangeText={setPassword}

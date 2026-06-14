@@ -114,10 +114,10 @@ export default function ConcertPassportScreen({ navigation, route }) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Text style={[styles.backText, { color: colors.primary }]}>{t('back')}</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>🎟️ Konser Pasaportu</Text>
+        <Text style={styles.headerTitle}>🎟️ {t('profile_passport')}</Text>
         {isOwn && (
           <TouchableOpacity onPress={handleShare} style={styles.shareBtn}>
-            <Text style={styles.shareBtnText}>Paylaş ↑</Text>
+            <Text style={styles.shareBtnText}>{t('passport_share')}</Text>
           </TouchableOpacity>
         )}
       </LinearGradient>
@@ -132,10 +132,10 @@ export default function ConcertPassportScreen({ navigation, route }) {
             style={styles.statsCard}
           >
             <View style={styles.statsGrid}>
-              <StatBox value={passport.totalConcerts}    label="Konser"      emoji="🎟️" />
-              <StatBox value={passport.verifiedConcerts} label="Doğrulanmış" emoji="✅" />
-              <StatBox value={passport.uniqueArtists}    label="Sanatçı"     emoji="🎤" />
-              <StatBox value={passport.uniqueCities}     label="Şehir"       emoji="📍" />
+              <StatBox value={passport.totalConcerts}    label={t('passport_stat_concerts')} emoji="🎟️" />
+              <StatBox value={passport.verifiedConcerts} label={t('passport_stat_verified')} emoji="✅" />
+              <StatBox value={passport.uniqueArtists}    label={t('passport_stat_artists')}  emoji="🎤" />
+              <StatBox value={passport.uniqueCities}     label={t('passport_stat_cities')}   emoji="📍" />
             </View>
 
             {/* Yıllık hedef */}
@@ -169,7 +169,7 @@ export default function ConcertPassportScreen({ navigation, route }) {
                 </View>
 
                 {thisYearCount >= goal && (
-                  <Text style={styles.goalDone}>🎉 Hedefe ulaştın!</Text>
+                  <Text style={styles.goalDone}>🎉 {t('passport_goal_done')}</Text>
                 )}
               </View>
             )}
@@ -179,7 +179,7 @@ export default function ConcertPassportScreen({ navigation, route }) {
         {/* ROZETLER */}
         {passport?.badges?.length > 0 && (
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>🏅 Rozetler</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>🏅 {t('passport_section_badges')}</Text>
 
             {/* Kazanılmış */}
             {earnedBadges.length > 0 && (
@@ -207,7 +207,7 @@ export default function ConcertPassportScreen({ navigation, route }) {
             {/* Kilitli */}
             {lockedBadges.length > 0 && (
               <View style={styles.lockedRow}>
-                <Text style={[styles.lockedLabel, { color: colors.textSecondary }]}>Kilitli</Text>
+                <Text style={[styles.lockedLabel, { color: colors.textSecondary }]}>{t('passport_locked')}</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   {lockedBadges.map(badge => (
                     <View key={badge.code} style={[styles.badgeCard, styles.badgeCardLocked]}>
@@ -241,7 +241,7 @@ export default function ConcertPassportScreen({ navigation, route }) {
         {/* TOP SANATÇILAR */}
         {passport?.topArtists?.length > 0 && (
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>🎤 En Çok Gittiğin Sanatçılar</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>🎤 {t('passport_section_top_artists')}</Text>
             {passport.topArtists.map((item, i) => {
               const maxCount = passport.topArtists[0].count;
               const pct = maxCount > 0 ? item.count / maxCount : 0;
@@ -281,7 +281,7 @@ export default function ConcertPassportScreen({ navigation, route }) {
         {/* TÜR DAĞILIMI */}
         {passport?.topGenres?.length > 0 && (
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>🎵 Müzik Tadın</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>🎵 {t('passport_section_music_taste')}</Text>
             <View style={styles.genreChips}>
               {passport.topGenres.map((item, i) => {
                 const color = genreColor(item.genre);
@@ -303,9 +303,9 @@ export default function ConcertPassportScreen({ navigation, route }) {
         {passport?.events?.length === 0 && (
           <View style={styles.emptyState}>
             <Text style={styles.emptyEmoji}>🎭</Text>
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>Henüz konser yok</Text>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('passport_no_concerts')}</Text>
             <Text style={[styles.emptySub, { color: colors.textSecondary }]}>
-              Etkinliklere "Gidiyorum" de ve konserlerin burada birikim yapsın.
+              {t('passport_no_concerts_sub')}
             </Text>
           </View>
         )}

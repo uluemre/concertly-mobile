@@ -154,7 +154,7 @@ export default function PostDetailScreen({ route, navigation }) {
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             style={styles.deleteCommentBtn}
           >
-            <Text style={styles.deleteCommentText}>Sil</Text>
+            <Text style={styles.deleteCommentText}>{t('delete')}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -230,7 +230,7 @@ export default function PostDetailScreen({ route, navigation }) {
       {/* Header */}
       <LinearGradient colors={colors.headerGradient} style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={[styles.backText, { color: colors.primary }]}>‹ Geri</Text>
+          <Text style={[styles.backText, { color: colors.primary }]}>{t('back')}</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('postdetail_title')}</Text>
       </LinearGradient>

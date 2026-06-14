@@ -9,8 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-
-import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/artists")
@@ -55,6 +54,13 @@ public class ArtistController {
     public void unfollow(@PathVariable Long id) {
         Long userId = JwtUtil.getCurrentUserId();
         artistService.unfollow(userId, id);
+    }
+
+    @PostMapping("/bulk-follow")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void bulkFollow(@RequestBody Map<String, List<Long>> body) {
+        Long userId = JwtUtil.getCurrentUserId();
+        artistService.bulkFollow(userId, body.get("artistIds"));
     }
 
     @GetMapping("/recommended")

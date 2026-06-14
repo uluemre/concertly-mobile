@@ -126,7 +126,7 @@ export default function ConcertBingoScreen({ navigation, route }) {
           >
             <Text style={styles.bingoEmoji}>🎉</Text>
             <Text style={styles.bingoText}>{t('bingo_bingo')}</Text>
-            <Text style={styles.bingoSub}>Konser Pasaportu'na rozet eklendi!</Text>
+            <Text style={styles.bingoSub}>{t('bingo_badge_added')}</Text>
           </LinearGradient>
         </Animated.View>
       )}
@@ -183,7 +183,7 @@ export default function ConcertBingoScreen({ navigation, route }) {
         {COL_GRADIENTS.map((g, i) => (
           <LinearGradient key={i} colors={g} style={styles.legendDot} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} />
         ))}
-        <Text style={[styles.legendText, { color: colors.textSecondary }]}>= Sütun rengi</Text>
+        <Text style={[styles.legendText, { color: colors.textSecondary }]}>{t('bingo_legend')}</Text>
       </View>
     </ScrollView>
   );

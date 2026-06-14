@@ -281,7 +281,7 @@ export default function SearchModal({ visible, onClose, navigation }) {
                     ) : !searched ? (
                         <View style={styles.center}>
                             <Text style={styles.hintEmoji}>🔍</Text>
-                            <Text style={styles.hintText}>En az 2 karakter yaz</Text>
+                            <Text style={styles.hintText}>{t('search_min_chars')}</Text>
                         </View>
                     ) : totalResults === 0 ? (
                         <View style={styles.center}>

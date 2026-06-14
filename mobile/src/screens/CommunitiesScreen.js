@@ -100,7 +100,7 @@ export default function CommunitiesScreen({ navigation }) {
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
       <LinearGradient colors={colors.headerGradient} style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backText}>← Geri</Text>
+          <Text style={styles.backText}>{t('back')}</Text>
         </TouchableOpacity>
         <Text style={styles.headerLabel}>Concertly</Text>
         <Text style={styles.headerTitle}>{t('communities_title')}</Text>
@@ -111,11 +111,11 @@ export default function CommunitiesScreen({ navigation }) {
         <View style={styles.statsRow}>
           <View style={styles.statPill}>
             <Text style={styles.statNumber}>{communities.length}</Text>
-            <Text style={styles.statLabel}>Topluluk</Text>
+            <Text style={styles.statLabel}>{t('communities_stat_total')}</Text>
           </View>
           <View style={styles.statPill}>
             <Text style={styles.statNumber}>{joinedCount}</Text>
-            <Text style={styles.statLabel}>Katıldın</Text>
+            <Text style={styles.statLabel}>{t('communities_stat_joined')}</Text>
           </View>
         </View>
       </LinearGradient>
@@ -124,7 +124,7 @@ export default function CommunitiesScreen({ navigation }) {
         <Text style={styles.searchIcon}>⌕</Text>
         <TextInput
           style={styles.searchInput}
-          placeholder="Topluluk, şehir veya tür ara..."
+          placeholder={t('communities_search')}
           placeholderTextColor={colors.textSecondary}
           value={query}
           onChangeText={setQuery}
@@ -165,7 +165,7 @@ export default function CommunitiesScreen({ navigation }) {
                 <Text style={styles.communityEmoji}>{community.emoji}</Text>
                 {community.live && (
                   <View style={styles.liveBadge}>
-                    <Text style={styles.liveText}>Canlı</Text>
+                    <Text style={styles.liveText}>{t('communities_live')}</Text>
                   </View>
                 )}
               </LinearGradient>

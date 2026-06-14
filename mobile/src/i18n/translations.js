@@ -24,6 +24,7 @@ export const translations = {
     soon: 'Yakında',
     error: 'Hata',
     success: 'Başarılı',
+    ok: 'Tamam',
 
     // AUTH
     login: 'Giriş Yap',
@@ -157,6 +158,14 @@ export const translations = {
     // COMMUNITIES
     communities_title: 'Topluluklar',
     communities_search: 'Topluluk, şehir veya tür ara...',
+    communities_stat_total: 'Topluluk',
+    communities_stat_joined: 'Katıldın',
+    communities_live: 'Canlı',
+    communities_load_error: 'Topluluk yüklenemedi.',
+    communities_stat_members: 'Üye',
+    communities_stat_posts: 'Post',
+    communities_stat_region: 'Bölge',
+    communities_reply: 'Yanıtla',
     communities_join: 'Katıl',
     communities_joined: 'Katıldın',
     communities_members: 'üye',
@@ -167,6 +176,20 @@ export const translations = {
     communities_compose_locked: 'Post atmak için topluluğa katıl',
     communities_empty: 'Henüz post yok. Topluluğa katılıp ilk postu sen at!',
     communities_publish: 'Paylaş',
+
+    // PASSPORT
+    passport_share: 'Paylaş ↑',
+    passport_stat_concerts: 'Konser',
+    passport_stat_verified: 'Doğrulanmış',
+    passport_stat_artists: 'Sanatçı',
+    passport_stat_cities: 'Şehir',
+    passport_locked: 'Kilitli',
+    passport_no_concerts: 'Henüz konser yok',
+    passport_no_concerts_sub: 'Etkinliklere "Gidiyorum" de ve konserlerin burada birikim yapsın.',
+    passport_goal_done: 'Hedefe ulaştın!',
+    passport_section_badges: 'Rozetler',
+    passport_section_top_artists: 'En Çok Gittiğin Sanatçılar',
+    passport_section_music_taste: 'Müzik Tadın',
 
     // NOTIFICATIONS
     notifications_title: 'Bildirimler',
@@ -189,6 +212,9 @@ export const translations = {
     buddy_match_sub: 'Sen ve @{username} aynı konserlere gitmek istiyor.\nHadi tanışın!',
     buddy_view_profile: 'Profili Gör →',
     buddy_continue: 'Devam Et',
+    buddy_you: 'Sen',
+    buddy_swipe_yes: 'GEL',
+    buddy_swipe_no: 'GEÇ',
     buddy_shared: '🎪 Ortak Konserler',
     buddy_more_events: 'etkinlik daha',
     buddy_compat_great: 'Çok benzer zevkler 🎸',
@@ -202,6 +228,7 @@ export const translations = {
     search_artists: 'Sanatçılar',
     search_users: 'Kullanıcılar',
     search_no_results: 'Sonuç bulunamadı',
+    search_min_chars: 'En az 2 karakter yaz',
 
     // USER PROFILE
     user_profile_follow: 'Takip Et',
@@ -372,6 +399,17 @@ export const translations = {
     artist_no_events: 'Henüz etkinlik yok',
     artist_no_posts: 'Bu sanatçı için henüz post yok',
     artist_load_error: 'Sanatçı profili yüklenemedi.',
+    artist_popularity: 'Popülerlik',
+    artist_review_form_title_new: 'Bu Sanatçıyı Değerlendir',
+    artist_review_form_title_edit: 'Yorumunu Güncelle',
+    artist_review_placeholder: 'Yorumun (isteğe bağlı)...',
+    artist_review_saving: 'Kaydediliyor...',
+    artist_review_update: 'Güncelle',
+    artist_review_submit: 'Yorum Yap',
+    artist_no_reviews: 'Henüz yorum yapılmamış.',
+    artist_no_reviews_sub: 'İlk yorumu sen yap!',
+    artist_reviews_label: 'Yorum',
+    artist_past_concerts: 'Son Konserler',
     artist_action_error: 'İşlem gerçekleştirilemedi.',
 
     // ARTIST SELECTION
@@ -426,6 +464,10 @@ export const translations = {
     venue_comment_placeholder: 'Yorum ekle (isteğe bağlı)',
     venue_no_reviews: 'Henüz yorum yok. İlk yorumu sen yap!',
     venue_load_error: 'Mekan bilgileri yüklenemedi.',
+    venue_stat_rating: 'Puan',
+    venue_stat_reviews: 'Yorum',
+    venue_stat_events: 'Etkinlik',
+    venue_no_events_month: 'Bu ay etkinlik yok',
 
     // SEARCH MODAL (extra)
     search_modal_placeholder: 'Etkinlik, sanatçı veya kullanıcı ara...',
@@ -436,6 +478,13 @@ export const translations = {
     // SPOTIFY
     spotify_no_data: 'Veri bulunamadı',
     spotify_no_data_sub: 'Spotify\'da daha fazla müzik dinle ve tekrar dene.',
+    spotify_title: 'Spotify Önerileri',
+    spotify_hero_title: 'En Çok Dinlediklerin',
+    spotify_follow_all: 'Hepsini Takip Et ({count})',
+    spotify_not_in_app: 'Uygulamada yok',
+    spotify_load_error: 'Öneriler yüklenemedi.',
+    spotify_already_following: 'Tüm sanatçıları zaten takip ediyorsun.',
+    spotify_bulk_error: 'Toplu takip sırasında hata oluştu.',
     spotify_in_app: 'sanatçı Concertly\'de mevcut',
 
     // WELCOME
@@ -505,6 +554,7 @@ export const translations = {
     settings_spotify_disconnect_error: 'Bağlantı kesilemedi.',
     settings_save_success: '✅ Başarılı',
     settings_save_success_msg: 'Ayarların başarıyla kaydedildi!',
+    settings_save_error: 'Ayarlar kaydedilemedi. Lütfen tekrar dene.',
     settings_load_error: 'Profil bilgileri yüklenemedi.',
 
     // ADMIN — DASHBOARD
@@ -665,6 +715,8 @@ export const translations = {
     bingo_bingo: '🎉 BİNGO!',
     bingo_marked: '{count}/25 işaretlendi',
     bingo_tap_hint: 'Yaşandığında kutucuğa dokun',
+    bingo_badge_added: 'Konser Pasaportu\'na rozet eklendi!',
+    bingo_legend: '= Sütun rengi',
     bingo_event_label: 'Etkinlik',
     bingo_generic: 'Genel Bingo',
     bingo_sq_encore: 'Encore',
@@ -832,6 +884,7 @@ export const translations = {
     soon: 'Soon',
     error: 'Error',
     success: 'Success',
+    ok: 'OK',
 
     // AUTH
     login: 'Sign In',
@@ -965,6 +1018,14 @@ export const translations = {
     // COMMUNITIES
     communities_title: 'Communities',
     communities_search: 'Search community, city or genre...',
+    communities_stat_total: 'Communities',
+    communities_stat_joined: 'Joined',
+    communities_live: 'Live',
+    communities_load_error: 'Failed to load community.',
+    communities_stat_members: 'Members',
+    communities_stat_posts: 'Posts',
+    communities_stat_region: 'Region',
+    communities_reply: 'Reply',
     communities_join: 'Join',
     communities_joined: 'Joined',
     communities_members: 'members',
@@ -975,6 +1036,20 @@ export const translations = {
     communities_compose_locked: 'Join the community to post',
     communities_empty: 'No posts yet. Join and be the first!',
     communities_publish: 'Post',
+
+    // PASSPORT
+    passport_share: 'Share ↑',
+    passport_stat_concerts: 'Concerts',
+    passport_stat_verified: 'Verified',
+    passport_stat_artists: 'Artists',
+    passport_stat_cities: 'Cities',
+    passport_locked: 'Locked',
+    passport_no_concerts: 'No concerts yet',
+    passport_no_concerts_sub: 'Mark events as "Going" and your concerts will pile up here.',
+    passport_goal_done: 'Goal reached!',
+    passport_section_badges: 'Badges',
+    passport_section_top_artists: 'Most Seen Artists',
+    passport_section_music_taste: 'Your Music Taste',
 
     // NOTIFICATIONS
     notifications_title: 'Notifications',
@@ -997,6 +1072,9 @@ export const translations = {
     buddy_match_sub: 'You and @{username} both want to go to the same concerts.\nTime to connect!',
     buddy_view_profile: 'View Profile →',
     buddy_continue: 'Continue',
+    buddy_you: 'You',
+    buddy_swipe_yes: 'GO',
+    buddy_swipe_no: 'SKIP',
     buddy_shared: '🎪 Shared Events',
     buddy_more_events: 'more events',
     buddy_compat_great: 'Very similar taste 🎸',
@@ -1010,6 +1088,7 @@ export const translations = {
     search_artists: 'Artists',
     search_users: 'Users',
     search_no_results: 'No results found',
+    search_min_chars: 'Type at least 2 characters',
 
     // USER PROFILE
     user_profile_follow: 'Follow',
@@ -1181,6 +1260,17 @@ export const translations = {
     artist_no_posts: 'No posts for this artist yet',
     artist_load_error: 'Failed to load artist profile.',
     artist_action_error: 'Action failed.',
+    artist_popularity: 'Popularity',
+    artist_review_form_title_new: 'Rate This Artist',
+    artist_review_form_title_edit: 'Update Your Review',
+    artist_review_placeholder: 'Your review (optional)...',
+    artist_review_saving: 'Saving...',
+    artist_review_update: 'Update',
+    artist_review_submit: 'Submit Review',
+    artist_no_reviews: 'No reviews yet.',
+    artist_no_reviews_sub: 'Be the first to review!',
+    artist_reviews_label: 'Reviews',
+    artist_past_concerts: 'Past Concerts',
 
     // ARTIST SELECTION
     artsel_title: 'Select your favorite artists',
@@ -1234,6 +1324,10 @@ export const translations = {
     venue_comment_placeholder: 'Add a comment (optional)',
     venue_no_reviews: 'No reviews yet. Be the first!',
     venue_load_error: 'Failed to load venue info.',
+    venue_stat_rating: 'Rating',
+    venue_stat_reviews: 'Reviews',
+    venue_stat_events: 'Events',
+    venue_no_events_month: 'No events this month',
 
     // SEARCH MODAL (extra)
     search_modal_placeholder: 'Search events, artists or users...',
@@ -1244,6 +1338,13 @@ export const translations = {
     // SPOTIFY
     spotify_no_data: 'No data found',
     spotify_no_data_sub: 'Listen to more music on Spotify and try again.',
+    spotify_title: 'Spotify Recommendations',
+    spotify_hero_title: 'Your Top Listens',
+    spotify_follow_all: 'Follow All ({count})',
+    spotify_not_in_app: 'Not in app',
+    spotify_load_error: 'Failed to load recommendations.',
+    spotify_already_following: 'You already follow all artists.',
+    spotify_bulk_error: 'Bulk follow failed.',
     spotify_in_app: 'artists available in Concertly',
 
     // WELCOME
@@ -1313,6 +1414,7 @@ export const translations = {
     settings_spotify_disconnect_error: 'Failed to disconnect.',
     settings_save_success: '✅ Saved',
     settings_save_success_msg: 'Your settings have been saved!',
+    settings_save_error: 'Could not save settings. Please try again.',
     settings_load_error: 'Failed to load profile info.',
 
     // ADMIN — DASHBOARD
@@ -1473,6 +1575,8 @@ export const translations = {
     bingo_bingo: '🎉 BINGO!',
     bingo_marked: '{count}/25 marked',
     bingo_tap_hint: 'Tap a square when it happens',
+    bingo_badge_added: 'Badge added to your Concert Passport!',
+    bingo_legend: '= Column color',
     bingo_event_label: 'Event',
     bingo_generic: 'General Bingo',
     bingo_sq_encore: 'Encore',

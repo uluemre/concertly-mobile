@@ -65,7 +65,7 @@ export default function VenueProfileScreen({ route, navigation }) {
         setMyRating(vRes.data.myRating);
       }
     } catch {
-      Alert.alert('Hata', 'Mekan bilgileri yüklenemedi.');
+      Alert.alert(t('error'), t('venue_load_error'));
     } finally {
       setLoading(false);
     }
@@ -198,17 +198,17 @@ export default function VenueProfileScreen({ route, navigation }) {
             <Text style={styles.statValue}>
               {venue?.avgRating > 0 ? venue.avgRating.toFixed(1) : '—'}
             </Text>
-            <Text style={styles.statLabel}>⭐ Puan</Text>
+            <Text style={styles.statLabel}>⭐ {t('venue_stat_rating')}</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statBox}>
             <Text style={styles.statValue}>{venue?.reviewCount || 0}</Text>
-            <Text style={styles.statLabel}>Yorum</Text>
+            <Text style={styles.statLabel}>{t('venue_stat_reviews')}</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statBox}>
             <Text style={styles.statValue}>{venue?.totalEvents || 0}</Text>
-            <Text style={styles.statLabel}>Etkinlik</Text>
+            <Text style={styles.statLabel}>{t('venue_stat_events')}</Text>
           </View>
         </View>
 
@@ -271,7 +271,7 @@ export default function VenueProfileScreen({ route, navigation }) {
           </View>
 
           {Object.keys(eventsByDay).length === 0 && (
-            <Text style={[styles.noEventsText, { color: colors.textSecondary }]}>Bu ay etkinlik yok</Text>
+            <Text style={[styles.noEventsText, { color: colors.textSecondary }]}>{t('venue_no_events_month')}</Text>
           )}
         </View>
 
@@ -317,7 +317,7 @@ export default function VenueProfileScreen({ route, navigation }) {
                     </Text>
                     {r.userId === session.userId && (
                       <TouchableOpacity onPress={() => handleDeleteReview(r.id)}>
-                        <Text style={{ color: '#E94560', fontSize: 12 }}>Sil</Text>
+                        <Text style={{ color: '#E94560', fontSize: 12 }}>{t('delete')}</Text>
                       </TouchableOpacity>
                     )}
                   </View>

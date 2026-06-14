@@ -62,7 +62,7 @@ function MatchOverlay({ matchedUser, onClose, navigation, t }) {
         <Text style={styles.matchSub}>{subText}</Text>
         <View style={styles.matchAvatars}>
           <LinearGradient colors={['#3B82F6', '#7C3AED']} style={styles.matchAvatar}>
-            <Text style={styles.matchAvatarText}>Sen</Text>
+            <Text style={styles.matchAvatarText}>{t('buddy_you')}</Text>
           </LinearGradient>
           <Text style={styles.matchHeart}>🎵</Text>
           <LinearGradient colors={['#00D4AA', '#3B82F6']} style={styles.matchAvatar}>
@@ -255,10 +255,10 @@ export default function ConcertBuddyMatchScreen({ navigation }) {
         {!isBack && (
           <>
             <Animated.View style={[styles.likeOverlay, { opacity: likeOpacity }]}>
-              <Text style={styles.overlayText}>🎸 GEL</Text>
+              <Text style={styles.overlayText}>🎸 {t('buddy_swipe_yes')}</Text>
             </Animated.View>
             <Animated.View style={[styles.passOverlay, { opacity: passOpacity }]}>
-              <Text style={styles.overlayText}>⏩ GEÇ</Text>
+              <Text style={styles.overlayText}>⏩ {t('buddy_swipe_no')}</Text>
             </Animated.View>
           </>
         )}
@@ -301,7 +301,7 @@ export default function ConcertBuddyMatchScreen({ navigation }) {
         {/* Ortak konserler */}
         {card.sharedEvents?.length > 0 && (
           <View style={styles.sharedSection}>
-            <Text style={styles.sharedTitle}>🎪 Ortak Konserler</Text>
+            <Text style={styles.sharedTitle}>{t('buddy_shared')}</Text>
             {card.sharedEvents.slice(0, 3).map(ev => (
               <View key={ev.id} style={styles.sharedEvent}>
                 <Text style={styles.sharedEventName} numberOfLines={1}>{ev.name}</Text>
@@ -322,7 +322,7 @@ export default function ConcertBuddyMatchScreen({ navigation }) {
       {/* Header */}
       <LinearGradient colors={colors.headerGradient} style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={[styles.backText, { color: colors.primary }]}>‹ Geri</Text>
+          <Text style={[styles.backText, { color: colors.primary }]}>{t('back')}</Text>
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>{t('buddy_title')}</Text>
         <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{t('buddy_subtitle')}</Text>

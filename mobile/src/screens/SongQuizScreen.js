@@ -124,7 +124,9 @@ export default function SongQuizScreen({ navigation }) {
         { shouldPlay: true, positionMillis: q.startMs }
       );
       soundRef.current = sound;
-    } catch {}
+    } catch (e) {
+      console.log('quiz play error:', e?.message);
+    }
 
     questionStartRef.current = Date.now();
     setRemaining(QUESTION_TIME);

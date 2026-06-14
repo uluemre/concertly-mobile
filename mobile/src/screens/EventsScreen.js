@@ -170,7 +170,7 @@ export default function EventsScreen({ navigation }) {
     else if (sortKey === 'name_asc') list.sort((a, b) => a.name?.localeCompare(b.name));
 
     return list;
-  }, [events, search, selectedGenre, sortKey, startDate, endDate]);
+  }, [events, search, selectedGenre, sortKey, startDate, endDate, showPast]);
 
   const renderItem = useCallback(({ item, index }) => (
     <AnimatedListItem index={index}>

@@ -119,7 +119,7 @@ export default function SettingsScreen({ navigation, route }) {
       const status = err?.response?.status;
       const msg = err?.response?.data?.message || err?.response?.data?.error || err?.message || 'Bilinmeyen hata';
       console.log('Ayar kayıt hatası:', status, msg);
-      Alert.alert('Hata', `Ayarlar kaydedilemedi. (${status || 'Ağ hatası'})`);
+      Alert.alert(t('error'), t('settings_save_error'));
     } finally {
       setSaving(false);
     }
