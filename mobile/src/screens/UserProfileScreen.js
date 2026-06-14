@@ -136,6 +136,7 @@ export default function UserProfileScreen({ route, navigation }) {
     >
       {/* ── HERO ──────────────────────────────────────────────────────────── */}
       <LinearGradient colors={colors.headerGradient} style={styles.hero}>
+        <View style={styles.heroBgCircle} />
 
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Text style={styles.backText}>{t('back')}</Text>
@@ -143,110 +144,114 @@ export default function UserProfileScreen({ route, navigation }) {
 
         <Animated.View style={[styles.heroInner, { transform: [{ scale: scaleAnim }] }]}>
 
-          {/* AVATAR */}
-          {profile?.profileImageUrl ? (
-            <Image source={{ uri: profile.profileImageUrl }} style={styles.avatar} />
-          ) : (
-            <LinearGradient
-              colors={['#E94560', '#7C3AED']}
-              style={styles.avatarPlaceholder}
-            >
-              <Text style={styles.avatarLetter}>
-                {profile?.username?.charAt(0).toUpperCase() || '?'}
-              </Text>
-            </LinearGradient>
-          )}
-
-          <Text style={styles.username}>@{profile?.username}</Text>
-
-          {profile?.bio ? (
-            <Text style={styles.bio}>{profile.bio}</Text>
-          ) : (
-            <Text style={styles.bioEmpty}>{t('userprofile_bio_empty')}</Text>
-          )}
-
-          {/* STATS */}
-          <View style={styles.statsRow}>
-            <View style={styles.stat}>
-              <Text style={styles.statNumber}>{posts.length}</Text>
-              <Text style={styles.statLabel}>{t('profile_post_count')}</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <TouchableOpacity
-              style={styles.stat}
-              onPress={() => navigation.navigate('FollowList', { userId, type: 'followers' })}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.statNumber}>{profile?.followerCount || 0}</Text>
-              <Text style={styles.statLabel}>{t('profile_followers')}</Text>
-            </TouchableOpacity>
-            <View style={styles.statDivider} />
-            <TouchableOpacity
-              style={styles.stat}
-              onPress={() => navigation.navigate('FollowList', { userId, type: 'following' })}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.statNumber}>{profile?.followingCount || 0}</Text>
-              <Text style={styles.statLabel}>{t('profile_following')}</Text>
-            </TouchableOpacity>
-            <View style={styles.statDivider} />
-            <View style={styles.stat}>
-              <Text style={styles.statNumber}>{events.length}</Text>
-              <Text style={styles.statLabel}>{t('profile_event_count')}</Text>
-            </View>
+          {/* Sol: AVATAR */}
+          <View style={styles.avatarCol}>
+            {profile?.profileImageUrl ? (
+              <Image source={{ uri: profile.profileImageUrl }} style={styles.avatar} />
+            ) : (
+              <LinearGradient
+                colors={['#E94560', '#7C3AED']}
+                style={styles.avatarPlaceholder}
+              >
+                <Text style={styles.avatarLetter}>
+                  {profile?.username?.charAt(0).toUpperCase() || '?'}
+                </Text>
+              </LinearGradient>
+            )}
           </View>
 
-          {/* TAKİP + MESAJ BUTONLARI */}
-          <View style={styles.actionRow}>
-            <TouchableOpacity
-              onPress={handleFollowToggle}
-              disabled={followLoading}
-              style={styles.followButtonWrapper}
-              activeOpacity={0.85}
-            >
-              {following ? (
-                <View style={styles.followingButton}>
-                  {followLoading
-                    ? <ActivityIndicator size="small" color={colors.primary} />
-                    : <Text style={styles.followingText}>{t('user_profile_following')}</Text>
-                  }
-                </View>
-              ) : (
+          {/* Sağ: BİLGİ + BUTONLAR */}
+          <View style={styles.infoCol}>
+            <Text style={styles.username} numberOfLines={1}>@{profile?.username}</Text>
+            {profile?.bio ? (
+              <Text style={styles.bio} numberOfLines={2}>{profile.bio}</Text>
+            ) : (
+              <Text style={styles.bioEmpty}>{t('userprofile_bio_empty')}</Text>
+            )}
+
+            {/* TAKİP + MESAJ BUTONLARI */}
+            <View style={styles.actionRow}>
+              <TouchableOpacity
+                onPress={handleFollowToggle}
+                disabled={followLoading}
+                style={styles.followButtonWrapper}
+                activeOpacity={0.85}
+              >
+                {following ? (
+                  <View style={styles.followingButton}>
+                    {followLoading
+                      ? <ActivityIndicator size="small" color={colors.primary} />
+                      : <Text style={styles.followingText}>{t('user_profile_following')}</Text>
+                    }
+                  </View>
+                ) : (
+                  <LinearGradient
+                    colors={['#E94560', '#7C3AED']}
+                    style={styles.followButton}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                  >
+                    {followLoading
+                      ? <ActivityIndicator size="small" color={colors.text} />
+                      : <Text style={styles.followText}>{t('user_profile_follow')}</Text>
+                    }
+                  </LinearGradient>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => navigation.navigate('Chat', {
+                  userId,
+                  username: profile?.username,
+                  profileImageUrl: profile?.profileImageUrl,
+                })}
+                style={styles.messageButtonWrapper}
+                activeOpacity={0.85}
+              >
                 <LinearGradient
-                  colors={['#E94560', '#7C3AED']}
+                  colors={['#3B82F6', '#00D4AA']}
                   style={styles.followButton}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                 >
-                  {followLoading
-                    ? <ActivityIndicator size="small" color={colors.text} />
-                    : <Text style={styles.followText}>{t('user_profile_follow')}</Text>
-                  }
+                  <Text style={styles.followText}>{t('profile_message_btn')}</Text>
                 </LinearGradient>
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => navigation.navigate('Chat', {
-                userId,
-                username: profile?.username,
-                profileImageUrl: profile?.profileImageUrl,
-              })}
-              style={styles.messageButtonWrapper}
-              activeOpacity={0.85}
-            >
-              <LinearGradient
-                colors={['#3B82F6', '#00D4AA']}
-                style={styles.followButton}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-              >
-                <Text style={styles.followText}>{t('profile_message_btn')}</Text>
-              </LinearGradient>
-            </TouchableOpacity>
+              </TouchableOpacity>
+            </View>
           </View>
 
         </Animated.View>
+
+        {/* STATS */}
+        <View style={styles.statsRow}>
+          <View style={styles.stat}>
+            <Text style={styles.statNumber}>{posts.length}</Text>
+            <Text style={styles.statLabel}>{t('profile_post_count')}</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <TouchableOpacity
+            style={styles.stat}
+            onPress={() => navigation.navigate('FollowList', { userId, type: 'followers' })}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.statNumber}>{profile?.followerCount || 0}</Text>
+            <Text style={styles.statLabel}>{t('profile_followers')}</Text>
+          </TouchableOpacity>
+          <View style={styles.statDivider} />
+          <TouchableOpacity
+            style={styles.stat}
+            onPress={() => navigation.navigate('FollowList', { userId, type: 'following' })}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.statNumber}>{profile?.followingCount || 0}</Text>
+            <Text style={styles.statLabel}>{t('profile_following')}</Text>
+          </TouchableOpacity>
+          <View style={styles.statDivider} />
+          <View style={styles.stat}>
+            <Text style={styles.statNumber}>{events.length}</Text>
+            <Text style={styles.statLabel}>{t('profile_event_count')}</Text>
+          </View>
+        </View>
       </LinearGradient>
 
       {/* ── ANİMASYONLU SEKMELER ─────────────────────────────────────────── */}
@@ -382,62 +387,49 @@ function createStyles(colors) {
       alignItems: 'center', backgroundColor: colors.background,
     },
 
-    // HERO
-    hero: {
-      paddingTop: 56, paddingBottom: 28, paddingHorizontal: 24,
+    // HERO — ArtistProfile ile aynı dizayn
+    hero: { paddingTop: 56, paddingBottom: 32, paddingHorizontal: 24, overflow: 'hidden', position: 'relative' },
+    heroBgCircle: {
+      position: 'absolute', width: 300, height: 300, borderRadius: 150,
+      backgroundColor: colors.primary + '15', top: -80, right: -80,
     },
-    backButton: { marginBottom: 20 },
+    backButton: { marginBottom: 24 },
     backText: { color: colors.textSecondary, fontSize: 15, fontWeight: '600' },
-    heroInner: { alignItems: 'center' },
+    heroInner: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 20, gap: 16 },
+    avatarCol: { alignItems: 'center' },
+    infoCol: { flex: 1, paddingTop: 2 },
 
-    avatar: {
-      width: 100, height: 100, borderRadius: 50,
-      borderWidth: 3, borderColor: colors.border, marginBottom: 14,
-    },
-    avatarPlaceholder: {
-      width: 100, height: 100, borderRadius: 50,
-      justifyContent: 'center', alignItems: 'center', marginBottom: 14,
-    },
-    avatarLetter: { fontSize: 42, fontWeight: 'bold', color: '#fff' },
+    avatar: { width: 100, height: 100, borderRadius: 50, borderWidth: 3, borderColor: colors.border },
+    avatarPlaceholder: { width: 100, height: 100, borderRadius: 50, justifyContent: 'center', alignItems: 'center' },
+    avatarLetter: { fontSize: 44, fontWeight: '900', color: 'rgba(255,255,255,0.95)' },
 
-    username: {
-      fontSize: 22, fontWeight: 'bold',
-      color: colors.text, marginBottom: 8,
-    },
-    bio: {
-      fontSize: 14, color: colors.textSecondary,
-      textAlign: 'center', lineHeight: 20,
-      marginBottom: 20, paddingHorizontal: 16,
-    },
-    bioEmpty: {
-      fontSize: 13, color: colors.textSecondary,
-      marginBottom: 20, fontStyle: 'italic',
-    },
+    username: { fontSize: 22, fontWeight: 'bold', color: colors.text, marginBottom: 6, lineHeight: 27 },
+    bio: { fontSize: 13, color: colors.textSecondary, lineHeight: 18, marginBottom: 8 },
+    bioEmpty: { fontSize: 13, color: colors.textSecondary, lineHeight: 18, marginBottom: 8, fontStyle: 'italic' },
 
-    // STATS
+    // STATS — ArtistProfile ile aynı
     statsRow: {
       flexDirection: 'row', alignItems: 'center',
-      backgroundColor: colors.card,
-      borderRadius: 16, paddingVertical: 14, paddingHorizontal: 20,
-      gap: 16, marginBottom: 20,
+      backgroundColor: colors.card, borderRadius: 16,
+      paddingVertical: 14, paddingHorizontal: 24, gap: 20,
       borderWidth: 1, borderColor: colors.border, width: '100%',
     },
     stat: { alignItems: 'center', flex: 1 },
     statNumber: { fontSize: 20, fontWeight: 'bold', color: colors.text },
-    statLabel: { fontSize: 11, color: colors.textSecondary, marginTop: 2 },
+    statLabel: { fontSize: 11, color: colors.textSecondary, marginTop: 3 },
     statDivider: { width: 1, height: 32, backgroundColor: colors.border },
 
-    // TAKİP BUTONU
-    actionRow: { flexDirection: 'row', width: '100%', gap: 10 },
+    // BUTONLAR — ArtistProfile heroActions ile aynı
+    actionRow: { flexDirection: 'row', gap: 8, alignItems: 'center', marginTop: 4 },
     followButtonWrapper: { flex: 1 },
     messageButtonWrapper: { flex: 1 },
-    followButton: { paddingVertical: 14, borderRadius: 14, alignItems: 'center' },
-    followText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
+    followButton: { paddingVertical: 10, borderRadius: 12, alignItems: 'center' },
+    followText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
     followingButton: {
-      paddingVertical: 14, borderRadius: 14, alignItems: 'center',
+      paddingVertical: 10, borderRadius: 12, alignItems: 'center',
       borderWidth: 2, borderColor: colors.primary,
     },
-    followingText: { color: colors.primary, fontWeight: 'bold', fontSize: 15 },
+    followingText: { color: colors.primary, fontWeight: 'bold', fontSize: 14 },
 
     // ANİMASYONLU SEKMELER
     tabBarWrapper: {

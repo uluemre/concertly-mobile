@@ -176,67 +176,75 @@ export default function ProfileScreen({ navigation }) {
 
     <Animated.ScrollView style={[styles.container, { opacity: fadeAnim }]}>
 
-      {/* HERO — kompakt */}
-      <LinearGradient colors={colors.headerGradient} style={styles.hero}>
-        <View style={styles.topActions}>
-          <TouchableOpacity onPress={() => navigation.navigate('Settings')} style={styles.settingsButton} activeOpacity={0.8}>
+      {/* TEK KART: foto + hakkımda + istatistik + ayarlar */}
+      <View style={styles.headerArea}>
+        <View style={styles.profileCard}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Settings')}
+            style={styles.settingsButton}
+            activeOpacity={0.8}
+          >
             <Text style={styles.settingsIcon}>⚙️</Text>
           </TouchableOpacity>
-        </View>
 
-        <TouchableOpacity onPress={handlePickPhoto} style={styles.avatarWrapper} disabled={uploadingPhoto}>
-          {profile?.profileImageUrl ? (
-            <Image source={{ uri: profile.profileImageUrl }} style={styles.avatarImage} />
-          ) : (
-            <View style={styles.avatarPlaceholder}>
-              <Text style={styles.avatarEmoji}>👤</Text>
+          <View style={styles.profileTop}>
+            <TouchableOpacity onPress={handlePickPhoto} style={styles.avatarWrapper} disabled={uploadingPhoto}>
+              {profile?.profileImageUrl ? (
+                <Image source={{ uri: profile.profileImageUrl }} style={styles.avatarImage} />
+              ) : (
+                <View style={styles.avatarPlaceholder}>
+                  <Text style={styles.avatarEmoji}>👤</Text>
+                </View>
+              )}
+              <View style={styles.avatarEditBadge}>
+                {uploadingPhoto
+                  ? <ActivityIndicator size="small" color="#fff" />
+                  : <Text style={styles.avatarEditText}>📷</Text>
+                }
+              </View>
+            </TouchableOpacity>
+
+            <View style={styles.heroInfo}>
+              <Text style={styles.username} numberOfLines={1}>@{profile?.username || 'Kullanıcı'}</Text>
+              {profile?.bio ? (
+                <Text style={styles.bioText} numberOfLines={3}>{profile.bio}</Text>
+              ) : (
+                <Text style={styles.bioEmpty}>{t('userprofile_bio_empty')}</Text>
+              )}
             </View>
-          )}
-          <View style={styles.avatarEditBadge}>
-            {uploadingPhoto
-              ? <ActivityIndicator size="small" color="#fff" />
-              : <Text style={styles.avatarEditText}>📷</Text>
-            }
           </View>
-        </TouchableOpacity>
 
-        <Text style={styles.username}>@{profile?.username || 'Kullanıcı'}</Text>
+          <View style={styles.cardDivider} />
 
-        {!!profile?.bio && (
-          <Text style={styles.bioText} numberOfLines={2}>
-            {profile.bio}
-          </Text>
-        )}
-      </LinearGradient>
-
-      {/* STATS CARD */}
-      <View style={styles.statsCard}>
-        <View style={styles.stat}>
-          <Text style={styles.statNumber}>{posts.length}</Text>
-          <Text style={styles.statLabel}>{t('profile_stat_posts')}</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <TouchableOpacity
-          style={styles.stat}
-          onPress={() => navigation.navigate('FollowList', { userId: session.userId, type: 'followers' })}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.statNumber}>{profile?.followerCount || 0}</Text>
-          <Text style={styles.statLabel}>{t('profile_followers')}</Text>
-        </TouchableOpacity>
-        <View style={styles.statDivider} />
-        <TouchableOpacity
-          style={styles.stat}
-          onPress={() => navigation.navigate('FollowList', { userId: session.userId, type: 'following' })}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.statNumber}>{profile?.followingCount || 0}</Text>
-          <Text style={styles.statLabel}>{t('profile_following')}</Text>
-        </TouchableOpacity>
-        <View style={styles.statDivider} />
-        <View style={styles.stat}>
-          <Text style={styles.statNumber}>{events.length}</Text>
-          <Text style={styles.statLabel}>{t('profile_stat_events')}</Text>
+          <View style={styles.statsInline}>
+            <View style={styles.stat}>
+              <Text style={styles.statNumber}>{posts.length}</Text>
+              <Text style={styles.statLabel}>{t('profile_stat_posts')}</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <TouchableOpacity
+              style={styles.stat}
+              onPress={() => navigation.navigate('FollowList', { userId: session.userId, type: 'followers' })}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.statNumber}>{profile?.followerCount || 0}</Text>
+              <Text style={styles.statLabel}>{t('profile_followers')}</Text>
+            </TouchableOpacity>
+            <View style={styles.statDivider} />
+            <TouchableOpacity
+              style={styles.stat}
+              onPress={() => navigation.navigate('FollowList', { userId: session.userId, type: 'following' })}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.statNumber}>{profile?.followingCount || 0}</Text>
+              <Text style={styles.statLabel}>{t('profile_following')}</Text>
+            </TouchableOpacity>
+            <View style={styles.statDivider} />
+            <View style={styles.stat}>
+              <Text style={styles.statNumber}>{events.length}</Text>
+              <Text style={styles.statLabel}>{t('profile_stat_events')}</Text>
+            </View>
+          </View>
         </View>
       </View>
 
@@ -492,38 +500,32 @@ function createStyles(colors) {
       backgroundColor: colors.background,
     },
 
-    // HERO
-    hero: {
-      paddingTop: 52,
-      paddingBottom: 20,
-      alignItems: 'center',
-      paddingHorizontal: 24,
+    // HEADER ALANI (status bar + kart, sayfanın en üstü)
+    headerArea: {
+      paddingTop: 44,
+      paddingHorizontal: 16,
     },
-    topActions: {
-      position: 'absolute',
-      top: 44,
-      right: 16,
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
+    heroInfo: { flex: 1, paddingRight: 34 },
     settingsButton: {
-      width: 38,
-      height: 38,
-      borderRadius: 19,
-      backgroundColor: colors.card,
+      position: 'absolute',
+      top: 12,
+      right: 12,
+      zIndex: 2,
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      backgroundColor: colors.background,
       borderWidth: 1,
       borderColor: colors.border,
       alignItems: 'center',
       justifyContent: 'center',
     },
     settingsIcon: {
-      fontSize: 17,
+      fontSize: 16,
     },
 
     // AVATAR
-    avatarWrapper: {
-      marginBottom: 10,
-    },
+    avatarWrapper: {},
     avatarImage: {
       width: 80,
       height: 80,
@@ -559,7 +561,7 @@ function createStyles(colors) {
 
     // USERNAME & BIO
     username: {
-      fontSize: 18,
+      fontSize: 20,
       fontWeight: '800',
       color: colors.text,
       marginBottom: 4,
@@ -567,25 +569,36 @@ function createStyles(colors) {
     bioText: {
       color: colors.textSecondary,
       fontSize: 13,
-      textAlign: 'center',
       lineHeight: 18,
-      paddingHorizontal: 24,
-      marginTop: 4,
+    },
+    bioEmpty: {
+      color: colors.textSecondary,
+      fontSize: 13,
+      lineHeight: 18,
+      fontStyle: 'italic',
     },
 
-    // STATS CARD
-    statsCard: {
-      flexDirection: 'row',
-      alignItems: 'center',
+    // TEK PROFİL KARTI (foto + hakkımda + istatistik)
+    profileCard: {
       backgroundColor: colors.card,
       borderRadius: 16,
-      marginHorizontal: 16,
-      marginTop: 12,
-      marginBottom: 4,
-      paddingVertical: 14,
-      paddingHorizontal: 8,
       borderWidth: 1,
       borderColor: colors.border,
+      padding: 16,
+    },
+    profileTop: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 14,
+    },
+    cardDivider: {
+      height: 1,
+      backgroundColor: colors.border,
+      marginVertical: 14,
+    },
+    statsInline: {
+      flexDirection: 'row',
+      alignItems: 'center',
     },
     stat: { flex: 1, alignItems: 'center' },
     statNumber: { fontSize: 18, fontWeight: '800', color: colors.text },
