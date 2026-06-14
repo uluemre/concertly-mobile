@@ -7,6 +7,7 @@ import com.concertly.backend.service.TicketmasterService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +34,7 @@ public class EventController {
     public List<EventResponse> getEvents(
             @RequestParam(value = "city", required = false) String city,
             @RequestParam(value = "genres", required = false) String genresCsv,
+            @RequestParam(value = "upcoming", required = false, defaultValue = "false") boolean upcoming,
             @RequestParam(value = "limit", required = false) Integer limit) {
         List<EventResponse> events;
         if (genresCsv != null && !genresCsv.isBlank()) {
@@ -40,6 +42,14 @@ public class EventController {
             events = eventService.getRecommendedEvents(city, genres);
         } else {
             events = eventService.getAllEvents(city);
+        }
+        // Geçmiş filtresini limit'ten ÖNCE uygula — yoksa dönen 40 kayıt geçmişle
+        // dolup gelecekteki konserler "yok" görünebilir (4.3).
+        if (upcoming) {
+            var todayStart = LocalDate.now().atStartOfDay();
+            events = events.stream()
+                    .filter(e -> e.getEventDate() != null && !e.getEventDate().isBefore(todayStart))
+                    .toList();
         }
         // limit verilmezse eski davranış korunur (tam liste)
         if (limit != null && limit > 0 && events.size() > limit) {

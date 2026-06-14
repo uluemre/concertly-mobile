@@ -85,8 +85,9 @@ export default function HomeScreen({ navigation }) {
     const activeCity = city !== undefined ? city : selectedCity;
     const genres = session.favoriteGenres;
     let url = '/events';
-    // Ana sayfa en fazla 6 öne çıkan gösteriyor — tüm listeyi (≈1MB) indirmeye gerek yok
-    const params = ['limit=40'];
+    // Ana sayfa en fazla 6 öne çıkan gösteriyor — tüm listeyi (≈1MB) indirmeye gerek yok.
+    // upcoming=true: geçmiş etkinlikler limit'i doldurup gelecekteki konserleri gizlemesin (4.3)
+    const params = ['limit=40', 'upcoming=true'];
     if (activeCity) params.push(`city=${encodeURIComponent(activeCity)}`);
     if (genres) params.push(`genres=${encodeURIComponent(genres)}`);
     url += '?' + params.join('&');

@@ -283,7 +283,8 @@ Zorunlu gecikmeyi kaldır ya da yalnızca ilk yükte ve maksimum 200-250ms ile s
 
 **Tahmini Efor:** 30 dk
 
-### Bulgu 4.3 — Home'da `limit=40` + istemci tarafı geçmiş filtresi → gelecekteki konserler "yok" görünebilir (edge case)
+### Bulgu 4.3 — ✅ UYGULANDI (15 Haz) — Home `limit=40` + istemci geçmiş filtresi edge case
+> `/events`'e `upcoming=true` parametresi eklendi; geçmiş, limit'ten ÖNCE sunucuda eleniyor. Home çağrısı `limit=40&upcoming=true` → 40 kayıt yalnızca yaklaşan etkinliklerden dolar.
 
 **Problem**
 `HomeScreen.fetchData` sunucudan `limit=40` etkinlik çekiyor, sonra istemcide `filteredEvents` geçmiş tarihlileri eliyor (`new Date(e.eventDate) < today` → çıkar). Sunucu sıralaması "yaklaşan önce" değilse, dönen 40 kaydın çoğu/hepsi geçmiş olabilir; bu durumda istemci hepsini eler ve ileri tarihli konserler 40'ın ötesinde kaldığı için ekran "Etkinlik yok" gösterir — aslında gelecekte konser olmasına rağmen.
