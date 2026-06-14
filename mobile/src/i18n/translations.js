@@ -306,6 +306,7 @@ export const translations = {
     // EVENTS (extra)
     events_header_title: '🎟️ Etkinlikler',
     events_count: '{count} etkinlik bulundu',
+    events_pick_setlist: '🎯 Setlist tahmini için bir konser seç',
     events_filter: 'Filtrele',
     events_reset: 'Sıfırla',
     events_filter_genre: 'TÜR',
@@ -1204,6 +1205,7 @@ export const translations = {
     // EVENTS (extra)
     events_header_title: '🎟️ Events',
     events_count: '{count} events found',
+    events_pick_setlist: '🎯 Pick a concert to predict its setlist',
     events_filter: 'Filter',
     events_reset: 'Reset',
     events_filter_genre: 'GENRE',

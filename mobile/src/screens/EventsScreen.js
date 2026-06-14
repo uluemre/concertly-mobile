@@ -70,11 +70,12 @@ function CardImage({ item, index, cardImageStyle }) {
 const CITIES = ['Tümü', 'İstanbul', 'Ankara', 'İzmir', 'Bursa', 'Antalya', 'Adana', 'Konya', 'Gaziantep', 'Mersin', 'Eskişehir'];
 const GENRES = ['Tümü', 'Rock', 'Pop', 'Rap', 'Elektronik', 'Jazz', 'Klasik', 'Indie', 'R&B', 'Folk'];
 
-export default function EventsScreen({ navigation }) {
+export default function EventsScreen({ navigation, route }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { session } = useAuth();
   const { t } = useLanguage();
+  const pickForSetlist = route?.params?.pickForSetlist ?? false;
 
   const SORT_OPTIONS = useMemo(() => [
     { key: 'date_asc', label: t('events_sort_near') },
@@ -176,7 +177,9 @@ export default function EventsScreen({ navigation }) {
     <AnimatedListItem index={index}>
     <TouchableOpacity
       style={[styles.cardWrapper, { backgroundColor: colors.card, borderColor: colors.border }]}
-      onPress={() => navigation.navigate('EventDetail', { event: item })}
+      onPress={() => pickForSetlist
+        ? navigation.navigate('SetlistPrediction', { eventId: item.id })
+        : navigation.navigate('EventDetail', { event: item })}
       activeOpacity={0.85}
     >
       <CardImage item={item} index={index} cardImageStyle={styles.cardImage} />
@@ -197,7 +200,7 @@ export default function EventsScreen({ navigation }) {
       </View>
     </TouchableOpacity>
     </AnimatedListItem>
-  ), [styles, colors, navigation]);
+  ), [styles, colors, navigation, pickForSetlist]);
 
   if (loading) return (
     <View style={styles.skeletonContainer}>
@@ -271,6 +274,12 @@ export default function EventsScreen({ navigation }) {
           </TouchableOpacity>
         </View>
       </LinearGradient>
+
+      {pickForSetlist && (
+        <View style={styles.setlistBanner}>
+          <Text style={styles.setlistBannerText}>{t('events_pick_setlist')}</Text>
+        </View>
+      )}
 
       <FlatList
         data={filtered}
@@ -437,6 +446,9 @@ function createStyles(colors) {
     dateSeparator: { fontSize: 18, marginTop: 16 },
     applyBtn: { marginTop: 24, padding: 14, borderRadius: 14, alignItems: 'center' },
     applyBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+
+    setlistBanner: { backgroundColor: '#E9456022', borderBottomWidth: 1, borderBottomColor: '#E9456044', paddingVertical: 11, paddingHorizontal: 20 },
+    setlistBannerText: { color: '#E94560', fontSize: 13, fontWeight: '800', textAlign: 'center' },
 
     list: { padding: 14, paddingTop: 16, paddingBottom: 32 },
     row: { justifyContent: 'space-between', marginBottom: 14 },

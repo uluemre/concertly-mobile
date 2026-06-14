@@ -368,6 +368,40 @@ export default function EventDetailScreen({ route, navigation }) {
     ]);
   };
 
+  const openTicket = async () => {
+    if (!event.ticketUrl) return;
+    const supported = await Linking.canOpenURL(event.ticketUrl);
+    if (supported) {
+      await Linking.openURL(event.ticketUrl);
+    } else {
+      Alert.alert(t('error'), 'Bu link açılamıyor');
+    }
+  };
+
+  // Hero üstü aksiyonlar — sol: geri, sağ: bilet / takvim / kaydet (ikon butonlar)
+  const heroActions = (
+    <View style={styles.heroTopActions}>
+      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <Text style={styles.backText}>{t('back')}</Text>
+      </TouchableOpacity>
+      <View style={styles.heroIconRow}>
+        {!isExpired && event.ticketUrl && (
+          <TouchableOpacity style={styles.iconBtn} onPress={openTicket} activeOpacity={0.8}>
+            <Text style={styles.iconBtnText}>🎟️</Text>
+          </TouchableOpacity>
+        )}
+        {!isExpired && (
+          <TouchableOpacity style={styles.iconBtn} onPress={addToCalendar} activeOpacity={0.8}>
+            <Text style={styles.iconBtnText}>📅</Text>
+          </TouchableOpacity>
+        )}
+        <TouchableOpacity style={styles.bookmarkButton} onPress={handleBookmark} activeOpacity={0.8}>
+          <Text style={styles.bookmarkIcon}>{bookmarked ? '🔖' : '🏷️'}</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
   return (
     <>
     <ScrollView ref={scrollViewRef} style={styles.container}>
@@ -400,14 +434,7 @@ export default function EventDetailScreen({ route, navigation }) {
           )}
 
           <LinearGradient colors={['transparent', 'rgba(0,0,0,0.9)']} style={styles.heroOverlay}>
-            <View style={styles.heroTopActions}>
-              <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-                <Text style={styles.backText}>{t('back')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.bookmarkButton} onPress={handleBookmark} activeOpacity={0.8}>
-                <Text style={styles.bookmarkIcon}>{bookmarked ? '🔖' : '🏷️'}</Text>
-              </TouchableOpacity>
-            </View>
+            {heroActions}
             <Text style={styles.heroTitle}>{event.name}</Text>
             {event.genre && (
               <View style={styles.genreBadge}>
@@ -423,14 +450,7 @@ export default function EventDetailScreen({ route, navigation }) {
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
         >
-          <View style={styles.heroTopActions}>
-            <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-              <Text style={styles.backText}>{t('back')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.bookmarkButton} onPress={handleBookmark} activeOpacity={0.8}>
-              <Text style={styles.bookmarkIcon}>{bookmarked ? '🔖' : '🏷️'}</Text>
-            </TouchableOpacity>
-          </View>
+          {heroActions}
           <Text style={styles.heroPlaceholderInitials}>
             {getInitials(event.artistName || event.name)}
           </Text>
@@ -724,49 +744,12 @@ export default function EventDetailScreen({ route, navigation }) {
           </View>
         )}
 
-        {/* BİLET BUTONU */}
-        {event.ticketUrl && !isExpired && (
-          <TouchableOpacity
-            onPress={async () => {
-              const supported = await Linking.canOpenURL(event.ticketUrl);
-              if (supported) {
-                await Linking.openURL(event.ticketUrl);
-              } else {
-                Alert.alert(t('error'), 'Bu link açılamıyor');
-              }
-            }}
-            style={styles.ticketButton}
-          >
-            <Text style={styles.ticketButtonText}>{t('events_ticket')}</Text>
-          </TouchableOpacity>
-        )}
-
         {/* DOĞRULAMA BADGE */}
         {isVerified && (
           <View style={styles.verifiedBadge}>
             <Text style={styles.verifiedBadgeText}>{t('events_verified_badge')}</Text>
             <Text style={styles.verifiedBadgeSub}>{t('detail_verified_sub')}</Text>
           </View>
-        )}
-
-        {/* TAKVİME EKLE */}
-        {!isExpired && (
-          <TouchableOpacity onPress={addToCalendar} style={styles.calendarButton} activeOpacity={0.85}>
-            <Text style={styles.calendarButtonText}>{t('events_add_calendar')}</Text>
-          </TouchableOpacity>
-        )}
-
-        {/* SETLİST TAHMİN LİGİ */}
-        {event.artistName && (
-          <TouchableOpacity
-            onPress={() => navigation.navigate('SetlistPrediction', { eventId: event.id })}
-            style={styles.calendarButton}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.calendarButtonText}>
-              {isExpired ? t('detail_setlist_results_btn') : t('detail_setlist_btn')}
-            </Text>
-          </TouchableOpacity>
         )}
 
         {/* YORUM PILL — geçmiş etkinliklerde scroll kısayolu */}
@@ -962,6 +945,13 @@ function createStyles(colors) {
       borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
     },
     bookmarkIcon: { fontSize: 18 },
+    heroIconRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    iconBtn: {
+      backgroundColor: 'rgba(255,255,255,0.15)',
+      padding: 10, borderRadius: 20,
+      borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
+    },
+    iconBtnText: { fontSize: 18 },
     genreBadge: {
       backgroundColor: 'rgba(255,255,255,0.15)',
       paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16, marginTop: 10,
@@ -1230,19 +1220,6 @@ function createStyles(colors) {
     },
     actionButtonText: { color: '#fff', fontSize: 17, fontWeight: '900', letterSpacing: 0.5 },
 
-    ticketButton: {
-      backgroundColor: colors.primary, padding: 18, borderRadius: 20,
-      alignItems: 'center', marginTop: 12,
-      shadowColor: colors.primary, shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.4, shadowRadius: 8, elevation: 6,
-    },
-    ticketButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-    calendarButton: {
-      backgroundColor: colors.card, padding: 16, borderRadius: 20,
-      alignItems: 'center', marginTop: 12,
-      borderWidth: 1.5, borderColor: colors.border,
-    },
-    calendarButtonText: { color: colors.text, fontSize: 15, fontWeight: '700' },
 
     reviewPill: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
