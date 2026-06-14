@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../theme';
+import { useLanguage } from '../../context/LanguageContext';
 import { getGenreGradient } from '../../utils/gradients';
 import { formatDateShort } from '../../utils/time';
 
@@ -15,8 +16,9 @@ function getInitials(name) {
   return (words[0][0] + words[1][0]).toUpperCase();
 }
 
-export default React.memo(function FeaturedCard({ item, index, cardWidth, cardHeight, onPress }) {
+export default React.memo(function FeaturedCard({ item, index, cardWidth, cardHeight, onPress, followed }) {
   const { colors } = useTheme();
+  const { t } = useLanguage();
   const styles = useMemo(() => createStyles(colors, cardWidth, cardHeight), [colors, cardWidth, cardHeight]);
   const scale = useRef(new Animated.Value(0.92)).current;
   const opacity = useRef(new Animated.Value(0)).current;
@@ -68,6 +70,11 @@ export default React.memo(function FeaturedCard({ item, index, cardWidth, cardHe
           {item.genre && (
             <View style={styles.genreTag}>
               <Text style={styles.genreTagText}>{item.genre}</Text>
+            </View>
+          )}
+          {followed && (
+            <View style={styles.followedBadge}>
+              <Text style={styles.followedBadgeText}>{t('home_followed_badge')}</Text>
             </View>
           )}
           <View style={styles.content}>
@@ -123,6 +130,12 @@ function createStyles(colors, cardWidth, cardHeight) {
       borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
     },
     genreTagText: { color: '#fff', fontSize: 11, fontWeight: '600', opacity: 0.8 },
+    followedBadge: {
+      position: 'absolute', top: 68, left: 14,
+      backgroundColor: 'rgba(0,212,170,0.92)',
+      paddingHorizontal: 9, paddingVertical: 4, borderRadius: 8,
+    },
+    followedBadgeText: { color: '#04141a', fontSize: 11, fontWeight: '800' },
     content: { position: 'absolute', bottom: 14, left: 14, right: 14 },
     artist: { fontSize: 12, color: '#fff', opacity: 0.7, marginBottom: 4, fontWeight: '600' },
     title: { fontSize: 18, fontWeight: '900', color: '#fff', lineHeight: 22, marginBottom: 10 },

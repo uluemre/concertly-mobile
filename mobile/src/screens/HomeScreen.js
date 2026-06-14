@@ -37,6 +37,7 @@ export default function HomeScreen({ navigation }) {
   const [searchModalVisible, setSearchModalVisible] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [daily, setDaily] = useState(null);
+  const [followedArtistIds, setFollowedArtistIds] = useState(() => new Set());
 
   const headerAnim = useRef(new Animated.Value(-20)).current;
   const headerOpacity = useRef(new Animated.Value(0)).current;
@@ -50,6 +51,14 @@ export default function HomeScreen({ navigation }) {
   useFocusEffect(useCallback(() => {
     API.get('/daily-song/today').then(res => setDaily(res.data)).catch(() => {});
   }, []));
+
+  // Takip edilen sanatçılar — ekranlara dönünce tazelenir (best-effort)
+  useFocusEffect(useCallback(() => {
+    if (!session.userId) return;
+    API.get(`/users/${session.userId}/followed-artists`)
+      .then(res => setFollowedArtistIds(new Set((res.data || []).map(a => a.id))))
+      .catch(() => {});
+  }, [session.userId]));
 
   // Okunmamış mesaj sayısı — ekran odaktayken periyodik tazelenir
   useFocusEffect(useCallback(() => {
@@ -105,14 +114,20 @@ export default function HomeScreen({ navigation }) {
   const filteredEvents = useMemo(() => {
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const q = search.trim().toLowerCase();
-    return events.filter(e => {
+    const list = events.filter(e => {
       if (new Date(e.eventDate) < today) return false;
       return !q ||
         e.name?.toLowerCase().includes(q) ||
         e.artistName?.toLowerCase().includes(q) ||
         e.venueCity?.toLowerCase().includes(q);
     });
-  }, [events, search]);
+    // Takip edilen sanatçıların etkinliklerini öne al (stabil sıralama)
+    if (followedArtistIds.size > 0) {
+      list.sort((a, b) =>
+        (followedArtistIds.has(b.artistId) ? 1 : 0) - (followedArtistIds.has(a.artistId) ? 1 : 0));
+    }
+    return list;
+  }, [events, search, followedArtistIds]);
 
   const filteredPosts = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -224,6 +239,7 @@ export default function HomeScreen({ navigation }) {
                   cardWidth={FEATURED_CARD_WIDTH}
                   cardHeight={FEATURED_CARD_HEIGHT}
                   onPress={handleNavigateToEvent}
+                  followed={followedArtistIds.has(item.artistId)}
                 />
               )}
             />
