@@ -7,7 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
-import API from '../services/api';
+import API, { getErrorMessage } from '../services/api';
 import { formatTimeAgo } from '../utils/time';
 
 const AVATAR_GRADIENTS = [
@@ -25,14 +25,16 @@ export default function ChatListScreen({ navigation }) {
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState(null);
   const pollRef = useRef(null);
 
   const fetchConversations = useCallback(async () => {
     try {
       const res = await API.get('/messages/conversations');
       setConversations(res.data);
+      setError(null);
     } catch (err) {
-      console.log('Conversations error:', err.message);
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -120,6 +122,17 @@ export default function ChatListScreen({ navigation }) {
 
       {loading ? (
         <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 48 }} />
+      ) : (error && conversations.length === 0) ? (
+        <View style={styles.empty}>
+          <Text style={styles.emptyEmoji}>📡</Text>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('load_failed')}</Text>
+          <Text style={[styles.emptySub, { color: colors.textSecondary }]}>{error}</Text>
+          <TouchableOpacity onPress={() => { setError(null); setLoading(true); fetchConversations(); }} activeOpacity={0.85}>
+            <LinearGradient colors={['#E94560', '#7C3AED']} style={styles.buddyBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+              <Text style={styles.buddyBtnText}>{t('retry')}</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
       ) : (
         <FlatList
           data={conversations}

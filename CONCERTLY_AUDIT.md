@@ -248,8 +248,8 @@ Flagship özellik ilk açılışta soğuk; kullanıcı geri dönmek için sebep 
 
 ## TUR 4 — QA AUDIT
 
-### Bulgu 4.1 — ✅ KISMEN UYGULANDI (15 Haz) — Hata durumları sessizce yutuluyor (Home + Feed yapıldı)
-> Home ve Feed artık `getErrorMessage(err)` ile hata state'i tutuyor; veri yoksa "İçerik yüklenemedi" + mesaj + **Tekrar Dene** ekranı gösteriyor (boş ≠ hata). Kalan: EventDetail/diğer GET'ler hâlâ yutuyor (ArtistProfile için bkz. 7.1).
+### Bulgu 4.1 — ✅ UYGULANDI (15 Haz) — Hata durumları sessizce yutuluyor
+> Home, Feed, **Notifications, ChatList, Communities** artık `getErrorMessage(err)` ile hata state'i tutuyor; veri yoksa "İçerik yüklenemedi" + mesaj + **Tekrar Dene** ekranı gösteriyor (boş ≠ hata). ArtistProfile/Venue zaten 7.1'de parçalı render. EventDetail kasıtlı hariç: ana etkinlik objesi route'tan geldiği için sayfa hata durumunda da render oluyor (ikincil GET'ler zenginleştirme).
 
 **Problem**
 Ana liste ekranları ağ/sunucu hatalarını yutuyor ve boş-durum gösteriyor. `HomeScreen.fetchData` → `.catch(err => console.log(...))` ve sonra "🎭 Etkinlik yok" gösterir. `FeedScreen` → catch sadece `console.log`, ardından `ListEmptyComponent` ("Henüz post yok") render edilir. `EventDetailScreen`'deki tüm GET'ler `.catch(() => {})`. Hâlbuki `api.js` içinde tam da bunun için `getErrorMessage()` + `error.userMessage` ("Sunucuya ulaşılamıyor", "Zaman aşımı") altyapısı var ama bu ekranlarda **hiç kullanılmıyor**.

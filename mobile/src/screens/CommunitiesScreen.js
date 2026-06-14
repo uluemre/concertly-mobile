@@ -8,7 +8,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
-import API from '../services/api';
+import API, { getErrorMessage } from '../services/api';
 
 // key: i18n key, apiValue: backend'e gönderilecek değer (null = hepsi)
 const FILTERS = [
@@ -29,6 +29,7 @@ export default function CommunitiesScreen({ navigation }) {
   const [query, setQuery] = useState('');
   const [communities, setCommunities] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const debounceRef = useRef(null);
 
   const fetchCommunities = useCallback(async (type, q) => {
@@ -50,8 +51,9 @@ export default function CommunitiesScreen({ navigation }) {
         res = await API.get('/communities', { params });
       }
       setCommunities(res.data);
+      setError(null);
     } catch (err) {
-      console.error('Communities fetch error:', err);
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -148,6 +150,15 @@ export default function CommunitiesScreen({ navigation }) {
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      ) : (error && communities.length === 0) ? (
+        <View style={styles.errorBox}>
+          <Text style={styles.errorEmoji}>📡</Text>
+          <Text style={[styles.errorTitle, { color: colors.text }]}>{t('load_failed')}</Text>
+          <Text style={[styles.errorSub, { color: colors.textSecondary }]}>{error}</Text>
+          <TouchableOpacity onPress={() => fetchCommunities(activeFilter, query)} style={styles.retryBtn} activeOpacity={0.85}>
+            <Text style={styles.retryBtnText}>{t('retry')}</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <View style={styles.list}>
@@ -253,6 +264,12 @@ function createStyles(colors) {
     filterText: { color: colors.textSecondary, fontSize: 13, fontWeight: '700' },
     filterTextActive: { color: '#fff' },
     loadingContainer: { paddingVertical: 60, alignItems: 'center' },
+    errorBox: { paddingVertical: 60, paddingHorizontal: 40, alignItems: 'center' },
+    errorEmoji: { fontSize: 48, marginBottom: 12 },
+    errorTitle: { fontSize: 16, fontWeight: '800', marginBottom: 6 },
+    errorSub: { fontSize: 13, textAlign: 'center', lineHeight: 19, marginBottom: 18 },
+    retryBtn: { backgroundColor: colors.primary, paddingHorizontal: 28, paddingVertical: 12, borderRadius: 14 },
+    retryBtnText: { color: '#fff', fontSize: 14, fontWeight: '800' },
     list: { paddingHorizontal: 16, paddingTop: 14, gap: 12 },
     communityCard: {
       flexDirection: 'row',

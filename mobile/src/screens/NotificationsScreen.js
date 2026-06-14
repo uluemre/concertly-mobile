@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../theme';
-import API from '../services/api';
+import API, { getErrorMessage } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -34,6 +34,7 @@ export default function NotificationsScreen({ navigation }) {
   };
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const isMounted = useRef(true);
 
   useEffect(() => {
@@ -103,10 +104,11 @@ export default function NotificationsScreen({ navigation }) {
       const res = await API.get('/notifications');
       if (!isMounted.current) return;
       setNotifications(res.data);
+      setError(null);
       await API.patch('/notifications/read-all');
       if (isMounted.current) setNotificationCount(0);
     } catch (err) {
-      if (isMounted.current) console.log('Bildirim hatası:', err.message);
+      if (isMounted.current) setError(getErrorMessage(err));
     } finally {
       if (isMounted.current) setLoading(false);
     }
@@ -188,6 +190,28 @@ export default function NotificationsScreen({ navigation }) {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (error && grouped.length === 0) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>{t('notifications_title')}</Text>
+        </View>
+        <View style={styles.empty}>
+          <Text style={styles.emptyEmoji}>📡</Text>
+          <Text style={styles.emptyTitle}>{t('load_failed')}</Text>
+          <Text style={styles.emptySub}>{error}</Text>
+          <TouchableOpacity
+            onPress={() => { setError(null); setLoading(true); fetchAndMarkRead(); }}
+            style={styles.retryBtn}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.retryBtnText}>{t('retry')}</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
@@ -277,5 +301,7 @@ function createStyles(colors) {
     emptyEmoji: { fontSize: 52, marginBottom: 16 },
     emptyTitle: { fontSize: 17, fontWeight: '700', color: colors.text, marginBottom: 8 },
     emptySub: { fontSize: 13, color: colors.textSecondary, textAlign: 'center', lineHeight: 20 },
+    retryBtn: { marginTop: 18, backgroundColor: colors.primary, paddingHorizontal: 28, paddingVertical: 12, borderRadius: 14 },
+    retryBtnText: { color: '#fff', fontSize: 14, fontWeight: '800' },
   });
 }
