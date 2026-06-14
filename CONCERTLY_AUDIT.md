@@ -56,7 +56,8 @@ Daily Song widget'ını Öne Çıkan Etkinlikler'in **altına** al (retention ar
 
 ---
 
-### Bulgu 1.3 — Aynı içeriğe 3 ayrı kapı (Home / Feed / Explore→Feed) — navigasyon kafa karışıklığı
+### Bulgu 1.3 — ✅ KISMEN UYGULANDI (15 Haz) — Aynı içeriğe çok kapı (navigasyon karışıklığı)
+> Explore menüsünden **Feed** kartı kaldırıldı (Home zaten trend postları + "Tümünü gör" ile sunuyor). **Events kasıtlı bırakıldı:** ayrı bir Events tab'ı olmadığından (bkz. 1.1) menüdeki girişi tek başına çekirdek keşfe erişim sağlıyor. 1.1 yapılırsa Events de menüden çıkarılabilir.
 
 **Problem**
 Postlara erişim: (1) Home'daki "Trend Postlar" + "Tümünü gör" → FeedTab, (2) Explore menüsündeki "Feed" kartı → FeedTab. Etkinliklere erişim: (1) Home öne çıkanlar, (2) Home "Tümünü gör" → Events, (3) Explore "Events" kartı. Aynı 2 hedefe 5 farklı giriş.
