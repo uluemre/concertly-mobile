@@ -182,7 +182,7 @@ export default function ConcertPassportScreen({ navigation, route }) {
             <Text style={styles.emptyEmoji}>🎟️</Text>
             <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('passport_empty_title')}</Text>
             <Text style={[styles.emptySub, { color: colors.textSecondary }]}>{t('passport_empty_sub')}</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Events')} activeOpacity={0.85} style={{ width: '100%' }}>
+            <TouchableOpacity onPress={() => navigation.navigate('MainApp', { screen: 'Events' })} activeOpacity={0.85} style={{ width: '100%' }}>
               <LinearGradient
                 colors={['#E94560', '#7C3AED']}
                 start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}

@@ -537,6 +537,15 @@ export default function EventDetailScreen({ route, navigation }) {
               </TouchableOpacity>
             </View>
 
+            {/* Eşleştiriciye köprü — per-event liste + swipe eşleşmesini birbirine bağlar */}
+            <TouchableOpacity
+              onPress={() => navigation.navigate('ConcertBuddyMatch', { eventName: event.name })}
+              style={[styles.buddyMatchLink, { borderColor: colors.border }]}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.buddyMatchLinkText, { color: colors.primary }]}>{t('detail_buddy_match_cta')}</Text>
+            </TouchableOpacity>
+
             {/* Mesaj girişi */}
             {showBuddyInput && !isBuddy && (
               <View style={styles.buddyInputWrap}>
@@ -1035,6 +1044,8 @@ function createStyles(colors) {
       borderRadius: 16, borderWidth: 1.5, padding: 16, marginBottom: 12,
     },
     buddyCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    buddyMatchLink: { marginTop: 12, paddingVertical: 11, borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', alignItems: 'center' },
+    buddyMatchLinkText: { fontSize: 13, fontWeight: '800' },
     buddyTitle: { fontSize: 15, fontWeight: '800', marginBottom: 3 },
     buddySub: { fontSize: 12 },
     buddyToggleBtn: {

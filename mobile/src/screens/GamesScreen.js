@@ -95,7 +95,7 @@ export default function GamesScreen({ navigation }) {
             <TouchableOpacity
               key={game.key}
               onPress={() => game.key === 'setlist'
-                ? navigation.navigate('Events', { pickForSetlist: true })
+                ? navigation.navigate('EventsPicker', { pickForSetlist: true })
                 : navigation.navigate(game.screen)}
               activeOpacity={0.85}
               style={styles.card}

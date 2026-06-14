@@ -177,7 +177,7 @@ export default function FeedScreen({ navigation }) {
                 {activeTab === 'following' ? t('feed_empty_following_sub') : t('feed_empty_sub')}
               </Text>
               <TouchableOpacity
-                onPress={() => activeTab === 'following' ? switchTab('trending') : navigation.navigate('Events')}
+                onPress={() => activeTab === 'following' ? switchTab('trending') : navigation.navigate('MainApp', { screen: 'Events' })}
                 activeOpacity={0.85}
                 style={styles.emptyCtaWrap}
               >

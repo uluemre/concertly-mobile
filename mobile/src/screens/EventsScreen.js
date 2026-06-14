@@ -212,6 +212,11 @@ export default function EventsScreen({ navigation, route }) {
     <View style={styles.container}>
       {/* HEADER */}
       <LinearGradient colors={colors.headerGradient} style={styles.header}>
+        {pickForSetlist && (
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.pickerBack} activeOpacity={0.7}>
+            <Text style={styles.pickerBackText}>‹ {t('back')}</Text>
+          </TouchableOpacity>
+        )}
         <View style={styles.headerRow}>
           <View>
             <Text style={styles.headerTitle}>{t('events_header_title')}</Text>
@@ -413,6 +418,8 @@ function createStyles(colors) {
     skeletonContainer: { flex: 1, backgroundColor: colors.background, paddingTop: 140 },
 
     header: { paddingTop: 56, paddingBottom: 14, paddingHorizontal: 20 },
+    pickerBack: { marginBottom: 10 },
+    pickerBackText: { color: colors.primary, fontSize: 15, fontWeight: '700' },
     headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
     headerTitle: { fontSize: 22, fontWeight: 'bold', color: colors.text },
     headerSub: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },

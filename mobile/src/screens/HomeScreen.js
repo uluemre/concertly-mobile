@@ -215,7 +215,7 @@ export default function HomeScreen({ navigation }) {
               <View style={[styles.sectionAccent, { backgroundColor: colors.primary }]} />
               <Text style={styles.sectionTitle}>{t('home_featured')}</Text>
             </View>
-            <TouchableOpacity onPress={() => navigation.navigate('Events')} style={styles.seeAllBtn}>
+            <TouchableOpacity onPress={() => navigation.navigate('MainApp', { screen: 'Events' })} style={styles.seeAllBtn}>
               <Text style={[styles.seeAllText, { color: colors.primary }]}>{t('home_see_all_btn')}</Text>
             </TouchableOpacity>
           </View>

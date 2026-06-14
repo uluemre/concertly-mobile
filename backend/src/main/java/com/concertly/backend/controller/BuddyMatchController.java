@@ -178,10 +178,35 @@ public class BuddyMatchController {
                         match.put("city", u.getCity() != null ? u.getCity() : "");
                         match.put("profileImageUrl", u.getProfileImageUrl() != null ? u.getProfileImageUrl() : "");
                         match.put("favoriteGenres", u.getFavoriteGenres() != null ? u.getFavoriteGenres() : "");
+                        // Hangi konser(ler) sayesinde eşleştiler — ortak yaklaşan "Gidiyorum" etkinlikleri
+                        match.put("sharedEvents", sharedEventsBetween(myId, u.getId()));
                     });
                     return match;
                 })
                 .filter(m -> !m.isEmpty())
+                .collect(Collectors.toList());
+    }
+
+    /** İki kullanıcının ortak yaklaşan "Gidiyorum" etkinlikleri (eşleşme sebebi). */
+    private List<Map<String, Object>> sharedEventsBetween(Long aId, Long bId) {
+        LocalDateTime now = LocalDateTime.now();
+        Set<Long> aEventIds = attendanceRepository.findByUserIdAndStatus(aId, AttendanceStatus.GOING).stream()
+                .map(EventAttendance::getEvent)
+                .filter(e -> e.getEventDate() != null && e.getEventDate().isAfter(now))
+                .map(e -> e.getId())
+                .collect(Collectors.toSet());
+        if (aEventIds.isEmpty()) return List.of();
+        return attendanceRepository.findByUserIdAndStatus(bId, AttendanceStatus.GOING).stream()
+                .map(EventAttendance::getEvent)
+                .filter(e -> e.getEventDate() != null && e.getEventDate().isAfter(now) && aEventIds.contains(e.getId()))
+                .map(e -> {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("id", e.getId());
+                    m.put("name", e.getName());
+                    m.put("artistName", e.getArtist() != null ? e.getArtist().getName() : "");
+                    m.put("eventDate", e.getEventDate().toString());
+                    return m;
+                })
                 .collect(Collectors.toList());
     }
 }

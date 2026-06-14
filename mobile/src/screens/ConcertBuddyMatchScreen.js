@@ -106,10 +106,11 @@ function MatchOverlay({ matchedUser, onClose, navigation, t }) {
 }
 
 // ── Ana Ekran ─────────────────────────────────────────────────────────────────
-export default function ConcertBuddyMatchScreen({ navigation }) {
+export default function ConcertBuddyMatchScreen({ navigation, route }) {
   const { colors } = useTheme();
   const { session } = useAuth();
   const { t } = useLanguage();
+  const fromEventName = route?.params?.eventName ?? null;
   const confettiRef = useRef(null);
 
   const [cards, setCards] = useState([]);
@@ -123,6 +124,8 @@ export default function ConcertBuddyMatchScreen({ navigation }) {
   // Swipe gesture values
   const pan        = useRef(new Animated.ValueXY()).current;
   const cardOpacity = useRef(new Animated.Value(1)).current;
+  // panResponder bir kez oluşturulur; en güncel flyCard'a ref üzerinden eriş (stale closure önler)
+  const flyCardRef = useRef(null);
 
   // Derived interpolations
   const rotate = pan.x.interpolate({
@@ -156,7 +159,7 @@ export default function ConcertBuddyMatchScreen({ navigation }) {
         const { dx, vx } = gesture;
         if (Math.abs(dx) > SWIPE_THRESHOLD || Math.abs(vx) > SWIPE_VELOCITY) {
           const liked = dx > 0;
-          flyCard(liked);
+          flyCardRef.current?.(liked);
         } else {
           Animated.spring(pan, {
             toValue: { x: 0, y: 0 },
@@ -225,6 +228,9 @@ export default function ConcertBuddyMatchScreen({ navigation }) {
       Animated.timing(cardOpacity, { toValue: 0, duration: 300, useNativeDriver: false }),
     ]).start(() => sendSwipe(liked, card));
   }, [swiping, cards, currentIndex, pan, cardOpacity, sendSwipe]);
+
+  // panResponder'ın çağıracağı güncel flyCard'ı her render'da tazele
+  flyCardRef.current = flyCard;
 
   const handleSwipe = (liked) => flyCard(liked);
 
@@ -326,6 +332,11 @@ export default function ConcertBuddyMatchScreen({ navigation }) {
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>{t('buddy_title')}</Text>
         <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{t('buddy_subtitle')}</Text>
+        {fromEventName && (
+          <View style={styles.eventCtxPill}>
+            <Text style={styles.eventCtxText} numberOfLines={1}>🎫 {fromEventName}</Text>
+          </View>
+        )}
 
         {/* Tab */}
         <View style={[styles.tabRow, { backgroundColor: colors.cardAlt }]}>
@@ -444,7 +455,14 @@ export default function ConcertBuddyMatchScreen({ navigation }) {
                 </LinearGradient>
                 <View style={styles.matchRowInfo}>
                   <Text style={[styles.matchRowUsername, { color: colors.text }]}>@{m.username}</Text>
-                  {m.city ? <Text style={[styles.matchRowCity, { color: colors.textSecondary }]}>📍 {m.city}</Text> : null}
+                  {m.sharedEvents?.length > 0 ? (
+                    <Text style={styles.matchRowEvent} numberOfLines={1}>
+                      🎫 {m.sharedEvents[0].name}
+                      {m.sharedEvents.length > 1 ? ` +${m.sharedEvents.length - 1}` : ''}
+                    </Text>
+                  ) : m.city ? (
+                    <Text style={[styles.matchRowCity, { color: colors.textSecondary }]}>📍 {m.city}</Text>
+                  ) : null}
                   {m.favoriteGenres ? (
                     <Text style={[styles.matchRowGenres, { color: colors.textSecondary }]} numberOfLines={1}>
                       🎵 {m.favoriteGenres}
@@ -492,6 +510,8 @@ const styles = StyleSheet.create({
   backBtn: {},
   backText: { fontSize: 17, fontWeight: '700' },
   headerTitle: { fontSize: 22, fontWeight: '900' },
+  eventCtxPill: { alignSelf: 'flex-start', marginTop: 8, backgroundColor: 'rgba(233,69,96,0.15)', borderWidth: 1, borderColor: 'rgba(233,69,96,0.4)', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 5 },
+  eventCtxText: { color: '#E94560', fontSize: 12, fontWeight: '800', maxWidth: 280 },
   headerSubtitle: { fontSize: 12, fontWeight: '500', marginTop: -8 },
 
   tabRow: { flexDirection: 'row', borderRadius: 12, padding: 4, gap: 4 },
@@ -624,6 +644,7 @@ const styles = StyleSheet.create({
   matchRowInfo: { flex: 1 },
   matchRowUsername: { fontSize: 15, fontWeight: '800', marginBottom: 3 },
   matchRowCity: { fontSize: 12, marginBottom: 2 },
+  matchRowEvent: { fontSize: 12, fontWeight: '800', color: '#E94560', marginBottom: 2 },
   matchRowGenres: { fontSize: 11 },
   matchRowChevron: { fontSize: 24, fontWeight: '300' },
   matchRowMsgBtn: {

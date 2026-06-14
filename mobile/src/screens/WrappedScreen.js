@@ -237,7 +237,7 @@ export default function WrappedScreen({ navigation }) {
             <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('wrapped_empty_title')}</Text>
             <Text style={[styles.emptySub, { color: colors.textSecondary }]}>{t('wrapped_empty_sub')}</Text>
             <TouchableOpacity
-              onPress={() => navigation.navigate('Events')}
+              onPress={() => navigation.navigate('MainApp', { screen: 'Events' })}
               activeOpacity={0.85}
             >
               <LinearGradient

@@ -2,6 +2,7 @@ export const translations = {
   tr: {
     // TAB
     tab_home: 'Ana Sayfa',
+    tab_events: 'Etkinlikler',
     tab_menu: 'Menü',
     tab_notifications: 'Bildirimler',
     tab_profile: 'Profil',
@@ -334,6 +335,7 @@ export const translations = {
     detail_buddy_sub_empty: 'Bu konsere birlikte gidecek biri arıyorum',
     detail_buddy_join: '+ Katıl',
     detail_buddy_active: '✓ Arıyorum',
+    detail_buddy_match_cta: '🎸 Eşleşerek konser arkadaşı bul →',
     detail_buddy_start: 'Aramaya Başla →',
     detail_buddy_msg_placeholder: 'Mesaj ekle: "Ön sıraya gidelim 🎸" (isteğe bağlı)',
     detail_friend_going: ' gidiyor',
@@ -906,6 +908,7 @@ export const translations = {
   en: {
     // TAB
     tab_home: 'Home',
+    tab_events: 'Events',
     tab_menu: 'Menu',
     tab_notifications: 'Notifications',
     tab_profile: 'Profile',
@@ -1238,6 +1241,7 @@ export const translations = {
     detail_buddy_sub_empty: 'Looking for someone to go with',
     detail_buddy_join: '+ Join',
     detail_buddy_active: '✓ Looking',
+    detail_buddy_match_cta: '🎸 Find a concert buddy by matching →',
     detail_buddy_start: 'Start Looking →',
     detail_buddy_msg_placeholder: 'Add a message: "Let\'s get front row 🎸" (optional)',
     detail_friend_going: ' going',

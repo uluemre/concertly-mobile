@@ -19,7 +19,8 @@
 
 ## TUR 1 — PRODUCT AUDIT
 
-### Bulgu 1.1 — Ürünün ana değeri (konser keşfi) tab bar'da yok
+### Bulgu 1.1 — ✅ UYGULANDI (15 Haz) — Konser keşfi tab bar'da yok
+> Tab bar artık: Home · **Etkinlikler (🎫)** · Menü · Bildirimler · Profil. EventsScreen tab oldu; setlist seçim akışı ayrı pushable `EventsPicker` ekranına taşındı (geri butonlu). Keşif çağrıları (Home/Feed/Wrapped/Pasaport) Events tab'ına yönlendirildi.
 
 **Problem**
 Tab bar: Home · Explore(menü ☰) · Notifications · Profile. "Etkinlikler / Konserler" birinci sınıf bir sekme değil. Konsere ulaşmanın yolu ya Home'daki max 6 "öne çıkan" kart ya da Explore menüsünden Events'e gitmek. Bir konser-keşif uygulamasında konser listesi 2. kademe navigasyonda.
@@ -56,8 +57,8 @@ Daily Song widget'ını Öne Çıkan Etkinlikler'in **altına** al (retention ar
 
 ---
 
-### Bulgu 1.3 — ✅ KISMEN UYGULANDI (15 Haz) — Aynı içeriğe çok kapı (navigasyon karışıklığı)
-> Explore menüsünden **Feed** kartı kaldırıldı (Home zaten trend postları + "Tümünü gör" ile sunuyor). **Events kasıtlı bırakıldı:** ayrı bir Events tab'ı olmadığından (bkz. 1.1) menüdeki girişi tek başına çekirdek keşfe erişim sağlıyor. 1.1 yapılırsa Events de menüden çıkarılabilir.
+### Bulgu 1.3 — ✅ UYGULANDI (15 Haz) — Aynı içeriğe çok kapı (navigasyon karışıklığı)
+> Explore menüsünden **Feed** ve (1.1 ile Events tab olunca) **Events** kartları kaldırıldı. Menü artık araç-odaklı: Topluluklar · Müzik Kimliği · Harita · Konser Arkadaşı · Oyunlar.
 
 **Problem**
 Postlara erişim: (1) Home'daki "Trend Postlar" + "Tümünü gör" → FeedTab, (2) Explore menüsündeki "Feed" kartı → FeedTab. Etkinliklere erişim: (1) Home öne çıkanlar, (2) Home "Tümünü gör" → Events, (3) Explore "Events" kartı. Aynı 2 hedefe 5 farklı giriş.
@@ -414,7 +415,8 @@ Yeni ekran gerekmez: (a) PostCard "⋯" menüsünü herkes için göster, sahibi
 
 ---
 
-### Bulgu 6.2 — "Konser Arkadaşı" iki kopuk yüzeyde yaşıyor → havuz bölünüyor, kafa karışıyor
+### Bulgu 6.2 — ✅ KISMEN UYGULANDI (15 Haz) — "Konser Arkadaşı" iki kopuk yüzeyde
+> Cross-link eklendi: EventDetail buddy kartından "🎸 Eşleşerek konser arkadaşı bul →" swipe eşleştiriciye gidiyor; eşleştirici etkinlik bağlamını (🎫 etkinlik adı) gösteriyor. **Kalan (follow-up):** `/buddy/discover`'ı eventId ile filtreleyip per-event listeyle aynı havuza tam bağlama (backend işi).
 
 **Problem**
 Buddy iki ayrı mekanizma: (a) `ConcertBuddyMatchScreen` — Explore → Buddy'den açılan Tinder tarzı kaydırmalı eşleştirici (eşleşince → Chat); (b) `EventDetailScreen` içindeki etkinliğe özel "Konser Arkadaşı" katıl-listesi (katılan kişiler listelenir, profile gidilir). Aynı amaç ("birlikte gidecek birini bul") için iki farklı zihinsel model. Bir etkinlikte buddy listesine katılan kullanıcı, swipe ekranındaki havuzda görünmeyebilir; iki taraf birbirini beslemiyor.

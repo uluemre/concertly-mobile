@@ -123,6 +123,15 @@ function TabNavigator() {
       />
 
       <Tab.Screen
+        name="Events"
+        component={EventsScreen}
+        options={{
+          tabBarLabel: t('tab_events'),
+          tabBarIcon: ({ focused }) => <TabIcon emoji="🎫" focused={focused} />,
+        }}
+      />
+
+      <Tab.Screen
         name="Explore"
         component={ExploreScreen}
         options={{
@@ -228,8 +237,9 @@ export default function AppNavigator() {
           component={CreatePostScreen}
         />
 
+        {/* Setlist seçim akışı için pushable Events (param'lı) — tab dışı */}
         <Stack.Screen
-          name="Events"
+          name="EventsPicker"
           component={EventsScreen}
         />
 
