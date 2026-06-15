@@ -17,8 +17,9 @@ FROM eclipse-temurin:17-jre
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 # Railway PORT'u kendisi atar; uygulama ${PORT}'u dinler (application.properties)
-# Bellek: heap container limitinin %50'siyle sınırlı — kalan yarı metaspace,
-# thread stack'leri ve Tomcat gibi non-heap'e bırakılır (heap'i %75 yapınca
-# non-heap'e yer kalmayıp başlangıçta OOM-kill yedi). SerialGC az RAM/az
-# çekirdek ortamında daha az bellek ve thread harcar.
-ENTRYPOINT ["java", "-XX:MaxRAMPercentage=50.0", "-XX:+UseSerialGC", "-jar", "app.jar"]
+# Bellek: 1GB container'da heap'i SABİT 384MB'a, metaspace'i 128MB'a tavanla.
+# Böylece toplam (heap 384 + metaspace 128 + thread/Tomcat ~150) <700MB kalır,
+# startup'taki bean-oluşturma pikinde bile 1GB'ı asla aşmaz. %50 (512MB heap)
+# bu piki aşıp OOM-kill yiyordu ("Started" satırına varmadan temiz kesiliyordu).
+# SerialGC az RAM/az çekirdek ortamında daha az bellek ve thread harcar.
+ENTRYPOINT ["java", "-Xmx384m", "-XX:MaxMetaspaceSize=128m", "-XX:+UseSerialGC", "-jar", "app.jar"]
