@@ -1,7 +1,18 @@
 import axios from 'axios';
 import Constants from 'expo-constants';
 
+// İnternetteki canlı sunucu (Railway)
+const PROD_API = 'https://concertly-mobile-production.up.railway.app/api';
+
+// Geliştirme sırasında da canlı sunucuyu kullanmak istersen bunu true yap
+// (örn. telefonda Expo Go ile yayın sunucusunu test etmek için)
+const USE_PROD_IN_DEV = false;
+
 function getBaseUrl() {
+  // Yayınlanan (production) uygulama → her zaman internetteki sunucu
+  if (!__DEV__ || USE_PROD_IN_DEV) return PROD_API;
+
+  // Geliştirme (Expo Go) → aynı ağdaki yerel bilgisayar
   try {
     const hostUri = Constants.expoConfig?.hostUri;
     if (hostUri) {
@@ -9,7 +20,7 @@ function getBaseUrl() {
       return `http://${ip}:8082/api`;
     }
   } catch {}
-  return 'http://172.20.10.5:8082/api';
+  return PROD_API;
 }
 
 const BASE_URL = getBaseUrl();
