@@ -130,7 +130,7 @@ export default function ArtistProfileScreen({ route, navigation }) {
     }
 
     setArtist(artistRes.value.data);
-    setFollowing(artistRes.value.data.isFollowedByCurrentUser || false);
+    setFollowing(artistRes.value.data.followedByCurrentUser || false);
     setEvents(eventsRes.status === 'fulfilled'
       ? eventsRes.value.data.filter(e => new Date(e.eventDate) >= new Date())
       : []);
