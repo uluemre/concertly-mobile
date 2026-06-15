@@ -34,7 +34,7 @@ public class ArtistController {
 
     @GetMapping("/{id}/posts")
     public List<PostResponse> getArtistPosts(@PathVariable Long id) {
-        return artistService.getArtistPosts(id);
+        return artistService.getArtistPosts(id, JwtUtil.getCurrentUserId());
     }
 
     @GetMapping("/{id}/past-events")

@@ -62,18 +62,25 @@ public class UserService {
         this.badgeService         = badgeService;
     }
 
-    // 🔥 CORE METHOD — like/comment sayımlarını toplu çeker (N+1 yok)
-    private List<PostResponse> toResponses(List<Post> posts) {
+    // 🔥 CORE METHOD — like/comment sayımlarını + izleyenin beğenilerini toplu çeker (N+1 yok)
+    private List<PostResponse> toResponses(List<Post> posts, Long currentUserId) {
         if (posts.isEmpty()) return List.of();
         List<Long> ids = posts.stream().map(Post::getId).toList();
         Map<Long, Long> likeCounts = likeRepository.countByPostIdIn(ids).stream()
                 .collect(Collectors.toMap(r -> (Long) r[0], r -> (Long) r[1]));
         Map<Long, Long> commentCounts = commentRepository.countByPostIdIn(ids).stream()
                 .collect(Collectors.toMap(r -> (Long) r[0], r -> (Long) r[1]));
+        Set<Long> likedPostIds = currentUserId == null
+                ? Set.of()
+                : Set.copyOf(likeRepository.findLikedPostIds(currentUserId, ids));
         return posts.stream()
-                .map(p -> PostResponse.from(p,
-                        likeCounts.getOrDefault(p.getId(), 0L),
-                        commentCounts.getOrDefault(p.getId(), 0L)))
+                .map(p -> {
+                    PostResponse dto = PostResponse.from(p,
+                            likeCounts.getOrDefault(p.getId(), 0L),
+                            commentCounts.getOrDefault(p.getId(), 0L));
+                    dto.setLikedByMe(likedPostIds.contains(p.getId()));
+                    return dto;
+                })
                 .toList();
     }
 
@@ -123,12 +130,12 @@ public class UserService {
     }
 
     // ✅ KULLANICININ POSTLARI
-    public List<PostResponse> getUserPosts(Long userId) {
+    public List<PostResponse> getUserPosts(Long userId, Long currentUserId) {
         if (!userRepository.existsById(userId)) {
             throw new ResourceNotFoundException("Kullanıcı bulunamadı: " + userId);
         }
 
-        return toResponses(postRepository.findByUserIdOrderByCreatedAtDesc(userId));
+        return toResponses(postRepository.findByUserIdOrderByCreatedAtDesc(userId), currentUserId);
     }
 
     // ✅ KULLANICININ ETKİNLİKLERİ

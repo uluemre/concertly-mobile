@@ -7,6 +7,7 @@ import com.concertly.backend.dto.response.EventResponse;
 import com.concertly.backend.dto.response.PassportResponse;
 import com.concertly.backend.dto.response.PostResponse;
 import com.concertly.backend.dto.response.UserResponse;
+import com.concertly.backend.security.JwtUtil;
 import com.concertly.backend.service.ArtistService;
 import com.concertly.backend.service.AuthService;
 import com.concertly.backend.service.UserService;
@@ -51,7 +52,7 @@ public class UserController {
     // ✅ KULLANICININ POSTLARİNI GETİR
     @GetMapping("/{id}/posts")
     public List<PostResponse> getUserPosts(@PathVariable Long id) {
-        return userService.getUserPosts(id);
+        return userService.getUserPosts(id, JwtUtil.getCurrentUserId());
     }
 
     // ✅ KULLANICININ GİTTİĞİ ETKİNLİKLER

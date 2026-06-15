@@ -12,6 +12,7 @@ public class PostResponse {
 
     private long likeCount;
     private long commentCount;
+    private boolean likedByMe;
 
     private Long userId;
     private String username;
@@ -55,12 +56,17 @@ public class PostResponse {
         this.pollOptions = pollOptions;
     }
 
+    public void setLikedByMe(boolean likedByMe) {
+        this.likedByMe = likedByMe;
+    }
+
     // getters
     public Long getId() { return id; }
     public String getContent() { return content; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public long getLikeCount() { return likeCount; }
     public long getCommentCount() { return commentCount; }
+    public boolean isLikedByMe() { return likedByMe; }
     public Long getUserId() { return userId; }
     public String getUsername() { return username; }
     public String getUserProfileImageUrl() { return userProfileImageUrl; }

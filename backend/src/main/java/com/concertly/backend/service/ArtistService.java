@@ -17,6 +17,7 @@ import com.concertly.backend.model.Post;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -77,7 +78,7 @@ public class ArtistService {
     }
 
     // ✅ SANATÇININ ETKİNLİKLERİNE AIT POSTLAR
-    public List<PostResponse> getArtistPosts(Long artistId) {
+    public List<PostResponse> getArtistPosts(Long artistId, Long currentUserId) {
         if (!artistRepository.existsById(artistId)) {
             throw new ResourceNotFoundException("Sanatçı bulunamadı: " + artistId);
         }
@@ -89,11 +90,18 @@ public class ArtistService {
                 .collect(Collectors.toMap(r -> (Long) r[0], r -> (Long) r[1]));
         Map<Long, Long> commentCounts = commentRepository.countByPostIdIn(ids).stream()
                 .collect(Collectors.toMap(r -> (Long) r[0], r -> (Long) r[1]));
+        Set<Long> likedPostIds = currentUserId == null
+                ? Set.of()
+                : Set.copyOf(likeRepository.findLikedPostIds(currentUserId, ids));
 
         return posts.stream()
-                .map(post -> PostResponse.from(post,
-                        likeCounts.getOrDefault(post.getId(), 0L),
-                        commentCounts.getOrDefault(post.getId(), 0L)))
+                .map(post -> {
+                    PostResponse dto = PostResponse.from(post,
+                            likeCounts.getOrDefault(post.getId(), 0L),
+                            commentCounts.getOrDefault(post.getId(), 0L));
+                    dto.setLikedByMe(likedPostIds.contains(post.getId()));
+                    return dto;
+                })
                 .toList();
     }
 

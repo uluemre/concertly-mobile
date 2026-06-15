@@ -70,6 +70,11 @@ public class PostService {
         Map<Long, Long> likeCounts = toCountMap(likeRepository.countByPostIdIn(postIds));
         Map<Long, Long> commentCounts = toCountMap(commentRepository.countByPostIdIn(postIds));
 
+        // currentUserId'nin beğendiği post id'leri (kalbin dolu mu görünmesi için)
+        Set<Long> likedPostIds = currentUserId == null
+            ? Set.of()
+            : Set.copyOf(likeRepository.findLikedPostIds(currentUserId, postIds));
+
         List<Long> optionIds = posts.stream()
             .filter(p -> "POLL".equals(p.getPostType()) && p.getPollOptions() != null)
             .flatMap(p -> p.getPollOptions().stream())
@@ -90,6 +95,7 @@ public class PostService {
             long likes = likeCounts.getOrDefault(post.getId(), 0L);
             long comments = commentCounts.getOrDefault(post.getId(), 0L);
             PostResponse response = PostResponse.from(post, likes, comments);
+            response.setLikedByMe(likedPostIds.contains(post.getId()));
 
             if ("POLL".equals(post.getPostType()) && post.getPollOptions() != null) {
                 Long votedId = myVotes.get(post.getId());

@@ -30,7 +30,7 @@ export default function PostDetailScreen({ route, navigation }) {
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
-  const [liked, setLiked] = useState(false);
+  const [liked, setLiked] = useState(!!initialPost.likedByMe);
   const [likeCount, setLikeCount] = useState(initialPost.likeCount || 0);
   const [likeLoading, setLikeLoading] = useState(false);
 

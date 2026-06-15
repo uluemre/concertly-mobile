@@ -54,7 +54,7 @@ export default React.memo(function PostCard({
     });
   };
 
-  const [liked, setLiked] = useState(false);
+  const [liked, setLiked] = useState(!!item.likedByMe);
   const [likeCount, setLikeCount] = useState(item.likeCount || 0);
   const [likeLoading, setLikeLoading] = useState(false);
   const [showComments, setShowComments] = useState(false);
