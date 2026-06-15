@@ -31,6 +31,6 @@ build/
 
 ### VS Code ###
 .vscode/
-# Secrets
-src/main/resources/application.properties
+# Secrets — yerel profil dosyaları (gerçek anahtarlar burada; ASLA commit edilmez)
+# application.properties artık commit EDİLİR: yalnızca env placeholder + güvenli default içerir, gerçek secret YOK.
 src/main/resources/application-*.properties
