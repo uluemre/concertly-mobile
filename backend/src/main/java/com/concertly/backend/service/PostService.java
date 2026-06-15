@@ -14,8 +14,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -55,35 +56,64 @@ public class PostService {
         this.moderationService    = moderationService;
     }
 
-    private PostResponse toResponse(Post post) {
-        return toResponse(post, null);
+    private PostResponse toResponse(Post post, Long currentUserId) {
+        return toResponses(List.of(post), currentUserId).get(0);
     }
 
-    private PostResponse toResponse(Post post, Long currentUserId) {
-        long likes = likeRepository.countByPostId(post.getId());
-        long comments = commentRepository.countByPostId(post.getId());
-        PostResponse response = PostResponse.from(post, likes, comments);
+    // Bir post listesini tek seferde DTO'ya çevirir; like/comment/oy sayımlarını
+    // toplu sorgularla çeker (feed'deki N+1 problemini önler).
+    private List<PostResponse> toResponses(List<Post> posts, Long currentUserId) {
+        if (posts.isEmpty()) return List.of();
 
-        if ("POLL".equals(post.getPostType()) && post.getPollOptions() != null) {
-            Long myVotedOptionId = null;
-            if (currentUserId != null) {
-                myVotedOptionId = pollVoteRepository.findByUserIdAndPostId(currentUserId, post.getId())
-                    .map(v -> v.getPollOption().getId())
-                    .orElse(null);
+        List<Long> postIds = posts.stream().map(Post::getId).toList();
+
+        Map<Long, Long> likeCounts = toCountMap(likeRepository.countByPostIdIn(postIds));
+        Map<Long, Long> commentCounts = toCountMap(commentRepository.countByPostIdIn(postIds));
+
+        List<Long> optionIds = posts.stream()
+            .filter(p -> "POLL".equals(p.getPostType()) && p.getPollOptions() != null)
+            .flatMap(p -> p.getPollOptions().stream())
+            .map(PollOption::getId)
+            .toList();
+
+        Map<Long, Long> optionVoteCounts = optionIds.isEmpty()
+            ? Map.of()
+            : toCountMap(pollVoteRepository.countByPollOptionIdIn(optionIds));
+
+        // currentUserId'nin oy verdiği postId -> optionId
+        Map<Long, Long> myVotes = (currentUserId == null || optionIds.isEmpty())
+            ? Map.of()
+            : pollVoteRepository.findUserVotes(currentUserId, postIds).stream()
+                .collect(Collectors.toMap(r -> (Long) r[0], r -> (Long) r[1], (a, b) -> a));
+
+        return posts.stream().map(post -> {
+            long likes = likeCounts.getOrDefault(post.getId(), 0L);
+            long comments = commentCounts.getOrDefault(post.getId(), 0L);
+            PostResponse response = PostResponse.from(post, likes, comments);
+
+            if ("POLL".equals(post.getPostType()) && post.getPollOptions() != null) {
+                Long votedId = myVotes.get(post.getId());
+                List<PollOptionDto> options = post.getPollOptions().stream()
+                    .map(o -> PollOptionDto.of(
+                        o.getId(),
+                        o.getOptionText(),
+                        optionVoteCounts.getOrDefault(o.getId(), 0L),
+                        o.getId().equals(votedId)
+                    ))
+                    .collect(Collectors.toList());
+                response.setPollOptions(options);
             }
-            final Long votedId = myVotedOptionId;
-            List<PollOptionDto> options = post.getPollOptions().stream()
-                .map(o -> PollOptionDto.of(
-                    o.getId(),
-                    o.getOptionText(),
-                    pollVoteRepository.countByPollOptionId(o.getId()),
-                    o.getId().equals(votedId)
-                ))
-                .collect(Collectors.toList());
-            response.setPollOptions(options);
-        }
 
-        return response;
+            return response;
+        }).toList();
+    }
+
+    private static Map<Long, Long> toCountMap(List<Object[]> rows) {
+        Map<Long, Long> map = new HashMap<>();
+        for (Object[] row : rows) {
+            map.put((Long) row[0], (Long) row[1]);
+        }
+        return map;
     }
 
     // ✅ POST OLUŞTUR
@@ -127,11 +157,11 @@ public class PostService {
     // ✅ TRENDING FEED (sayfalı)
     public List<PostResponse> getTrendingFeed(Long currentUserId, int page, int size) {
         Set<Long> hidden = moderationService.getHiddenUserIds(currentUserId);
-        return postRepository.findByOrderByCreatedAtDesc(PageRequest.of(page, size))
+        List<Post> posts = postRepository.findByOrderByCreatedAtDesc(PageRequest.of(page, size))
                 .stream()
                 .filter(p -> p.getUser() == null || !hidden.contains(p.getUser().getId()))
-                .map(p -> toResponse(p, currentUserId))
                 .toList();
+        return toResponses(posts, currentUserId);
     }
 
     // ✅ FOLLOWING FEED (sayfalı)
@@ -141,11 +171,11 @@ public class PostService {
         }
 
         Set<Long> hidden = moderationService.getHiddenUserIds(userId);
-        return postRepository.getFollowingFeed(userId, PageRequest.of(page, size))
+        List<Post> posts = postRepository.getFollowingFeed(userId, PageRequest.of(page, size))
                 .stream()
                 .filter(p -> p.getUser() == null || !hidden.contains(p.getUser().getId()))
-                .map(p -> toResponse(p, userId))
                 .toList();
+        return toResponses(posts, userId);
     }
 
     // ✅ POLL OY VER

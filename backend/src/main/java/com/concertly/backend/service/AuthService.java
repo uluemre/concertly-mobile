@@ -7,7 +7,6 @@ import com.concertly.backend.dto.response.AuthResponse;
 import com.concertly.backend.dto.response.UserResponse;
 import com.concertly.backend.exception.AlreadyExistsException;
 import com.concertly.backend.exception.ResourceNotFoundException;
-import com.concertly.backend.model.Artist;
 import com.concertly.backend.model.ArtistFollow;
 import com.concertly.backend.model.RefreshToken;
 import com.concertly.backend.model.User;
@@ -22,7 +21,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.concertly.backend.exception.ResourceNotFoundException;
 import java.time.LocalDateTime;
 import java.util.Random;
 

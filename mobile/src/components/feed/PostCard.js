@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useMemo } from 'react';
+import React, { useRef, useState, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Animated,
   Modal, TextInput, KeyboardAvoidingView, Platform,
@@ -29,8 +29,6 @@ export default React.memo(function PostCard({
 
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const heartAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(40)).current;
-  const opacityAnim = useRef(new Animated.Value(0)).current;
 
   // Floating hearts
   const floatAnims = useRef([0, 1, 2].map(() => ({
@@ -65,17 +63,6 @@ export default React.memo(function PostCard({
   const [editSaving, setEditSaving] = useState(false);
 
   const isOwner = item.userId === currentUserId;
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.spring(slideAnim, {
-        toValue: 0, delay: index * 60, tension: 60, friction: 9, useNativeDriver: true,
-      }),
-      Animated.timing(opacityAnim, {
-        toValue: 1, delay: index * 60, duration: 280, useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
 
   const handleLike = async () => {
     if (likeLoading) return;
@@ -214,7 +201,7 @@ export default React.memo(function PostCard({
   const heartScale = heartAnim.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0.5, 1.4, 0.8] });
 
   return (
-    <Animated.View style={[styles.card, { opacity: opacityAnim, transform: [{ translateY: slideAnim }] }]}>
+    <View style={styles.card}>
       <Animated.Text style={[styles.floatingHeart, { opacity: heartOpacity, transform: [{ scale: heartScale }] }]}>
         ❤️
       </Animated.Text>
@@ -330,7 +317,7 @@ export default React.memo(function PostCard({
         currentUserId={currentUserId}
         onClose={() => setShowComments(false)}
       />
-    </Animated.View>
+    </View>
   );
 });
 

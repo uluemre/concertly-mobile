@@ -50,7 +50,6 @@ public class SpotifyService {
         return cachedToken;
     }
 
-    @SuppressWarnings("unchecked")
     public SpotifyArtistData searchArtist(String artistName) {
         if (artistName == null || artistName.isBlank()) return null;
 

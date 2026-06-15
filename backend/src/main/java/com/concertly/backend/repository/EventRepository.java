@@ -1,6 +1,7 @@
 package com.concertly.backend.repository;
 
 import com.concertly.backend.model.Event;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -10,13 +11,26 @@ import java.util.Optional;
 
 public interface EventRepository extends JpaRepository<Event, Long> {
 
+    // EventResponse.from artist/venue/createdBy alanlarına erişir; liste sorgularında
+    // bu to-one ilişkileri join-fetch ederek event başına ekstra select'i (N+1) önlüyoruz.
+
     Optional<Event> findByExternalId(String externalId);
 
+    @EntityGraph(attributePaths = {"artist", "venue", "createdBy"})
     List<Event> findByArtistIdOrderByEventDateDesc(Long artistId);
+
+    @EntityGraph(attributePaths = {"artist", "venue", "createdBy"})
     List<Event> findByVenueIdOrderByEventDateAsc(Long venueId);
+
+    @EntityGraph(attributePaths = {"artist", "venue", "createdBy"})
     List<Event> findByEventDateBetween(java.time.LocalDateTime start, java.time.LocalDateTime end);
 
+    @EntityGraph(attributePaths = {"artist", "venue", "createdBy"})
+    @Override
+    List<Event> findAll();
+
     // 🔥 SEARCH QUERY EKLENDİ
+    @EntityGraph(attributePaths = {"artist", "venue", "createdBy"})
     @Query("""
                 SELECT e FROM Event e
                 WHERE LOWER(e.name) LIKE LOWER(CONCAT('%', :q, '%'))
@@ -26,11 +40,14 @@ public interface EventRepository extends JpaRepository<Event, Long> {
             """)
     List<Event> search(@Param("q") String q);
 
+    @EntityGraph(attributePaths = {"artist", "venue", "createdBy"})
     @Query("SELECT e FROM Event e WHERE LOWER(REPLACE(e.venue.city, 'İ', 'I')) = LOWER(REPLACE(:city, 'İ', 'I'))")
     List<Event> findByCityNormalized(@Param("city") String city);
 
+    @EntityGraph(attributePaths = {"artist", "venue", "createdBy"})
     List<Event> findByIsApproved(Boolean isApproved);
 
+    @EntityGraph(attributePaths = {"artist", "venue", "createdBy"})
     @Query("""
                 SELECT e FROM Event e
                 WHERE LOWER(REPLACE(e.venue.city, 'İ', 'I')) = LOWER(REPLACE(:city, 'İ', 'I'))

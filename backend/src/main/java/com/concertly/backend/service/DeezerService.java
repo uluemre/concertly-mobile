@@ -14,7 +14,6 @@ public class DeezerService {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-    @SuppressWarnings("unchecked")
     public DeezerArtistData searchArtist(String artistName) {
         if (artistName == null || artistName.isBlank()) return null;
 

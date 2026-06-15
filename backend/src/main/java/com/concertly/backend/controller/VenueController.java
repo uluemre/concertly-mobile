@@ -16,16 +16,14 @@ import java.util.List;
 public class VenueController {
 
     private final VenueService venueService;
-    private final JwtUtil jwtUtil;
 
-    public VenueController(VenueService venueService, JwtUtil jwtUtil) {
+    public VenueController(VenueService venueService) {
         this.venueService = venueService;
-        this.jwtUtil = jwtUtil;
     }
 
     @GetMapping("/{id}")
     public VenueDetailResponse getVenue(@PathVariable Long id) {
-        Long currentUserId = jwtUtil.getCurrentUserId();
+        Long currentUserId = JwtUtil.getCurrentUserId();
         return venueService.getVenue(id, currentUserId);
     }
 
@@ -44,14 +42,14 @@ public class VenueController {
     public VenueReviewResponse addReview(
             @PathVariable Long id,
             @RequestBody CreateVenueReviewRequest request) {
-        Long userId = jwtUtil.getCurrentUserId();
+        Long userId = JwtUtil.getCurrentUserId();
         return venueService.addReview(id, userId, request);
     }
 
     @DeleteMapping("/{id}/reviews/{reviewId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteReview(@PathVariable Long id, @PathVariable Long reviewId) {
-        Long userId = jwtUtil.getCurrentUserId();
+        Long userId = JwtUtil.getCurrentUserId();
         venueService.deleteReview(reviewId, userId);
     }
 }

@@ -228,6 +228,10 @@ export default function NotificationsScreen({ navigation }) {
         renderItem={renderItem}
         contentContainerStyle={grouped.length === 0 && styles.emptyContainer}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
+        initialNumToRender={12}
+        maxToRenderPerBatch={12}
+        windowSize={11}
+        removeClippedSubviews
         ListEmptyComponent={
           <View style={styles.empty}>
             <Text style={styles.emptyEmoji}>🔔</Text>

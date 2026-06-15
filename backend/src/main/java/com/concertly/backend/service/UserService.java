@@ -62,11 +62,19 @@ public class UserService {
         this.badgeService         = badgeService;
     }
 
-    // 🔥 CORE METHOD (eksik olan buydu)
-    private PostResponse toResponse(Post post) {
-        long likes = likeRepository.countByPostId(post.getId());
-        long comments = commentRepository.countByPostId(post.getId());
-        return PostResponse.from(post, likes, comments);
+    // 🔥 CORE METHOD — like/comment sayımlarını toplu çeker (N+1 yok)
+    private List<PostResponse> toResponses(List<Post> posts) {
+        if (posts.isEmpty()) return List.of();
+        List<Long> ids = posts.stream().map(Post::getId).toList();
+        Map<Long, Long> likeCounts = likeRepository.countByPostIdIn(ids).stream()
+                .collect(Collectors.toMap(r -> (Long) r[0], r -> (Long) r[1]));
+        Map<Long, Long> commentCounts = commentRepository.countByPostIdIn(ids).stream()
+                .collect(Collectors.toMap(r -> (Long) r[0], r -> (Long) r[1]));
+        return posts.stream()
+                .map(p -> PostResponse.from(p,
+                        likeCounts.getOrDefault(p.getId(), 0L),
+                        commentCounts.getOrDefault(p.getId(), 0L)))
+                .toList();
     }
 
     public List<UserResponse> getUsers() {
@@ -120,10 +128,7 @@ public class UserService {
             throw new ResourceNotFoundException("Kullanıcı bulunamadı: " + userId);
         }
 
-        return postRepository.findByUserIdOrderByCreatedAtDesc(userId)
-                .stream()
-                .map(this::toResponse)
-                .toList();
+        return toResponses(postRepository.findByUserIdOrderByCreatedAtDesc(userId));
     }
 
     // ✅ KULLANICININ ETKİNLİKLERİ

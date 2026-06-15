@@ -27,6 +27,7 @@ class MessageServiceTest {
     @Mock private MessageRepository messageRepository;
     @Mock private UserRepository userRepository;
     @Mock private NotificationService notificationService;
+    @Mock private ModerationService moderationService;
 
     private MessageService messageService;
 
@@ -35,7 +36,7 @@ class MessageServiceTest {
 
     @BeforeEach
     void setUp() {
-        messageService = new MessageService(messageRepository, userRepository, notificationService);
+        messageService = new MessageService(messageRepository, userRepository, notificationService, moderationService);
         me = userWithId(1L, "emre");
         partner = userWithId(2L, "ayse");
     }

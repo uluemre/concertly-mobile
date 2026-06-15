@@ -35,11 +35,35 @@ public class CommunityService {
     }
 
     private CommunityResponse toResponse(Community c, Long currentUserId) {
-        long memberCount = communityMemberRepository.countByCommunityId(c.getId());
-        long postCount = communityPostRepository.findByCommunityIdOrderByCreatedAtDesc(c.getId()).size();
-        boolean joined = currentUserId != null &&
-                communityMemberRepository.existsByUserIdAndCommunityId(currentUserId, c.getId());
-        return CommunityResponse.from(c, memberCount, postCount, joined);
+        return toResponses(List.of(c), currentUserId).get(0);
+    }
+
+    // Topluluk listesini tek seferde DTO'ya çevirir; üye/post sayımları ile kullanıcının
+    // üyelik durumunu toplu sorgularla çeker (liste endpoint'lerindeki N+1'i önler).
+    private List<CommunityResponse> toResponses(List<Community> communities, Long currentUserId) {
+        if (communities.isEmpty()) return List.of();
+
+        List<Long> ids = communities.stream().map(Community::getId).toList();
+        Map<Long, Long> memberCounts = toCountMap(communityMemberRepository.countByCommunityIdIn(ids));
+        Map<Long, Long> postCounts = toCountMap(communityPostRepository.countByCommunityIdIn(ids));
+        Set<Long> joinedIds = currentUserId == null
+                ? Set.of()
+                : communityMemberRepository.findCommunityIdsByUserId(currentUserId);
+
+        return communities.stream()
+                .map(c -> CommunityResponse.from(c,
+                        memberCounts.getOrDefault(c.getId(), 0L),
+                        postCounts.getOrDefault(c.getId(), 0L),
+                        joinedIds.contains(c.getId())))
+                .toList();
+    }
+
+    private static Map<Long, Long> toCountMap(List<Object[]> rows) {
+        Map<Long, Long> map = new HashMap<>();
+        for (Object[] row : rows) {
+            map.put((Long) row[0], (Long) row[1]);
+        }
+        return map;
     }
 
     public List<CommunityResponse> getAllCommunities(String type, String q, Long currentUserId) {
@@ -60,11 +84,7 @@ public class CommunityService {
                     .toList();
         }
 
-        List<CommunityResponse> result = new ArrayList<>();
-        for (Community c : communities) {
-            result.add(toResponse(c, currentUserId));
-        }
-        return result;
+        return toResponses(communities, currentUserId);
     }
 
     public List<CommunityResponse> getRecommendedCommunities(List<String> userGenres, Long currentUserId) {
@@ -94,11 +114,7 @@ public class CommunityService {
             }
         }
 
-        List<CommunityResponse> result = new ArrayList<>();
-        for (Community c : sorted) {
-            result.add(toResponse(c, currentUserId));
-        }
-        return result;
+        return toResponses(sorted, currentUserId);
     }
 
     private String mapGenreToCommunityType(String genre) {

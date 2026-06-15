@@ -181,6 +181,10 @@ export default function FeedScreen({ navigation }) {
           showsVerticalScrollIndicator={false}
           onEndReached={onEndReached}
           onEndReachedThreshold={0.5}
+          initialNumToRender={8}
+          maxToRenderPerBatch={8}
+          windowSize={11}
+          removeClippedSubviews
           ListFooterComponent={
             loadingMore ? <ActivityIndicator color={colors.primary} style={{ marginVertical: 20 }} /> : null
           }

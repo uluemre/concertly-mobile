@@ -5,7 +5,6 @@ import com.concertly.backend.dto.response.EventResponse;
 import com.concertly.backend.exception.ResourceNotFoundException;
 import com.concertly.backend.model.Artist;
 import com.concertly.backend.model.Event;
-import com.concertly.backend.model.User;
 import com.concertly.backend.model.Venue;
 import com.concertly.backend.repository.ArtistRepository;
 import com.concertly.backend.repository.EventRepository;

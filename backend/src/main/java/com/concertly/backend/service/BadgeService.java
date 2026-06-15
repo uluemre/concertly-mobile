@@ -70,7 +70,7 @@ public class BadgeService {
     public List<BadgeResponse> getAllBadgesWithStatus(Long userId) {
         checkAndAwardBadges(userId);
         int attendance = (int) attendanceRepository.countByUserIdAndStatus(userId, AttendanceStatus.GOING);
-        int postCount  = postRepository.findByUserIdOrderByCreatedAtDesc(userId).size();
+        int postCount  = (int) postRepository.countByUserId(userId);
 
         java.util.Map<String, java.time.LocalDateTime> earnedMap = new java.util.HashMap<>();
         userBadgeRepository.findByUserId(userId)
@@ -106,7 +106,7 @@ public class BadgeService {
         if (attendanceCount >= 25) awardIfNotExists(userId, "efsane_seyirci");
 
         // Paylaşım rozeti
-        long postCount = postRepository.findByUserIdOrderByCreatedAtDesc(userId).size();
+        long postCount = postRepository.countByUserId(userId);
         if (postCount >= 1)  awardIfNotExists(userId, "ilk_paylasim");
         if (postCount >= 5)  awardIfNotExists(userId, "sosyal_kelebek");
         if (postCount >= 20) awardIfNotExists(userId, "icerik_ustasi");

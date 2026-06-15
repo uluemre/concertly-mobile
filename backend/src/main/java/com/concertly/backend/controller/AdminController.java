@@ -268,7 +268,7 @@ public class AdminController {
     }
 
     private UserResponse buildUserResponse(User u) {
-        long postCount = postRepository.findByUserIdOrderByCreatedAtDesc(u.getId()).size();
+        long postCount = postRepository.countByUserId(u.getId());
         boolean isAdmin = u.getRoles() != null && u.getRoles().stream()
             .anyMatch(r -> "ROLE_ADMIN".equals(r.getName()));
         UserResponse resp = new UserResponse(u.getId(), u.getUsername(), u.getEmail(), u.getCity());

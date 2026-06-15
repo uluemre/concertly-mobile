@@ -7,13 +7,17 @@ import com.concertly.backend.exception.AlreadyExistsException;
 import com.concertly.backend.exception.ResourceNotFoundException;
 import com.concertly.backend.model.Artist;
 import com.concertly.backend.model.ArtistFollow;
+import com.concertly.backend.model.Event;
 import com.concertly.backend.model.User;
 import com.concertly.backend.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.concertly.backend.model.Post;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class ArtistService {
@@ -77,13 +81,19 @@ public class ArtistService {
         if (!artistRepository.existsById(artistId)) {
             throw new ResourceNotFoundException("Sanatçı bulunamadı: " + artistId);
         }
-        return postRepository.findByEventArtistIdOrderByCreatedAtDesc(artistId)
-                .stream()
-                .map(post -> {
-                    long likes    = likeRepository.countByPostId(post.getId());
-                    long comments = commentRepository.countByPostId(post.getId());
-                    return PostResponse.from(post, likes, comments);
-                })
+        List<Post> posts = postRepository.findByEventArtistIdOrderByCreatedAtDesc(artistId);
+        if (posts.isEmpty()) return List.of();
+
+        List<Long> ids = posts.stream().map(Post::getId).toList();
+        Map<Long, Long> likeCounts = likeRepository.countByPostIdIn(ids).stream()
+                .collect(Collectors.toMap(r -> (Long) r[0], r -> (Long) r[1]));
+        Map<Long, Long> commentCounts = commentRepository.countByPostIdIn(ids).stream()
+                .collect(Collectors.toMap(r -> (Long) r[0], r -> (Long) r[1]));
+
+        return posts.stream()
+                .map(post -> PostResponse.from(post,
+                        likeCounts.getOrDefault(post.getId(), 0L),
+                        commentCounts.getOrDefault(post.getId(), 0L)))
                 .toList();
     }
 
@@ -197,16 +207,28 @@ public class ArtistService {
         if (!artistRepository.existsById(artistId)) {
             throw new ResourceNotFoundException("Sanatçı bulunamadı: " + artistId);
         }
-        return eventRepository.findByArtistIdOrderByEventDateDesc(artistId)
+        List<Event> pastEvents = eventRepository.findByArtistIdOrderByEventDateDesc(artistId)
                 .stream()
                 .filter(e -> e.getEventDate().isBefore(LocalDateTime.now()))
+                .toList();
+        if (pastEvents.isEmpty()) return List.of();
+
+        // Tüm puan istatistiklerini tek sorguda çek: eventId -> [count, avg]
+        List<Long> eventIds = pastEvents.stream().map(Event::getId).toList();
+        Map<Long, Object[]> stats = eventReviewRepository.findRatingStatsByEventIdIn(eventIds).stream()
+                .collect(Collectors.toMap(r -> (Long) r[0], r -> new Object[]{ r[1], r[2] }));
+
+        return pastEvents.stream()
                 .map(e -> {
                     EventResponse dto = EventResponse.from(e);
-                    int count = eventReviewRepository.countByEventId(e.getId());
-                    if (count > 0) {
-                        Double avg = eventReviewRepository.findAvgRatingByEventId(e.getId());
-                        dto.setAvgRating(avg != null ? avg : 0.0);
-                        dto.setReviewCount(count);
+                    Object[] stat = stats.get(e.getId());
+                    if (stat != null) {
+                        long count = ((Number) stat[0]).longValue();
+                        if (count > 0) {
+                            Double avg = stat[1] != null ? ((Number) stat[1]).doubleValue() : 0.0;
+                            dto.setAvgRating(avg);
+                            dto.setReviewCount((int) count);
+                        }
                     }
                     return dto;
                 })

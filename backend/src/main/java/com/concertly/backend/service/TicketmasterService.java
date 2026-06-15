@@ -55,7 +55,6 @@ public class TicketmasterService {
         }
     }
 
-    @SuppressWarnings("unchecked")
     public int syncTurkeyEvents() {
         String nowIso = LocalDateTime.now()
                 .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'"));
