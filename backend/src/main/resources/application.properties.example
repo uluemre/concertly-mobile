@@ -10,13 +10,14 @@ spring.datasource.url=${DB_URL:jdbc:postgresql://localhost:5432/concertly_mobile
 spring.datasource.username=${DB_USERNAME:postgres}
 spring.datasource.password=${DB_PASSWORD:CHANGE_ME}
 
-spring.jpa.hibernate.ddl-auto=update
-spring.jpa.show-sql=false
+# Prod'da Flyway/Liquibase + DDL_AUTO=validate önerilir (lokal: update)
+spring.jpa.hibernate.ddl-auto=${DDL_AUTO:update}
+spring.jpa.show-sql=${JPA_SHOW_SQL:false}
 spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect
 
 spring.jackson.serialization.write-dates-as-timestamps=false
 spring.jackson.deserialization.fail-on-unknown-properties=false
-server.port=8082
+server.port=${PORT:8082}
 
 # Görsel yükleme
 app.upload.dir=${UPLOAD_DIR:uploads}

@@ -60,9 +60,12 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/posts/feed/trending").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/users/*/profile").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/posts/*/comments").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/events/sync").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/events/enrich").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/events/enrich").permitAll()
+                        // Veri içe-aktarma/zenginleştirme — maliyetli dış API çağrıları + DB yazımı;
+                        // kimliksiz tetiklenmesi suistimal/maliyet riski. Zamanlanmış sync ayrı
+                        // @Scheduled metodundan çalışır, bu kısıtlamadan etkilenmez.
+                        .requestMatchers(HttpMethod.POST, "/api/events/sync").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/events/enrich").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/events/enrich").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/api/events/*/approve").hasRole("ADMIN")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/events/*/attendance").permitAll()
@@ -71,9 +74,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/search").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/communities").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/communities/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/demo/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/artists/enrich").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/artists/enrich").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/demo/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/artists/enrich").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/artists/enrich").hasRole("ADMIN")
                         // Yüklenen görseller — <Image> etiketleri auth header gönderemez
                         .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
                         .anyRequest().authenticated()
