@@ -5,13 +5,19 @@
 # --- 1) Derleme aşaması: Maven ile JAR üret (testler atlanır) ---
 FROM maven:3.9-eclipse-temurin-17 AS build
 WORKDIR /app
+# Maven heap'ini sınırla — küçük build ortamında sınırsız bırakılırsa
+# cgroup limitini aşıp "out of memory" ile öldürülebiliyor.
+ENV MAVEN_OPTS="-Xmx512m"
 COPY pom.xml .
 COPY src ./src
-RUN mvn -q clean package -DskipTests
+RUN mvn -q -B clean package -DskipTests
 
 # --- 2) Çalıştırma aşaması: sadece üretilen JAR'ı çalıştır ---
 FROM eclipse-temurin:17-jre
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 # Railway PORT'u kendisi atar; uygulama ${PORT}'u dinler (application.properties)
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Bellek: küçük container'da JVM'in heap'i konteyner limitinin %75'iyle sınırlı
+# tutulur (aksi halde native+heap toplamı limiti aşıp OOM-kill yiyor); SerialGC
+# az çekirdek/az RAM ortamında daha az bellek ve thread harcar.
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75.0", "-XX:+UseSerialGC", "-jar", "app.jar"]

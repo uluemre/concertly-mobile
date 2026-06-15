@@ -8,6 +8,9 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -65,7 +68,45 @@ public class TicketmasterService {
                        "startDateTime", nowIso));
 
         System.out.println("✅ Ticketmaster sync tamamlandı! Toplam: " + total + " yeni etkinlik");
+
+        // Daha önce farklı externalId ile eklenmiş mükerrerleri de temizle
+        removeDuplicateEvents();
         return total;
+    }
+
+    /**
+     * Aynı mekân + aynı tarih/saatteki mükerrer etkinlikleri temizler. Her gruptan
+     * görseli olan + en eski kaydı tutar, fazlalıkları siler. Katılım/post/review gibi
+     * kullanıcı verisi olan kayıt FK hatası verir → try/catch ile korunur (silinmez).
+     */
+    public int removeDuplicateEvents() {
+        Map<String, List<Event>> groups = new LinkedHashMap<>();
+        for (Event e : eventRepository.findAll()) {
+            if (e.getVenue() == null || e.getVenue().getId() == null
+                    || e.getVenue().getExternalId() == null || e.getEventDate() == null) continue;
+            String key = e.getVenue().getId() + "|" + e.getEventDate();
+            groups.computeIfAbsent(key, k -> new ArrayList<>()).add(e);
+        }
+
+        int removed = 0;
+        for (List<Event> group : groups.values()) {
+            if (group.size() < 2) continue;
+            // Korunacak: görseli olan öne, sonra en küçük id (en eski)
+            group.sort(Comparator
+                    .comparingInt((Event e) -> isBlank(e.getImageUrl()) ? 1 : 0)
+                    .thenComparing(Event::getId));
+            for (int i = 1; i < group.size(); i++) {
+                try {
+                    eventRepository.delete(group.get(i));
+                    removed++;
+                } catch (Exception ex) {
+                    // FK referansı (katılım/post/review) var → koru
+                }
+            }
+        }
+
+        if (removed > 0) System.out.println("🧹 " + removed + " mükerrer etkinlik temizlendi.");
+        return removed;
     }
 
     @SuppressWarnings("unchecked")
@@ -150,6 +191,13 @@ public class TicketmasterService {
 
                 // Venue
                 Venue venue = extractOrCreateVenue(emb);
+
+                // İçerik bazlı mükerrer koruması: TM aynı konseri farklı externalId ile
+                // listeleyebiliyor. Aynı (gerçek) mekân + aynı tarih/saat = aynı etkinlik.
+                if (venue != null && venue.getId() != null && venue.getExternalId() != null
+                        && eventRepository.existsByVenueIdAndEventDate(venue.getId(), eventDate)) {
+                    continue;
+                }
 
                 // Description
                 String description = (String) e.get("info");

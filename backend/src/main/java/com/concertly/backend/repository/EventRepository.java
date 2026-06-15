@@ -16,6 +16,9 @@ public interface EventRepository extends JpaRepository<Event, Long> {
 
     Optional<Event> findByExternalId(String externalId);
 
+    // İçerik bazlı mükerrer kontrolü: aynı mekân + aynı tarih/saat = aynı etkinlik
+    boolean existsByVenueIdAndEventDate(Long venueId, java.time.LocalDateTime eventDate);
+
     @EntityGraph(attributePaths = {"artist", "venue", "createdBy"})
     List<Event> findByArtistIdOrderByEventDateDesc(Long artistId);
 
