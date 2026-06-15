@@ -7,6 +7,7 @@ import { useTheme } from '../theme';
 import GenreChip from '../components/GenreChip';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { TURKISH_CITIES } from '../constants/cities';
 
 const GENRES = [
   { name: 'Rock', emoji: '🎸', accent: '#E94560' },
@@ -25,7 +26,7 @@ const GENRES = [
   { name: 'Classical', emoji: '🎻', accent: '#7C3AED' },
 ];
 
-const CITIES = ['Istanbul', 'Ankara', 'Izmir', 'Bursa', 'Antalya', 'Adana', 'Konya', 'Gaziantep', 'Mersin', 'Eskisehir'];
+const CITIES = TURKISH_CITIES;
 
 export default function GenreSelectionScreen({ navigation, route }) {
   const editMode = route.params?.editMode ?? false;

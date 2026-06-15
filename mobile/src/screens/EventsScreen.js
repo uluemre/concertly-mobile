@@ -12,6 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import AnimatedListItem from '../components/AnimatedListItem';
 import { EventsSkeletonPage } from '../components/SkeletonLoader';
+import { TURKISH_CITIES } from '../constants/cities';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2;
@@ -67,7 +68,7 @@ function CardImage({ item, index, cardImageStyle }) {
   );
 }
 
-const CITIES = ['Tümü', 'İstanbul', 'Ankara', 'İzmir', 'Bursa', 'Antalya', 'Adana', 'Konya', 'Gaziantep', 'Mersin', 'Eskişehir'];
+const CITIES = ['Tümü', ...TURKISH_CITIES];
 const GENRES = ['Tümü', 'Rock', 'Pop', 'Rap', 'Elektronik', 'Jazz', 'Klasik', 'Indie', 'R&B', 'Folk'];
 
 export default function EventsScreen({ navigation, route }) {
@@ -463,13 +464,16 @@ function createStyles(colors) {
 
     list: { padding: 14, paddingTop: 16, paddingBottom: 32 },
     row: { justifyContent: 'space-between', marginBottom: 14 },
-    cardWrapper: { width: CARD_WIDTH, borderRadius: 16, overflow: 'hidden', borderWidth: 1 },
+    // Sabit yükseklik: 2 sütunlu grid'de değişken içerik (1-2 satır ad, opsiyonel
+    // sanatçı/şehir/tür) kartları farklı boyda bırakıp satırları kaydırıyordu.
+    cardWrapper: { width: CARD_WIDTH, height: 232, borderRadius: 16, overflow: 'hidden', borderWidth: 1 },
     cardImage: { width: '100%', height: 120, justifyContent: 'center', alignItems: 'center' },
     cardEmoji: { fontSize: 40 },
     datePill: { position: 'absolute', top: 100, right: 8, backgroundColor: 'rgba(0,0,0,0.55)', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8 },
     datePillText: { color: '#fff', fontSize: 10, fontWeight: '700' },
-    cardBody: { padding: 10 },
-    cardName: { fontSize: 13, fontWeight: 'bold', marginBottom: 3 },
+    cardBody: { flex: 1, padding: 10 },
+    // 2 satırlık sabit alan — 1 satırlık adlar da aynı yüksekliği kaplasın
+    cardName: { fontSize: 13, lineHeight: 17, minHeight: 34, fontWeight: 'bold', marginBottom: 3 },
     cardArtist: { fontSize: 11, marginBottom: 2 },
     cardCity: { fontSize: 11, marginBottom: 4 },
     genrePill: { alignSelf: 'flex-start', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 },

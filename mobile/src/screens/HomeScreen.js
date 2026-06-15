@@ -14,12 +14,13 @@ import { HomeSkeletonPage } from '../components/SkeletonLoader';
 import SearchModal from './SearchModal';
 import FeaturedCard from '../components/home/FeaturedCard';
 import HomePostCard from '../components/home/HomePostCard';
+import { TURKISH_CITIES } from '../constants/cities';
 
 const { width } = Dimensions.get('window');
 const FEATURED_CARD_WIDTH = width * 0.78;
 const FEATURED_CARD_HEIGHT = 240;
 
-const CITIES = ['Tümü', 'Istanbul', 'Ankara', 'Izmir', 'Bursa', 'Antalya', 'Adana', 'Konya', 'Gaziantep', 'Mersin', 'Eskisehir'];
+const CITIES = ['Tümü', ...TURKISH_CITIES];
 
 export default function HomeScreen({ navigation }) {
   const { colors } = useTheme();

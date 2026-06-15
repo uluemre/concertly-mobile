@@ -61,6 +61,7 @@ export default function AdminScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [syncing, setSyncing] = useState(false);
+  const [enriching, setEnriching] = useState(false);
 
   const handleSync = async () => {
     if (syncing) return;
@@ -74,6 +75,25 @@ export default function AdminScreen({ navigation }) {
       Alert.alert(t('error'), t('admin_sync_error'));
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const handleEnrich = async () => {
+    if (enriching) return;
+    setEnriching(true);
+    try {
+      // Görsel/tür zenginleştirme tüm sanatçıları dolaşır — uzun sürebilir
+      const res = await API.post('/events/enrich', null, { timeout: 600000 });
+      const d = res.data || {};
+      Alert.alert(
+        t('success'),
+        t('admin_enrich_done', { images: d.enrichedImages ?? 0, genres: d.enrichedGenres ?? 0 }),
+      );
+      fetchStats();
+    } catch {
+      Alert.alert(t('error'), t('admin_enrich_error'));
+    } finally {
+      setEnriching(false);
     }
   };
 
@@ -205,6 +225,25 @@ export default function AdminScreen({ navigation }) {
             </TouchableOpacity>
           </View>
 
+          {/* GÖRSEL/TÜR ZENGİNLEŞTİRME */}
+          <TouchableOpacity
+            style={styles.enrichBtn}
+            onPress={handleEnrich}
+            disabled={enriching}
+            activeOpacity={0.85}
+          >
+            <LinearGradient colors={['#7C3AED', '#EC4899']} style={styles.quickBtnGrad}>
+              {enriching ? (
+                <ActivityIndicator size="small" color="#fff" style={{ marginBottom: 6 }} />
+              ) : (
+                <Text style={styles.quickBtnIcon}>🎨</Text>
+              )}
+              <Text style={styles.quickBtnText}>
+                {enriching ? t('admin_enriching') : t('admin_enrich_btn')}
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
           {/* NAV CARDS */}
           <Text style={styles.sectionTitle}>{t('admin_management')}</Text>
           {NAV_ITEMS.map(item => (
@@ -319,6 +358,7 @@ function createStyles(colors) {
     // QUICK ACTIONS
     quickActions: { flexDirection: 'row', paddingHorizontal: 16, gap: 12 },
     quickBtn: { flex: 1, borderRadius: 16, overflow: 'hidden' },
+    enrichBtn: { marginHorizontal: 16, marginTop: 12, borderRadius: 16, overflow: 'hidden' },
     quickBtnGrad: {
       paddingVertical: 16, paddingHorizontal: 14,
       alignItems: 'center', position: 'relative',
