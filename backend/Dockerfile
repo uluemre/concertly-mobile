@@ -17,7 +17,8 @@ FROM eclipse-temurin:17-jre
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 # Railway PORT'u kendisi atar; uygulama ${PORT}'u dinler (application.properties)
-# Bellek: küçük container'da JVM'in heap'i konteyner limitinin %75'iyle sınırlı
-# tutulur (aksi halde native+heap toplamı limiti aşıp OOM-kill yiyor); SerialGC
-# az çekirdek/az RAM ortamında daha az bellek ve thread harcar.
-ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75.0", "-XX:+UseSerialGC", "-jar", "app.jar"]
+# Bellek: heap container limitinin %50'siyle sınırlı — kalan yarı metaspace,
+# thread stack'leri ve Tomcat gibi non-heap'e bırakılır (heap'i %75 yapınca
+# non-heap'e yer kalmayıp başlangıçta OOM-kill yedi). SerialGC az RAM/az
+# çekirdek ortamında daha az bellek ve thread harcar.
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=50.0", "-XX:+UseSerialGC", "-jar", "app.jar"]
