@@ -6,7 +6,7 @@ const PROD_API = 'https://concertly-mobile-production.up.railway.app/api';
 
 // Geliştirme sırasında da canlı sunucuyu kullanmak istersen bunu true yap
 // (örn. telefonda Expo Go ile yayın sunucusunu test etmek için)
-const USE_PROD_IN_DEV = false;
+const USE_PROD_IN_DEV = true;
 
 function getBaseUrl() {
   // Yayınlanan (production) uygulama → her zaman internetteki sunucu

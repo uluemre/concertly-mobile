@@ -36,3 +36,6 @@ spotify.redirect.uri=${SPOTIFY_REDIRECT_URI:http://localhost:8082/api/spotify/ca
 
 # Ticketmaster — https://developer.ticketmaster.com
 ticketmaster.api.key=${TICKETMASTER_API_KEY:CHANGE_ME}
+
+# Admin bootstrap — bu e-postaya sahip kullanıcı açılışta ROLE_ADMIN yapılır
+admin.bootstrap.email=${ADMIN_EMAIL:}
