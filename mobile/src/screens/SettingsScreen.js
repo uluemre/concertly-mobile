@@ -14,7 +14,7 @@ import { TURKISH_CITIES } from '../constants/cities';
 
 export default function SettingsScreen({ navigation, route }) {
   const { colors, themeMode, setThemeMode } = useTheme();
-  const { session, updateSession } = useAuth();
+  const { session, updateSession, logout } = useAuth();
   const { lang, setLang, t } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -23,6 +23,7 @@ export default function SettingsScreen({ navigation, route }) {
   const [cityModalVisible, setCityModalVisible] = useState(false);
   const [spotifyStatus, setSpotifyStatus] = useState(null);
   const [spotifyLoading, setSpotifyLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const [formData, setFormData] = useState({
     username: '',
@@ -111,6 +112,46 @@ export default function SettingsScreen({ navigation, route }) {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleDeleteAccount = () => {
+    if (deleting) return;
+    // 1. onay
+    Alert.alert(
+      t('settings_delete_account_title'),
+      t('settings_delete_account_confirm'),
+      [
+        { text: t('cancel'), style: 'cancel' },
+        {
+          text: t('settings_delete_account_btn'),
+          style: 'destructive',
+          onPress: () => {
+            // 2. onay (geri alınamaz)
+            Alert.alert(
+              t('settings_delete_account_title'),
+              t('settings_delete_account_confirm2'),
+              [
+                { text: t('cancel'), style: 'cancel' },
+                {
+                  text: t('settings_delete_account_final_btn'),
+                  style: 'destructive',
+                  onPress: async () => {
+                    setDeleting(true);
+                    try {
+                      await API.delete('/users/me');
+                      await logout(); // session sıfırlanır → AppNavigator girişe yönlendirir
+                    } catch (err) {
+                      setDeleting(false);
+                      Alert.alert(t('error'), t('settings_delete_account_error'));
+                    }
+                  },
+                },
+              ]
+            );
+          },
+        },
+      ]
+    );
   };
 
   if (loading) {
@@ -325,6 +366,19 @@ export default function SettingsScreen({ navigation, route }) {
             )}
           </LinearGradient>
         </TouchableOpacity>
+
+        <Text style={[styles.sectionTitle, styles.dangerSectionTitle]}>{t('settings_danger_section')}</Text>
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={handleDeleteAccount}
+          disabled={deleting}
+          activeOpacity={0.85}
+        >
+          {deleting
+            ? <ActivityIndicator color="#E94560" />
+            : <Text style={styles.deleteButtonText}>{t('settings_delete_account_btn')}</Text>
+          }
+        </TouchableOpacity>
       </ScrollView>
 
       {/* ŞEHİR SEÇİM MODALI */}
@@ -461,6 +515,16 @@ function createStyles(colors) {
       marginTop: 20,
     },
     saveButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+    dangerSectionTitle: { marginTop: 36, color: '#E94560' },
+    deleteButton: {
+      padding: 16,
+      borderRadius: 14,
+      alignItems: 'center',
+      borderWidth: 1.5,
+      borderColor: '#E94560',
+      backgroundColor: 'rgba(233,69,96,0.08)',
+    },
+    deleteButtonText: { color: '#E94560', fontSize: 16, fontWeight: 'bold' },
 
     // SPOTIFY
     spotifyCard: {

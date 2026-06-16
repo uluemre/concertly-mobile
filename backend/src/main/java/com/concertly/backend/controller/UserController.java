@@ -8,6 +8,7 @@ import com.concertly.backend.dto.response.PassportResponse;
 import com.concertly.backend.dto.response.PostResponse;
 import com.concertly.backend.dto.response.UserResponse;
 import com.concertly.backend.security.JwtUtil;
+import com.concertly.backend.service.AccountDeletionService;
 import com.concertly.backend.service.ArtistService;
 import com.concertly.backend.service.AuthService;
 import com.concertly.backend.service.UserService;
@@ -23,11 +24,21 @@ public class UserController {
     private final UserService userService;
     private final AuthService authService;
     private final ArtistService artistService;
+    private final AccountDeletionService accountDeletionService;
 
-    public UserController(UserService userService, AuthService authService, ArtistService artistService) {
+    public UserController(UserService userService, AuthService authService,
+                          ArtistService artistService, AccountDeletionService accountDeletionService) {
         this.userService = userService;
         this.authService = authService;
         this.artistService = artistService;
+        this.accountDeletionService = accountDeletionService;
+    }
+
+    // ✅ HESABI SİL (yalnızca giriş yapan kullanıcı kendi hesabını siler)
+    @DeleteMapping("/me")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteMyAccount() {
+        accountDeletionService.deleteAccount(JwtUtil.getCurrentUserId());
     }
 
     @GetMapping
