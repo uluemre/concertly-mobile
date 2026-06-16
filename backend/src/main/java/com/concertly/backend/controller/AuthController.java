@@ -67,4 +67,13 @@ public class AuthController {
     public void resetPassword(@RequestBody Map<String, String> body) {
         authService.resetPassword(body.get("email"), body.get("token"), body.get("newPassword"));
     }
+
+    // PUT /api/auth/change-password (giriş yapmış kullanıcı)
+    // Body: { "currentPassword": "...", "newPassword": "..." }
+    @PutMapping("/change-password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void changePassword(@RequestBody Map<String, String> body) {
+        Long userId = JwtUtil.getCurrentUserId();
+        authService.changePassword(userId, body.get("currentPassword"), body.get("newPassword"));
+    }
 }

@@ -344,6 +344,14 @@ export default function SettingsScreen({ navigation, route }) {
 
         <Text style={styles.sectionTitle}>{t('settings_privacy_section')}</Text>
         <TouchableOpacity
+          style={[styles.privacyRow, { marginBottom: 12 }]}
+          onPress={() => navigation.navigate('ChangePassword')}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.privacyRowText}>🔒  {t('settings_change_password')}</Text>
+          <Text style={styles.chevron}>›</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
           style={styles.privacyRow}
           onPress={() => navigation.navigate('BlockedUsers')}
           activeOpacity={0.8}

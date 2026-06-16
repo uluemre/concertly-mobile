@@ -34,6 +34,7 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
     private final RefreshTokenService refreshTokenService;
+    private final EmailService emailService;
 
     public AuthService(UserRepository userRepository,
             ArtistRepository artistRepository,
@@ -41,7 +42,8 @@ public class AuthService {
             PasswordEncoder passwordEncoder,
             JwtUtil jwtUtil,
             AuthenticationManager authenticationManager,
-            RefreshTokenService refreshTokenService) {
+            RefreshTokenService refreshTokenService,
+            EmailService emailService) {
         this.userRepository = userRepository;
         this.artistRepository = artistRepository;
         this.artistFollowRepository = artistFollowRepository;
@@ -49,6 +51,7 @@ public class AuthService {
         this.jwtUtil = jwtUtil;
         this.authenticationManager = authenticationManager;
         this.refreshTokenService = refreshTokenService;
+        this.emailService = emailService;
     }
 
     // ✅ KAYIT — şifreyi hash'le, duplicate kontrolü yap
@@ -191,11 +194,26 @@ public class AuthService {
         user.setResetTokenExpiry(LocalDateTime.now().plusMinutes(30));
         userRepository.save(user);
 
-        // Gerçek ortamda e-posta gönder; şimdilik konsola yaz
-        System.out.println("===== ŞİFRE SIFIRLAMA KODU =====");
-        System.out.println("Kullanıcı: " + email);
-        System.out.println("Kod: " + token);
-        System.out.println("================================");
+        // Kodu e-posta ile gönder (mail kapalıysa EmailService log'a yazar)
+        emailService.sendPasswordResetCode(email, token);
+    }
+
+    // ✅ ŞİFRE DEĞİŞTİR (giriş yapmış kullanıcı, mevcut şifresini bilerek)
+    @Transactional
+    public void changePassword(Long userId, String currentPassword, String newPassword) {
+        if (newPassword == null || newPassword.length() < 6) {
+            throw new IllegalArgumentException("Yeni şifre en az 6 karakter olmalı");
+        }
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Kullanıcı bulunamadı"));
+
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            throw new IllegalArgumentException("Mevcut şifre yanlış");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setUpdatedAt(LocalDateTime.now());
+        userRepository.save(user);
     }
 
     @Transactional
