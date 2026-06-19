@@ -13,6 +13,7 @@ import com.concertly.backend.service.ArtistService;
 import com.concertly.backend.service.AuthService;
 import com.concertly.backend.service.UserService;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -51,12 +52,15 @@ public class UserController {
         return userService.getUserById(id);
     }
 
-    // ✅ PROFİL GÜNCELLE
+    // ✅ PROFİL GÜNCELLE (yalnızca kendi profilini)
     @PutMapping("/{id}/profile")
     public UserResponse updateProfile(
             @PathVariable Long id,
             @RequestBody UpdateProfileRequest request
     ) {
+        if (!id.equals(JwtUtil.getCurrentUserId())) {
+            throw new AccessDeniedException("Sadece kendi profilini düzenleyebilirsin.");
+        }
         return userService.updateProfile(id, request);
     }
 

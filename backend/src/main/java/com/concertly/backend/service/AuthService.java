@@ -57,6 +57,10 @@ public class AuthService {
     // ✅ KAYIT — şifreyi hash'le, duplicate kontrolü yap
     public UserResponse register(RegisterRequest request) {
 
+        if (request.getPassword() == null || request.getPassword().length() < 6) {
+            throw new IllegalArgumentException("Şifre en az 6 karakter olmalı");
+        }
+
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new AlreadyExistsException(
                     "Bu email zaten kullanılıyor: " + request.getEmail());
@@ -186,16 +190,17 @@ public class AuthService {
 
     @Transactional
     public void forgotPassword(String email) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Bu e-posta kayıtlı değil"));
+        // Kullanıcı sayımına (enumeration) karşı: e-posta kayıtlı olsun olmasın
+        // dışarıya aynı (boş) yanıt döner. Kod yalnızca kayıtlı kullanıcıya gider.
+        userRepository.findByEmail(email).ifPresent(user -> {
+            String token = String.format("%06d", new Random().nextInt(1_000_000));
+            user.setResetToken(token);
+            user.setResetTokenExpiry(LocalDateTime.now().plusMinutes(30));
+            userRepository.save(user);
 
-        String token = String.format("%06d", new Random().nextInt(1_000_000));
-        user.setResetToken(token);
-        user.setResetTokenExpiry(LocalDateTime.now().plusMinutes(30));
-        userRepository.save(user);
-
-        // Kodu e-posta ile gönder (mail kapalıysa EmailService log'a yazar)
-        emailService.sendPasswordResetCode(email, token);
+            // Kodu e-posta ile gönder (mail kapalıysa EmailService log'a yazar)
+            emailService.sendPasswordResetCode(email, token);
+        });
     }
 
     // ✅ ŞİFRE DEĞİŞTİR (giriş yapmış kullanıcı, mevcut şifresini bilerek)
@@ -214,10 +219,15 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(newPassword));
         user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
+        // Şifre değişti → mevcut tüm oturumları (refresh token'ları) geçersiz kıl
+        refreshTokenService.deleteByUser(user);
     }
 
     @Transactional
     public void resetPassword(String email, String token, String newPassword) {
+        if (newPassword == null || newPassword.length() < 6) {
+            throw new IllegalArgumentException("Yeni şifre en az 6 karakter olmalı");
+        }
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Kullanıcı bulunamadı"));
 
@@ -233,5 +243,7 @@ public class AuthService {
         user.setResetTokenExpiry(null);
         user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
+        // Şifre sıfırlandı → mevcut tüm oturumları geçersiz kıl
+        refreshTokenService.deleteByUser(user);
     }
 }

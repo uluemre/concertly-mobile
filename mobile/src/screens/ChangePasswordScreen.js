@@ -4,7 +4,7 @@ import {
   Alert, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import API from '../services/api';
+import API, { getErrorMessage } from '../services/api';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -39,7 +39,7 @@ export default function ChangePasswordScreen({ navigation }) {
         { text: t('confirm'), onPress: () => navigation.goBack() },
       ]);
     } catch (err) {
-      Alert.alert(t('error'), t('change_pw_error'));
+      Alert.alert(t('error'), getErrorMessage(err, t('change_pw_error')));
     } finally {
       setSaving(false);
     }
