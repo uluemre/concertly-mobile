@@ -775,7 +775,7 @@ export const translations = {
     wrapped_browse_events: '🎫 Etkinliklere Göz At',
 
     // OYUN MERKEZİ
-    menu_passport: 'Konser Pasaportu',
+    menu_passport: 'Pasaport',
     menu_passport_sub: 'Gittiğin konserlerin damgalı kaydı',
     menu_games: 'Oyunlar',
     menu_games_sub: 'Şarkı testleri, günlük şarkı ve daha fazlası',
@@ -1712,7 +1712,7 @@ export const translations = {
     wrapped_browse_events: '🎫 Browse Events',
 
     // GAMES HUB
-    menu_passport: 'Concert Passport',
+    menu_passport: 'Passport',
     menu_passport_sub: 'A stamped record of concerts you attended',
     menu_games: 'Games',
     menu_games_sub: 'Song quizzes, daily song and more',
