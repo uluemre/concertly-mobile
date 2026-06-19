@@ -268,9 +268,9 @@ export default function HomeScreen({ navigation }) {
               <Text style={styles.dailyEmoji}>
                 {daily?.finished ? (daily?.solved ? '✅' : '❌') : '🎵'}
               </Text>
-              <View>
-                <Text style={styles.dailyLabel}>{t('menu_daily_song')}</Text>
-                <Text style={styles.dailyStatus}>
+              <View style={styles.dailyTextCol}>
+                <Text style={styles.dailyLabel} numberOfLines={1}>{t('menu_daily_song')}</Text>
+                <Text style={styles.dailyStatus} numberOfLines={1}>
                   {!daily && t('games_daily_waiting')}
                   {daily?.finished && daily?.solved && (daily.streak > 0 ? t('games_daily_streak_safe', { count: daily.streak }) : t('games_daily_done'))}
                   {daily?.finished && !daily?.solved && t('games_daily_missed')}
@@ -285,7 +285,7 @@ export default function HomeScreen({ navigation }) {
                 </View>
               )}
               {!daily?.finished && (
-                <Text style={styles.dailyPlayBtn}>{t('bingo_start') ? '▶ Oyna' : '▶ Oyna'}</Text>
+                <Text style={styles.dailyPlayBtn}>▶ Oyna</Text>
               )}
             </View>
           </LinearGradient>
@@ -402,10 +402,11 @@ function createStyles(colors) {
     dailyWidget: { marginHorizontal: 16, marginTop: 12, marginBottom: 4, borderRadius: 16, overflow: 'hidden' },
     dailyWidgetGrad: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14 },
     dailyLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+    dailyTextCol: { flex: 1 },
     dailyEmoji: { fontSize: 28 },
     dailyLabel: { color: '#fff', fontSize: 14, fontWeight: '800' },
     dailyStatus: { color: 'rgba(255,255,255,0.75)', fontSize: 12, marginTop: 2 },
-    dailyRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    dailyRight: { flexDirection: 'row', alignItems: 'center', gap: 10, flexShrink: 0, marginLeft: 10 },
     dailyStreak: { backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
     dailyStreakText: { color: '#fff', fontSize: 13, fontWeight: '800' },
     dailyPlayBtn: { color: '#fff', fontSize: 13, fontWeight: '800', backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },

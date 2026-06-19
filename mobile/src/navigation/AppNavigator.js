@@ -6,6 +6,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Text, View, ActivityIndicator, Animated, AppState } from 'react-native';
 import API, { setSessionExpiredHandler } from '../services/api';
+import SlideTabBar from './SlideTabBar';
 import { useAuth } from '../context/AuthContext';
 
 function TabIcon({ emoji, focused }) {
@@ -105,22 +106,11 @@ function TabNavigator() {
 
   return (
     <Tab.Navigator
+      tabBar={(props) => <SlideTabBar {...props} />}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textSecondary,
-        tabBarStyle: {
-          backgroundColor: colors.card,
-          borderTopWidth: 1,
-          borderTopColor: colors.border,
-          height: 65,
-          paddingBottom: 10,
-          paddingTop: 6,
-        },
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '600',
-        },
       }}
     >
       <Tab.Screen
