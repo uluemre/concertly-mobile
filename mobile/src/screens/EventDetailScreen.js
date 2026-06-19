@@ -385,11 +385,7 @@ export default function EventDetailScreen({ route, navigation }) {
         <Text style={styles.backText}>{t('back')}</Text>
       </TouchableOpacity>
       <View style={styles.heroIconRow}>
-        {!isExpired && event.ticketUrl && (
-          <TouchableOpacity style={styles.iconBtn} onPress={openTicket} activeOpacity={0.8}>
-            <Text style={styles.iconBtnText}>🎟️</Text>
-          </TouchableOpacity>
-        )}
+        {/* Bilet, içeride belirgin CTA olarak gösteriliyor — hero ikonu kaldırıldı */}
         {!isExpired && (
           <TouchableOpacity style={styles.iconBtn} onPress={addToCalendar} activeOpacity={0.8}>
             <Text style={styles.iconBtnText}>📅</Text>
@@ -509,6 +505,20 @@ export default function EventDetailScreen({ route, navigation }) {
           </TouchableOpacity>
           </Animated.View>
         </View>
+
+        {/* BİLET AL — belirgin ana CTA (eski hero ikonu fark edilmiyordu) */}
+        {!isExpired && event.ticketUrl && (
+          <TouchableOpacity onPress={openTicket} activeOpacity={0.85} style={styles.ticketCtaWrap}>
+            <LinearGradient
+              colors={['#F5A623', '#E94560']}
+              style={styles.ticketCta}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+            >
+              <Text style={styles.ticketCtaText}>{t('events_ticket')}</Text>
+              <Text style={styles.ticketCtaArrow}>→</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
 
         {/* KONSER ARKADAŞI */}
         {!isExpired && (
@@ -1011,6 +1021,18 @@ function createStyles(colors) {
 
     // KATILIM
     attendanceRow: { flexDirection: 'row', gap: 12, alignItems: 'stretch' },
+    ticketCtaWrap: {
+      marginTop: 14,
+      borderRadius: 16,
+      shadowColor: '#E94560', shadowOpacity: 0.35,
+      shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 5,
+    },
+    ticketCta: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
+      paddingVertical: 17, borderRadius: 16,
+    },
+    ticketCtaText: { color: '#fff', fontSize: 17, fontWeight: '800', letterSpacing: 0.3 },
+    ticketCtaArrow: { color: '#fff', fontSize: 18, fontWeight: '800' },
     attendBtn: {
       flex: 1, flexDirection: 'row', alignItems: 'center',
       justifyContent: 'center', gap: 8,

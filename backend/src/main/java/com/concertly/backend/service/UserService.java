@@ -84,10 +84,12 @@ public class UserService {
                 .toList();
     }
 
+    // E-posta dönülmez: bu uçlar tüm giriş yapmış kullanıcılara açık (admin listesi
+    // ayrı /api/admin/users'tır). E-posta sızıntısını önlemek için null bırakılır.
     public List<UserResponse> getUsers() {
         return userRepository.findAll()
                 .stream()
-                .map(u -> new UserResponse(u.getId(), u.getUsername(), u.getEmail()))
+                .map(u -> new UserResponse(u.getId(), u.getUsername(), null))
                 .toList();
     }
 
@@ -95,7 +97,7 @@ public class UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Kullanıcı bulunamadı: " + id));
-        return new UserResponse(user.getId(), user.getUsername(), user.getEmail());
+        return new UserResponse(user.getId(), user.getUsername(), null);
     }
 
     // ✅ PROFİL GÜNCELLE
