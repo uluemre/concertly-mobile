@@ -235,7 +235,9 @@ export default React.memo(function PostCard({
           </LinearGradient>
           <View style={styles.headerInfo}>
             <Text style={styles.username}>@{item.username}</Text>
-            <Text style={styles.eventTag}>🎵 {item.eventName || 'Etkinlik'}</Text>
+            {item.eventName ? (
+              <Text style={styles.eventTag} numberOfLines={1}>📍 {item.eventName}</Text>
+            ) : null}
           </View>
         </TouchableOpacity>
         <View style={styles.headerRight}>

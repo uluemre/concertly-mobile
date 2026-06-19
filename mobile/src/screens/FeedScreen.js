@@ -220,6 +220,22 @@ export default function FeedScreen({ navigation }) {
           }
         />
       )}
+
+      {/* Genel paylaşım — etkinliğe bağlı olmayan serbest post */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => navigation.navigate('CreatePost')}
+        activeOpacity={0.85}
+      >
+        <LinearGradient
+          colors={['#E94560', '#7C3AED']}
+          style={styles.fabInner}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <Text style={styles.fabIcon}>✏️</Text>
+        </LinearGradient>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -253,5 +269,15 @@ function createStyles(colors) {
     emptyCtaWrap: { marginTop: 20 },
     emptyCta: { paddingVertical: 12, paddingHorizontal: 28, borderRadius: 14, alignItems: 'center' },
     emptyCtaText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
+    fab: {
+      position: 'absolute', right: 20, bottom: 24,
+      borderRadius: 30, shadowColor: '#000', shadowOpacity: 0.3,
+      shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 6,
+    },
+    fabInner: {
+      width: 60, height: 60, borderRadius: 30,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    fabIcon: { fontSize: 26 },
   });
 }

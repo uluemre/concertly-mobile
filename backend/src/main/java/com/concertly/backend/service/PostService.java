@@ -128,9 +128,14 @@ public class PostService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Kullanıcı bulunamadı: " + userId));
 
-        Event event = eventRepository.findById(request.getEventId())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Etkinlik bulunamadı: " + request.getEventId()));
+        // eventId opsiyonel: verilirse "konser postu" (mobilde katılım/konum kilitli),
+        // null ise "genel post" (serbest paylaşım, feed'i besler).
+        Event event = null;
+        if (request.getEventId() != null) {
+            event = eventRepository.findById(request.getEventId())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Etkinlik bulunamadı: " + request.getEventId()));
+        }
 
         Post post = new Post();
         post.setContent(request.getContent());

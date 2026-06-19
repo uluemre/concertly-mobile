@@ -14,7 +14,8 @@ export default function CreatePostScreen({ route, navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { t } = useLanguage();
-  const { event } = route.params;
+  // event opsiyonel: varsa konser postu, yoksa genel paylaşım
+  const { event } = route.params || {};
 
   const POST_TYPES = useMemo(() => [
     { key: 'TEXT', label: t('post_type_text') },
@@ -87,7 +88,7 @@ export default function CreatePostScreen({ route, navigation }) {
       }
 
       await API.post('/posts', {
-        eventId: event.id,
+        eventId: event ? event.id : null,
         content: content.trim(),
         postType,
         imageUrl: serverImageUrl,
@@ -116,7 +117,7 @@ export default function CreatePostScreen({ route, navigation }) {
             <Text style={styles.backText}>{t('post_cancel')}</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{t('post_header')}</Text>
-          <Text style={styles.headerSub}>{event.name}</Text>
+          <Text style={styles.headerSub}>{event ? event.name : t('post_general_sub')}</Text>
         </LinearGradient>
 
         <View style={styles.content}>
@@ -136,13 +137,15 @@ export default function CreatePostScreen({ route, navigation }) {
             ))}
           </View>
 
-          {/* ETKİNLİK KARTI */}
-          <View style={styles.eventCard}>
-            <Text style={styles.eventCardLabel}>{t('post_event_label')}</Text>
-            <Text style={styles.eventCardName}>{event.name}</Text>
-            {event.artistName && <Text style={styles.eventCardSub}>🎤 {event.artistName}</Text>}
-            {event.venueCity && <Text style={styles.eventCardSub}>📍 {event.venueCity}</Text>}
-          </View>
+          {/* ETKİNLİK KARTI — yalnızca konser postunda */}
+          {event && (
+            <View style={styles.eventCard}>
+              <Text style={styles.eventCardLabel}>{t('post_event_label')}</Text>
+              <Text style={styles.eventCardName}>{event.name}</Text>
+              {event.artistName && <Text style={styles.eventCardSub}>🎤 {event.artistName}</Text>}
+              {event.venueCity && <Text style={styles.eventCardSub}>📍 {event.venueCity}</Text>}
+            </View>
+          )}
 
           {/* YAZI ALANI */}
           <View style={styles.inputCard}>
