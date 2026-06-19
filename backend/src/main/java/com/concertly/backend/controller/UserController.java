@@ -1,5 +1,6 @@
 package com.concertly.backend.controller;
 
+import com.concertly.backend.dto.request.DeleteAccountRequest;
 import com.concertly.backend.dto.request.RegisterRequest;
 import com.concertly.backend.dto.request.UpdateProfileRequest;
 import com.concertly.backend.dto.response.ArtistResponse;
@@ -36,10 +37,16 @@ public class UserController {
     }
 
     // ✅ HESABI SİL (yalnızca giriş yapan kullanıcı kendi hesabını siler)
+    // Silme sebebi ZORUNLU — boş gelirse 400 döner.
     @DeleteMapping("/me")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteMyAccount() {
-        accountDeletionService.deleteAccount(JwtUtil.getCurrentUserId());
+    public void deleteMyAccount(@RequestBody(required = false) DeleteAccountRequest request) {
+        String reason = request != null && request.getReason() != null ? request.getReason().trim() : "";
+        if (reason.isEmpty()) {
+            throw new IllegalArgumentException("Hesabı silmek için bir sebep belirtmelisin.");
+        }
+        String details = request.getDetails() != null ? request.getDetails().trim() : null;
+        accountDeletionService.deleteAccount(JwtUtil.getCurrentUserId(), reason, details);
     }
 
     @GetMapping

@@ -12,6 +12,16 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { TURKISH_CITIES } from '../constants/cities';
 
+// Hesap silme sebepleri — code backend'e (dil bağımsız) gönderilir, key UI metni.
+const DELETE_REASONS = [
+  { code: 'NOT_USING', key: 'settings_delete_reason_not_using' },
+  { code: 'TOO_MANY_NOTIFICATIONS', key: 'settings_delete_reason_notifications' },
+  { code: 'PRIVACY', key: 'settings_delete_reason_privacy' },
+  { code: 'FOUND_ALTERNATIVE', key: 'settings_delete_reason_alternative' },
+  { code: 'BUGS', key: 'settings_delete_reason_bugs' },
+  { code: 'OTHER', key: 'settings_delete_reason_other' },
+];
+
 export default function SettingsScreen({ navigation, route }) {
   const { colors, themeMode, setThemeMode } = useTheme();
   const { session, updateSession, logout } = useAuth();
@@ -24,6 +34,9 @@ export default function SettingsScreen({ navigation, route }) {
   const [spotifyStatus, setSpotifyStatus] = useState(null);
   const [spotifyLoading, setSpotifyLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [deleteReason, setDeleteReason] = useState(null);
+  const [deleteDetails, setDeleteDetails] = useState('');
 
   const [formData, setFormData] = useState({
     username: '',
@@ -114,8 +127,20 @@ export default function SettingsScreen({ navigation, route }) {
     }
   };
 
+  // Silme akışı: önce sebep sor (zorunlu) → modal aç.
   const handleDeleteAccount = () => {
     if (deleting) return;
+    setDeleteReason(null);
+    setDeleteDetails('');
+    setDeleteModalVisible(true);
+  };
+
+  // Sebep seçildikten sonra iki aşamalı onay + asıl silme.
+  const confirmDeleteWithReason = () => {
+    if (!deleteReason) return; // güvenlik: sebep zorunlu
+    const reason = deleteReason;
+    const details = deleteDetails.trim();
+    setDeleteModalVisible(false);
     // 1. onay
     Alert.alert(
       t('settings_delete_account_title'),
@@ -138,7 +163,7 @@ export default function SettingsScreen({ navigation, route }) {
                   onPress: async () => {
                     setDeleting(true);
                     try {
-                      await API.delete('/users/me');
+                      await API.delete('/users/me', { data: { reason, details } });
                       await logout(); // session sıfırlanır → AppNavigator girişe yönlendirir
                     } catch (err) {
                       setDeleting(false);
@@ -444,6 +469,54 @@ export default function SettingsScreen({ navigation, route }) {
           </View>
         </View>
       </Modal>
+
+      {/* HESAP SİLME SEBEP MODALI — sebep zorunlu */}
+      <Modal visible={deleteModalVisible} animationType="slide" transparent={true}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{t('settings_delete_reason_title')}</Text>
+              <TouchableOpacity onPress={() => setDeleteModalVisible(false)}>
+                <Text style={styles.modalCloseText}>{t('settings_city_modal_close')}</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <Text style={styles.deleteReasonSubtitle}>{t('settings_delete_reason_subtitle')}</Text>
+              {DELETE_REASONS.map((r) => (
+                <TouchableOpacity
+                  key={r.code}
+                  style={styles.cityListItem}
+                  onPress={() => setDeleteReason(r.code)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[
+                    styles.cityListText,
+                    deleteReason === r.code && styles.cityListTextActive,
+                  ]}>{t(r.key)}</Text>
+                  {deleteReason === r.code && <Text style={styles.checkIcon}>✓</Text>}
+                </TouchableOpacity>
+              ))}
+              <TextInput
+                style={[styles.input, styles.textArea, { marginTop: 16 }]}
+                placeholder={t('settings_delete_reason_details_ph')}
+                placeholderTextColor={colors.textSecondary}
+                value={deleteDetails}
+                onChangeText={setDeleteDetails}
+                multiline
+                maxLength={500}
+              />
+            </ScrollView>
+            <TouchableOpacity
+              style={[styles.deleteButton, { marginTop: 16 }, !deleteReason && styles.deleteButtonDisabled]}
+              onPress={confirmDeleteWithReason}
+              disabled={!deleteReason}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.deleteButtonText}>{t('settings_delete_reason_continue')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -551,6 +624,8 @@ function createStyles(colors) {
       backgroundColor: 'rgba(233,69,96,0.08)',
     },
     deleteButtonText: { color: '#E94560', fontSize: 16, fontWeight: 'bold' },
+    deleteButtonDisabled: { opacity: 0.4 },
+    deleteReasonSubtitle: { fontSize: 14, color: colors.textSecondary, marginBottom: 8, lineHeight: 20 },
 
     // SPOTIFY
     spotifyCard: {

@@ -1,6 +1,7 @@
 package com.concertly.backend.service;
 
 import com.concertly.backend.exception.ResourceNotFoundException;
+import com.concertly.backend.model.AccountDeletionFeedback;
 import com.concertly.backend.model.User;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -27,10 +28,16 @@ public class AccountDeletionService {
     }
 
     @Transactional
-    public void deleteAccount(Long uid) {
+    public void deleteAccount(Long uid, String reason, String details) {
         if (em.find(User.class, uid) == null) {
             throw new ResourceNotFoundException("Kullanıcı bulunamadı: " + uid);
         }
+
+        // Geri bildirimi önce sakla — kullanıcıya FK'sı yok, anonim kalır ve silmeden
+        // bağımsızdır. details çok uzunsa kolona sığacak şekilde kırpılır.
+        String trimmedDetails = (details != null && details.length() > 500)
+                ? details.substring(0, 500) : details;
+        em.persist(new AccountDeletionFeedback(reason, trimmedDetails));
 
         // 1) Kullanıcının POSTLARINA bağlı çocuklar (başkalarına ait olabilir)
         del("DELETE FROM Like l WHERE l.post.id IN (SELECT p.id FROM Post p WHERE p.user.id = :uid)", uid);
