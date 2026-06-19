@@ -13,14 +13,8 @@
       "backgroundColor": "#0F0F1A"
     },
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.concertly.app",
-      "infoPlist": {
-        "NSAppTransportSecurity": {
-          "NSAllowsArbitraryLoads": true,
-          "NSAllowsArbitraryLoadsInWebContent": true
-        }
-      }
+      "supportsTablet": false,
+      "bundleIdentifier": "com.concertly.app"
     },
     "android": {
       "adaptiveIcon": {
@@ -33,14 +27,42 @@
         "android.permission.INTERNET",
         "android.permission.ACCESS_NETWORK_STATE",
         "android.permission.READ_CALENDAR",
-        "android.permission.WRITE_CALENDAR"
+        "android.permission.WRITE_CALENDAR",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
       ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-web-browser"
-    ]
+      "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Concertly, paylaşımların ve profil fotoğrafın için galerinden görsel seçmene izin ister.",
+          "cameraPermission": "Concertly, paylaşımların için kamerayla fotoğraf çekmene izin ister."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Concertly, yakınındaki etkinlikleri ve mekanları haritada göstermek için konumunu kullanır."
+        }
+      ],
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Concertly, ilgilendiğin etkinlikleri takvimine eklemek için izin ister."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "9089b703-90c1-4c42-b444-7f2dcf39a4cb"
+      }
+    },
+    "owner": "uemre"
   }
 }

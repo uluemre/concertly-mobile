@@ -33,6 +33,8 @@ function createStyles(colors) {
     linkArea: { alignItems: 'center', marginTop: 16 },
     link: { color: colors.textSecondary, fontSize: 14 },
     linkBold: { color: colors.secondary, fontWeight: 'bold' },
+    agreeText: { color: colors.textSecondary, fontSize: 12, textAlign: 'center', marginTop: 20, lineHeight: 18 },
+    agreeLink: { color: colors.secondary, fontWeight: '600' },
   });
 }
 
@@ -114,6 +116,18 @@ export default function RegisterScreen({ navigation }) {
           <TouchableOpacity onPress={() => navigation.navigate('Login')} style={styles.linkArea}>
             <Text style={styles.link}>{t('reg_have_account')} <Text style={styles.linkBold}>{t('reg_login_link')}</Text></Text>
           </TouchableOpacity>
+
+          <Text style={styles.agreeText}>
+            {t('reg_agree_prefix')}
+            <Text style={styles.agreeLink} onPress={() => navigation.navigate('Legal', { doc: 'terms' })}>
+              {t('settings_terms')}
+            </Text>
+            {t('reg_agree_and')}
+            <Text style={styles.agreeLink} onPress={() => navigation.navigate('Legal', { doc: 'privacy' })}>
+              {t('settings_privacy_policy')}
+            </Text>
+            {t('reg_agree_suffix')}
+          </Text>
         </View>
 
       </KeyboardAvoidingView>

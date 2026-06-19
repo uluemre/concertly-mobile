@@ -16,6 +16,7 @@ const MENU_ITEM_DEFS = [
   { id: 10, titleKey: 'menu_wrapped', subKey: 'menu_wrapped_sub', emoji: '✨', gradient: ['#EC4899', '#F5A623'], screen: 'Wrapped', available: true },
   { id: 7, titleKey: 'menu_map_item', subKey: 'menu_map_item_sub', emoji: '🗺️', gradient: ['#00D4AA', '#00A8FF'], screen: 'Map', available: true },
   { id: 4, titleKey: 'menu_buddy_item', subKey: 'menu_buddy_item_sub', emoji: '🎸', gradient: ['#E94560', '#F5A623'], screen: 'ConcertBuddyMatch', available: true },
+  { id: 11, titleKey: 'menu_passport', subKey: 'menu_passport_sub', emoji: '🎟️', gradient: ['#00A8FF', '#7C3AED'], screen: 'ConcertPassport', available: true },
   { id: 9, titleKey: 'menu_games', subKey: 'menu_games_sub', emoji: '🎮', gradient: ['#7C3AED', '#EC4899'], screen: 'Games', available: true },
 ];
 

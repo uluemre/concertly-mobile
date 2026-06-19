@@ -360,6 +360,24 @@ export default function SettingsScreen({ navigation, route }) {
           <Text style={styles.chevron}>›</Text>
         </TouchableOpacity>
 
+        <Text style={styles.sectionTitle}>{t('settings_legal_section')}</Text>
+        <TouchableOpacity
+          style={[styles.privacyRow, { marginBottom: 12 }]}
+          onPress={() => navigation.navigate('Legal', { doc: 'privacy' })}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.privacyRowText}>📄  {t('settings_privacy_policy')}</Text>
+          <Text style={styles.chevron}>›</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.privacyRow}
+          onPress={() => navigation.navigate('Legal', { doc: 'terms' })}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.privacyRowText}>📜  {t('settings_terms')}</Text>
+          <Text style={styles.chevron}>›</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity onPress={handleSave} disabled={saving} activeOpacity={0.85}>
           <LinearGradient
             colors={['#E94560', '#7C3AED']}

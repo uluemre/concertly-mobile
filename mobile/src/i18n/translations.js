@@ -292,6 +292,9 @@ export const translations = {
     reg_btn: 'Kayıt Ol 🚀',
     reg_have_account: 'Zaten hesabın var mı?',
     reg_login_link: 'Giriş yap',
+    reg_agree_prefix: 'Kayıt olarak ',
+    reg_agree_and: ' ve ',
+    reg_agree_suffix: ' kabul etmiş olursun.',
     reg_fill_all: 'Tüm alanları doldurun.',
     reg_already_exists: 'Bu email veya kullanıcı adı zaten kullanılıyor.',
 
@@ -471,6 +474,9 @@ export const translations = {
     mod_error: 'İşlem başarısız, tekrar dene.',
     settings_privacy_section: 'Gizlilik & Güvenlik',
     settings_blocked_users: 'Engellenen Kullanıcılar',
+    settings_legal_section: 'Yasal',
+    settings_privacy_policy: 'Gizlilik Politikası',
+    settings_terms: 'Kullanım Şartları',
     settings_danger_section: 'Tehlikeli Bölge',
     settings_delete_account_btn: 'Hesabımı Sil',
     settings_delete_account_title: 'Hesabını Sil',
@@ -769,6 +775,8 @@ export const translations = {
     wrapped_browse_events: '🎫 Etkinliklere Göz At',
 
     // OYUN MERKEZİ
+    menu_passport: 'Konser Pasaportu',
+    menu_passport_sub: 'Gittiğin konserlerin damgalı kaydı',
     menu_games: 'Oyunlar',
     menu_games_sub: 'Şarkı testleri, günlük şarkı ve daha fazlası',
     games_title: '🎮 Oyunlar',
@@ -1221,6 +1229,9 @@ export const translations = {
     reg_btn: 'Sign Up 🚀',
     reg_have_account: 'Already have an account?',
     reg_login_link: 'Log in',
+    reg_agree_prefix: 'By signing up, you agree to our ',
+    reg_agree_and: ' and ',
+    reg_agree_suffix: '.',
     reg_fill_all: 'Please fill in all fields.',
     reg_already_exists: 'This email or username is already taken.',
 
@@ -1400,6 +1411,9 @@ export const translations = {
     mod_error: 'Action failed, please try again.',
     settings_privacy_section: 'Privacy & Safety',
     settings_blocked_users: 'Blocked Users',
+    settings_legal_section: 'Legal',
+    settings_privacy_policy: 'Privacy Policy',
+    settings_terms: 'Terms of Service',
     settings_danger_section: 'Danger Zone',
     settings_delete_account_btn: 'Delete My Account',
     settings_delete_account_title: 'Delete Account',
@@ -1698,6 +1712,8 @@ export const translations = {
     wrapped_browse_events: '🎫 Browse Events',
 
     // GAMES HUB
+    menu_passport: 'Concert Passport',
+    menu_passport_sub: 'A stamped record of concerts you attended',
     menu_games: 'Games',
     menu_games_sub: 'Song quizzes, daily song and more',
     games_title: '🎮 Games',

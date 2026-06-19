@@ -1,5 +1,9 @@
 HELP.md
 target/
+
+# Yüklenen kullanıcı görselleri — yerel dev'de oluşur, repoya girmez.
+# Prod'da kalıcı disk (Railway Volume) üzerinde UPLOAD_DIR ile saklanır.
+uploads/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
