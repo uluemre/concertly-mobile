@@ -7,6 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
+import { useAuth } from '../context/AuthContext';
 import API from '../services/api';
 
 const { width } = Dimensions.get('window');
@@ -50,11 +51,19 @@ const NAV_ITEMS = [
     badge: 'totalPosts',
     badgeLabelKey: 'admin_badge_posts',
   },
+  {
+    titleKey: 'admin_nav_deletion_title',
+    subtitleKey: 'admin_nav_deletion_sub',
+    icon: '📭',
+    screen: 'AdminDeletionFeedback',
+    gradient: ['#64748B', '#334155'],
+  },
 ];
 
 export default function AdminScreen({ navigation }) {
   const { colors } = useTheme();
   const { t } = useLanguage();
+  const { session } = useAuth();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -62,6 +71,41 @@ export default function AdminScreen({ navigation }) {
   const [error, setError] = useState(null);
   const [syncing, setSyncing] = useState(false);
   const [enriching, setEnriching] = useState(false);
+  const [creatingConcert, setCreatingConcert] = useState(false);
+
+  // Test için: bulunulan şehre koordinatsız (geofence'siz) sahte konser oluşturur,
+  // böylece "konserde post" akışı yerinde olmadan denenebilir.
+  const handleCreateTestConcert = async () => {
+    if (creatingConcert) return;
+    const city = session.userCity;
+    if (!city) {
+      Alert.alert(t('error'), t('admin_test_concert_no_city'));
+      return;
+    }
+    setCreatingConcert(true);
+    try {
+      const d = new Date(Date.now() + 2 * 60 * 60 * 1000); // bugün, 2 saat sonrası
+      const pad = (n) => String(n).padStart(2, '0');
+      const eventDate = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:00`;
+      await API.post('/admin/events', {
+        name: t('admin_test_concert_name'),
+        description: t('admin_test_concert_desc'),
+        eventDate,
+        artistName: 'Test Sanatçı',
+        artistGenre: 'Pop',
+        venueName: 'Test Sahne',
+        venueCity: city,
+        venueCountry: 'Türkiye',
+        // koordinat YOK → "konserde post" geofence olmadan direkt açılır
+      });
+      Alert.alert(t('success'), t('admin_test_concert_done', { city }));
+      fetchStats();
+    } catch {
+      Alert.alert(t('error'), t('admin_test_concert_error'));
+    } finally {
+      setCreatingConcert(false);
+    }
+  };
 
   const handleSync = async () => {
     if (syncing) return;
@@ -240,6 +284,25 @@ export default function AdminScreen({ navigation }) {
               )}
               <Text style={styles.quickBtnText}>
                 {enriching ? t('admin_enriching') : t('admin_enrich_btn')}
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          {/* TEST: ŞEHRİMDE SAHTE KONSER */}
+          <TouchableOpacity
+            style={styles.enrichBtn}
+            onPress={handleCreateTestConcert}
+            disabled={creatingConcert}
+            activeOpacity={0.85}
+          >
+            <LinearGradient colors={['#00A8FF', '#7C3AED']} style={styles.quickBtnGrad}>
+              {creatingConcert ? (
+                <ActivityIndicator size="small" color="#fff" style={{ marginBottom: 6 }} />
+              ) : (
+                <Text style={styles.quickBtnIcon}>🎤</Text>
+              )}
+              <Text style={styles.quickBtnText}>
+                {creatingConcert ? t('admin_test_concert_creating') : t('admin_test_concert_btn')}
               </Text>
             </LinearGradient>
           </TouchableOpacity>

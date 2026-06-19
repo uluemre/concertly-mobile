@@ -29,6 +29,7 @@ public class AdminController {
     private final CommentRepository commentRepository;
     private final CommunityRepository communityRepository;
     private final FollowRepository followRepository;
+    private final AccountDeletionFeedbackRepository deletionFeedbackRepository;
 
     public AdminController(UserRepository userRepository,
                            EventRepository eventRepository,
@@ -40,7 +41,8 @@ public class AdminController {
                            LikeRepository likeRepository,
                            CommentRepository commentRepository,
                            CommunityRepository communityRepository,
-                           FollowRepository followRepository) {
+                           FollowRepository followRepository,
+                           AccountDeletionFeedbackRepository deletionFeedbackRepository) {
         this.userRepository = userRepository;
         this.eventRepository = eventRepository;
         this.artistRepository = artistRepository;
@@ -52,6 +54,7 @@ public class AdminController {
         this.commentRepository = commentRepository;
         this.communityRepository = communityRepository;
         this.followRepository = followRepository;
+        this.deletionFeedbackRepository = deletionFeedbackRepository;
     }
 
     // ── STATS ──────────────────────────────────────────────────────────────────
@@ -189,6 +192,14 @@ public class AdminController {
         likeRepository.deleteByPostId(id);
         commentRepository.deleteByPostId(id);
         postRepository.deleteById(id);
+    }
+
+    // ── HESAP SİLME GERİ BİLDİRİMİ ───────────────────────────────────────────────
+
+    // Kullanıcıların hesabını silerken verdiği sebepler (anonim), en yeni önce.
+    @GetMapping("/deletion-feedback")
+    public List<AccountDeletionFeedback> getDeletionFeedback() {
+        return deletionFeedbackRepository.findAllByOrderByCreatedAtDesc();
     }
 
     // ── USERS ──────────────────────────────────────────────────────────────────
