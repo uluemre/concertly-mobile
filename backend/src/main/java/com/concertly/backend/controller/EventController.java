@@ -68,13 +68,15 @@ public class EventController {
         return eventService.approveEvent(id);
     }
 
-    @RequestMapping(value = "/sync", method = { RequestMethod.GET, RequestMethod.POST })
+    // Yalnızca POST — SecurityConfig POST'u ADMIN'e kilitler. GET varyantı
+    // "GET /api/events/**" permitAll kuralıyla anonim erişime açılıyordu (suistimal/maliyet).
+    @PostMapping("/sync")
     public String syncEvents() {
         int count = ticketmasterService.syncTurkeyEvents();
         return count + " etkinlik eklendi.";
     }
 
-    @RequestMapping(value = "/enrich", method = { RequestMethod.GET, RequestMethod.POST })
+    @PostMapping("/enrich")
     public Map<String, Integer> enrichEvents() {
         return ticketmasterService.enrichMissingData();
     }

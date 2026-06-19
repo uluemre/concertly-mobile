@@ -65,7 +65,9 @@ public class SecurityConfig {
                         // @Scheduled metodundan çalışır, bu kısıtlamadan etkilenmez.
                         .requestMatchers(HttpMethod.POST, "/api/events/sync").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/events/enrich").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/events/enrich").hasRole("ADMIN")
+                        // Doğrudan etkinlik oluşturma yalnızca admin (mobil /api/admin/events kullanır).
+                        // Alt yollar (attendance/verify/bookmark/reviews/buddies) bu exact eşleşmeden etkilenmez.
+                        .requestMatchers(HttpMethod.POST, "/api/events").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/api/events/*/approve").hasRole("ADMIN")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/events/*/attendance").permitAll()

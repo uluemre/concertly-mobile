@@ -1,9 +1,11 @@
 package com.concertly.backend.controller;
 
 import com.concertly.backend.dto.response.SpotifyRecommendationDto;
+import com.concertly.backend.security.JwtUtil;
 import com.concertly.backend.service.SpotifyUserService;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,6 +23,7 @@ public class SpotifyController {
 
     @GetMapping("/auth-url")
     public Map<String, String> getAuthUrl(@RequestParam Long userId) {
+        assertSelf(userId);
         return Map.of("url", spotifyUserService.getAuthUrl(userId));
     }
 
@@ -47,17 +50,28 @@ public class SpotifyController {
 
     @GetMapping("/status/{userId}")
     public Map<String, Object> getStatus(@PathVariable Long userId) {
+        assertSelf(userId);
         return spotifyUserService.getStatus(userId);
     }
 
     @GetMapping("/recommendations/{userId}")
     public List<SpotifyRecommendationDto> getRecommendations(@PathVariable Long userId) {
+        assertSelf(userId);
         return spotifyUserService.getRecommendations(userId);
     }
 
     @DeleteMapping("/disconnect/{userId}")
     public void disconnect(@PathVariable Long userId) {
+        assertSelf(userId);
         spotifyUserService.disconnect(userId);
+    }
+
+    // Yol/parametredeki userId yalnızca giriş yapan kullanıcının kendisi olabilir
+    // (callback hariç — o tarayıcıdan gelir ve state ile kullanıcıyı taşır).
+    private void assertSelf(Long userId) {
+        if (userId == null || !userId.equals(JwtUtil.getCurrentUserId())) {
+            throw new AccessDeniedException("Bu işlemi yalnızca kendi hesabın için yapabilirsin.");
+        }
     }
 
     private String htmlPage(String title, String message, boolean success) {
