@@ -7,7 +7,7 @@ import { useTheme } from '../theme';
 import GenreChip from '../components/GenreChip';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
-import { TURKISH_CITIES } from '../constants/cities';
+import CityPicker from '../components/CityPicker';
 
 const GENRES = [
   { name: 'Rock', emoji: '🎸', accent: '#E94560' },
@@ -25,8 +25,6 @@ const GENRES = [
   { name: 'Lo-fi', emoji: '🎵', accent: '#00D4AA' },
   { name: 'Classical', emoji: '🎻', accent: '#7C3AED' },
 ];
-
-const CITIES = TURKISH_CITIES;
 
 export default function GenreSelectionScreen({ navigation, route }) {
   const editMode = route.params?.editMode ?? false;
@@ -83,22 +81,13 @@ export default function GenreSelectionScreen({ navigation, route }) {
         {/* ŞEHİR */}
         <Text style={styles.cityLabel}>{t('onb_city_label')}</Text>
         <Text style={styles.cityHint}>{t('onb_city_hint')}</Text>
-        <View style={styles.cityRow}>
-          {CITIES.map(city => {
-            const active = selectedCity === city;
-            return (
-              <TouchableOpacity
-                key={city}
-                onPress={() => setSelectedCity(city)}
-                activeOpacity={0.8}
-                style={[styles.cityChip, active && styles.cityChipActive]}
-              >
-                <Text style={[styles.cityChipText, active && styles.cityChipTextActive]}>
-                  {city}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
+        <View style={styles.cityPickerWrap}>
+          <CityPicker
+            value={selectedCity}
+            onChange={setSelectedCity}
+            colors={colors}
+            t={t}
+          />
         </View>
 
         <Text style={styles.title}>{t('genre_title')}</Text>
@@ -179,31 +168,8 @@ function createStyles(colors) {
       fontSize: 13,
       marginBottom: 14,
     },
-    cityRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 8,
+    cityPickerWrap: {
       marginBottom: 28,
-    },
-    cityChip: {
-      paddingHorizontal: 14,
-      paddingVertical: 9,
-      borderRadius: 20,
-      backgroundColor: colors.card,
-      borderWidth: 1,
-      borderColor: colors.border,
-    },
-    cityChipActive: {
-      backgroundColor: '#E94560',
-      borderColor: '#E94560',
-    },
-    cityChipText: {
-      color: colors.textSecondary,
-      fontSize: 13,
-      fontWeight: '700',
-    },
-    cityChipTextActive: {
-      color: '#fff',
     },
     backBtn: { marginBottom: 24 },
     backText: { color: colors.textSecondary, fontSize: 15, fontWeight: '600' },

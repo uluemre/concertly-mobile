@@ -19,3 +19,9 @@ export const TURKISH_CITIES = [
   'Şırnak', 'Tekirdağ', 'Tokat', 'Trabzon', 'Tunceli', 'Uşak', 'Van', 'Yalova',
   'Yozgat', 'Zonguldak',
 ];
+
+// Konser yoğunluğu en yüksek iller — şehir seçicide chip olarak öne çıkar,
+// gerisi "＋ Diğer" arama modalından seçilir. (Hepsi TURKISH_CITIES içinde.)
+export const POPULAR_CITIES = [
+  'İstanbul', 'Ankara', 'İzmir', 'Antalya', 'Bursa', 'Adana', 'Eskişehir', 'Konya',
+];

@@ -1,10 +1,11 @@
 // AppNavigator.js
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Text, View, ActivityIndicator, Animated, AppState } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import API, { setSessionExpiredHandler } from '../services/api';
 import SlideTabBar from './SlideTabBar';
 import { useAuth } from '../context/AuthContext';
@@ -167,6 +168,11 @@ export default function AppNavigator() {
   const { session, isReady, logout } = useAuth();
   const navigationRef = useRef(null);
 
+  // İlk açılış tanıtım ekranı: giriş yapılmamış VE onboarding daha önce
+  // görülmemişse Onboarding slaytları başlangıç rotası olur.
+  const [onbChecked, setOnbChecked] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
   useEffect(() => {
     setSessionExpiredHandler(async () => {
       await logout();
@@ -174,12 +180,21 @@ export default function AppNavigator() {
     });
   }, [logout]);
 
+  useEffect(() => {
+    AsyncStorage.getItem('onboardingDone')
+      .then(done => setShowOnboarding(done !== 'true'))
+      .catch(() => setShowOnboarding(false))
+      .finally(() => setOnbChecked(true));
+  }, []);
+
   let initialRoute = 'Login';
   if (session.authToken) {
     initialRoute = session.isAdmin ? 'Admin' : 'MainApp';
+  } else if (showOnboarding) {
+    initialRoute = 'Onboarding';
   }
 
-  if (!isReady) {
+  if (!isReady || !onbChecked) {
     return (
       <View style={{ flex: 1, backgroundColor: '#0A0A14', justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" color="#E94560" />
@@ -193,7 +208,7 @@ export default function AppNavigator() {
         initialRouteName={initialRoute}
         screenOptions={{ headerShown: false }}
       >
-        {/* ONBOARDING (legacy — replaced by GenreSelection) */}
+        {/* ONBOARDING — ilk açılış tanıtım slaytları (giriş öncesi) */}
         <Stack.Screen
           name="Onboarding"
           component={OnboardingScreen}
