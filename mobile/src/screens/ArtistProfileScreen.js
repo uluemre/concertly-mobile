@@ -10,7 +10,7 @@ import API from '../services/api';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
-import { formatTimeAgo } from '../utils/time';
+import { formatTimeAgo, parseEventDate } from '../utils/time';
 
 const GENRE_GRADIENTS = {
   'Rock':       ['#E94560', '#7C1AED'],
@@ -132,7 +132,7 @@ export default function ArtistProfileScreen({ route, navigation }) {
     setArtist(artistRes.value.data);
     setFollowing(artistRes.value.data.followedByCurrentUser || false);
     setEvents(eventsRes.status === 'fulfilled'
-      ? eventsRes.value.data.filter(e => new Date(e.eventDate) >= new Date())
+      ? eventsRes.value.data.filter(e => parseEventDate(e.eventDate) >= new Date())
       : []);
     setPastEvents(pastEventsRes.status === 'fulfilled' ? pastEventsRes.value.data : []);
     setPosts(postsRes.status === 'fulfilled' ? postsRes.value.data : []);
@@ -406,7 +406,7 @@ export default function ArtistProfileScreen({ route, navigation }) {
                       <View style={styles.eventCardBody}>
                         <Text style={styles.eventName} numberOfLines={2}>{item.name}</Text>
                         <Text style={styles.eventDate}>
-                          📅 {new Date(item.eventDate).toLocaleDateString('tr-TR', {
+                          📅 {parseEventDate(item.eventDate).toLocaleDateString('tr-TR', {
                             day: 'numeric', month: 'short', year: 'numeric',
                           })}
                         </Text>
@@ -440,7 +440,7 @@ export default function ArtistProfileScreen({ route, navigation }) {
                   >
                     <View style={styles.pastCardLeft}>
                       <Text style={[styles.pastCardDate, { color: colors.textSecondary }]}>
-                        {new Date(item.eventDate).toLocaleDateString('tr-TR', {
+                        {parseEventDate(item.eventDate).toLocaleDateString('tr-TR', {
                           day: 'numeric', month: 'short', year: 'numeric',
                         })}
                       </Text>

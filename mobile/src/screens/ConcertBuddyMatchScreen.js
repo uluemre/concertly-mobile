@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
 import ConfettiOverlay from '../components/ConfettiOverlay';
+import { parseEventDate } from '../utils/time';
 
 const { width, height } = Dimensions.get('window');
 
@@ -29,7 +30,7 @@ const CARD_GRADIENTS = [
 
 function formatDate(iso) {
   if (!iso) return '';
-  return new Date(iso).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+  return parseEventDate(iso).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
 }
 
 function genreScore(score, t) {

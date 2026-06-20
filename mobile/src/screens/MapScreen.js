@@ -9,6 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import API from '../services/api';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
+import { parseEventDate } from '../utils/time';
 
 const { width, height } = Dimensions.get('window');
 
@@ -245,7 +246,7 @@ export default function MapScreen({ navigation }) {
                 <Text style={styles.bottomCardSub}>🎤 {selectedEvent.artistName}</Text>
               )}
               <Text style={styles.bottomCardSub}>
-                📅 {new Date(selectedEvent.eventDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                📅 {parseEventDate(selectedEvent.eventDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
               </Text>
               {selectedEvent.venueName && (
                 <Text style={styles.bottomCardSub}>🏟️ {selectedEvent.venueName}</Text>

@@ -8,6 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
+import { parseEventDate } from '../utils/time';
 
 const TABS = [
   { key: 'pending', labelKey: 'admin_tab_pending' },
@@ -39,7 +40,7 @@ const FORM_FIELDS = [
 
 function formatDate(dateStr, lang) {
   if (!dateStr) return '—';
-  const d = new Date(dateStr);
+  const d = parseEventDate(dateStr);
   return d.toLocaleDateString(lang === 'en' ? 'en-US' : 'tr-TR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 

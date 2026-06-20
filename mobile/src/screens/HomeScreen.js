@@ -15,6 +15,7 @@ import SearchModal from './SearchModal';
 import FeaturedCard from '../components/home/FeaturedCard';
 import HomePostCard from '../components/home/HomePostCard';
 import { TURKISH_CITIES } from '../constants/cities';
+import { parseEventDate } from '../utils/time';
 
 const { width } = Dimensions.get('window');
 const FEATURED_CARD_WIDTH = width * 0.78;
@@ -120,7 +121,7 @@ export default function HomeScreen({ navigation }) {
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const q = search.trim().toLowerCase();
     const list = events.filter(e => {
-      if (new Date(e.eventDate) < today) return false;
+      if (parseEventDate(e.eventDate) < today) return false;
       return !q ||
         e.name?.toLowerCase().includes(q) ||
         e.artistName?.toLowerCase().includes(q) ||

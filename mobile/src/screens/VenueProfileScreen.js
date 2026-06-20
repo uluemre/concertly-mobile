@@ -9,6 +9,7 @@ import API from '../services/api';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { parseEventDate } from '../utils/time';
 
 const { width } = Dimensions.get('window');
 const DAY_SIZE = Math.floor((width - 32) / 7);
@@ -77,7 +78,7 @@ export default function VenueProfileScreen({ route, navigation }) {
   const eventsByDay = useMemo(() => {
     const map = {};
     events.forEach(e => {
-      const d = new Date(e.eventDate);
+      const d = parseEventDate(e.eventDate);
       if (d.getFullYear() === calYear && d.getMonth() === calMonth) {
         const day = d.getDate();
         if (!map[day]) map[day] = [];

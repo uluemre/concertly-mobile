@@ -8,6 +8,7 @@ import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
+import { parseEventDate } from '../utils/time';
 
 // Baskın türe göre müzik kişiliği
 const PERSONALITIES = [
@@ -69,7 +70,7 @@ export default function WrappedScreen({ navigation }) {
       if (e.genre) genreCounts[e.genre] = (genreCounts[e.genre] || 0) + 1;
       if (e.artistName) artistCounts[e.artistName] = (artistCounts[e.artistName] || 0) + 1;
       if (e.eventDate) {
-        const m = new Date(e.eventDate).getMonth();
+        const m = parseEventDate(e.eventDate).getMonth();
         monthCounts[m] = (monthCounts[m] || 0) + 1;
       }
     });

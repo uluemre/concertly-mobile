@@ -13,6 +13,7 @@ import * as ImagePicker from 'expo-image-picker';
 import API, { uploadImage } from '../services/api';
 import { useTheme } from '../theme';
 import BadgeGrid from '../components/profile/BadgeGrid';
+import { parseEventDate } from '../utils/time';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2;
@@ -432,7 +433,7 @@ export default function ProfileScreen({ navigation }) {
                         <Text style={styles.eventArtist} numberOfLines={1}>{item.artistName}</Text>
                       )}
                       <Text style={styles.eventDate}>
-                        {new Date(item.eventDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        {parseEventDate(item.eventDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </Text>
                     </LinearGradient>
                   </TouchableOpacity>
@@ -467,7 +468,7 @@ export default function ProfileScreen({ navigation }) {
                         <Text style={styles.eventArtist} numberOfLines={1}>{item.artistName}</Text>
                       )}
                       <Text style={styles.eventDate}>
-                        {new Date(item.eventDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        {parseEventDate(item.eventDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </Text>
                     </LinearGradient>
                   </TouchableOpacity>

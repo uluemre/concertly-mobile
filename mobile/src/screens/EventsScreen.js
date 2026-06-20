@@ -13,6 +13,7 @@ import { useLanguage } from '../context/LanguageContext';
 import AnimatedListItem from '../components/AnimatedListItem';
 import { EventsSkeletonPage } from '../components/SkeletonLoader';
 import { TURKISH_CITIES } from '../constants/cities';
+import { parseEventDate } from '../utils/time';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2;
@@ -133,12 +134,12 @@ export default function EventsScreen({ navigation, route }) {
   const filtered = useMemo(() => {
     const today = new Date(); today.setHours(0, 0, 0, 0);
     let list = events.filter(e =>
-      showPast ? new Date(e.eventDate) < today : new Date(e.eventDate) >= today
+      showPast ? parseEventDate(e.eventDate) < today : parseEventDate(e.eventDate) >= today
     );
 
     // Geçmişte varsayılan sıra: en yeni önce
     if (showPast && sortKey === 'date_asc') {
-      list = [...list].sort((a, b) => new Date(b.eventDate) - new Date(a.eventDate));
+      list = [...list].sort((a, b) => parseEventDate(b.eventDate) - parseEventDate(a.eventDate));
     }
 
     if (search.trim()) {
@@ -156,19 +157,19 @@ export default function EventsScreen({ navigation, route }) {
 
     if (startDate.trim()) {
       const [d, m, y] = startDate.split('.');
-      const start = new Date(`${y}-${m}-${d}`);
-      if (!isNaN(start)) list = list.filter(e => new Date(e.eventDate) >= start);
+      const start = parseEventDate(`${y}-${m}-${d}`);
+      if (!isNaN(start)) list = list.filter(e => parseEventDate(e.eventDate) >= start);
     }
 
     if (endDate.trim()) {
       const [d, m, y] = endDate.split('.');
-      const end = new Date(`${y}-${m}-${d}`);
+      const end = parseEventDate(`${y}-${m}-${d}`);
       end.setHours(23, 59, 59);
-      if (!isNaN(end)) list = list.filter(e => new Date(e.eventDate) <= end);
+      if (!isNaN(end)) list = list.filter(e => parseEventDate(e.eventDate) <= end);
     }
 
-    if (sortKey === 'date_asc') list.sort((a, b) => new Date(a.eventDate) - new Date(b.eventDate));
-    else if (sortKey === 'date_desc') list.sort((a, b) => new Date(b.eventDate) - new Date(a.eventDate));
+    if (sortKey === 'date_asc') list.sort((a, b) => parseEventDate(a.eventDate) - parseEventDate(b.eventDate));
+    else if (sortKey === 'date_desc') list.sort((a, b) => parseEventDate(b.eventDate) - parseEventDate(a.eventDate));
     else if (sortKey === 'name_asc') list.sort((a, b) => a.name?.localeCompare(b.name));
 
     return list;
@@ -186,7 +187,7 @@ export default function EventsScreen({ navigation, route }) {
       <CardImage item={item} index={index} cardImageStyle={styles.cardImage} />
       <View style={styles.datePill}>
         <Text style={styles.datePillText}>
-          {new Date(item.eventDate).getDate()} {new Date(item.eventDate).toLocaleDateString('tr-TR', { month: 'short' })}
+          {parseEventDate(item.eventDate).getDate()} {parseEventDate(item.eventDate).toLocaleDateString('tr-TR', { month: 'short' })}
         </Text>
       </View>
       <View style={styles.cardBody}>

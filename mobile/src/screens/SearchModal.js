@@ -9,6 +9,7 @@ import API from '../services/api';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { parseEventDate } from '../utils/time';
 
 const { width, height } = Dimensions.get('window');
 
@@ -128,7 +129,7 @@ export default function SearchModal({ visible, onClose, navigation }) {
                     {item.venueCity ? `  📍 ${item.venueCity}` : ''}
                 </Text>
                 <Text style={styles.resultDate}>
-                    📅 {new Date(item.eventDate).toLocaleDateString('tr-TR', {
+                    📅 {parseEventDate(item.eventDate).toLocaleDateString('tr-TR', {
                         day: 'numeric', month: 'short', year: 'numeric',
                     })}
                 </Text>

@@ -9,6 +9,7 @@ import API from '../services/api';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { parseEventDate } from '../utils/time';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2;
@@ -430,7 +431,7 @@ export default function UserProfileScreen({ route, navigation }) {
                         </TouchableOpacity>
                       )}
                       <Text style={styles.eventDate}>
-                        📅 {new Date(item.eventDate).toLocaleDateString('tr-TR', {
+                        📅 {parseEventDate(item.eventDate).toLocaleDateString('tr-TR', {
                           day: 'numeric', month: 'short',
                         })}
                       </Text>

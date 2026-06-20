@@ -14,7 +14,7 @@ import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { getGenreGradient } from '../utils/gradients';
-import { formatTimeAgo } from '../utils/time';
+import { formatTimeAgo, parseEventDate } from '../utils/time';
 import ConfettiOverlay from '../components/ConfettiOverlay';
 
 function getInitials(name) {
@@ -170,7 +170,7 @@ export default function EventDetailScreen({ route, navigation }) {
 
   const hasCoordinates =
     event.venueLatitude != null && event.venueLongitude != null;
-  const isExpired = new Date(event.eventDate) < new Date();
+  const isExpired = parseEventDate(event.eventDate) < new Date();
 
   const addToCalendar = async () => {
     const { status } = await Calendar.requestCalendarPermissionsAsync();
@@ -187,7 +187,7 @@ export default function EventDetailScreen({ route, navigation }) {
         return;
       }
 
-      const startDate = new Date(event.eventDate);
+      const startDate = parseEventDate(event.eventDate);
       const endDate = new Date(startDate.getTime() + 3 * 60 * 60 * 1000);
 
       await Calendar.createEventAsync(writable.id, {
@@ -650,12 +650,12 @@ export default function EventDetailScreen({ route, navigation }) {
         <View style={styles.infoCard}>
           <Text style={styles.sectionTitle}>{t('detail_date_time')}</Text>
           <Text style={styles.infoValue}>
-            {new Date(event.eventDate).toLocaleDateString('tr-TR', {
+            {parseEventDate(event.eventDate).toLocaleDateString('tr-TR', {
               weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
             })}
           </Text>
           <Text style={styles.infoValueSub}>
-            🕐 {new Date(event.eventDate).toLocaleTimeString('tr-TR', {
+            🕐 {parseEventDate(event.eventDate).toLocaleTimeString('tr-TR', {
               hour: '2-digit', minute: '2-digit',
             })}
           </Text>

@@ -10,6 +10,7 @@ import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
+import { parseEventDate } from '../utils/time';
 
 const GOAL_OPTIONS = [5, 10, 15, 20, 25, 30, 50];
 const GOAL_STORAGE_KEY = 'passport_concert_goal';
@@ -29,13 +30,13 @@ function genreColor(g) {
 
 function formatDate(iso) {
   if (!iso) return '';
-  return new Date(iso).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
+  return parseEventDate(iso).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 function groupByYear(events) {
   const map = {};
   events.forEach(ev => {
-    const year = new Date(ev.eventDate).getFullYear();
+    const year = parseEventDate(ev.eventDate).getFullYear();
     if (!map[year]) map[year] = [];
     map[year].push(ev);
   });
