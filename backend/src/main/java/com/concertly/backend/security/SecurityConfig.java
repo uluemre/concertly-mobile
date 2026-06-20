@@ -81,6 +81,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/artists/enrich").hasRole("ADMIN")
                         // Yüklenen görseller — <Image> etiketleri auth header gönderemez
                         .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
+                        // Yasal sayfalar (gizlilik/şartlar) — App Store reviewer'ı ve kullanıcılar
+                        // tarayıcıdan kimliksiz erişebilmeli. classpath:/static/legal/*.html
+                        .requestMatchers(HttpMethod.GET, "/legal/**").permitAll()
                         .anyRequest().authenticated()
 
                 )
