@@ -39,6 +39,8 @@ import EventDetailScreen from '../screens/EventDetailScreen';
 import CreatePostScreen from '../screens/CreatePostScreen';
 import CommunitiesScreen from '../screens/CommunitiesScreen';
 import CommunityDetailScreen from '../screens/CommunityDetailScreen';
+import CreateCommunityScreen from '../screens/CreateCommunityScreen';
+import CommunityManageScreen from '../screens/CommunityManageScreen';
 import ArtistProfileScreen from '../screens/ArtistProfileScreen';
 import WelcomeScreen from '../screens/WelcomeScreen';
 import SettingsScreen from '../screens/SettingsScreen';
@@ -53,6 +55,7 @@ import AdminEventsScreen from '../screens/AdminEventsScreen';
 import AdminUsersScreen from '../screens/AdminUsersScreen';
 import AdminPostsScreen from '../screens/AdminPostsScreen';
 import AdminDeletionFeedbackScreen from '../screens/AdminDeletionFeedbackScreen';
+import AdminCommunitiesScreen from '../screens/AdminCommunitiesScreen';
 import SpotifyRecommendationsScreen from '../screens/SpotifyRecommendationsScreen';
 import VenueProfileScreen from '../screens/VenueProfileScreen';
 import PostDetailScreen from '../screens/PostDetailScreen';
@@ -279,6 +282,16 @@ export default function AppNavigator() {
         />
 
         <Stack.Screen
+          name="CreateCommunity"
+          component={CreateCommunityScreen}
+        />
+
+        <Stack.Screen
+          name="CommunityManage"
+          component={CommunityManageScreen}
+        />
+
+        <Stack.Screen
           name="ArtistProfile"
           component={ArtistProfileScreen}
         />
@@ -309,6 +322,7 @@ export default function AppNavigator() {
         <Stack.Screen name="AdminUsers" component={AdminUsersScreen} />
         <Stack.Screen name="AdminPosts" component={AdminPostsScreen} />
         <Stack.Screen name="AdminDeletionFeedback" component={AdminDeletionFeedbackScreen} />
+        <Stack.Screen name="AdminCommunities" component={AdminCommunitiesScreen} />
         <Stack.Screen name="SpotifyRecommendations" component={SpotifyRecommendationsScreen} />
         <Stack.Screen name="VenueProfile" component={VenueProfileScreen} />
         <Stack.Screen name="PostDetail" component={PostDetailScreen} />

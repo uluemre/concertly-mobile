@@ -52,6 +52,13 @@ const NAV_ITEMS = [
     badgeLabelKey: 'admin_badge_posts',
   },
   {
+    titleKey: 'admin_nav_communities_title',
+    subtitleKey: 'admin_nav_communities_sub',
+    icon: '👥',
+    screen: 'AdminCommunities',
+    gradient: ['#7C3AED', '#EC4899'],
+  },
+  {
     titleKey: 'admin_nav_deletion_title',
     subtitleKey: 'admin_nav_deletion_sub',
     icon: '📭',

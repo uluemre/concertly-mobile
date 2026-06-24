@@ -3,6 +3,7 @@ package com.concertly.backend.dto.response;
 import com.concertly.backend.model.Community;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -25,6 +26,7 @@ public class CommunityResponse {
 
     private String visibility;       // PUBLIC | PRIVATE | SECRET
     private String approvalStatus;   // PENDING | APPROVED | REJECTED
+    private LocalDateTime createdAt;
 
     private Long ownerId;
     private String ownerUsername;
@@ -67,6 +69,7 @@ public class CommunityResponse {
         // Eski/seed kayıtlarında null olabilir → güvenli varsayılan
         dto.visibility = community.getVisibility() != null ? community.getVisibility() : "PUBLIC";
         dto.approvalStatus = community.getApprovalStatus() != null ? community.getApprovalStatus() : "APPROVED";
+        dto.createdAt = community.getCreatedAt();
 
         if (community.getOwner() != null) {
             dto.ownerId = community.getOwner().getId();
@@ -108,6 +111,7 @@ public class CommunityResponse {
     public long getPostCount() { return postCount; }
     public String getVisibility() { return visibility; }
     public String getApprovalStatus() { return approvalStatus; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
     public Long getOwnerId() { return ownerId; }
     public String getOwnerUsername() { return ownerUsername; }
     public String getOwnerProfileImageUrl() { return ownerProfileImageUrl; }

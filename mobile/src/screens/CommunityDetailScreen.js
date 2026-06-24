@@ -1,13 +1,13 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  TouchableOpacity, TextInput, ActivityIndicator, Image
+  TouchableOpacity, TextInput, ActivityIndicator, Image, Alert
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
-import API from '../services/api';
+import API, { getErrorMessage } from '../services/api';
 
 function formatRelativeTime(isoString) {
   const now = Date.now();
@@ -32,19 +32,27 @@ export default function CommunityDetailScreen({ route, navigation }) {
   const [community, setCommunity] = useState(null);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [joined, setJoined] = useState(false);
+  const [postsLocked, setPostsLocked] = useState(false);
   const [draft, setDraft] = useState('');
   const [publishing, setPublishing] = useState(false);
+  const [acting, setActing] = useState(false);
+
+  const status = community?.currentUserStatus;       // ACTIVE | PENDING | INVITED | null
+  const joined = status === 'ACTIVE';
 
   const fetchData = useCallback(async () => {
     try {
-      const [commRes, postsRes] = await Promise.all([
-        API.get(`/communities/${communityId}`),
-        API.get(`/communities/${communityId}/posts`),
-      ]);
+      const commRes = await API.get(`/communities/${communityId}`);
       setCommunity(commRes.data);
-      setJoined(commRes.data.isJoinedByCurrentUser);
-      setPosts(postsRes.data);
+      try {
+        const postsRes = await API.get(`/communities/${communityId}/posts`);
+        setPosts(postsRes.data);
+        setPostsLocked(false);
+      } catch {
+        // Public dışı topluluklarda üye olmayan gönderileri göremez
+        setPostsLocked(true);
+        setPosts([]);
+      }
     } catch (err) {
       console.error('Community detail fetch error:', err);
     } finally {
@@ -58,24 +66,42 @@ export default function CommunityDetailScreen({ route, navigation }) {
     }, [fetchData])
   );
 
-  const toggleJoin = async () => {
+  // Görünürlük + üyelik durumuna göre ana buton davranışı
+  const handleJoinPress = async () => {
+    if (acting) return;
+    setActing(true);
     try {
       if (joined) {
         await API.delete(`/communities/${communityId}/join`);
+        await fetchData();
+      } else if (status === 'INVITED') {
+        const res = await API.post(`/communities/${communityId}/invite/accept`);
+        setCommunity(res.data);
+        await fetchData();
       } else {
-        await API.post(`/communities/${communityId}/join`);
+        const res = await API.post(`/communities/${communityId}/join`);
+        setCommunity(res.data);
+        if (res.data.currentUserStatus === 'PENDING') {
+          Alert.alert(t('success'), t('community_request_sent'));
+        } else {
+          await fetchData();
+        }
       }
-      const newJoined = !joined;
-      setJoined(newJoined);
-      setCommunity(prev => prev ? {
-        ...prev,
-        isJoinedByCurrentUser: newJoined,
-        memberCount: prev.memberCount + (newJoined ? 1 : -1),
-      } : prev);
     } catch (err) {
-      console.error('Join toggle error:', err);
+      Alert.alert(t('error'), getErrorMessage(err));
+    } finally {
+      setActing(false);
     }
   };
+
+  // Ana buton metni / pasifliği
+  const joinButton = (() => {
+    if (status === 'PENDING') return { label: t('community_request_pending'), disabled: true, active: true };
+    if (status === 'INVITED') return { label: t('communities_join'), disabled: false, active: false };
+    if (joined) return { label: t('communities_joined'), disabled: false, active: true };
+    if (community?.visibility === 'PRIVATE') return { label: t('community_request_join'), disabled: false, active: false };
+    return { label: t('communities_join'), disabled: false, active: false };
+  })();
 
   const publishPost = async () => {
     const content = draft.trim();
@@ -160,15 +186,42 @@ export default function CommunityDetailScreen({ route, navigation }) {
           </View>
         </View>
 
-        <TouchableOpacity
-          onPress={toggleJoin}
-          style={[styles.heroJoinButton, joined && styles.heroJoinButtonActive]}
-        >
-          <Text style={[styles.heroJoinText, joined && styles.heroJoinTextActive]}>
-            {joined ? t('communities_joined') : t('communities_join')}
-          </Text>
-        </TouchableOpacity>
+        {community.canManage ? (
+          <TouchableOpacity
+            onPress={() => navigation.navigate('CommunityManage', { communityId })}
+            style={[styles.heroJoinButton, styles.heroJoinButtonActive]}
+          >
+            <Text style={styles.heroJoinTextActive}>
+              {t('community_manage')}
+              {community.pendingRequestCount > 0 ? ` (${community.pendingRequestCount})` : ''}
+            </Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            onPress={handleJoinPress}
+            disabled={joinButton.disabled || acting}
+            style={[styles.heroJoinButton, joinButton.active && styles.heroJoinButtonActive, (joinButton.disabled || acting) && { opacity: 0.7 }]}
+          >
+            {acting
+              ? <ActivityIndicator color={joinButton.active ? '#fff' : colors.primary} />
+              : <Text style={[styles.heroJoinText, joinButton.active && styles.heroJoinTextActive]}>
+                  {joinButton.label}
+                </Text>}
+          </TouchableOpacity>
+        )}
       </LinearGradient>
+
+      {/* ONAY DURUMU BANNER'I */}
+      {community.approvalStatus === 'PENDING' && (
+        <View style={[styles.banner, styles.bannerReview]}>
+          <Text style={styles.bannerText}>🕒 {t('community_review_banner')}</Text>
+        </View>
+      )}
+      {community.approvalStatus === 'REJECTED' && (
+        <View style={[styles.banner, styles.bannerRejected]}>
+          <Text style={styles.bannerText}>⚠️ {t('community_rejected_banner')}</Text>
+        </View>
+      )}
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{t('communities_next_event')}</Text>
@@ -180,30 +233,34 @@ export default function CommunityDetailScreen({ route, navigation }) {
         </View>
       </View>
 
-      <View style={styles.section}>
-        <View style={styles.composer}>
-          <TextInput
-            value={draft}
-            onChangeText={setDraft}
-            placeholder={joined ? t('communities_compose') : t('communities_compose_locked')}
-            placeholderTextColor={colors.textSecondary}
-            editable={joined}
-            multiline
-            style={styles.composerInput}
-          />
-          <TouchableOpacity
-            onPress={publishPost}
-            disabled={!joined || !draft.trim() || publishing}
-            style={[styles.publishButton, (!joined || !draft.trim() || publishing) && styles.publishButtonDisabled]}
-          >
-            <Text style={styles.publishText}>{publishing ? '...' : t('communities_publish')}</Text>
-          </TouchableOpacity>
+      {joined && (
+        <View style={styles.section}>
+          <View style={styles.composer}>
+            <TextInput
+              value={draft}
+              onChangeText={setDraft}
+              placeholder={t('communities_compose')}
+              placeholderTextColor={colors.textSecondary}
+              multiline
+              style={styles.composerInput}
+            />
+            <TouchableOpacity
+              onPress={publishPost}
+              disabled={!draft.trim() || publishing}
+              style={[styles.publishButton, (!draft.trim() || publishing) && styles.publishButtonDisabled]}
+            >
+              <Text style={styles.publishText}>{publishing ? '...' : t('communities_publish')}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
+      )}
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{t('communities_feed')}</Text>
-        {posts.map(post => (
+        {postsLocked && (
+          <Text style={styles.emptyText}>🔒 {t('community_posts_locked')}</Text>
+        )}
+        {!postsLocked && posts.map(post => (
           <View key={post.id} style={styles.postCard}>
             <View style={styles.postHeader}>
               {post.userProfileImageUrl ? (
@@ -231,7 +288,7 @@ export default function CommunityDetailScreen({ route, navigation }) {
             </View>
           </View>
         ))}
-        {posts.length === 0 && (
+        {!postsLocked && posts.length === 0 && (
           <Text style={styles.emptyText}>{t('communities_empty')}</Text>
         )}
       </View>
@@ -245,6 +302,10 @@ function createStyles(colors) {
     scrollContent: { paddingBottom: 32 },
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     errorText: { color: colors.textSecondary, fontSize: 14 },
+    banner: { marginHorizontal: 16, marginTop: 14, borderRadius: 12, padding: 12, borderWidth: 1 },
+    bannerReview: { backgroundColor: '#F5A62318', borderColor: '#F5A623' },
+    bannerRejected: { backgroundColor: '#E9456018', borderColor: '#E94560' },
+    bannerText: { color: colors.text, fontSize: 12, lineHeight: 17, fontWeight: '600' },
     hero: {
       paddingTop: 56,
       paddingBottom: 28,

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  TouchableOpacity, TextInput, ActivityIndicator
+  TouchableOpacity, TextInput, ActivityIndicator, Alert
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
@@ -30,6 +30,9 @@ export default function CommunitiesScreen({ navigation }) {
   const [communities, setCommunities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showCode, setShowCode] = useState(false);
+  const [code, setCode] = useState('');
+  const [joiningCode, setJoiningCode] = useState(false);
   const debounceRef = useRef(null);
 
   const fetchCommunities = useCallback(async (type, q) => {
@@ -77,24 +80,41 @@ export default function CommunitiesScreen({ navigation }) {
 
   const joinedCount = communities.filter(c => c.isJoinedByCurrentUser).length;
 
+  const joinByCode = async () => {
+    const trimmed = code.trim();
+    if (!trimmed || joiningCode) return;
+    setJoiningCode(true);
+    try {
+      const res = await API.post('/communities/join', null, { params: { code: trimmed } });
+      setCode('');
+      setShowCode(false);
+      navigation.navigate('CommunityDetail', { communityId: res.data.id });
+    } catch (err) {
+      Alert.alert(t('error'), getErrorMessage(err));
+    } finally {
+      setJoiningCode(false);
+    }
+  };
+
   const toggleJoin = async (community) => {
     try {
       if (community.isJoinedByCurrentUser) {
         await API.delete(`/communities/${community.id}/join`);
+        setCommunities(prev => prev.map(c =>
+          c.id === community.id
+            ? { ...c, isJoinedByCurrentUser: false, currentUserStatus: null, memberCount: Math.max(0, c.memberCount - 1) }
+            : c
+        ));
       } else {
-        await API.post(`/communities/${community.id}/join`);
+        // Sunucu görünürlüğe göre ACTIVE/PENDING döner — yanıtı doğrudan kullan
+        const res = await API.post(`/communities/${community.id}/join`);
+        setCommunities(prev => prev.map(c => c.id === community.id ? res.data : c));
+        if (res.data.currentUserStatus === 'PENDING') {
+          Alert.alert(t('success'), t('community_request_sent'));
+        }
       }
-      setCommunities(prev => prev.map(c =>
-        c.id === community.id
-          ? {
-              ...c,
-              isJoinedByCurrentUser: !c.isJoinedByCurrentUser,
-              memberCount: c.memberCount + (c.isJoinedByCurrentUser ? -1 : 1),
-            }
-          : c
-      ));
     } catch (err) {
-      console.error('Join toggle error:', err);
+      Alert.alert(t('error'), getErrorMessage(err));
     }
   };
 
@@ -122,6 +142,14 @@ export default function CommunitiesScreen({ navigation }) {
         </View>
       </LinearGradient>
 
+      <TouchableOpacity
+        style={styles.createBtn}
+        activeOpacity={0.88}
+        onPress={() => navigation.navigate('CreateCommunity')}
+      >
+        <Text style={styles.createBtnText}>{t('community_create_btn')}</Text>
+      </TouchableOpacity>
+
       <View style={styles.searchBox}>
         <Text style={styles.searchIcon}>⌕</Text>
         <TextInput
@@ -132,6 +160,28 @@ export default function CommunitiesScreen({ navigation }) {
           onChangeText={setQuery}
         />
       </View>
+
+      {/* Davet koduyla katıl */}
+      {showCode ? (
+        <View style={styles.codeBox}>
+          <TextInput
+            style={styles.codeInput}
+            placeholder={t('community_join_code_ph')}
+            placeholderTextColor={colors.textSecondary}
+            value={code}
+            onChangeText={setCode}
+            autoCapitalize="characters"
+            autoCorrect={false}
+          />
+          <TouchableOpacity onPress={joinByCode} disabled={!code.trim() || joiningCode} style={[styles.codeBtn, (!code.trim() || joiningCode) && { opacity: 0.5 }]}>
+            <Text style={styles.codeBtnText}>{joiningCode ? '...' : t('community_join_code_btn')}</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <TouchableOpacity onPress={() => setShowCode(true)} style={styles.codeLink}>
+          <Text style={styles.codeLinkText}>🔑 {t('community_join_by_code')}</Text>
+        </TouchableOpacity>
+      )}
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
         {FILTERS.map(filter => (
@@ -174,7 +224,11 @@ export default function CommunitiesScreen({ navigation }) {
                 style={styles.communityArt}
               >
                 <Text style={styles.communityEmoji}>{community.emoji}</Text>
-                {community.live && (
+                {community.approvalStatus === 'PENDING' ? (
+                  <View style={styles.reviewBadge}>
+                    <Text style={styles.reviewText}>{t('community_pending_badge')}</Text>
+                  </View>
+                ) : community.live && (
                   <View style={styles.liveBadge}>
                     <Text style={styles.liveText}>{t('communities_live')}</Text>
                   </View>
@@ -184,15 +238,22 @@ export default function CommunitiesScreen({ navigation }) {
               <View style={styles.communityBody}>
                 <View style={styles.communityTop}>
                   <View style={styles.communityTitleArea}>
-                    <Text style={styles.communityName} numberOfLines={1}>{community.name}</Text>
+                    <Text style={styles.communityName} numberOfLines={1}>
+                      {community.visibility === 'PRIVATE' ? '🔒 ' : community.visibility === 'SECRET' ? '🕵️ ' : ''}{community.name}
+                    </Text>
                     <Text style={styles.communityMeta}>{community.city} · {community.type}</Text>
                   </View>
                   <TouchableOpacity
                     onPress={() => toggleJoin(community)}
-                    style={[styles.joinButton, community.isJoinedByCurrentUser && styles.joinButtonActive]}
+                    disabled={community.currentUserStatus === 'PENDING'}
+                    style={[styles.joinButton, (community.isJoinedByCurrentUser || community.currentUserStatus === 'PENDING') && styles.joinButtonActive]}
                   >
-                    <Text style={[styles.joinText, community.isJoinedByCurrentUser && styles.joinTextActive]}>
-                      {community.isJoinedByCurrentUser ? t('communities_joined') : t('communities_join')}
+                    <Text style={[styles.joinText, (community.isJoinedByCurrentUser || community.currentUserStatus === 'PENDING') && styles.joinTextActive]}>
+                      {community.currentUserStatus === 'PENDING'
+                        ? t('community_request_pending')
+                        : community.isJoinedByCurrentUser
+                          ? t('communities_joined')
+                          : t('communities_join')}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -251,6 +312,31 @@ function createStyles(colors) {
     },
     searchIcon: { color: colors.textSecondary, fontSize: 17 },
     searchInput: { flex: 1, color: colors.text, fontSize: 14 },
+    createBtn: {
+      marginHorizontal: 16, marginTop: 16,
+      backgroundColor: colors.primary, borderRadius: 14,
+      paddingVertical: 13, alignItems: 'center',
+    },
+    createBtnText: { color: '#fff', fontSize: 14, fontWeight: '900' },
+    codeLink: { marginHorizontal: 16, marginTop: 10, alignSelf: 'flex-start' },
+    codeLinkText: { color: colors.primary, fontSize: 13, fontWeight: '800' },
+    codeBox: {
+      flexDirection: 'row', alignItems: 'center', gap: 8,
+      marginHorizontal: 16, marginTop: 10,
+    },
+    codeInput: {
+      flex: 1, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
+      borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10,
+      color: colors.text, fontSize: 14, letterSpacing: 2,
+    },
+    codeBtn: { backgroundColor: colors.primary, borderRadius: 12, paddingHorizontal: 18, paddingVertical: 11 },
+    codeBtnText: { color: '#fff', fontSize: 13, fontWeight: '800' },
+    reviewBadge: {
+      position: 'absolute', top: 10, left: 10,
+      backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: 9,
+      paddingHorizontal: 7, paddingVertical: 3,
+    },
+    reviewText: { color: '#fff', fontSize: 9, fontWeight: '800' },
     filters: { paddingHorizontal: 16, paddingTop: 14, gap: 8 },
     filterChip: {
       paddingHorizontal: 14,
