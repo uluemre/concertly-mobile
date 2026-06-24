@@ -37,6 +37,13 @@ export default function CommunityDetailScreen({ route, navigation }) {
   const [publishing, setPublishing] = useState(false);
   const [acting, setActing] = useState(false);
 
+  // Yorumlar (yanıtlar)
+  const [expanded, setExpanded] = useState(null);           // açık olan post id
+  const [commentsByPost, setCommentsByPost] = useState({}); // postId -> yorum[]
+  const [commentDrafts, setCommentDrafts] = useState({});   // postId -> taslak metin
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [sendingComment, setSendingComment] = useState(false);
+
   const status = community?.currentUserStatus;       // ACTIVE | PENDING | INVITED | null
   const joined = status === 'ACTIVE';
 
@@ -137,6 +144,41 @@ export default function CommunityDetailScreen({ route, navigation }) {
       ));
     } catch (err) {
       console.error('Like toggle error:', err);
+    }
+  };
+
+  const toggleComments = async (post) => {
+    if (expanded === post.id) { setExpanded(null); return; }
+    setExpanded(post.id);
+    if (!commentsByPost[post.id]) {
+      setLoadingComments(true);
+      try {
+        const res = await API.get(`/communities/${communityId}/posts/${post.id}/comments`);
+        setCommentsByPost(prev => ({ ...prev, [post.id]: res.data }));
+      } catch (err) {
+        Alert.alert(t('error'), getErrorMessage(err));
+      } finally {
+        setLoadingComments(false);
+      }
+    }
+  };
+
+  const setDraftFor = (postId, text) =>
+    setCommentDrafts(prev => ({ ...prev, [postId]: text }));
+
+  const sendComment = async (post) => {
+    const content = (commentDrafts[post.id] || '').trim();
+    if (!content || sendingComment) return;
+    setSendingComment(true);
+    try {
+      const res = await API.post(`/communities/${communityId}/posts/${post.id}/comments`, { content });
+      setCommentsByPost(prev => ({ ...prev, [post.id]: [...(prev[post.id] || []), res.data] }));
+      setDraftFor(post.id, '');
+      setPosts(prev => prev.map(p => p.id === post.id ? { ...p, commentCount: (p.commentCount || 0) + 1 } : p));
+    } catch (err) {
+      Alert.alert(t('error'), getErrorMessage(err));
+    } finally {
+      setSendingComment(false);
     }
   };
 
@@ -260,39 +302,98 @@ export default function CommunityDetailScreen({ route, navigation }) {
         {postsLocked && (
           <Text style={styles.emptyText}>🔒 {t('community_posts_locked')}</Text>
         )}
-        {!postsLocked && posts.map(post => (
-          <View key={post.id} style={styles.postCard}>
-            <View style={styles.postHeader}>
-              {post.userProfileImageUrl ? (
-                <Image source={{ uri: post.userProfileImageUrl }} style={styles.avatar} />
-              ) : (
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>
-                    {(post.username || '?').charAt(0).toUpperCase()}
+        {!postsLocked && posts.map(post => {
+          const open = expanded === post.id;
+          const comments = commentsByPost[post.id] || [];
+          return (
+            <View key={post.id} style={styles.postCard}>
+              <View style={styles.postHeader}>
+                <Avatar uri={post.userProfileImageUrl} name={post.username} styles={styles} />
+                <View style={styles.postHeaderText}>
+                  <Text style={styles.username}>@{post.username}</Text>
+                  <Text style={styles.postTime}>{formatRelativeTime(post.createdAt)}</Text>
+                </View>
+              </View>
+              <Text style={styles.postContent}>{post.content}</Text>
+
+              <View style={styles.postFooter}>
+                <TouchableOpacity onPress={() => toggleLike(post)} style={styles.actionBtn} activeOpacity={0.7}>
+                  <Text style={[styles.actionIcon, post.isLikedByCurrentUser && styles.actionIconLiked]}>
+                    {post.isLikedByCurrentUser ? '♥' : '♡'}
                   </Text>
+                  <Text style={[styles.actionLabel, post.isLikedByCurrentUser && styles.actionLabelLiked]}>
+                    {post.likeCount}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => toggleComments(post)} style={styles.actionBtn} activeOpacity={0.7}>
+                  <Text style={[styles.actionIcon, open && styles.actionLabelActive]}>💬</Text>
+                  <Text style={[styles.actionLabel, open && styles.actionLabelActive]}>
+                    {post.commentCount || 0} {t('communities_reply')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* YORUMLAR */}
+              {open && (
+                <View style={styles.commentsWrap}>
+                  {loadingComments && !commentsByPost[post.id] ? (
+                    <ActivityIndicator color={colors.primary} style={{ marginVertical: 12 }} />
+                  ) : (
+                    <>
+                      {comments.map(c => (
+                        <View key={c.id} style={styles.commentRow}>
+                          <Avatar uri={c.userProfileImageUrl} name={c.username} styles={styles} small />
+                          <View style={styles.commentBubble}>
+                            <Text style={styles.commentUser}>@{c.username}</Text>
+                            <Text style={styles.commentText}>{c.content}</Text>
+                          </View>
+                        </View>
+                      ))}
+                      {comments.length === 0 && (
+                        <Text style={styles.commentEmpty}>{t('communities_no_comments')}</Text>
+                      )}
+                    </>
+                  )}
+
+                  {joined && (
+                    <View style={styles.commentComposer}>
+                      <TextInput
+                        value={commentDrafts[post.id] || ''}
+                        onChangeText={(txt) => setDraftFor(post.id, txt)}
+                        placeholder={t('communities_reply_ph')}
+                        placeholderTextColor={colors.textSecondary}
+                        style={styles.commentInput}
+                        multiline
+                      />
+                      <TouchableOpacity
+                        onPress={() => sendComment(post)}
+                        disabled={!(commentDrafts[post.id] || '').trim() || sendingComment}
+                        style={[styles.commentSend, (!(commentDrafts[post.id] || '').trim() || sendingComment) && { opacity: 0.4 }]}
+                      >
+                        <Text style={styles.commentSendText}>➤</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
                 </View>
               )}
-              <View style={styles.postHeaderText}>
-                <Text style={styles.username}>@{post.username}</Text>
-                <Text style={styles.postTime}>{formatRelativeTime(post.createdAt)}</Text>
-              </View>
             </View>
-            <Text style={styles.postContent}>{post.content}</Text>
-            <View style={styles.postFooter}>
-              <TouchableOpacity onPress={() => toggleLike(post)}>
-                <Text style={[styles.postAction, post.isLikedByCurrentUser && styles.postActionLiked]}>
-                  ♥ {post.likeCount}
-                </Text>
-              </TouchableOpacity>
-              <Text style={styles.postAction}>{t('communities_reply')}</Text>
-            </View>
-          </View>
-        ))}
+          );
+        })}
         {!postsLocked && posts.length === 0 && (
           <Text style={styles.emptyText}>{t('communities_empty')}</Text>
         )}
       </View>
     </ScrollView>
+  );
+}
+
+function Avatar({ uri, name, styles, small }) {
+  const st = small ? styles.avatarSmall : styles.avatar;
+  if (uri) return <Image source={{ uri }} style={st} />;
+  return (
+    <View style={st}>
+      <Text style={styles.avatarText}>{(name || '?').charAt(0).toUpperCase()}</Text>
+    </View>
   );
 }
 
@@ -386,15 +487,26 @@ function createStyles(colors) {
       backgroundColor: colors.card,
       borderWidth: 1,
       borderColor: colors.border,
-      borderRadius: 16,
-      padding: 15,
-      marginBottom: 11,
-    },
-    postHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
-    avatar: {
-      width: 36,
-      height: 36,
       borderRadius: 18,
+      padding: 16,
+      marginBottom: 12,
+    },
+    postHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 11 },
+    avatar: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.cardAlt,
+      borderWidth: 1,
+      borderColor: colors.border,
+      overflow: 'hidden',
+    },
+    avatarSmall: {
+      width: 30,
+      height: 30,
+      borderRadius: 15,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: colors.cardAlt,
@@ -404,12 +516,48 @@ function createStyles(colors) {
     },
     avatarText: { color: colors.primary, fontSize: 14, fontWeight: '900' },
     postHeaderText: { flex: 1 },
-    username: { color: colors.text, fontSize: 13, fontWeight: '800' },
+    username: { color: colors.text, fontSize: 14, fontWeight: '800' },
     postTime: { color: colors.textSecondary, fontSize: 11, marginTop: 2 },
-    postContent: { color: colors.text, fontSize: 14, lineHeight: 20 },
-    postFooter: { flexDirection: 'row', gap: 14, marginTop: 12 },
-    postAction: { color: colors.textSecondary, fontSize: 12, fontWeight: '700' },
-    postActionLiked: { color: colors.primary },
+    postContent: { color: colors.text, fontSize: 14.5, lineHeight: 21 },
+
+    postFooter: {
+      flexDirection: 'row', gap: 10, marginTop: 14,
+      paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.border,
+    },
+    actionBtn: {
+      flexDirection: 'row', alignItems: 'center', gap: 6,
+      paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20,
+      backgroundColor: colors.cardAlt,
+    },
+    actionIcon: { color: colors.textSecondary, fontSize: 15, fontWeight: '800' },
+    actionIconLiked: { color: '#E94560' },
+    actionLabel: { color: colors.textSecondary, fontSize: 12, fontWeight: '800' },
+    actionLabelLiked: { color: '#E94560' },
+    actionLabelActive: { color: colors.primary },
+
+    // YORUMLAR
+    commentsWrap: { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.border, gap: 10 },
+    commentRow: { flexDirection: 'row', gap: 9, alignItems: 'flex-start' },
+    commentBubble: {
+      flex: 1, backgroundColor: colors.cardAlt,
+      borderRadius: 14, paddingHorizontal: 12, paddingVertical: 9,
+    },
+    commentUser: { color: colors.text, fontSize: 12, fontWeight: '800', marginBottom: 2 },
+    commentText: { color: colors.text, fontSize: 13.5, lineHeight: 19 },
+    commentEmpty: { color: colors.textSecondary, fontSize: 12.5, fontStyle: 'italic', paddingVertical: 4 },
+    commentComposer: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginTop: 2 },
+    commentInput: {
+      flex: 1, backgroundColor: colors.background,
+      borderWidth: 1, borderColor: colors.border, borderRadius: 16,
+      paddingHorizontal: 14, paddingVertical: 9,
+      color: colors.text, fontSize: 13.5, maxHeight: 100,
+    },
+    commentSend: {
+      width: 38, height: 38, borderRadius: 19,
+      backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center',
+    },
+    commentSendText: { color: '#fff', fontSize: 15, fontWeight: '900' },
+
     emptyText: { color: colors.textSecondary, fontSize: 13, textAlign: 'center', marginTop: 20 },
   });
 }

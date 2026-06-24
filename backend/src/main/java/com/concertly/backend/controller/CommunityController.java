@@ -3,6 +3,7 @@ package com.concertly.backend.controller;
 import com.concertly.backend.dto.request.CreateCommunityPostRequest;
 import com.concertly.backend.dto.request.CreateCommunityRequest;
 import com.concertly.backend.dto.response.CommunityMemberResponse;
+import com.concertly.backend.dto.response.CommunityPostCommentResponse;
 import com.concertly.backend.dto.response.CommunityPostResponse;
 import com.concertly.backend.dto.response.CommunityResponse;
 import com.concertly.backend.security.JwtUtil;
@@ -172,6 +173,20 @@ public class CommunityController {
             @PathVariable Long id,
             @RequestBody CreateCommunityPostRequest request) {
         return communityService.createCommunityPost(JwtUtil.getCurrentUserId(), id, request);
+    }
+
+    @GetMapping("/{id}/posts/{postId}/comments")
+    public List<CommunityPostCommentResponse> comments(@PathVariable Long id, @PathVariable Long postId) {
+        return communityService.getPostComments(id, postId, JwtUtil.getCurrentUserId());
+    }
+
+    @PostMapping("/{id}/posts/{postId}/comments")
+    @ResponseStatus(HttpStatus.CREATED)
+    public CommunityPostCommentResponse addComment(
+            @PathVariable Long id,
+            @PathVariable Long postId,
+            @RequestBody CreateCommunityPostRequest request) {
+        return communityService.addPostComment(JwtUtil.getCurrentUserId(), id, postId, request.getContent());
     }
 
     @PostMapping("/{id}/posts/{postId}/like")

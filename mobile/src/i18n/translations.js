@@ -178,9 +178,14 @@ export const translations = {
     communities_compose_locked: 'Post atmak için topluluğa katıl',
     communities_empty: 'Henüz post yok. Topluluğa katılıp ilk postu sen at!',
     communities_publish: 'Paylaş',
+    communities_no_comments: 'Henüz yanıt yok. İlk yanıtı sen yaz!',
+    communities_reply_ph: 'Yanıt yaz...',
 
     // COMMUNITIES v2 — görünürlük / roller / davet / onay
     community_create_btn: '＋ Topluluk Kur',
+    communities_header_sub: 'Aynı müziği sevenlerle buluş, sohbet et, birlikte etkinlik planla.',
+    communities_discover: 'Keşfet',
+    communities_empty_list: 'Bu filtreye uygun topluluk yok. İlkini sen kur!',
     community_my_communities: 'Topluluklarım',
     community_pending_badge: '🕒 İnceleniyor',
     community_visibility_public: 'Herkese Açık',
@@ -1227,9 +1232,14 @@ export const translations = {
     communities_compose_locked: 'Join the community to post',
     communities_empty: 'No posts yet. Join and be the first!',
     communities_publish: 'Post',
+    communities_no_comments: 'No replies yet. Be the first to reply!',
+    communities_reply_ph: 'Write a reply...',
 
     // COMMUNITIES v2 — visibility / roles / invites / approval
     community_create_btn: '＋ Create Community',
+    communities_header_sub: 'Meet people who love the same music, chat, and plan events together.',
+    communities_discover: 'Discover',
+    communities_empty_list: 'No communities match this filter. Be the first to create one!',
     community_my_communities: 'My Communities',
     community_pending_badge: '🕒 Under review',
     community_visibility_public: 'Public',

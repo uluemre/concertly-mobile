@@ -26,6 +26,7 @@ public class DemoService {
     private final CommunityMemberRepository communityMemberRepository;
     private final CommunityPostRepository communityPostRepository;
     private final CommunityPostLikeRepository communityPostLikeRepository;
+    private final CommunityPostCommentRepository communityPostCommentRepository;
     private final EventAttendanceRepository eventAttendanceRepository;
     private final PasswordEncoder passwordEncoder;
 
@@ -33,13 +34,15 @@ public class DemoService {
                        UserRepository ur, PostRepository pr, CommentRepository cr,
                        LikeRepository lr, CommunityRepository comr,
                        CommunityMemberRepository cmr, CommunityPostRepository cpr,
-                       CommunityPostLikeRepository cplr, EventAttendanceRepository ear,
+                       CommunityPostLikeRepository cplr,
+                       CommunityPostCommentRepository cpcr, EventAttendanceRepository ear,
                        PasswordEncoder passwordEncoder) {
         this.venueRepository = vr; this.artistRepository = ar; this.eventRepository = er;
         this.userRepository = ur; this.postRepository = pr; this.commentRepository = cr;
         this.likeRepository = lr; this.communityRepository = comr;
         this.communityMemberRepository = cmr; this.communityPostRepository = cpr;
-        this.communityPostLikeRepository = cplr; this.eventAttendanceRepository = ear;
+        this.communityPostLikeRepository = cplr; this.communityPostCommentRepository = cpcr;
+        this.eventAttendanceRepository = ear;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -50,6 +53,7 @@ public class DemoService {
         likeRepository.deleteAll();
         postRepository.deleteAll();
         communityPostLikeRepository.deleteAll();
+        communityPostCommentRepository.deleteAll();
         communityPostRepository.deleteAll();
         communityMemberRepository.deleteAll();
         eventAttendanceRepository.deleteAll();

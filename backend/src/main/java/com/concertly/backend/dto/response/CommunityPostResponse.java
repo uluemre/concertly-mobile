@@ -11,6 +11,7 @@ public class CommunityPostResponse {
     private String content;
     private LocalDateTime createdAt;
     private long likeCount;
+    private long commentCount;
 
     private Long userId;
     private String username;
@@ -25,11 +26,19 @@ public class CommunityPostResponse {
     public static CommunityPostResponse from(CommunityPost post,
                                               long likeCount,
                                               boolean isLikedByCurrentUser) {
+        return from(post, likeCount, 0, isLikedByCurrentUser);
+    }
+
+    public static CommunityPostResponse from(CommunityPost post,
+                                              long likeCount,
+                                              long commentCount,
+                                              boolean isLikedByCurrentUser) {
         CommunityPostResponse dto = new CommunityPostResponse();
         dto.id = post.getId();
         dto.content = post.getContent();
         dto.createdAt = post.getCreatedAt();
         dto.likeCount = likeCount;
+        dto.commentCount = commentCount;
         dto.isLikedByCurrentUser = isLikedByCurrentUser;
 
         if (post.getUser() != null) {
@@ -50,6 +59,7 @@ public class CommunityPostResponse {
     public String getContent() { return content; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public long getLikeCount() { return likeCount; }
+    public long getCommentCount() { return commentCount; }
     public Long getUserId() { return userId; }
     public String getUsername() { return username; }
     public String getUserProfileImageUrl() { return userProfileImageUrl; }

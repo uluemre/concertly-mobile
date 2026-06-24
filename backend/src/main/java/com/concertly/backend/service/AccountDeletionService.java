@@ -51,14 +51,19 @@ public class AccountDeletionService {
         // 2) Kullanıcının COMMUNITY POSTLARINA bağlı çocuklar
         del("DELETE FROM CommunityPostLike cpl WHERE cpl.communityPost.id IN " +
                 "(SELECT cp.id FROM CommunityPost cp WHERE cp.user.id = :uid)", uid);
+        del("DELETE FROM CommunityPostComment cpc WHERE cpc.communityPost.id IN " +
+                "(SELECT cp.id FROM CommunityPost cp WHERE cp.user.id = :uid)", uid);
 
         // 3) Kullanıcının kendi etkileşimleri ve içerikleri
         del("DELETE FROM Like l WHERE l.user.id = :uid", uid);
         del("DELETE FROM Comment c WHERE c.user.id = :uid", uid);
         del("DELETE FROM PollVote pv WHERE pv.user.id = :uid", uid);
         del("DELETE FROM CommunityPostLike cpl WHERE cpl.user.id = :uid", uid);
+        del("DELETE FROM CommunityPostComment cpc WHERE cpc.user.id = :uid", uid);
         del("DELETE FROM Post p WHERE p.user.id = :uid", uid);
         del("DELETE FROM CommunityPost cp WHERE cp.user.id = :uid", uid);
+        // Kullanıcının sahip olduğu topluluklar silinmez, sahibi boşaltılır (Event ile aynı mantık)
+        del("UPDATE Community c SET c.owner = null WHERE c.owner.id = :uid", uid);
         del("DELETE FROM CommunityMember cm WHERE cm.user.id = :uid", uid);
         del("DELETE FROM EventAttendance ea WHERE ea.user.id = :uid", uid);
         del("DELETE FROM EventBookmark eb WHERE eb.user.id = :uid", uid);

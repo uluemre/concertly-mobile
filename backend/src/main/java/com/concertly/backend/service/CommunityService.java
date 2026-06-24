@@ -3,6 +3,7 @@ package com.concertly.backend.service;
 import com.concertly.backend.dto.request.CreateCommunityPostRequest;
 import com.concertly.backend.dto.request.CreateCommunityRequest;
 import com.concertly.backend.dto.response.CommunityMemberResponse;
+import com.concertly.backend.dto.response.CommunityPostCommentResponse;
 import com.concertly.backend.dto.response.CommunityPostResponse;
 import com.concertly.backend.dto.response.CommunityResponse;
 import com.concertly.backend.exception.AlreadyExistsException;
@@ -51,6 +52,7 @@ public class CommunityService {
     private final CommunityMemberRepository communityMemberRepository;
     private final CommunityPostRepository communityPostRepository;
     private final CommunityPostLikeRepository communityPostLikeRepository;
+    private final CommunityPostCommentRepository communityPostCommentRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
 
@@ -58,12 +60,14 @@ public class CommunityService {
                             CommunityMemberRepository communityMemberRepository,
                             CommunityPostRepository communityPostRepository,
                             CommunityPostLikeRepository communityPostLikeRepository,
+                            CommunityPostCommentRepository communityPostCommentRepository,
                             UserRepository userRepository,
                             NotificationService notificationService) {
         this.communityRepository = communityRepository;
         this.communityMemberRepository = communityMemberRepository;
         this.communityPostRepository = communityPostRepository;
         this.communityPostLikeRepository = communityPostLikeRepository;
+        this.communityPostCommentRepository = communityPostCommentRepository;
         this.userRepository = userRepository;
         this.notificationService = notificationService;
     }
@@ -297,6 +301,7 @@ public class CommunityService {
                 .stream().map(CommunityPost::getId).toList();
         if (!postIds.isEmpty()) {
             communityPostLikeRepository.deleteByCommunityPostIdIn(postIds);
+            communityPostCommentRepository.deleteByCommunityPostIdIn(postIds);
         }
         communityPostRepository.deleteByCommunityId(communityId);
         communityMemberRepository.deleteByCommunityId(communityId);
@@ -611,23 +616,72 @@ public class CommunityService {
                 .orElseThrow(() -> new ResourceNotFoundException("Topluluk bulunamadi: " + communityId));
 
         // Public dışı topluluklarda gönderileri yalnızca aktif üyeler (veya admin) görür
-        if (!PUBLIC.equals(effectiveVisibility(c))) {
-            boolean activeMember = currentUserId != null &&
-                    communityMemberRepository.existsByUserIdAndCommunityIdAndStatus(currentUserId, communityId, ACTIVE);
-            if (!activeMember && !isAdmin(currentUserId)) {
-                throw new IllegalArgumentException("Bu toplulugun gonderilerini gormek icin uye olmalisiniz.");
-            }
-        }
+        requireCanViewPosts(c, currentUserId);
 
         List<CommunityPost> posts = communityPostRepository.findByCommunityIdOrderByCreatedAtDesc(communityId);
+        if (posts.isEmpty()) return List.of();
+
+        List<Long> postIds = posts.stream().map(CommunityPost::getId).toList();
+        Map<Long, Long> commentCounts = toCountMap(communityPostCommentRepository.countByCommunityPostIdIn(postIds));
+
         List<CommunityPostResponse> result = new ArrayList<>();
         for (CommunityPost post : posts) {
             long likeCount = communityPostLikeRepository.countByCommunityPostId(post.getId());
             boolean liked = currentUserId != null &&
                     communityPostLikeRepository.findByUserIdAndCommunityPostId(currentUserId, post.getId()).isPresent();
-            result.add(CommunityPostResponse.from(post, likeCount, liked));
+            result.add(CommunityPostResponse.from(post, likeCount,
+                    commentCounts.getOrDefault(post.getId(), 0L), liked));
         }
         return result;
+    }
+
+    // ── Yorumlar (yanıtlar) ─────────────────────────────────────────────────────
+
+    public List<CommunityPostCommentResponse> getPostComments(Long communityId, Long postId, Long currentUserId) {
+        Community c = communityRepository.findById(communityId)
+                .orElseThrow(() -> new ResourceNotFoundException("Topluluk bulunamadi: " + communityId));
+        requireCanViewPosts(c, currentUserId);
+        return communityPostCommentRepository.findByCommunityPostIdOrderByCreatedAtAsc(postId)
+                .stream().map(CommunityPostCommentResponse::from).toList();
+    }
+
+    @Transactional
+    public CommunityPostCommentResponse addPostComment(Long userId, Long communityId, Long postId, String content) {
+        if (content == null || content.isBlank()) {
+            throw new IllegalArgumentException("Yorum bos olamaz.");
+        }
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Kullanici bulunamadi: " + userId));
+        communityRepository.findById(communityId)
+                .orElseThrow(() -> new ResourceNotFoundException("Topluluk bulunamadi: " + communityId));
+        CommunityPost post = communityPostRepository.findById(postId)
+                .orElseThrow(() -> new ResourceNotFoundException("Post bulunamadi: " + postId));
+
+        if (!communityMemberRepository.existsByUserIdAndCommunityIdAndStatus(userId, communityId, ACTIVE)) {
+            throw new IllegalArgumentException("Sadece uyeler yorum yapabilir.");
+        }
+
+        CommunityPostComment comment = new CommunityPostComment();
+        comment.setContent(content.trim());
+        comment.setUser(user);
+        comment.setCommunityPost(post);
+        CommunityPostComment saved = communityPostCommentRepository.save(comment);
+
+        // Gönderi sahibine bildirim (kendine değil)
+        if (post.getUser() != null && !post.getUser().getId().equals(userId)) {
+            notificationService.send(post.getUser().getId(), userId, "community_comment", "community", communityId);
+        }
+        return CommunityPostCommentResponse.from(saved);
+    }
+
+    // Public dışı topluluklarda gönderi/yorumları yalnızca aktif üye (veya admin) görebilir
+    private void requireCanViewPosts(Community c, Long currentUserId) {
+        if (PUBLIC.equals(effectiveVisibility(c))) return;
+        boolean activeMember = currentUserId != null &&
+                communityMemberRepository.existsByUserIdAndCommunityIdAndStatus(currentUserId, c.getId(), ACTIVE);
+        if (!activeMember && !isAdmin(currentUserId)) {
+            throw new IllegalArgumentException("Bu toplulugun gonderilerini gormek icin uye olmalisiniz.");
+        }
     }
 
     @Transactional
