@@ -6,6 +6,7 @@ import com.concertly.backend.dto.response.CommunityMemberResponse;
 import com.concertly.backend.dto.response.CommunityPostCommentResponse;
 import com.concertly.backend.dto.response.CommunityPostResponse;
 import com.concertly.backend.dto.response.CommunityResponse;
+import com.concertly.backend.dto.response.PollOptionDto;
 import com.concertly.backend.exception.AlreadyExistsException;
 import com.concertly.backend.exception.ResourceNotFoundException;
 import com.concertly.backend.model.*;
@@ -53,6 +54,8 @@ public class CommunityService {
     private final CommunityPostRepository communityPostRepository;
     private final CommunityPostLikeRepository communityPostLikeRepository;
     private final CommunityPostCommentRepository communityPostCommentRepository;
+    private final CommunityPostPollOptionRepository communityPostPollOptionRepository;
+    private final CommunityPostPollVoteRepository communityPostPollVoteRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
 
@@ -61,6 +64,8 @@ public class CommunityService {
                             CommunityPostRepository communityPostRepository,
                             CommunityPostLikeRepository communityPostLikeRepository,
                             CommunityPostCommentRepository communityPostCommentRepository,
+                            CommunityPostPollOptionRepository communityPostPollOptionRepository,
+                            CommunityPostPollVoteRepository communityPostPollVoteRepository,
                             UserRepository userRepository,
                             NotificationService notificationService) {
         this.communityRepository = communityRepository;
@@ -68,6 +73,8 @@ public class CommunityService {
         this.communityPostRepository = communityPostRepository;
         this.communityPostLikeRepository = communityPostLikeRepository;
         this.communityPostCommentRepository = communityPostCommentRepository;
+        this.communityPostPollOptionRepository = communityPostPollOptionRepository;
+        this.communityPostPollVoteRepository = communityPostPollVoteRepository;
         this.userRepository = userRepository;
         this.notificationService = notificationService;
     }
@@ -302,6 +309,8 @@ public class CommunityService {
         if (!postIds.isEmpty()) {
             communityPostLikeRepository.deleteByCommunityPostIdIn(postIds);
             communityPostCommentRepository.deleteByCommunityPostIdIn(postIds);
+            communityPostPollVoteRepository.deleteByCommunityPostIdIn(postIds);
+            communityPostPollOptionRepository.deleteByCommunityPostIdIn(postIds);
         }
         communityPostRepository.deleteByCommunityId(communityId);
         communityMemberRepository.deleteByCommunityId(communityId);
@@ -624,13 +633,39 @@ public class CommunityService {
         List<Long> postIds = posts.stream().map(CommunityPost::getId).toList();
         Map<Long, Long> commentCounts = toCountMap(communityPostCommentRepository.countByCommunityPostIdIn(postIds));
 
+        // Anket: tüm seçeneklerin oy sayımları + kullanıcının oyları toplu çekilir (N+1 önlenir)
+        List<Long> optionIds = posts.stream()
+                .filter(p -> "POLL".equals(p.getPostType()) && p.getPollOptions() != null)
+                .flatMap(p -> p.getPollOptions().stream())
+                .map(CommunityPostPollOption::getId)
+                .toList();
+        Map<Long, Long> optionVoteCounts = optionIds.isEmpty()
+                ? Map.of() : toCountMap(communityPostPollVoteRepository.countByPollOptionIdIn(optionIds));
+        Map<Long, Long> myVotes = (currentUserId == null || optionIds.isEmpty())
+                ? Map.of()
+                : communityPostPollVoteRepository.findUserVotes(currentUserId, postIds).stream()
+                    .collect(Collectors.toMap(r -> (Long) r[0], r -> (Long) r[1], (a, b) -> a));
+
         List<CommunityPostResponse> result = new ArrayList<>();
         for (CommunityPost post : posts) {
             long likeCount = communityPostLikeRepository.countByCommunityPostId(post.getId());
             boolean liked = currentUserId != null &&
                     communityPostLikeRepository.findByUserIdAndCommunityPostId(currentUserId, post.getId()).isPresent();
-            result.add(CommunityPostResponse.from(post, likeCount,
-                    commentCounts.getOrDefault(post.getId(), 0L), liked));
+            CommunityPostResponse dto = CommunityPostResponse.from(post, likeCount,
+                    commentCounts.getOrDefault(post.getId(), 0L), liked);
+
+            if ("POLL".equals(post.getPostType()) && post.getPollOptions() != null) {
+                Long votedId = myVotes.get(post.getId());
+                List<PollOptionDto> options = post.getPollOptions().stream()
+                        .map(o -> PollOptionDto.of(
+                                o.getId(),
+                                o.getOptionText(),
+                                optionVoteCounts.getOrDefault(o.getId(), 0L),
+                                o.getId().equals(votedId)))
+                        .toList();
+                dto.setPollOptions(options);
+            }
+            result.add(dto);
         }
         return result;
     }
@@ -696,13 +731,67 @@ public class CommunityService {
             throw new IllegalArgumentException("Sadece uyeler post olusturabilir.");
         }
 
+        String postType = request.getPostType() != null ? request.getPostType() : "TEXT";
+
         CommunityPost post = new CommunityPost();
         post.setContent(request.getContent());
         post.setUser(user);
         post.setCommunity(community);
+        post.setPostType(postType);
+        if ("IMAGE".equals(postType)) {
+            post.setImageUrl(request.getImageUrl());
+        }
         CommunityPost saved = communityPostRepository.save(post);
 
-        return CommunityPostResponse.from(saved, 0, false);
+        List<PollOptionDto> pollDtos = null;
+        if ("POLL".equals(postType) && request.getPollOptions() != null) {
+            pollDtos = new ArrayList<>();
+            for (String optText : request.getPollOptions()) {
+                if (optText != null && !optText.isBlank()) {
+                    CommunityPostPollOption opt = new CommunityPostPollOption();
+                    opt.setCommunityPost(saved);
+                    opt.setOptionText(optText.trim());
+                    CommunityPostPollOption savedOpt = communityPostPollOptionRepository.save(opt);
+                    pollDtos.add(PollOptionDto.of(savedOpt.getId(), savedOpt.getOptionText(), 0, false));
+                }
+            }
+        }
+
+        CommunityPostResponse dto = CommunityPostResponse.from(saved, 0, 0, false);
+        dto.setPollOptions(pollDtos);
+        return dto;
+    }
+
+    @Transactional
+    public List<PollOptionDto> votePoll(Long userId, Long communityId, Long postId, Long optionId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Kullanici bulunamadi: " + userId));
+        CommunityPost post = communityPostRepository.findById(postId)
+                .orElseThrow(() -> new ResourceNotFoundException("Post bulunamadi: " + postId));
+        CommunityPostPollOption option = communityPostPollOptionRepository.findById(optionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Secenek bulunamadi: " + optionId));
+
+        if (!communityMemberRepository.existsByUserIdAndCommunityIdAndStatus(userId, communityId, ACTIVE)) {
+            throw new IllegalArgumentException("Sadece uyeler oy verebilir.");
+        }
+
+        // Önceki oyu sil (oy değiştirme)
+        communityPostPollVoteRepository.findByUserIdAndCommunityPostId(userId, postId)
+                .ifPresent(communityPostPollVoteRepository::delete);
+
+        CommunityPostPollVote vote = new CommunityPostPollVote();
+        vote.setUser(user);
+        vote.setPollOption(option);
+        vote.setCommunityPostId(postId);
+        communityPostPollVoteRepository.save(vote);
+
+        return post.getPollOptions() == null ? List.of() : post.getPollOptions().stream()
+                .map(o -> PollOptionDto.of(
+                        o.getId(),
+                        o.getOptionText(),
+                        communityPostPollVoteRepository.countByPollOptionId(o.getId()),
+                        o.getId().equals(optionId)))
+                .toList();
     }
 
     @Transactional

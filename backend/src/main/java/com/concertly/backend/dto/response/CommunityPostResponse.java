@@ -4,6 +4,7 @@ import com.concertly.backend.model.CommunityPost;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class CommunityPostResponse {
 
@@ -12,6 +13,10 @@ public class CommunityPostResponse {
     private LocalDateTime createdAt;
     private long likeCount;
     private long commentCount;
+
+    private String postType;
+    private String imageUrl;
+    private List<PollOptionDto> pollOptions;
 
     private Long userId;
     private String username;
@@ -40,6 +45,8 @@ public class CommunityPostResponse {
         dto.likeCount = likeCount;
         dto.commentCount = commentCount;
         dto.isLikedByCurrentUser = isLikedByCurrentUser;
+        dto.postType = post.getPostType();
+        dto.imageUrl = post.getImageUrl();
 
         if (post.getUser() != null) {
             dto.userId = post.getUser().getId();
@@ -60,6 +67,10 @@ public class CommunityPostResponse {
     public LocalDateTime getCreatedAt() { return createdAt; }
     public long getLikeCount() { return likeCount; }
     public long getCommentCount() { return commentCount; }
+    public String getPostType() { return postType; }
+    public String getImageUrl() { return imageUrl; }
+    public List<PollOptionDto> getPollOptions() { return pollOptions; }
+    public void setPollOptions(List<PollOptionDto> pollOptions) { this.pollOptions = pollOptions; }
     public Long getUserId() { return userId; }
     public String getUsername() { return username; }
     public String getUserProfileImageUrl() { return userProfileImageUrl; }

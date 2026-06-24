@@ -2,6 +2,7 @@ package com.concertly.backend.model;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "community_posts")
@@ -13,6 +14,9 @@ public class CommunityPost {
 
     private String content;
 
+    private String postType = "TEXT"; // TEXT, IMAGE, POLL
+    private String imageUrl;
+
     private LocalDateTime createdAt = LocalDateTime.now();
     private LocalDateTime updatedAt = LocalDateTime.now();
 
@@ -23,6 +27,9 @@ public class CommunityPost {
     @ManyToOne
     @JoinColumn(name = "community_id")
     private Community community;
+
+    @OneToMany(mappedBy = "communityPost", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<CommunityPostPollOption> pollOptions;
 
     public Long getId() { return id; }
 
@@ -38,4 +45,12 @@ public class CommunityPost {
 
     public Community getCommunity() { return community; }
     public void setCommunity(Community community) { this.community = community; }
+
+    public String getPostType() { return postType; }
+    public void setPostType(String postType) { this.postType = postType; }
+
+    public String getImageUrl() { return imageUrl; }
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+
+    public List<CommunityPostPollOption> getPollOptions() { return pollOptions; }
 }

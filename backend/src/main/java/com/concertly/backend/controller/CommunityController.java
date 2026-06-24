@@ -6,6 +6,7 @@ import com.concertly.backend.dto.response.CommunityMemberResponse;
 import com.concertly.backend.dto.response.CommunityPostCommentResponse;
 import com.concertly.backend.dto.response.CommunityPostResponse;
 import com.concertly.backend.dto.response.CommunityResponse;
+import com.concertly.backend.dto.response.PollOptionDto;
 import com.concertly.backend.security.JwtUtil;
 import com.concertly.backend.service.CommunityService;
 import org.springframework.http.HttpStatus;
@@ -187,6 +188,11 @@ public class CommunityController {
             @PathVariable Long postId,
             @RequestBody CreateCommunityPostRequest request) {
         return communityService.addPostComment(JwtUtil.getCurrentUserId(), id, postId, request.getContent());
+    }
+
+    @PostMapping("/{id}/posts/{postId}/poll/vote")
+    public List<PollOptionDto> votePoll(@PathVariable Long id, @PathVariable Long postId, @RequestParam Long optionId) {
+        return communityService.votePoll(JwtUtil.getCurrentUserId(), id, postId, optionId);
     }
 
     @PostMapping("/{id}/posts/{postId}/like")
