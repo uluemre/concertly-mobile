@@ -4,9 +4,11 @@ import com.concertly.backend.dto.request.CreateEventRequest;
 import com.concertly.backend.dto.response.EventResponse;
 import com.concertly.backend.dto.response.PostResponse;
 import com.concertly.backend.dto.response.UserResponse;
+import com.concertly.backend.dto.response.CommunityResponse;
 import com.concertly.backend.exception.ResourceNotFoundException;
 import com.concertly.backend.model.*;
 import com.concertly.backend.repository.*;
+import com.concertly.backend.service.CommunityService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,6 +32,7 @@ public class AdminController {
     private final CommunityRepository communityRepository;
     private final FollowRepository followRepository;
     private final AccountDeletionFeedbackRepository deletionFeedbackRepository;
+    private final CommunityService communityService;
 
     public AdminController(UserRepository userRepository,
                            EventRepository eventRepository,
@@ -42,7 +45,8 @@ public class AdminController {
                            CommentRepository commentRepository,
                            CommunityRepository communityRepository,
                            FollowRepository followRepository,
-                           AccountDeletionFeedbackRepository deletionFeedbackRepository) {
+                           AccountDeletionFeedbackRepository deletionFeedbackRepository,
+                           CommunityService communityService) {
         this.userRepository = userRepository;
         this.eventRepository = eventRepository;
         this.artistRepository = artistRepository;
@@ -55,6 +59,27 @@ public class AdminController {
         this.communityRepository = communityRepository;
         this.followRepository = followRepository;
         this.deletionFeedbackRepository = deletionFeedbackRepository;
+        this.communityService = communityService;
+    }
+
+    // ── TOPLULUK ONAYI ───────────────────────────────────────────────────────────
+
+    // Admin incelemesi bekleyen topluluklar (en eski önce — SLA takibi)
+    @GetMapping("/communities/pending")
+    public List<CommunityResponse> getPendingCommunities() {
+        return communityService.getPendingForReview();
+    }
+
+    @PostMapping("/communities/{id}/approve")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void approveCommunity(@PathVariable Long id) {
+        communityService.approveCommunity(id);
+    }
+
+    @PostMapping("/communities/{id}/reject")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void rejectCommunity(@PathVariable Long id) {
+        communityService.rejectCommunity(id);
     }
 
     // ── STATS ──────────────────────────────────────────────────────────────────

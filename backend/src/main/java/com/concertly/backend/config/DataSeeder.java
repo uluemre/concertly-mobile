@@ -22,7 +22,20 @@ public class DataSeeder implements CommandLineRunner {
     @Override
     public void run(String... args) {
         seedCommunities();
+        backfillCommunityDefaults();
         seedArtists();
+    }
+
+    // Görünürlük/onay kolonları sonradan eklendi → eski (seed/mevcut) kayıtlarda null kalanları
+    // güvenli varsayılanlara çek: hepsi herkese açık + onaylı sayılır.
+    private void backfillCommunityDefaults() {
+        var legacy = communityRepository.findByApprovalStatusIsNullOrVisibilityIsNull();
+        if (legacy.isEmpty()) return;
+        for (Community c : legacy) {
+            if (c.getVisibility() == null) c.setVisibility("PUBLIC");
+            if (c.getApprovalStatus() == null) c.setApprovalStatus("APPROVED");
+        }
+        communityRepository.saveAll(legacy);
     }
 
     private void seedCommunities() {
@@ -39,6 +52,7 @@ public class DataSeeder implements CommandLineRunner {
         c1.setNextEvent("Dorock XL bulusmasi");
         c1.setTags("Rock,Metal,Istanbul");
         c1.setLive(true);
+        c1.setApprovalStatus("APPROVED");
         communityRepository.save(c1);
 
         Community c2 = new Community();
@@ -52,6 +66,7 @@ public class DataSeeder implements CommandLineRunner {
         c2.setNextEvent("Yaz festivali hazirliklari");
         c2.setTags("Festival,Kamp,Line-up");
         c2.setLive(true);
+        c2.setApprovalStatus("APPROVED");
         communityRepository.save(c2);
 
         Community c3 = new Community();
@@ -65,6 +80,7 @@ public class DataSeeder implements CommandLineRunner {
         c3.setNextEvent("Gece setleri listesi");
         c3.setTags("DJ,Techno,House");
         c3.setLive(false);
+        c3.setApprovalStatus("APPROVED");
         communityRepository.save(c3);
 
         Community c4 = new Community();
@@ -78,6 +94,7 @@ public class DataSeeder implements CommandLineRunner {
         c4.setNextEvent("Haftanin Ankara konserleri");
         c4.setTags("Ankara,Bulusma,Konser");
         c4.setLive(false);
+        c4.setApprovalStatus("APPROVED");
         communityRepository.save(c4);
 
         Community c5 = new Community();
@@ -91,6 +108,7 @@ public class DataSeeder implements CommandLineRunner {
         c5.setNextEvent("Caz kulubu rotasi");
         c5.setTags("Caz,Akustik,Kulup");
         c5.setLive(false);
+        c5.setApprovalStatus("APPROVED");
         communityRepository.save(c5);
     }
 

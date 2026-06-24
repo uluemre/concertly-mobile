@@ -14,6 +14,8 @@ public interface CommunityPostRepository extends JpaRepository<CommunityPost, Lo
 
     long countByCommunityId(Long communityId);
 
+    void deleteByCommunityId(Long communityId);
+
     // Toplu post sayımı — (communityId, count)
     @Query("SELECT p.community.id, COUNT(p) FROM CommunityPost p WHERE p.community.id IN :ids GROUP BY p.community.id")
     List<Object[]> countByCommunityIdIn(@Param("ids") Collection<Long> ids);

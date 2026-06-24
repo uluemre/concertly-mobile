@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface CommunityRepository extends JpaRepository<Community, Long> {
 
@@ -26,4 +27,14 @@ public interface CommunityRepository extends JpaRepository<Community, Long> {
                 ORDER BY c.createdAt DESC
             """)
     List<Community> search(@Param("q") String q);
+
+    Optional<Community> findByInviteCode(String inviteCode);
+
+    long countByOwnerId(Long ownerId);
+
+    // Admin inceleme kuyruğu — en eski bekleyen en üstte (SLA takibi için)
+    List<Community> findByApprovalStatusOrderByCreatedAtAsc(String approvalStatus);
+
+    // Eski/seed kayıtları için backfill: kolon eklendiğinde null kalanları doldur
+    List<Community> findByApprovalStatusIsNullOrVisibilityIsNull();
 }

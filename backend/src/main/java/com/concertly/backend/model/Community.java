@@ -23,6 +23,22 @@ public class Community {
 
     private Boolean live = false;
 
+    // PUBLIC = herkes anında katılır · PRIVATE = istek/onay veya davet · SECRET = sadece davet, listede görünmez
+    private String visibility = "PUBLIC";
+
+    // PENDING = kuruldu, admin incelemesi bekliyor (yine de kullanılabilir) · APPROVED · REJECTED
+    private String approvalStatus = "PENDING";
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id")
+    private User owner;
+
+    // Davet linki kodu (PRIVATE/SECRET topluluklara katılım için). null = link yok.
+    @Column(unique = true)
+    private String inviteCode;
+
+    private LocalDateTime reviewedAt;
+
     private LocalDateTime createdAt = LocalDateTime.now();
 
     public Long getId() { return id; }
@@ -56,6 +72,21 @@ public class Community {
 
     public Boolean getLive() { return live; }
     public void setLive(Boolean live) { this.live = live; }
+
+    public String getVisibility() { return visibility; }
+    public void setVisibility(String visibility) { this.visibility = visibility; }
+
+    public String getApprovalStatus() { return approvalStatus; }
+    public void setApprovalStatus(String approvalStatus) { this.approvalStatus = approvalStatus; }
+
+    public User getOwner() { return owner; }
+    public void setOwner(User owner) { this.owner = owner; }
+
+    public String getInviteCode() { return inviteCode; }
+    public void setInviteCode(String inviteCode) { this.inviteCode = inviteCode; }
+
+    public LocalDateTime getReviewedAt() { return reviewedAt; }
+    public void setReviewedAt(LocalDateTime reviewedAt) { this.reviewedAt = reviewedAt; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
 }
