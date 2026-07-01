@@ -19,6 +19,9 @@ public class UserSummaryResponse {
     @JsonProperty("isFollowedByCurrentUser")
     private boolean isFollowedByCurrentUser;
 
+    // E-posta/telefon varsayılan olarak DÖNÜLMEZ — bu DTO takipçi listeleri ve
+    // herkese açık (permitAll) profil ucunda kullanılıyor; kişisel iletişim
+    // bilgisi yalnızca kullanıcı KENDİ profilini çekerken eklenir (aşağıdaki overload).
     public static UserSummaryResponse from(User user,
             long followerCount,
             long followingCount,
@@ -29,12 +32,23 @@ public class UserSummaryResponse {
         dto.profileImageUrl = user.getProfileImageUrl();
         dto.city = user.getCity();
         dto.bio = user.getBio();
-        dto.email = user.getEmail();
-        dto.phone = user.getPhone();
         dto.favoriteGenres = user.getFavoriteGenres();
         dto.followerCount = followerCount;
         dto.followingCount = followingCount;
         dto.isFollowedByCurrentUser = isFollowedByCurrentUser;
+        return dto;
+    }
+
+    public static UserSummaryResponse from(User user,
+            long followerCount,
+            long followingCount,
+            boolean isFollowedByCurrentUser,
+            boolean includeContactInfo) {
+        UserSummaryResponse dto = from(user, followerCount, followingCount, isFollowedByCurrentUser);
+        if (includeContactInfo) {
+            dto.email = user.getEmail();
+            dto.phone = user.getPhone();
+        }
         return dto;
     }
 

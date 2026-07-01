@@ -46,9 +46,10 @@ public class SearchService {
                 })
                 .toList();
 
+        // E-posta dönülmez (gizlilik) — arama sonucunda alt satır olarak şehir gösterilir
         List<UserResponse> users = userRepository.search(query)
                 .stream()
-                .map(u -> new UserResponse(u.getId(), u.getUsername(), u.getEmail()))
+                .map(u -> new UserResponse(u.getId(), u.getUsername(), null, u.getCity()))
                 .toList();
 
         return new SearchResponse(events, artists, users);

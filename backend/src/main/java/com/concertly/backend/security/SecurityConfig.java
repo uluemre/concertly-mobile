@@ -84,6 +84,8 @@ public class SecurityConfig {
                         // Yasal sayfalar (gizlilik/şartlar) — App Store reviewer'ı ve kullanıcılar
                         // tarayıcıdan kimliksiz erişebilmeli. classpath:/static/legal/*.html
                         .requestMatchers(HttpMethod.GET, "/legal/**").permitAll()
+                        // Tanıtım sayfası — sosyal medya / Marketing URL, kimliksiz erişilebilir
+                        .requestMatchers(HttpMethod.GET, "/promo", "/promo/**").permitAll()
                         .anyRequest().authenticated()
 
                 )

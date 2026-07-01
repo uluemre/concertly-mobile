@@ -15,8 +15,8 @@ parantezde; Apple boşluk/virgülü de sayar, gerekirse kırp.
   "User-Generated Content = Yes" işaretle; şikayet/engelleme + moderasyon
   olduğunu belirt. Beklenen sonuç **12+**.
 - **Privacy Policy URL:** `https://concertly-mobile-production.up.railway.app/legal/privacy.html`
-- **Support URL:** `https://concertly-mobile-production.up.railway.app/legal/` (iletişim e-postası alt sayfalarda)
-- **Marketing URL (opsiyonel):** boş bırakılabilir
+- **Support URL:** `https://concertly-mobile-production.up.railway.app/legal/index.html` (iletişim e-postası alt sayfalarda)
+- **Marketing URL (opsiyonel):** `https://concertly-mobile-production.up.railway.app/promo/` (tanıtım sayfası)
 - **Copyright:** `2026 Emre Ulu`
 
 ---

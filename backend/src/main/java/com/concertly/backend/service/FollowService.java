@@ -80,7 +80,9 @@ public class FollowService {
         boolean isFollowed = currentUserId != null &&
                 followRepository.findByFollowerIdAndFollowingId(currentUserId, targetUserId).isPresent();
 
-        return UserSummaryResponse.from(target, followerCount, followingCount, isFollowed);
+        // E-posta/telefon yalnızca kullanıcı kendi profilini çekerken döner (Ayarlar formu)
+        boolean isSelf = targetUserId.equals(currentUserId);
+        return UserSummaryResponse.from(target, followerCount, followingCount, isFollowed, isSelf);
     }
 
     // ✅ TAKİPÇİ LİSTESİ — beni takip edenler

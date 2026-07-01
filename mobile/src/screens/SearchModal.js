@@ -189,7 +189,7 @@ export default function SearchModal({ visible, onClose, navigation }) {
             </LinearGradient>
             <View style={styles.resultInfo}>
                 <Text style={styles.resultTitle}>@{item.username}</Text>
-                <Text style={styles.resultSub}>{item.email}</Text>
+                {!!item.city && <Text style={styles.resultSub}>📍 {item.city}</Text>}
             </View>
             <Text style={styles.chevron}>›</Text>
         </TouchableOpacity>
