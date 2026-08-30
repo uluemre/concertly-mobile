@@ -22,6 +22,14 @@ public class SpotifyService {
 
     private String cachedToken;
     private long tokenExpiry = 0;
+    private volatile boolean credentialsUnavailable = false;
+    private volatile boolean credentialsWarningLogged = false;
+
+    private boolean hasUsableCredentials() {
+        return !credentialsUnavailable
+                && clientId != null && !clientId.isBlank()
+                && clientSecret != null && !clientSecret.isBlank();
+    }
 
     @SuppressWarnings("unchecked")
     private String getAccessToken() {
@@ -52,6 +60,13 @@ public class SpotifyService {
 
     public SpotifyArtistData searchArtist(String artistName) {
         if (artistName == null || artistName.isBlank()) return null;
+        if (!hasUsableCredentials()) {
+            if (!credentialsWarningLogged) {
+                credentialsWarningLogged = true;
+                System.out.println("  ⚠️ Spotify enrichment atlandı: SPOTIFY_CLIENT_ID ve SPOTIFY_CLIENT_SECRET geçerli değil.");
+            }
+            return null;
+        }
 
         // Önce tam adla dene, sonra temizlenmiş haliyle — başarılı olunca dur
         String cleaned = cleanForSearch(artistName);
@@ -145,6 +160,9 @@ public class SpotifyService {
                 System.out.println("  ⏳ Spotify rate limit — 2sn bekleniyor...");
                 try { Thread.sleep(2000); } catch (InterruptedException ignored) {}
             } else {
+                if (msg != null && (msg.contains("invalid_client") || msg.contains("401") || msg.contains("400 Bad Request"))) {
+                    credentialsUnavailable = true;
+                }
                 System.out.println("  ❌ Spotify hata (" + query + "): " + msg);
             }
             return null;

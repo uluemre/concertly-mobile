@@ -7,4 +7,6 @@ import java.util.Optional;
 
 public interface VenueRepository extends JpaRepository<Venue, Long> {
     Optional<Venue> findByExternalId(String externalId);
+    Optional<Venue> findByNameAndCity(String name, String city);
+    Optional<Venue> findFirstByNameAndCity(String name, String city);
 }

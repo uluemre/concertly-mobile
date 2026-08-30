@@ -88,13 +88,13 @@ export default function ConcertPassportScreen({ navigation, route }) {
     if (!passport) return;
     const year = new Date().getFullYear();
     const topArtist = passport.topArtists?.[0]?.name;
-    const msg = `🎸 ${year} Konser Pasaportu\n\n`
+    const msg = `🎸 ${year} Konser Pasaportum\n\n`
       + `🎟️ ${passport.totalConcerts} konser\n`
       + `✅ ${passport.verifiedConcerts} doğrulanmış\n`
       + `🎤 ${passport.uniqueArtists} farklı sanatçı\n`
       + `📍 ${passport.uniqueCities} farklı şehir\n`
       + (topArtist ? `⭐ En çok: ${topArtist}\n` : '')
-      + `\nConcertly ile müziği yaşa 🎵`;
+      + `\nConcertly ile müziği yaşa! 🎵\nhttps://concertly.app`;
     Share.share({ message: msg });
   };
 

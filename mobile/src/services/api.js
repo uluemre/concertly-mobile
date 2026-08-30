@@ -6,7 +6,7 @@ const PROD_API = 'https://concertly-mobile-production.up.railway.app/api';
 
 // Geliştirme sırasında da canlı sunucuyu kullanmak istersen bunu true yap
 // (örn. telefonda Expo Go ile yayın sunucusunu test etmek için)
-const USE_PROD_IN_DEV = true;
+const USE_PROD_IN_DEV = false;
 
 function getBaseUrl() {
   // Yayınlanan (production) uygulama → her zaman internetteki sunucu
@@ -19,7 +19,7 @@ function getBaseUrl() {
       const ip = hostUri.split(':')[0];
       return `http://${ip}:8082/api`;
     }
-  } catch {}
+  } catch { }
   return PROD_API;
 }
 
@@ -28,6 +28,7 @@ const BASE_URL = getBaseUrl();
 const SERVER_ORIGIN = BASE_URL.replace(/\/api$/, '');
 
 if (__DEV__) console.log('API Base URL:', BASE_URL);
+console.log('### CONCERTLY API URL ###', BASE_URL);
 
 const API = axios.create({
   baseURL: BASE_URL,

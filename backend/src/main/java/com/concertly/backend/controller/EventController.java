@@ -71,9 +71,11 @@ public class EventController {
     // Yalnızca POST — SecurityConfig POST'u ADMIN'e kilitler. GET varyantı
     // "GET /api/events/**" permitAll kuralıyla anonim erişime açılıyordu (suistimal/maliyet).
     @PostMapping("/sync")
-    public String syncEvents() {
+    public Map<String, Object> syncEvents() {
+        System.out.println("🚀 /api/events/sync çağrıldı, Türkiye konser senkronizasyonu başlatılıyor...");
         int count = ticketmasterService.syncTurkeyEvents();
-        return count + " etkinlik eklendi.";
+        System.out.println("✅ /api/events/sync bitti! Toplam: " + count + " etkinlik eklendi/güncellendi.");
+        return Map.of("success", true, "message", count + " etkinlik eklendi.", "count", count);
     }
 
     @PostMapping("/enrich")

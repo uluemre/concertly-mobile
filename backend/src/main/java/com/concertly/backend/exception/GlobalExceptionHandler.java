@@ -69,8 +69,10 @@ public class GlobalExceptionHandler {
     // 500 — beklenmedik hatalar
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleGeneral(Exception ex) {
+        ex.printStackTrace();
+        String msg = ex.getMessage() != null ? ex.getMessage() : ex.getClass().getSimpleName();
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new ApiError(500, "Beklenmedik bir hata oluştu."));
+                .body(new ApiError(500, "Sunucu hatası: " + msg));
     }
 }

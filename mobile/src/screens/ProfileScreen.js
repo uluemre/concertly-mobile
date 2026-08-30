@@ -3,7 +3,7 @@ import {
   View, Text, TouchableOpacity, StyleSheet,
   ActivityIndicator, ScrollView, Modal, TextInput,
   KeyboardAvoidingView, Platform,
-  Alert, Image, Animated, Dimensions
+  Alert, Image, Animated, Dimensions, Share
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
@@ -124,6 +124,11 @@ export default function ProfileScreen({ navigation }) {
         setUploadingPhoto(false);
       }
     }
+  };
+
+  const handleInviteFriends = () => {
+    const msg = `🎟️ Concertly uygulamasına katıl!\n\nŞehrindeki canlı konserleri ve etkinlikleri keşfet, konser arkadaşı bul ve kendi konser pasaportunu oluştur 🎸\n\nİndirmek için: https://concertly.app`;
+    Share.share({ message: msg });
   };
 
   const handleLogout = () => {
@@ -261,6 +266,25 @@ export default function ProfileScreen({ navigation }) {
               </View>
             </View>
           </View>
+        </View>
+
+        {/* ARKADAŞINI DAVET ET */}
+        <View style={styles.inviteSection}>
+          <TouchableOpacity onPress={handleInviteFriends} activeOpacity={0.85}>
+            <LinearGradient
+              colors={['#7C3AED', '#E94560']}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+              style={styles.inviteCard}
+            >
+              <View style={styles.inviteInfo}>
+                <Text style={styles.inviteTitle}>🎁 Arkadaşını Davet Et</Text>
+                <Text style={styles.inviteSub}>Concertly'yi arkadaşlarınla paylaş, birlikte konserlere gidin!</Text>
+              </View>
+              <View style={styles.inviteBadge}>
+                <Text style={styles.inviteBadgeText}>Paylaş 🚀</Text>
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
 
         {/* OYUN BAŞARILARI */}
@@ -748,6 +772,22 @@ function createStyles(colors) {
     shortcutGradient: { padding: 16, minHeight: 96, justifyContent: 'space-between' },
     shortcutEmoji: { fontSize: 26, marginBottom: 8 },
     shortcutTitle: { color: '#fff', fontSize: 14, fontWeight: '800' },
+
+    // ARKADAŞINI DAVET ET
+    inviteSection: { paddingHorizontal: 16, marginTop: 12 },
+    inviteCard: {
+      borderRadius: 16, padding: 14, flexDirection: 'row',
+      alignItems: 'center', justifyContent: 'space-between', gap: 10,
+    },
+    inviteInfo: { flex: 1 },
+    inviteTitle: { color: '#fff', fontSize: 14, fontWeight: '800', marginBottom: 2 },
+    inviteSub: { color: 'rgba(255,255,255,0.85)', fontSize: 11, lineHeight: 15 },
+    inviteBadge: {
+      backgroundColor: 'rgba(255,255,255,0.2)',
+      paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12,
+      borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)',
+    },
+    inviteBadgeText: { color: '#fff', fontSize: 12, fontWeight: '800' },
 
     // LOGOUT
     logoutArea: { padding: 16, paddingBottom: 32 },

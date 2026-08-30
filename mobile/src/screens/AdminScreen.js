@@ -120,10 +120,13 @@ export default function AdminScreen({ navigation }) {
     try {
       // Sync uzun sürebilir — varsayılan 15 sn timeout yetmez
       const res = await API.post('/events/sync', null, { timeout: 600000 });
-      Alert.alert(t('success'), String(res.data));
+      const msg = res.data?.message || (typeof res.data === 'string' ? res.data : 'Senkronizasyon tamamlandı!');
+      Alert.alert(t('success'), msg);
       fetchStats();
-    } catch {
-      Alert.alert(t('error'), t('admin_sync_error'));
+    } catch (err) {
+      const errorMsg = err?.response?.data?.message || err?.message || t('admin_sync_error');
+      console.log('Sync hatası:', err?.response?.status, errorMsg);
+      Alert.alert(t('error'), `${t('admin_sync_error')} (${errorMsg})`);
     } finally {
       setSyncing(false);
     }

@@ -99,6 +99,9 @@ export default React.memo(function PostCard({
         item.eventName ? `🎵 ${item.eventName}` : '',
         item.content ? `"${item.content}"` : '',
         `— @${item.username}`,
+        '',
+        '🎟️ Concertly ile müziği ve canlı konserleri keşfet!',
+        'https://concertly.app',
       ].filter(Boolean);
       await Share.share({ message: parts.join('\n') });
     } catch (err) {
