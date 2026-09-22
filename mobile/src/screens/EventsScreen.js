@@ -7,6 +7,7 @@ import {
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import API from '../services/api';
+import { fetchAllConcerts } from '../services/concerts';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -94,29 +95,58 @@ export default function EventsScreen({ navigation, route }) {
   const [selectedGenre, setSelectedGenre] = useState(null);
   const [sortKey, setSortKey] = useState('date_asc');
   const [showPast, setShowPast] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [cityModalVisible, setCityModalVisible] = useState(false);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
   const isMounted = useRef(true);
+  // Hızlı şehir/sekme değişiminde eski cevabın yeniyi ezmesini engeller.
+  const latestRequest = useRef(0);
   useEffect(() => {
     return () => { isMounted.current = false; };
   }, []);
 
-  const fetchEvents = useCallback((city) => {
+  /**
+   * Konserleri backend'den çeker.
+   *
+   * Sayfalı uç kullanılıyor: ilk sayfa gelir gelmez liste görünür, kalan
+   * sayfalar arkadan eklenir. Ekranın arama/sıralama/tarih filtreleri listenin
+   * tamamı üzerinde çalıştığı için sayfaları biriktiriyoruz.
+   *
+   * Yaklaşan/geçmiş ayrımını artık sunucu yapıyor (past parametresi).
+   */
+  const fetchEvents = useCallback((city, past) => {
     const activeCity = city !== undefined ? city : selectedCity;
-    const url = activeCity ? `/events?city=${encodeURIComponent(activeCity)}` : '/events';
-    return API.get(url)
-      .then(res => { if (isMounted.current) setEvents(res.data); })
-      .catch(err => { if (isMounted.current) console.error('Events fetch error:', err.message); });
-  }, [selectedCity]);
+    const activePast = past !== undefined ? past : showPast;
+    const requestId = ++latestRequest.current;
+    const stale = () => !isMounted.current || requestId !== latestRequest.current;
 
-  useEffect(() => {
-    fetchEvents().finally(() => {
-      setTimeout(() => { if (isMounted.current) setLoading(false); }, 600);
+    setLoadError(false);
+    return fetchAllConcerts({
+      city: activeCity,
+      past: activePast,
+      isCancelled: stale,
+      onPage: (items, isFirstPage) => {
+        if (stale()) return;
+        setEvents(prev => (isFirstPage ? items : [...prev, ...items]));
+      },
+    }).catch(err => {
+      if (stale()) return;
+      console.log('Konser listesi alınamadı:', err.message);
+      setLoadError(true);
+      setEvents([]);
     });
-  }, []);
+  }, [selectedCity, showPast]);
+
+  // Şehir ya da yaklaşan/geçmiş seçimi değişince yeniden çekilir.
+  useEffect(() => {
+    setLoading(true);
+    fetchEvents().finally(() => {
+      setTimeout(() => { if (isMounted.current) setLoading(false); }, 300);
+    });
+  }, [selectedCity, showPast]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -127,8 +157,6 @@ export default function EventsScreen({ navigation, route }) {
     const val = city === 'Tümü' ? null : city;
     setSelectedCity(val);
     setCityModalVisible(false);
-    setLoading(true);
-    fetchEvents(val).finally(() => { if (isMounted.current) setLoading(false); });
   };
 
   const filtered = useMemo(() => {
@@ -301,10 +329,27 @@ export default function EventsScreen({ navigation, route }) {
         windowSize={11}
         removeClippedSubviews
         ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={styles.emptyEmoji}>🎭</Text>
-            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t('events_empty')}</Text>
-          </View>
+          loadError ? (
+            // Hata ile "sonuç yok" ayrı durumlar: kullanıcı tekrar deneyebilmeli.
+            <View style={styles.empty}>
+              <Text style={styles.emptyEmoji}>📡</Text>
+              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+                {t('events_load_error')}
+              </Text>
+              <TouchableOpacity
+                style={[styles.retryBtn, { backgroundColor: colors.primary }]}
+                onPress={() => { setLoading(true); fetchEvents().finally(() => setLoading(false)); }}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.retryBtnText}>{t('events_retry')}</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.empty}>
+              <Text style={styles.emptyEmoji}>🎭</Text>
+              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t('events_empty')}</Text>
+            </View>
+          )
         }
       />
 
@@ -482,7 +527,9 @@ function createStyles(colors) {
 
     empty: { alignItems: 'center', marginTop: 80 },
     emptyEmoji: { fontSize: 56, marginBottom: 12 },
-    emptyText: { fontSize: 15 },
+    emptyText: { fontSize: 15, textAlign: 'center' },
+    retryBtn: { marginTop: 18, paddingHorizontal: 22, paddingVertical: 11, borderRadius: 12 },
+    retryBtnText: { color: '#fff', fontWeight: '800', fontSize: 14.5 },
 
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' },
     cityModal: { borderTopLeftRadius: 24, borderTopRightRadius: 24, borderWidth: 1, padding: 24, paddingBottom: 40, maxHeight: '60%' },

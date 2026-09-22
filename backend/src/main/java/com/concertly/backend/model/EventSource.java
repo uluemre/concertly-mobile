@@ -10,6 +10,8 @@ package com.concertly.backend.model;
 public enum EventSource {
     /** Ticketmaster içe aktarımı. */
     TICKETMASTER,
+    /** Biletinial içe aktarımı (schema.org JSON-LD). */
+    BILETINIAL,
     /** Admin panelinden elle eklendi. */
     ADMIN,
     /** Sıradan kullanıcı önerdi — admin onayı gerekir. */

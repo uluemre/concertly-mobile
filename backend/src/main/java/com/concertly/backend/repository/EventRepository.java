@@ -41,6 +41,54 @@ public interface EventRepository extends JpaRepository<Event, Long> {
             """, nativeQuery = true)
     int deleteIfUnreferenced(@Param("eventId") Long eventId);
 
+    /**
+     * Mobil konser listesi: yayinda ve gelecekteki etkinlikler, istege bagli
+     * sehir/sanatci suzmesiyle, sayfali.
+     *
+     * past=true verildiginde gecmis etkinlikler doner; mobil ekranin
+     * "gecmis konserler" sekmesi bu sayede calismaya devam eder.
+     *
+     * Native sorgu kullaniliyor cunku Turkce karakter duyarsiz arama icin
+     * Postgres translate() gerekiyor: JPQL tarafinda "Istanbul" ile "Istanbul"
+     * eslesmesini guvenilir sekilde kuramiyoruz (lower() Turkce I harfini
+     * beklendigi gibi katlamiyor).
+     */
+    @Query(value = """
+            SELECT e.* FROM events e
+            LEFT JOIN venues v ON v.id = e.venue_id
+            LEFT JOIN artists a ON a.id = e.artist_id
+            WHERE e.is_approved = true
+              AND ((CAST(:past AS boolean) = false AND e.event_date >= :from)
+                OR (CAST(:past AS boolean) = true  AND e.event_date <  :from))
+              AND (CAST(:city AS text) IS NULL
+                   OR lower(translate(v.city, 'İIıŞşĞğÜüÖöÇçÂâ','IIiSsGgUuOoCcAa'))
+                      LIKE '%' || lower(translate(CAST(:city AS text), 'İIıŞşĞğÜüÖöÇçÂâ','IIiSsGgUuOoCcAa')) || '%')
+              AND (CAST(:artist AS text) IS NULL
+                   OR lower(translate(a.name, 'İIıŞşĞğÜüÖöÇçÂâ','IIiSsGgUuOoCcAa'))
+                      LIKE '%' || lower(translate(CAST(:artist AS text), 'İIıŞşĞğÜüÖöÇçÂâ','IIiSsGgUuOoCcAa')) || '%')
+            """,
+            countQuery = """
+            SELECT count(*) FROM events e
+            LEFT JOIN venues v ON v.id = e.venue_id
+            LEFT JOIN artists a ON a.id = e.artist_id
+            WHERE e.is_approved = true
+              AND ((CAST(:past AS boolean) = false AND e.event_date >= :from)
+                OR (CAST(:past AS boolean) = true  AND e.event_date <  :from))
+              AND (CAST(:city AS text) IS NULL
+                   OR lower(translate(v.city, 'İIıŞşĞğÜüÖöÇçÂâ','IIiSsGgUuOoCcAa'))
+                      LIKE '%' || lower(translate(CAST(:city AS text), 'İIıŞşĞğÜüÖöÇçÂâ','IIiSsGgUuOoCcAa')) || '%')
+              AND (CAST(:artist AS text) IS NULL
+                   OR lower(translate(a.name, 'İIıŞşĞğÜüÖöÇçÂâ','IIiSsGgUuOoCcAa'))
+                      LIKE '%' || lower(translate(CAST(:artist AS text), 'İIıŞşĞğÜüÖöÇçÂâ','IIiSsGgUuOoCcAa')) || '%')
+            """,
+            nativeQuery = true)
+    org.springframework.data.domain.Page<Event> searchConcerts(
+            @Param("city") String city,
+            @Param("artist") String artist,
+            @Param("from") java.time.LocalDateTime from,
+            @Param("past") boolean past,
+            org.springframework.data.domain.Pageable pageable);
+
     @EntityGraph(attributePaths = {"artist", "venue", "createdBy"})
     List<Event> findByArtistIdOrderByEventDateDesc(Long artistId);
 

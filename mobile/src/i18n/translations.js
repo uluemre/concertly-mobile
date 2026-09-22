@@ -1143,6 +1143,8 @@ export const translations = {
     menu_suggest_event: 'Etkinlik öner',
     menu_suggest_event_sub: 'Eksik konseri bildir',
     event_verified_source: '✓ Kaynak doğrulandı',
+    events_load_error: 'Konserler yüklenemedi. Bağlantını kontrol edip tekrar dene.',
+    events_retry: 'Tekrar dene',
   },
 
   en: {
@@ -2284,5 +2286,7 @@ export const translations = {
     menu_suggest_event: 'Suggest event',
     menu_suggest_event_sub: 'Report a missing concert',
     event_verified_source: '✓ Verified source',
+    events_load_error: 'Could not load concerts. Check your connection and try again.',
+    events_retry: 'Try again',
   },
 };

@@ -67,6 +67,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/auth/reset-password").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/users/register").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/events").permitAll()
+                        // Mobil konser listesi — etkinlikler zaten herkese acik
+                        .requestMatchers(HttpMethod.GET, "/api/concerts").permitAll()
                         // Kullanıcıya özel doğrulama durumu — aşağıdaki genel
                         // "GET /api/events/**" permitAll kuralından ÖNCE gelmeli,
                         // yoksa anonim isteklere de açılıyor.
