@@ -4,10 +4,11 @@ import {
   ActivityIndicator, Image, Animated, ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Audio } from 'expo-av';
+import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
+import { stopPlayer } from '../utils/audio';
 
 export default function DailySongScreen({ navigation }) {
   const { colors } = useTheme();
@@ -24,6 +25,7 @@ export default function DailySongScreen({ navigation }) {
   const [playError, setPlayError] = useState(false);
 
   const soundRef = useRef(null);
+  const soundSubscriptionRef = useRef(null);
   const stopTimerRef = useRef(null);
   const searchTimerRef = useRef(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -31,18 +33,20 @@ export default function DailySongScreen({ navigation }) {
   const stopSound = useCallback(async () => {
     clearTimeout(stopTimerRef.current);
     setPlaying(false);
+    soundSubscriptionRef.current?.remove();
+    soundSubscriptionRef.current = null;
     if (soundRef.current) {
-      try { await soundRef.current.unloadAsync(); } catch {}
+      // pause + remove: remove tek başına sesi susturmuyor (bkz. utils/audio.js)
+      stopPlayer(soundRef.current);
       soundRef.current = null;
     }
   }, []);
 
   useEffect(() => {
-    Audio.setAudioModeAsync({
-      playsInSilentModeIOS: true,
-      allowsRecordingIOS: false,
-      shouldDuckAndroid: true,
-      staysActiveInBackground: false,
+    setAudioModeAsync({
+      playsInSilentMode: true,
+      allowsRecording: false,
+      shouldPlayInBackground: false,
     }).catch(() => {});
     fetchToday();
     return () => {
@@ -83,33 +87,28 @@ export default function DailySongScreen({ navigation }) {
     if (playing) { stopSound(); return; }
     if (!game?.previewUrl) { setPlayError(true); return; }
     setPlayError(false);
+    // Önceki oynatıcı hâlâ açıksa sesler üst üste binmesin.
+    await stopSound();
 
     // Durmayı gerçek çalma pozisyonuna bağla — buffer gecikmesi snippet'i yemesin.
-    const onStatus = (status) => {
-      if (!status.isLoaded) {
-        if (status.error) {
-          console.log('daily-song status error:', status.error);
-          stopSound();
-          setPlayError(true);
-        }
-        return;
-      }
-      if (status.didJustFinish || status.positionMillis >= allowedMs) {
+    const player = createAudioPlayer(game.previewUrl, { updateInterval: 100 });
+    soundSubscriptionRef.current = player.addListener('playbackStatusUpdate', (status) => {
+      if (status.didJustFinish || status.currentTime * 1000 >= allowedMs) {
         stopSound();
       }
-    };
+    });
 
     try {
-      const { sound } = await Audio.Sound.createAsync(
-        { uri: game.previewUrl },
-        { shouldPlay: true, progressUpdateIntervalMillis: 100 },
-        onStatus
-      );
-      soundRef.current = sound;
+      soundRef.current = player;
+      player.play();
       setPlaying(true);
       // Güvenlik ağı: pozisyon güncellemesi hiç gelmezse yine de dur.
       stopTimerRef.current = setTimeout(stopSound, allowedMs + 4000);
     } catch (e) {
+      soundSubscriptionRef.current?.remove();
+      soundSubscriptionRef.current = null;
+      soundRef.current = null;
+      stopPlayer(player);
       console.log('daily-song play error:', e?.message);
       setPlaying(false);
       setPlayError(true);

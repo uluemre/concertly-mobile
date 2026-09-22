@@ -1,5 +1,6 @@
 package com.concertly.backend.service;
 
+import com.concertly.backend.config.LaunchCityConfig;
 import com.concertly.backend.model.*;
 import com.concertly.backend.repository.*;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,6 +31,7 @@ public class TicketmasterService {
     private final com.concertly.backend.repository.ArtistFollowRepository artistFollowRepository;
     private final NotificationService notificationService;
     private final RestTemplate restTemplate;
+    private final LaunchCityConfig launchCityConfig;
 
     public TicketmasterService(EventRepository eventRepository,
             ArtistRepository artistRepository,
@@ -37,7 +39,8 @@ public class TicketmasterService {
             SpotifyService spotifyService,
             DeezerService deezerService,
             com.concertly.backend.repository.ArtistFollowRepository artistFollowRepository,
-            NotificationService notificationService) {
+            NotificationService notificationService,
+            LaunchCityConfig launchCityConfig) {
         this.eventRepository = eventRepository;
         this.artistRepository = artistRepository;
         this.venueRepository = venueRepository;
@@ -46,6 +49,7 @@ public class TicketmasterService {
         this.artistFollowRepository = artistFollowRepository;
         this.notificationService = notificationService;
         this.restTemplate = new RestTemplate();
+        this.launchCityConfig = launchCityConfig;
     }
 
     /**
@@ -68,14 +72,30 @@ public class TicketmasterService {
         String nowIso = LocalDateTime.now()
                 .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'"));
 
-        // Türkiye'deki tüm etkinlikleri Ticketmaster'dan çek
-        total += syncFromApi(
-                "https://app.ticketmaster.com/discovery/v2/events.json",
-                Map.of(
-                        "countryCode", "TR",
-                        "sort", "date,asc",
-                        "size", "100",
-                        "startDateTime", nowIso));
+        for (String city : launchCityConfig.getCities()) {
+            // Ticketmaster city filtresi ASCII şehir adlarıyla daha tutarlı
+            // çalışıyor, o yüzden sorguyu ASCII adla atıyoruz.
+            //
+            // Veritabanına ise Ticketmaster'ın döndürdüğü ad yazılır (genelde
+            // "Istanbul"), Türkçe canonical adımız ("İstanbul") değil. Bunu
+            // bilerek dönüştürmüyoruz: mekan tekilleştirmesi
+            // venueRepository.findFirstByNameAndCity ile BİREBİR eşleşmeye
+            // dayanıyor; yazılan adı değiştirmek mevcut kayıtlarla eşleşmeyi
+            // bozup mükerrer mekan ve etkinlik üretirdi.
+            //
+            // Sorgu tarafı zaten Türkçe-duyarlı normalize ediliyor
+            // (LaunchCityConfig.normalize + EventRepository'deki
+            // LOWER(REPLACE(city,'İ','I'))), dolayısıyla filtreleme doğru çalışıyor.
+            total += syncFromApi(
+                    "https://app.ticketmaster.com/discovery/v2/events.json",
+                    Map.of(
+                            "countryCode", "TR",
+                            "city", launchCityConfig.ticketmasterCity(city),
+                            "sort", "date,asc",
+                            "size", "100",
+                            "startDateTime", nowIso),
+                    city);
+        }
 
         System.out.println(
                 "✅ Ticketmaster veri çekme tamamlandı! Toplam: " + total);
@@ -326,7 +346,12 @@ public class TicketmasterService {
     }
 
     @SuppressWarnings("unchecked")
-    private int syncFromApi(String baseUrl, Map<String, Object> baseParams) {
+    /**
+     * @param fallbackCity Ticketmaster yanitinda mekan/sehir bilgisi eksik
+     *                     ciktiginda kullanilacak sehir (sorguyu attigimiz
+     *                     lansman sehri). Bos birakilirsa eski davranis.
+     */
+    private int syncFromApi(String baseUrl, Map<String, Object> baseParams, String fallbackCity) {
         if (isBlank(apiKey) || apiKey.contains("change") || apiKey.contains("default")
                 || apiKey.equals("your_api_key")) {
             System.out.println("❌ Ticketmaster API key bulunamadı.");
@@ -370,7 +395,7 @@ public class TicketmasterService {
 
                 int before = count;
 
-                count += processEvents(events);
+                count += processEvents(events, fallbackCity);
 
                 System.out.println(
                         "📄 Sayfa " + page +
@@ -424,7 +449,7 @@ public class TicketmasterService {
     }
 
     @SuppressWarnings("unchecked")
-    private int processEvents(List<Map<String, Object>> events) {
+    private int processEvents(List<Map<String, Object>> events, String fallbackCity) {
         int count = 0;
 
         for (Map<String, Object> e : events) {
@@ -516,7 +541,7 @@ public class TicketmasterService {
                 // VENUE
                 // =========================
 
-                Venue venue = extractOrCreateVenue(emb);
+                Venue venue = extractOrCreateVenue(emb, fallbackCity);
 
                 // =========================
                 // DESCRIPTION
@@ -791,7 +816,7 @@ public class TicketmasterService {
     }
 
     @SuppressWarnings("unchecked")
-    private Venue extractOrCreateVenue(Map<String, Object> emb) {
+    private Venue extractOrCreateVenue(Map<String, Object> emb, String fallbackCity) {
         Venue venue = new Venue();
 
         if (emb != null && emb.get("venues") != null) {
@@ -810,6 +835,12 @@ public class TicketmasterService {
                 if (v.get("city") != null) {
                     Map<String, Object> cityMap = (Map<String, Object>) v.get("city");
                     venue.setCity((String) cityMap.get("name"));
+                }
+                // Şehir hiç gelmediyse sorguyu attığımız şehre düş. Aksi halde
+                // city null kalıyor ve etkinlik, şehir filtreli tüm sorgulardan
+                // (e.venue.city üzerinden join) sessizce düşüyor.
+                if (isBlank(venue.getCity()) && !isBlank(fallbackCity)) {
+                    venue.setCity(fallbackCity);
                 }
                 if (v.get("country") != null) {
                     Map<String, Object> country = (Map<String, Object>) v.get("country");
@@ -841,7 +872,9 @@ public class TicketmasterService {
         }
 
         venue.setName("Bilinmiyor");
-        venue.setCity("TR");
+        // "TR" yazmak etkinliği şehir filtreli her sorgunun dışında bırakıyordu;
+        // sorguyu attığımız lansman şehrine düşüyoruz ki etkinlik kaybolmasın.
+        venue.setCity(!isBlank(fallbackCity) ? fallbackCity : "TR");
         venue.setCountry("Türkiye");
         return venueRepository.save(venue);
     }

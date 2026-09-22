@@ -12,7 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import AnimatedListItem from '../components/AnimatedListItem';
 import { EventsSkeletonPage } from '../components/SkeletonLoader';
-import { TURKISH_CITIES } from '../constants/cities';
+import { LAUNCH_CITIES, launchCityOrNull } from '../constants/cities';
 import { parseEventDate } from '../utils/time';
 
 const { width } = Dimensions.get('window');
@@ -69,7 +69,7 @@ function CardImage({ item, index, cardImageStyle }) {
   );
 }
 
-const CITIES = ['Tümü', ...TURKISH_CITIES];
+const CITIES = ['Tümü', ...LAUNCH_CITIES];
 const GENRES = ['Tümü', 'Rock', 'Pop', 'Rap', 'Elektronik', 'Jazz', 'Klasik', 'Indie', 'R&B', 'Folk'];
 
 export default function EventsScreen({ navigation, route }) {
@@ -90,7 +90,7 @@ export default function EventsScreen({ navigation, route }) {
   const [refreshing, setRefreshing] = useState(false);
 
   const [search, setSearch] = useState('');
-  const [selectedCity, setSelectedCity] = useState(session.userCity || null);
+  const [selectedCity, setSelectedCity] = useState(launchCityOrNull(session.userCity));
   const [selectedGenre, setSelectedGenre] = useState(null);
   const [sortKey, setSortKey] = useState('date_asc');
   const [showPast, setShowPast] = useState(false);

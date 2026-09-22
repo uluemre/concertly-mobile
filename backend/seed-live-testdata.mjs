@@ -1,7 +1,8 @@
-// Canlı Railway DB'sini gerçekçi test verisiyle dolduran tek seferlik script.
+// Canlı DB'yi gerçekçi test verisiyle dolduran tek seferlik script.
 // Tamamen normal kullanıcı API akışını kullanır (admin/redeploy gerekmez).
 // Çalıştır: node backend/seed-live-testdata.mjs
-const BASE = 'https://concertly-mobile-production.up.railway.app/api';
+// Başka bir sunucuya yazmak için: SEED_BASE_URL=... node backend/seed-live-testdata.mjs
+const BASE = process.env.SEED_BASE_URL || 'https://concertly-backend.onrender.com/api';
 const PW = 'Demo1234';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

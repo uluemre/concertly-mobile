@@ -22,15 +22,18 @@ public class MessageService {
     private final UserRepository userRepository;
     private final NotificationService notificationService;
     private final ModerationService moderationService;
+    private final ContentLimitService contentLimitService;
 
     public MessageService(MessageRepository messageRepository,
                           UserRepository userRepository,
                           NotificationService notificationService,
-                          ModerationService moderationService) {
+                          ModerationService moderationService,
+                          ContentLimitService contentLimitService) {
         this.messageRepository = messageRepository;
         this.userRepository = userRepository;
         this.notificationService = notificationService;
         this.moderationService = moderationService;
+        this.contentLimitService = contentLimitService;
     }
 
     @Transactional
@@ -48,6 +51,9 @@ public class MessageService {
                 .orElseThrow(() -> new ResourceNotFoundException("Kullanıcı bulunamadı: " + senderId));
         User receiver = userRepository.findById(receiverId)
                 .orElseThrow(() -> new ResourceNotFoundException("Kullanıcı bulunamadı: " + receiverId));
+        // Alıcının DM tercihi + yeni hesap spam tavanı
+        moderationService.requireCanMessage(senderId, receiver);
+        contentLimitService.checkMessage(senderId);
 
         Message message = new Message();
         message.setSender(sender);

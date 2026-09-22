@@ -1,12 +1,13 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, Alert, Share, Image,
+  ActivityIndicator, Alert, Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
+import { buildShareUrl, shareWithLink } from '../services/shareLinks';
 import API, { getErrorMessage } from '../services/api';
 
 export default function CommunityManageScreen({ route, navigation }) {
@@ -77,11 +78,11 @@ export default function CommunityManageScreen({ route, navigation }) {
 
   const shareInvite = async () => {
     if (!community?.inviteCode) return;
-    try {
-      await Share.share({
-        message: t('community_invite_share_msg', { name: community.name, code: community.inviteCode }),
-      });
-    } catch {}
+    // Davet koduna topluluk linki de eklenir; link uygulamayı doğrudan açar.
+    await shareWithLink(
+      t('community_invite_share_msg', { name: community.name, code: community.inviteCode }),
+      buildShareUrl('community', communityId)
+    );
   };
 
   const deleteCommunity = () => {

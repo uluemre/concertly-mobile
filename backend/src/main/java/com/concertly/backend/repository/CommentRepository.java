@@ -13,6 +13,9 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     // Post'a ait yorumları en yeniden en eskiye sırala
     List<Comment> findByPostIdOrderByCreatedAtDesc(Long postId);
     long countByPostId(Long postId);
+
+    // Yeni hesap spam limiti
+    long countByUserIdAndCreatedAtAfter(Long userId, java.time.LocalDateTime since);
     void deleteByPostId(Long postId);
 
     // Toplu yorum sayımı — feed'deki N+1'i önlemek için (postId, count)

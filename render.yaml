@@ -1,0 +1,82 @@
+services:
+  - type: web
+    name: concertly-backend
+    runtime: docker
+    # Bölge: Türkiye'ye en yakın Render bölgesi. Servis ve veritabanı AYNI
+    # bölgede olmalı, yoksa internal (ücretsiz, düşük gecikmeli) bağlantı çalışmaz.
+    region: frankfurt
+    # Dockerfile heap'i 1GB container varsayımıyla ayarlı (-Xmx384m + 128m
+    # metaspace + Tomcat/thread'ler ≈ 700MB). En küçük ücretli plan 0.5c-512mb
+    # bunun altında kalıp OOM-kill yer; o plana inmek istersen önce Dockerfile'daki
+    # -Xmx/-XX:MaxMetaspaceSize değerlerini düşürmen gerekir.
+    # Ayrıca: aşağıdaki kalıcı disk ücretsiz planda kullanılamaz.
+    plan: 1c-2g
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /actuator/health
+    # Yüklenen kullanıcı görselleri kalıcı diskte durur. Bu disk OLMADAN
+    # container dosya sistemi efemerdir ve her deploy/restart'ta bütün profil
+    # fotoğrafları ile gönderi görselleri silinir (imageUrl'ler 404'e düşer).
+    # UPLOAD_DIR aşağıda bu mountPath'e işaret eder.
+    # NOT: disk bağlıyken Render zero-downtime deploy yapamaz, her deploy'da
+    # kısa bir kesinti olur.
+    disk:
+      name: concertly-uploads
+      mountPath: /var/data/uploads
+      sizeGB: 5
+    envVars:
+      - key: UPLOAD_DIR
+        value: /var/data/uploads
+
+      # --- Veritabanı ---------------------------------------------------------
+      # DB_URL elle girilir: Render'ın fromDatabase'i host/port vermiyor (yalnızca
+      # connectionString/user/password/database), Spring ise jdbc: biçimi istiyor.
+      # Değer, veritabanının Internal Database URL'inden türetilir:
+      #   jdbc:postgresql://<internal-host>:5432/concertly_mobile
+      - key: DB_URL
+        sync: false
+      - key: DB_USERNAME
+        fromDatabase:
+          name: concertly-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: concertly-db
+          property: password
+
+      # --- Secret'lar (Render panelinden girilir) -----------------------------
+      - key: JWT_SECRET
+        generateValue: true
+      - key: SPOTIFY_CLIENT_ID
+        sync: false
+      - key: SPOTIFY_CLIENT_SECRET
+        sync: false
+      - key: TICKETMASTER_API_KEY
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+
+      # --- Uygulama ayarları --------------------------------------------------
+      - key: APP_TIMEZONE
+        value: Europe/Istanbul
+      - key: LAUNCH_CITIES
+        value: İstanbul,Ankara,İzmir,Antalya
+      - key: DDL_AUTO
+        value: update
+      - key: FLYWAY_ENABLED
+        value: "false"
+      - key: JPA_SHOW_SQL
+        value: "false"
+      - key: CORS_ALLOWED_ORIGIN_PATTERNS
+        value: https://concertly-backend.onrender.com
+
+databases:
+  - name: concertly-db
+    region: frankfurt
+    # free plan 30 gün sonra sona eriyor — yayın için ücretli en küçük kademe.
+    plan: 0.1c-256mb
+    databaseName: concertly_mobile
+    user: concertly
+    # Boş liste = dışarıdan doğrudan bağlantı kapalı, yalnızca Render içinden.
+    # Yerelden psql ile bağlanman gerekirse kendi IP'ni buraya ekle.
+    ipAllowList: []

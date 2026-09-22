@@ -1,9 +1,12 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Storage from '../services/secureStorage';
+import { unregisterPushToken } from '../services/pushNotifications';
 import { setApiToken, setApiRefreshToken, setTokenRefreshedHandler } from '../services/api';
 
 const AuthContext = createContext(null);
 
+// authToken/refreshToken Keychain-Keystore'a, kalanlar AsyncStorage'a yazılır
+// (bkz. services/secureStorage.js).
 const STORAGE_KEYS = [
   'authToken', 'refreshToken', 'userId', 'username', 'userCity',
   'favoriteGenres', 'isAdmin', 'onboardingCompleted',
@@ -38,15 +41,13 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     setTokenRefreshedHandler(async (newAccessToken) => {
       setSession(prev => ({ ...prev, authToken: newAccessToken }));
-      try {
-        await AsyncStorage.setItem('authToken', newAccessToken);
-      } catch {}
+      await Storage.setItem('authToken', newAccessToken);
     });
   }, []);
 
   // Uygulama açılışında AsyncStorage'dan yükle
   useEffect(() => {
-    AsyncStorage.multiGet(STORAGE_KEYS)
+    Storage.multiGet(STORAGE_KEYS)
       .then(pairs => {
         const data = Object.fromEntries(pairs);
         if (data.authToken && data.userId) {
@@ -78,7 +79,7 @@ export function AuthProvider({ children }) {
       onboardingCompleted: data.onboardingCompleted || false,
     };
     setSession(newSession);
-    await AsyncStorage.multiSet([
+    await Storage.multiSet([
       ['authToken', newSession.authToken],
       ['refreshToken', newSession.refreshToken || ''],
       ['userId', String(newSession.userId)],
@@ -91,7 +92,10 @@ export function AuthProvider({ children }) {
   }, []);
 
   const logout = useCallback(async () => {
-    await AsyncStorage.multiRemove(STORAGE_KEYS);
+    // Cihazı hesaptan düşür, yoksa çıkış yapan kullanıcının bildirimleri
+    // telefona gelmeye devam eder.
+    await unregisterPushToken();
+    await Storage.multiRemove(STORAGE_KEYS);
     setSession(DEFAULT_SESSION);
     setNotificationCount(0);
   }, []);
@@ -103,7 +107,7 @@ export function AuthProvider({ children }) {
       .map(([k, v]) => [k, String(v)]);
     if (pairs.length) {
       try {
-        await AsyncStorage.multiSet(pairs);
+        await Storage.multiSet(pairs);
       } catch (err) {
         console.log('Session güncelleme hatası:', err.message);
       }

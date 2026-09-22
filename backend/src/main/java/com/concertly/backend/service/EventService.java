@@ -1,5 +1,6 @@
 package com.concertly.backend.service;
 
+import com.concertly.backend.config.LaunchCityConfig;
 import com.concertly.backend.dto.request.CreateEventRequest;
 import com.concertly.backend.dto.response.EventResponse;
 import com.concertly.backend.exception.ResourceNotFoundException;
@@ -22,15 +23,18 @@ public class EventService {
     private final ArtistRepository artistRepository;
     private final VenueRepository venueRepository;
     private final UserRepository userRepository;
+    private final LaunchCityConfig launchCityConfig;
 
     public EventService(EventRepository eventRepository,
             ArtistRepository artistRepository,
             VenueRepository venueRepository,
-            UserRepository userRepository) {
+            UserRepository userRepository,
+            LaunchCityConfig launchCityConfig) {
         this.eventRepository = eventRepository;
         this.artistRepository = artistRepository;
         this.venueRepository = venueRepository;
         this.userRepository = userRepository;
+        this.launchCityConfig = launchCityConfig;
     }
 
     public EventResponse createEvent(CreateEventRequest request) {
@@ -78,8 +82,12 @@ public class EventService {
     }
 
     public List<EventResponse> getAllEvents(String city) {
+        if (city != null && !city.isBlank() && !launchCityConfig.contains(city)) {
+            return List.of();
+        }
         List<Event> events = (city == null || city.isBlank())
-                ? eventRepository.findAll()
+                ? eventRepository.findByCitiesNormalized(launchCityConfig.getCities().stream()
+                        .map(LaunchCityConfig::normalize).toList())
                 : eventRepository.findByCityNormalized(city);
 
         return events.stream()
@@ -89,19 +97,23 @@ public class EventService {
     }
 
     public List<EventResponse> getRecommendedEvents(String city, List<String> genres) {
+        if (city != null && !city.isBlank() && !launchCityConfig.contains(city)) {
+            return List.of();
+        }
         if (genres == null || genres.isEmpty()) {
             return getAllEvents(city);
         }
         List<String> lowerGenres = genres.stream()
                 .map(String::toLowerCase)
                 .toList();
-        String queryCity = (city == null || city.isBlank()) ? "İstanbul" : city;
+        String queryCity = (city == null || city.isBlank()) ? launchCityConfig.firstCity() : city;
 
         List<Event> matching = eventRepository.findByVenueCityAndGenreIn(queryCity, lowerGenres);
         matching.sort(Comparator.comparing(Event::getEventDate));
 
         List<Event> all = (city == null || city.isBlank())
-                ? eventRepository.findAll()
+                ? eventRepository.findByCitiesNormalized(launchCityConfig.getCities().stream()
+                        .map(LaunchCityConfig::normalize).toList())
                 : eventRepository.findByCityNormalized(city);
         all.sort(Comparator.comparing(Event::getEventDate));
 
@@ -136,6 +148,9 @@ public class EventService {
         }
 
         event.setIsApproved(true);
+        // Admin incelemesinden geçen etkinlik artık doğrulanmış sayılır —
+        // kullanıcı önerisiyle gelen kayıtlar da listede rozet kazanır.
+        event.setIsVerified(true);
         return EventResponse.from(eventRepository.save(event));
     }
 }

@@ -32,6 +32,9 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     // Sadece sayım gereken yerlerde (rozet/admin) — tüm postları yüklemeye gerek yok
     long countByUserId(Long userId);
 
+    // Yeni hesap spam limiti — belirli bir andan sonraki paylaşım sayısı
+    long countByUserIdAndCreatedAtAfter(Long userId, java.time.LocalDateTime since);
+
     @EntityGraph(attributePaths = {"user", "event"})
     List<Post> findByEventArtistIdOrderByCreatedAtDesc(Long artistId);
 

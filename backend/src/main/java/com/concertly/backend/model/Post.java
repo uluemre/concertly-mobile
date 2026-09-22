@@ -12,6 +12,10 @@ public class Post {
     private Long id;
 
     private String content;
+
+    /** Moderasyon: admin gizlediğinde içerik akışlardan düşer ama silinmez
+     *  (şikayet incelemesi ve denetim izi için kayıt korunur). */
+    private Boolean isHidden = false;
     private String postType = "TEXT"; // TEXT, IMAGE, POLL
     private String imageUrl;
 
@@ -51,4 +55,7 @@ public class Post {
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
     public List<PollOption> getPollOptions() { return pollOptions; }
+
+    public Boolean getIsHidden() { return isHidden != null && isHidden; }
+    public void setIsHidden(Boolean isHidden) { this.isHidden = isHidden; }
 }

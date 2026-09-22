@@ -82,7 +82,9 @@ public class ArtistService {
         if (!artistRepository.existsById(artistId)) {
             throw new ResourceNotFoundException("Sanatçı bulunamadı: " + artistId);
         }
-        List<Post> posts = postRepository.findByEventArtistIdOrderByCreatedAtDesc(artistId);
+        List<Post> posts = postRepository.findByEventArtistIdOrderByCreatedAtDesc(artistId).stream()
+                .filter(p -> !p.getIsHidden())
+                .toList();
         if (posts.isEmpty()) return List.of();
 
         List<Long> ids = posts.stream().map(Post::getId).toList();

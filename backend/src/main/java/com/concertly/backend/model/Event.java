@@ -49,6 +49,19 @@ public class Event {
 
     private Boolean isApproved = false;
 
+    /** Etkinliğin geldiği kanal — tek veri kaynağına bağımlılığı ölçmek için. */
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private EventSource source = EventSource.ADMIN;
+
+    /** Kaynağın doğrulandığı rozet: Ticketmaster, organizatör hesabı ya da
+     *  admin incelemesi. Kullanıcı önerisi onaylanana kadar false kalır. */
+    private Boolean isVerified = false;
+
+    /** Öneriyi destekleyen bağlantı (Instagram gönderisi, mekan sitesi, bilet linki). */
+    @Column(length = 500)
+    private String sourceUrl;
+
     @ManyToOne
     @JoinColumn(name = "artist_id")
     private Artist artist;
@@ -128,4 +141,13 @@ public class Event {
     public void setCreatedBy(User user) {
         this.createdBy = user;
     }
+
+    public EventSource getSource() { return source == null ? EventSource.ADMIN : source; }
+    public void setSource(EventSource source) { this.source = source; }
+
+    public Boolean getIsVerified() { return isVerified != null && isVerified; }
+    public void setIsVerified(Boolean isVerified) { this.isVerified = isVerified; }
+
+    public String getSourceUrl() { return sourceUrl; }
+    public void setSourceUrl(String sourceUrl) { this.sourceUrl = sourceUrl; }
 }

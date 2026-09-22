@@ -10,6 +10,7 @@ import API from '../services/api';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { buildShareUrl, shareWithLink } from '../services/shareLinks';
 import { formatTimeAgo, parseEventDate } from '../utils/time';
 
 const GENRE_GRADIENTS = {
@@ -215,6 +216,13 @@ export default function ArtistProfileScreen({ route, navigation }) {
 
   const myReview = reviews.find(r => r.userId === session.userId);
 
+
+  const shareArtist = () => {
+    if (!artist) return;
+    const genre = artist.genre ? ` · ${artist.genre}` : '';
+    shareWithLink(`🎤 ${artist.name}${genre}`, buildShareUrl('artist', artistId));
+  };
+
   if (loading) return (
     <View style={styles.loadingContainer}>
       <ActivityIndicator size="large" color={colors.primary} />
@@ -235,9 +243,15 @@ export default function ArtistProfileScreen({ route, navigation }) {
       <LinearGradient colors={colors.headerGradient} style={styles.hero}>
         <View style={styles.heroBgCircle} />
 
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backText}>{t('back')}</Text>
-        </TouchableOpacity>
+        <View style={styles.heroTopRow}>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <Text style={styles.backText}>{t('back')}</Text>
+          </TouchableOpacity>
+          {/* Sanatçı sayfası paylaşımı — linki alan kişi uygulamada açar */}
+          <TouchableOpacity style={styles.shareIconBtn} onPress={shareArtist} activeOpacity={0.8}>
+            <Text style={styles.shareIconText}>🔗</Text>
+          </TouchableOpacity>
+        </View>
 
         <Animated.View style={[styles.heroInner, { transform: [{ scale: scaleAnim }] }]}>
           {/* Sol: avatar */}
@@ -610,6 +624,14 @@ function createStyles(colors) {
       backgroundColor: colors.primary + '15', top: -80, right: -80,
     },
     backButton: { marginBottom: 24 },
+    heroTopRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
+    shareIconBtn: {
+      backgroundColor: 'rgba(255,255,255,0.15)',
+      width: 38, height: 38, borderRadius: 19,
+      alignItems: 'center', justifyContent: 'center',
+      borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
+    },
+    shareIconText: { fontSize: 17 },
     backText: { color: colors.textSecondary, fontSize: 15, fontWeight: '600' },
     heroInner: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 20, gap: 16 },
     avatarCol: { alignItems: 'center' },

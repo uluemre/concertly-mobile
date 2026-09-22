@@ -1,5 +1,6 @@
 package com.concertly.backend.controller;
 
+import com.concertly.backend.dto.request.VerifyEventRequest;
 import com.concertly.backend.security.JwtUtil;
 import com.concertly.backend.service.EventVerificationService;
 import org.springframework.web.bind.annotation.*;
@@ -22,9 +23,14 @@ public class EventVerificationController {
         return verificationService.getStatus(userId, eventId);
     }
 
+    /**
+     * Konumla doğrulama. Gövde ZORUNLU: mesafe kararını sunucu verir, istemci
+     * yalnızca koordinatı taşır.
+     */
     @PostMapping
-    public Map<String, Object> verify(@PathVariable Long eventId) {
+    public Map<String, Object> verify(@PathVariable Long eventId,
+            @RequestBody(required = false) VerifyEventRequest request) {
         Long userId = JwtUtil.getCurrentUserId();
-        return verificationService.verify(userId, eventId);
+        return verificationService.verify(userId, eventId, request);
     }
 }

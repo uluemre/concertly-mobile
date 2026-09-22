@@ -6,9 +6,16 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Text, View, ActivityIndicator, Animated, AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Notifications from 'expo-notifications';
 import API, { setSessionExpiredHandler } from '../services/api';
 import SlideTabBar from './SlideTabBar';
 import { useAuth } from '../context/AuthContext';
+import linking from './linking';
+import {
+  registerPushToken,
+  routeForNotification,
+  setBadgeCount,
+} from '../services/pushNotifications';
 
 function TabIcon({ emoji, focused }) {
   const scale = useRef(new Animated.Value(1)).current;
@@ -56,6 +63,9 @@ import AdminUsersScreen from '../screens/AdminUsersScreen';
 import AdminPostsScreen from '../screens/AdminPostsScreen';
 import AdminDeletionFeedbackScreen from '../screens/AdminDeletionFeedbackScreen';
 import AdminCommunitiesScreen from '../screens/AdminCommunitiesScreen';
+import AdminReportsScreen from '../screens/AdminReportsScreen';
+import AdminOrganizerRequestsScreen from '../screens/AdminOrganizerRequestsScreen';
+import SuggestEventScreen from '../screens/SuggestEventScreen';
 import SpotifyRecommendationsScreen from '../screens/SpotifyRecommendationsScreen';
 import VenueProfileScreen from '../screens/VenueProfileScreen';
 import PostDetailScreen from '../screens/PostDetailScreen';
@@ -168,8 +178,39 @@ function TabNavigator() {
 }
 
 export default function AppNavigator() {
-  const { session, isReady, logout } = useAuth();
+  const { session, isReady, logout, notificationCount } = useAuth();
+  const { lang } = useLanguage();
   const navigationRef = useRef(null);
+
+  // ── Push bildirimleri ──────────────────────────────────────────────────────
+  // Cihaz adresi her girişte tazelenir: token yenilenebilir, kullanıcı
+  // uygulamanın dilini değiştirmiş olabilir, cihaz el değiştirmiş olabilir.
+  useEffect(() => {
+    if (!session.authToken) return;
+    registerPushToken(lang);
+  }, [session.authToken, lang]);
+
+  // Bildirime dokunulduğunda ilgili ekrana git.
+  useEffect(() => {
+    const open = (response) => {
+      const route = routeForNotification(response?.notification?.request?.content?.data);
+      if (route) navigationRef.current?.navigate(route.screen, route.params);
+    };
+    // Uygulama bildirimle kapalıyken açıldıysa son yanıtı da işle.
+    try {
+      Notifications.getLastNotificationResponseAsync().then((r) => r && open(r)).catch(() => {});
+      const sub = Notifications.addNotificationResponseReceivedListener(open);
+      return () => sub.remove();
+    } catch {
+      // Web / desteklenmeyen ortam — bildirim dinleyicisi olmadan devam.
+      return undefined;
+    }
+  }, []);
+
+  // Uygulama simgesindeki rozet okunmamış sayısını izlesin.
+  useEffect(() => {
+    setBadgeCount(notificationCount);
+  }, [notificationCount]);
 
   // İlk açılış tanıtım ekranı: giriş yapılmamış VE onboarding daha önce
   // görülmemişse Onboarding slaytları başlangıç rotası olur.
@@ -206,7 +247,7 @@ export default function AppNavigator() {
   }
 
   return (
-    <NavigationContainer ref={navigationRef}>
+    <NavigationContainer ref={navigationRef} linking={linking}>
       <Stack.Navigator
         initialRouteName={initialRoute}
         screenOptions={{ headerShown: false }}
@@ -341,6 +382,13 @@ export default function AppNavigator() {
         <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
         <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
         <Stack.Screen name="BlockedUsers" component={BlockedUsersScreen} />
+
+        {/* Kullanıcı etkinlik önerisi — Ticketmaster dışı veri kanalı */}
+        <Stack.Screen name="SuggestEvent" component={SuggestEventScreen} />
+
+        {/* Moderasyon & organizatör kuyruğu (admin) */}
+        <Stack.Screen name="AdminReports" component={AdminReportsScreen} />
+        <Stack.Screen name="AdminOrganizerRequests" component={AdminOrganizerRequestsScreen} />
         <Stack.Screen name="Legal" component={LegalScreen} />
       </Stack.Navigator>
     </NavigationContainer>

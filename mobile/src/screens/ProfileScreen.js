@@ -3,11 +3,12 @@ import {
   View, Text, TouchableOpacity, StyleSheet,
   ActivityIndicator, ScrollView, Modal, TextInput,
   KeyboardAvoidingView, Platform,
-  Alert, Image, Animated, Dimensions, Share
+  Alert, Image, Animated, Dimensions
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { DOWNLOAD_URL, buildShareUrl, shareWithLink } from '../services/shareLinks';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import API, { uploadImage } from '../services/api';
@@ -127,8 +128,9 @@ export default function ProfileScreen({ navigation }) {
   };
 
   const handleInviteFriends = () => {
-    const msg = `🎟️ Concertly uygulamasına katıl!\n\nŞehrindeki canlı konserleri ve etkinlikleri keşfet, konser arkadaşı bul ve kendi konser pasaportunu oluştur 🎸\n\nİndirmek için: https://concertly.app`;
-    Share.share({ message: msg });
+    const msg = `🎟️ Concertly uygulamasına katıl!\n\nŞehrindeki canlı konserleri ve etkinlikleri keşfet, konser arkadaşı bul ve kendi konser pasaportunu oluştur 🎸`;
+    // Davet linki profilime gider; uygulama yüklü değilse indirme sayfası açılır.
+    shareWithLink(msg, session.username ? buildShareUrl('user', session.username) : DOWNLOAD_URL);
   };
 
   const handleLogout = () => {

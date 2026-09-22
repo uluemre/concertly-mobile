@@ -4,11 +4,12 @@ import {
   ActivityIndicator, Image, Animated, Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Audio } from 'expo-av';
+import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
+import { stopPlayer } from '../utils/audio';
 
 const QUESTION_TIME = 10000; // soru başına 10 sn
 const FEEDBACK_DELAY = 900;  // doğru/yanlış rengini gösterme süresi
@@ -41,6 +42,8 @@ export default function SongQuizScreen({ navigation }) {
   const [leaderboard, setLeaderboard] = useState(null);
 
   const soundRef = useRef(null);
+  const soundSubscriptionRef = useRef(null);
+  const seekTimerRef = useRef(null);
   const timerRef = useRef(null);
   const questionStartRef = useRef(0);
   const searchTimerRef = useRef(null);
@@ -48,14 +51,18 @@ export default function SongQuizScreen({ navigation }) {
 
   // ── Temizlik ────────────────────────────────────────────────────────────
   const stopSound = useCallback(async () => {
+    clearTimeout(seekTimerRef.current);
+    soundSubscriptionRef.current?.remove();
+    soundSubscriptionRef.current = null;
     if (soundRef.current) {
-      try { await soundRef.current.unloadAsync(); } catch {}
+      // pause + remove: remove tek başına sesi susturmuyor (bkz. utils/audio.js)
+      stopPlayer(soundRef.current);
       soundRef.current = null;
     }
   }, []);
 
   useEffect(() => {
-    Audio.setAudioModeAsync({ playsInSilentModeIOS: true }).catch(() => {});
+    setAudioModeAsync({ playsInSilentMode: true }).catch(() => {});
     return () => {
       clearInterval(timerRef.current);
       clearTimeout(searchTimerRef.current);
@@ -119,11 +126,35 @@ export default function SongQuizScreen({ navigation }) {
     await stopSound();
     const q = qs[idx];
     try {
-      const { sound } = await Audio.Sound.createAsync(
-        { uri: q.previewUrl },
-        { shouldPlay: true, positionMillis: q.startMs }
-      );
-      soundRef.current = sound;
+      const player = createAudioPlayer(q.previewUrl);
+      soundRef.current = player;
+      const startSec = q.startMs ? q.startMs / 1000 : 0;
+
+      if (!startSec) {
+        player.play();
+      } else {
+        // expo-av'da başlangıç noktası (positionMillis) bir YÜKLEME opsiyonuydu
+        // ve garantiliydi. expo-audio'da createAudioPlayer kaynağı asenkron
+        // yüklüyor; yüklenmeden çağrılan seekTo etkisiz kalıp her soruyu
+        // şarkının başından çalıyordu. Bu yüzden yüklenmeyi bekliyoruz.
+        let started = false;
+        const seekAndPlay = () => {
+          if (started || soundRef.current !== player) return;
+          started = true;
+          clearTimeout(seekTimerRef.current);
+          soundSubscriptionRef.current?.remove();
+          soundSubscriptionRef.current = null;
+          Promise.resolve(player.seekTo(startSec))
+            .catch(e => console.log('quiz seek error:', e?.message))
+            .finally(() => { if (soundRef.current === player) player.play(); });
+        };
+
+        soundSubscriptionRef.current = player.addListener('playbackStatusUpdate', (status) => {
+          if (status?.isLoaded) seekAndPlay();
+        });
+        // Güvenlik ağı: durum güncellemesi hiç gelmezse soru sessiz kalmasın.
+        seekTimerRef.current = setTimeout(seekAndPlay, 3000);
+      }
     } catch (e) {
       console.log('quiz play error:', e?.message);
     }

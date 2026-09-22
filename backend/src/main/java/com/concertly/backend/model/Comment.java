@@ -13,6 +13,10 @@ public class Comment {
 
     private String content;
 
+    /** Moderasyon: admin gizlediğinde içerik akışlardan düşer ama silinmez
+     *  (şikayet incelemesi ve denetim izi için kayıt korunur). */
+    private Boolean isHidden = false;
+
     private LocalDateTime createdAt = LocalDateTime.now();
 
     @ManyToOne
@@ -35,4 +39,7 @@ public class Comment {
 
     public Post getPost() { return post; }
     public void setPost(Post post) { this.post = post; }
+
+    public Boolean getIsHidden() { return isHidden != null && isHidden; }
+    public void setIsHidden(Boolean isHidden) { this.isHidden = isHidden; }
 }

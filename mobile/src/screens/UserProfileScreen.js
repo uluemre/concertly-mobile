@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import API from '../services/api';
+import DeepLinkLoader from '../components/DeepLinkLoader';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -23,7 +24,7 @@ const gradientSets = [
 
 const eventEmojis = ['🎸', '🎤', '🥁', '🎹', '🎺', '🎻', '🎪', '🎭'];
 
-export default function UserProfileScreen({ route, navigation }) {
+function UserProfileContent({ route, navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { session } = useAuth();
@@ -584,4 +585,33 @@ function createStyles(colors) {
     emptyEmoji: { fontSize: 52, marginBottom: 14 },
     emptyText: { color: colors.textSecondary, fontSize: 15 },
   });
+}
+
+/**
+ * Paylaşım linki kullanıcı ADIYLA gelir (/u/emre) — okunabilir olsun diye.
+ * Ekran id ile çalıştığı için adı burada id'ye çeviriyoruz.
+ */
+export default function UserProfileScreen({ route, navigation }) {
+  const { userId, username } = route.params || {};
+  const [resolvedId, setResolvedId] = useState(userId ? Number(userId) : null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    if (resolvedId || !username) return;
+    let cancelled = false;
+    API.get(`/users/by-username/${encodeURIComponent(username)}`)
+      .then((res) => !cancelled && setResolvedId(res.data?.id ?? null))
+      .catch(() => !cancelled && setFailed(true));
+    return () => { cancelled = true; };
+  }, [username, resolvedId]);
+
+  if (!resolvedId) {
+    return <DeepLinkLoader error={failed || !username} onBack={() => navigation.navigate('MainApp')} />;
+  }
+  return (
+    <UserProfileContent
+      route={{ ...route, params: { ...route.params, userId: resolvedId } }}
+      navigation={navigation}
+    />
+  );
 }

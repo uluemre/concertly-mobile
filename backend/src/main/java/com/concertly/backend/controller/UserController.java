@@ -2,11 +2,13 @@ package com.concertly.backend.controller;
 
 import com.concertly.backend.dto.request.DeleteAccountRequest;
 import com.concertly.backend.dto.request.RegisterRequest;
+import com.concertly.backend.dto.request.PrivacySettingsRequest;
 import com.concertly.backend.dto.request.UpdateProfileRequest;
 import com.concertly.backend.dto.response.ArtistResponse;
 import com.concertly.backend.dto.response.EventResponse;
 import com.concertly.backend.dto.response.PassportResponse;
 import com.concertly.backend.dto.response.PostResponse;
+import com.concertly.backend.dto.response.PrivacySettingsResponse;
 import com.concertly.backend.dto.response.UserResponse;
 import com.concertly.backend.security.JwtUtil;
 import com.concertly.backend.service.AccountDeletionService;
@@ -54,9 +56,27 @@ public class UserController {
         return userService.getUsers();
     }
 
+    // ── Gizlilik ayarları (yalnızca kendi hesabın) ───────────────────────────
+
+    @GetMapping("/me/privacy")
+    public PrivacySettingsResponse getPrivacySettings() {
+        return userService.getPrivacySettings(JwtUtil.getCurrentUserId());
+    }
+
+    @PutMapping("/me/privacy")
+    public PrivacySettingsResponse updatePrivacySettings(@RequestBody PrivacySettingsRequest request) {
+        return userService.updatePrivacySettings(JwtUtil.getCurrentUserId(), request);
+    }
+
     @GetMapping("/{id}")
     public UserResponse getUserById(@PathVariable Long id) {
         return userService.getUserById(id);
+    }
+
+    /** Paylaşım linkinden gelen kullanıcı adını id'ye çevirir. */
+    @GetMapping("/by-username/{username}")
+    public UserResponse getUserByUsername(@PathVariable String username) {
+        return userService.getUserByUsername(username);
     }
 
     // ✅ PROFİL GÜNCELLE (yalnızca kendi profilini)

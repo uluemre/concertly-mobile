@@ -59,6 +59,20 @@ const NAV_ITEMS = [
     gradient: ['#7C3AED', '#EC4899'],
   },
   {
+    titleKey: 'admin_nav_reports_title',
+    subtitleKey: 'admin_nav_reports_sub',
+    icon: '🛡️',
+    screen: 'AdminReports',
+    gradient: ['#EF4444', '#7C3AED'],
+  },
+  {
+    titleKey: 'admin_nav_organizer_title',
+    subtitleKey: 'admin_nav_organizer_sub',
+    icon: '🎪',
+    screen: 'AdminOrganizerRequests',
+    gradient: ['#00D4AA', '#7C3AED'],
+  },
+  {
     titleKey: 'admin_nav_deletion_title',
     subtitleKey: 'admin_nav_deletion_sub',
     icon: '📭',

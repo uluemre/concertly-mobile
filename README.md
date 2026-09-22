@@ -136,6 +136,21 @@ Scan the generated QR code with Expo Go.
 
 Both your computer and mobile device must be connected to the same network.
 
+### 4. Render deployment
+
+The repository includes `render.yaml` for deploying the Spring Boot backend
+with a PostgreSQL database on Render. After creating the Blueprint, set the
+secret environment variables marked as `sync: false`. `DB_URL` must be the
+JDBC PostgreSQL URL, for example:
+
+```text
+jdbc:postgresql://<host>:5432/concertly_mobile?sslmode=require
+```
+
+The mobile app uses `https://concertly-backend.onrender.com/api` by default.
+Override it for another Render service or a custom domain with
+`EXPO_PUBLIC_API_URL` before an EAS build.
+
 ---
 
 ## 🔌 API Overview

@@ -67,6 +67,13 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/auth/reset-password").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/users/register").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/events").permitAll()
+                        // Kullanıcıya özel doğrulama durumu — aşağıdaki genel
+                        // "GET /api/events/**" permitAll kuralından ÖNCE gelmeli,
+                        // yoksa anonim isteklere de açılıyor.
+                        .requestMatchers(HttpMethod.GET, "/api/events/*/verify").authenticated()
+                        // Kendi önerilerim — kullanıcıya özel, genel GET /api/events/**
+                        // permitAll kuralından ÖNCE gelmeli.
+                        .requestMatchers(HttpMethod.GET, "/api/events/suggestions/me").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/events/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/posts/feed/trending").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/users/*/profile").permitAll()
@@ -97,6 +104,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/legal/**").permitAll()
                         // Tanıtım sayfası — sosyal medya / Marketing URL, kimliksiz erişilebilir
                         .requestMatchers(HttpMethod.GET, "/promo", "/promo/**").permitAll()
+                        // Paylaşım linkleri — linki alan kişi henüz kullanıcı değil;
+                        // sayfa yalnızca herkese açık alanları gösterir, amacı uygulamayı açmak.
+                        .requestMatchers(HttpMethod.GET, "/e/*", "/a/*", "/u/*", "/p/*", "/c/*").permitAll()
+                        // Universal/App Link doğrulama dosyaları — Apple ve Google kimliksiz okur.
+                        .requestMatchers(HttpMethod.GET, "/.well-known/**").permitAll()
                         .anyRequest().authenticated()
 
                 )

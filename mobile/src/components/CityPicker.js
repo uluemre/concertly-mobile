@@ -3,15 +3,19 @@ import {
   View, Text, StyleSheet, TouchableOpacity,
   Modal, TextInput, FlatList,
 } from 'react-native';
-import { TURKISH_CITIES, POPULAR_CITIES } from '../constants/cities';
+import { TURKISH_CITIES, LAUNCH_CITIES, isLaunchCity } from '../constants/cities';
 
 // Türkçe-duyarlı normalleştirme: "ist" → "İstanbul" eşleşsin.
 const norm = (s) => (s || '').toLocaleLowerCase('tr-TR').trim();
 
 /**
- * Şehir seçici. 81 ili tek tek chip basmak yerine popüler ~8 ili gösterir,
- * gerisi "＋ Diğer" ile açılan aranabilir modaldan seçilir. Seçilen şehir
- * popüler listede yoksa ayrıca aktif chip olarak gösterilir.
+ * Şehir seçici. İlk yayın kapsamındaki şehirler chip olarak öne çıkar; geri
+ * kalan iller "＋ Diğer" ile açılan aranabilir modaldan seçilebilir.
+ *
+ * Kapsam dışı şehirleri de seçilebilir tutuyoruz: onboarding şehir seçmeden
+ * ilerlemeye izin vermiyor (canContinue), dolayısıyla listeyi 4 şehre kısmak
+ * diğer illerdeki kullanıcıyı kayıt akışında tamamen kilitliyordu. Kapsam
+ * dışı seçimde etkinlik listesinin henüz boş olacağını ayrıca belirtiyoruz.
  *
  * props: value (string|null), onChange(city), colors, t
  */
@@ -20,8 +24,9 @@ export default function CityPicker({ value, onChange, colors, t }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [query, setQuery] = useState('');
 
-  const showSelectedExtra = value && !POPULAR_CITIES.includes(value);
-  const chips = showSelectedExtra ? [...POPULAR_CITIES, value] : POPULAR_CITIES;
+  const showSelectedExtra = value && !LAUNCH_CITIES.includes(value);
+  const chips = showSelectedExtra ? [...LAUNCH_CITIES, value] : LAUNCH_CITIES;
+  const outOfScope = !!value && !isLaunchCity(value);
 
   const filtered = query.trim()
     ? TURKISH_CITIES.filter(c => norm(c).includes(norm(query)))
@@ -34,29 +39,34 @@ export default function CityPicker({ value, onChange, colors, t }) {
   };
 
   return (
-    <View style={styles.row}>
-      {chips.map(city => {
-        const active = value === city;
-        return (
-          <TouchableOpacity
-            key={city}
-            onPress={() => onChange(city)}
-            activeOpacity={0.8}
-            style={[styles.chip, active && styles.chipActive]}
-          >
-            <Text style={[styles.chipText, active && styles.chipTextActive]}>{city}</Text>
-          </TouchableOpacity>
-        );
-      })}
+    <View>
+      <View style={styles.row}>
+        {chips.map(city => {
+          const active = value === city;
+          return (
+            <TouchableOpacity
+              key={city}
+              onPress={() => onChange(city)}
+              activeOpacity={0.8}
+              style={[styles.chip, active && styles.chipActive]}
+            >
+              <Text style={[styles.chipText, active && styles.chipTextActive]}>{city}</Text>
+            </TouchableOpacity>
+          );
+        })}
 
-      {/* ＋ Diğer — tüm illeri arama modalı */}
-      <TouchableOpacity
-        onPress={() => setModalOpen(true)}
-        activeOpacity={0.8}
-        style={[styles.chip, styles.chipMore]}
-      >
-        <Text style={styles.chipMoreText}>＋ {t('city_more')}</Text>
-      </TouchableOpacity>
+        {/* ＋ Diğer — tüm illeri arama modalı */}
+        <TouchableOpacity
+          onPress={() => setModalOpen(true)}
+          activeOpacity={0.8}
+          style={[styles.chip, styles.chipMore]}
+        >
+          <Text style={styles.chipMoreText}>＋ {t('city_more')}</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Kapsam dışı şehir seçildiyse beklentiyi baştan doğru kur */}
+      {outOfScope && <Text style={styles.soonHint}>{t('city_soon_hint')}</Text>}
 
       <Modal
         visible={modalOpen}
@@ -93,6 +103,7 @@ export default function CityPicker({ value, onChange, colors, t }) {
               }
               renderItem={({ item }) => {
                 const active = value === item;
+                const launch = isLaunchCity(item);
                 return (
                   <TouchableOpacity
                     onPress={() => pick(item)}
@@ -102,7 +113,9 @@ export default function CityPicker({ value, onChange, colors, t }) {
                     <Text style={[styles.listItemText, active && styles.listItemTextActive]}>
                       {item}
                     </Text>
-                    {active && <Text style={styles.listCheck}>✓</Text>}
+                    {active
+                      ? <Text style={styles.listCheck}>✓</Text>
+                      : !launch && <Text style={styles.listSoon}>{t('city_soon_badge')}</Text>}
                   </TouchableOpacity>
                 );
               }}
@@ -120,7 +133,7 @@ function createStyles(colors) {
     chip: {
       paddingHorizontal: 14,
       paddingVertical: 9,
-      borderRadius: 20,
+      borderRadius: 18,
       backgroundColor: colors.card,
       borderWidth: 1,
       borderColor: colors.border,
@@ -130,6 +143,13 @@ function createStyles(colors) {
     chipTextActive: { color: '#fff' },
     chipMore: { borderStyle: 'dashed', borderColor: '#E94560' },
     chipMoreText: { color: '#E94560', fontSize: 13, fontWeight: '800' },
+
+    soonHint: {
+      color: colors.textSecondary,
+      fontSize: 12,
+      marginTop: 8,
+      lineHeight: 17,
+    },
 
     modalOverlay: {
       flex: 1,
@@ -176,6 +196,7 @@ function createStyles(colors) {
     listItemText: { color: colors.text, fontSize: 16, fontWeight: '600' },
     listItemTextActive: { color: '#E94560', fontWeight: '800' },
     listCheck: { color: '#E94560', fontSize: 16, fontWeight: '800' },
+    listSoon: { color: colors.textSecondary, fontSize: 12, fontWeight: '700' },
     empty: { color: colors.textSecondary, textAlign: 'center', paddingVertical: 24, fontSize: 14 },
   });
 }

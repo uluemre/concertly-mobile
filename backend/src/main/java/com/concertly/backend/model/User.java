@@ -46,6 +46,24 @@ public class User {
 
     private LocalDateTime updatedAt = LocalDateTime.now();
 
+    // ── Bildirim tercihleri (push) ────────────────────────────────────────────
+    // Varsayılan açık: kullanıcı kaydolduğunda bildirim alır, Ayarlar'dan kapatır.
+    private Boolean pushEnabled = true;
+    private Boolean pushSocial = true;       // beğeni, yorum, takip
+    private Boolean pushMessages = true;     // direkt mesaj
+    private Boolean pushEvents = true;       // konser hatırlatması, yeni etkinlik
+    private Boolean pushCommunities = true;  // topluluk davet/onay/yorum
+    private Boolean pushGames = true;        // günün şarkısı
+
+    // ── Gizlilik / güvenlik ───────────────────────────────────────────────────
+    /** Bana kim mesaj atabilir. Varsayılan herkes; taciz durumunda daraltılır. */
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private MessagePrivacy messagePrivacy = MessagePrivacy.EVERYONE;
+
+    /** Profilimi/paylaşımlarımı yalnızca takipçilerim görsün. */
+    private Boolean privateAccount = false;
+
     // 🔥 ROLE RELATION
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
@@ -167,4 +185,32 @@ public class User {
     public void setResetToken(String resetToken) { this.resetToken = resetToken; }
     public LocalDateTime getResetTokenExpiry() { return resetTokenExpiry; }
     public void setResetTokenExpiry(LocalDateTime resetTokenExpiry) { this.resetTokenExpiry = resetTokenExpiry; }
+
+    // ── Bildirim tercihleri ───────────────────────────────────────────────────
+    public Boolean getPushEnabled() { return pushEnabled; }
+    public void setPushEnabled(Boolean pushEnabled) { this.pushEnabled = pushEnabled; }
+
+    public Boolean getPushSocial() { return pushSocial; }
+    public void setPushSocial(Boolean pushSocial) { this.pushSocial = pushSocial; }
+
+    public Boolean getPushMessages() { return pushMessages; }
+    public void setPushMessages(Boolean pushMessages) { this.pushMessages = pushMessages; }
+
+    public Boolean getPushEvents() { return pushEvents; }
+    public void setPushEvents(Boolean pushEvents) { this.pushEvents = pushEvents; }
+
+    public Boolean getPushCommunities() { return pushCommunities; }
+    public void setPushCommunities(Boolean pushCommunities) { this.pushCommunities = pushCommunities; }
+
+    public Boolean getPushGames() { return pushGames; }
+    public void setPushGames(Boolean pushGames) { this.pushGames = pushGames; }
+
+    // ── Gizlilik ──────────────────────────────────────────────────────────────
+    public MessagePrivacy getMessagePrivacy() {
+        return messagePrivacy == null ? MessagePrivacy.EVERYONE : messagePrivacy;
+    }
+    public void setMessagePrivacy(MessagePrivacy messagePrivacy) { this.messagePrivacy = messagePrivacy; }
+
+    public Boolean getPrivateAccount() { return privateAccount; }
+    public void setPrivateAccount(Boolean privateAccount) { this.privateAccount = privateAccount; }
 }

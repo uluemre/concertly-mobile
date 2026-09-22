@@ -28,6 +28,12 @@ public class PostController {
         return postService.createPost(userId, request);
     }
 
+    /** Tek gönderi (paylaşım linki / bildirim). */
+    @GetMapping("/{postId}")
+    public PostResponse getPost(@PathVariable Long postId) {
+        return postService.getPost(postId, JwtUtil.getCurrentUserId());
+    }
+
     @GetMapping("/feed/trending")
     public List<PostResponse> getTrending(
             @RequestParam(defaultValue = "0") int page,

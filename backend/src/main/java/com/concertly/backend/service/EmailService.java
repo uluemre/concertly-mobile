@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
  * Basit e-posta gönderimi (şifre sıfırlama kodu için).
  * app.mail.enabled=false ise (varsayılan / yerel) hiçbir şey göndermez, sadece
  * koda loglar — bu sayede SMTP kurulu olmadan da uygulama sorunsuz çalışır.
- * Railway'de MAIL_ENABLED=true + MAIL_USERNAME + MAIL_PASSWORD set edilince gönderir.
+ * Production'da MAIL_ENABLED=true + MAIL_USERNAME + MAIL_PASSWORD set edilince gönderir.
  */
 @Service
 public class EmailService {

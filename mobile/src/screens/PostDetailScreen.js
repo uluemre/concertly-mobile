@@ -9,6 +9,7 @@ import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
+import DeepLinkLoader from '../components/DeepLinkLoader';
 import { formatTimeAgo } from '../utils/time';
 
 const GRADIENTS = [
@@ -18,7 +19,7 @@ const GRADIENTS = [
   ['#7C3AED', '#F5A623'],
 ];
 
-export default function PostDetailScreen({ route, navigation }) {
+function PostDetailContent({ route, navigation }) {
   const { post: initialPost } = route.params;
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -402,4 +403,30 @@ function createStyles(colors) {
     },
     sendIcon: { color: '#fff', fontSize: 20, fontWeight: '800' },
   });
+}
+
+/** Bildirim/paylaşım linki yalnızca `postId` taşır — gönderiyi burada çözüyoruz. */
+export default function PostDetailScreen({ route, navigation }) {
+  const { post, postId } = route.params || {};
+  const [resolved, setResolved] = useState(post || null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    if (resolved || !postId) return;
+    let cancelled = false;
+    API.get(`/posts/${postId}`)
+      .then((res) => !cancelled && setResolved(res.data))
+      .catch(() => !cancelled && setFailed(true));
+    return () => { cancelled = true; };
+  }, [postId, resolved]);
+
+  if (!resolved) {
+    return <DeepLinkLoader error={failed || !postId} onBack={() => navigation.navigate('MainApp')} />;
+  }
+  return (
+    <PostDetailContent
+      route={{ ...route, params: { ...route.params, post: resolved } }}
+      navigation={navigation}
+    />
+  );
 }

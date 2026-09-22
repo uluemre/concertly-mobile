@@ -18,6 +18,8 @@ const MENU_ITEM_DEFS = [
   { id: 4, titleKey: 'menu_buddy_item', subKey: 'menu_buddy_item_sub', emoji: '🎸', gradient: ['#E94560', '#F5A623'], screen: 'ConcertBuddyMatch', available: true },
   { id: 11, titleKey: 'menu_passport', subKey: 'menu_passport_sub', emoji: '🎟️', gradient: ['#00A8FF', '#7C3AED'], screen: 'ConcertPassport', available: true },
   { id: 9, titleKey: 'menu_games', subKey: 'menu_games_sub', emoji: '🎮', gradient: ['#7C3AED', '#EC4899'], screen: 'Games', available: true },
+  // Eksik konserleri kullanıcı bildirebilsin — Ticketmaster dışı veri kanalı
+  { id: 12, titleKey: 'menu_suggest_event', subKey: 'menu_suggest_event_sub', emoji: '➕', gradient: ['#F5A623', '#E94560'], screen: 'SuggestEvent', available: true },
 ];
 
 function AnimatedCard({ item, index, navigation, styles, colors, isSetupCard }) {

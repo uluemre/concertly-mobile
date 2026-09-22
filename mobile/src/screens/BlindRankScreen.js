@@ -4,10 +4,11 @@ import {
   ActivityIndicator, Image, ScrollView, Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Audio } from 'expo-av';
+import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
+import { stopPlayer } from '../utils/audio';
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
@@ -28,6 +29,7 @@ export default function BlindRankScreen({ navigation }) {
   const [playing, setPlaying] = useState(false);
 
   const soundRef = useRef(null);
+  const soundSubscriptionRef = useRef(null);
   const searchTimerRef = useRef(null);
 
   const placedCount = slots.filter(Boolean).length;
@@ -35,14 +37,17 @@ export default function BlindRankScreen({ navigation }) {
 
   const stopSound = useCallback(async () => {
     setPlaying(false);
+    soundSubscriptionRef.current?.remove();
+    soundSubscriptionRef.current = null;
     if (soundRef.current) {
-      try { await soundRef.current.unloadAsync(); } catch {}
+      // pause + remove: remove tek başına sesi susturmuyor (bkz. utils/audio.js)
+      stopPlayer(soundRef.current);
       soundRef.current = null;
     }
   }, []);
 
   useEffect(() => {
-    Audio.setAudioModeAsync({ playsInSilentModeIOS: true }).catch(() => {});
+    setAudioModeAsync({ playsInSilentMode: true }).catch(() => {});
     return () => {
       clearTimeout(searchTimerRef.current);
       stopSound();
@@ -87,15 +92,19 @@ export default function BlindRankScreen({ navigation }) {
   const togglePreview = async () => {
     if (playing) { stopSound(); return; }
     if (!currentTrack?.previewUrl) return;
+    // Durum ile gerçek oynatıcı ayrışmışsa (hızlı dokunuş, ekran geçişi) eskisi
+    // hâlâ açık olabilir; yenisini açmadan önce kesin olarak sustur.
+    await stopSound();
     try {
-      const { sound } = await Audio.Sound.createAsync(
-        { uri: currentTrack.previewUrl },
-        { shouldPlay: true }
-      );
-      sound.setOnPlaybackStatusUpdate(status => {
-        if (status.didJustFinish) setPlaying(false);
+      const player = createAudioPlayer(currentTrack.previewUrl);
+      soundSubscriptionRef.current = player.addListener('playbackStatusUpdate', status => {
+        // Parça kendiliğinden bitti: oynatıcıyı da bırak, yoksa bellekte kalır.
+        if (status.didJustFinish && soundRef.current === player) {
+          stopSound();
+        }
       });
-      soundRef.current = sound;
+      soundRef.current = player;
+      player.play();
       setPlaying(true);
     } catch (e) {
       console.log('blind-rank play error:', e?.message);

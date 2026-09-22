@@ -3,12 +3,17 @@ package com.concertly.backend.service;
 import com.concertly.backend.dto.response.BlockedUserResponse;
 import com.concertly.backend.exception.ResourceNotFoundException;
 import com.concertly.backend.model.Block;
+import com.concertly.backend.model.MessagePrivacy;
 import com.concertly.backend.model.Report;
 import com.concertly.backend.model.User;
 import com.concertly.backend.repository.BlockRepository;
+import com.concertly.backend.repository.FollowRepository;
+import com.concertly.backend.repository.MessageRepository;
 import com.concertly.backend.repository.ReportRepository;
 import com.concertly.backend.repository.UserRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
@@ -21,13 +26,37 @@ public class ModerationService {
     private final BlockRepository blockRepository;
     private final ReportRepository reportRepository;
     private final UserRepository userRepository;
+    private final FollowRepository followRepository;
+    private final MessageRepository messageRepository;
 
     public ModerationService(BlockRepository blockRepository,
                              ReportRepository reportRepository,
-                             UserRepository userRepository) {
+                             UserRepository userRepository,
+                             FollowRepository followRepository,
+                             MessageRepository messageRepository) {
         this.blockRepository = blockRepository;
         this.reportRepository = reportRepository;
         this.userRepository = userRepository;
+        this.followRepository = followRepository;
+        this.messageRepository = messageRepository;
+    }
+
+    /**
+     * Mesaj gizliliği kontrolü.
+     *
+     * Devam eden bir sohbet her zaman sürer: ayarını sonradan daraltan kullanıcı
+     * mevcut konuşmalarından kopmasın. Yeni sohbet ise alıcının tercihine bağlı.
+     */
+    public void requireCanMessage(Long senderId, User receiver) {
+        if (messageRepository.conversationExists(senderId, receiver.getId())) return;
+        MessagePrivacy privacy = receiver.getMessagePrivacy();
+        if (privacy == MessagePrivacy.NOBODY) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "DM_CLOSED");
+        }
+        if (privacy == MessagePrivacy.FOLLOWING
+                && !followRepository.existsByFollowerIdAndFollowingId(receiver.getId(), senderId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "DM_FOLLOWING_ONLY");
+        }
     }
 
     @Transactional

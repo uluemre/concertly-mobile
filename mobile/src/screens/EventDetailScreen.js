@@ -10,6 +10,8 @@ import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import * as Calendar from 'expo-calendar';
 import API from '../services/api';
+import DeepLinkLoader from '../components/DeepLinkLoader';
+import { buildShareUrl, shareWithLink } from '../services/shareLinks';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -24,18 +26,15 @@ function getInitials(name) {
   return (words[0][0] + words[1][0]).toUpperCase();
 }
 
-function getDistanceInMeters(lat1, lon1, lat2, lon2) {
-  const R = 6371000;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) *
-    Math.cos((lat2 * Math.PI) / 180) *
-    Math.sin(dLon / 2) *
-    Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
+/**
+ * Mesafeyi okunur biçime çevirir. Mesafe artık sunucuda hesaplanıyor
+ * (EventVerificationService), istemci yalnızca gelen metreyi biçimlendirir.
+ * "m"/"km" her iki dilde de aynı olduğu için ayrı çeviri anahtarı gerekmiyor.
+ */
+function formatMeters(meters) {
+  if (meters == null || Number.isNaN(Number(meters))) return '—';
+  const m = Number(meters);
+  return m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`;
 }
 
 // Haritaya tıklanınca Google Maps / Apple Maps aç
@@ -58,7 +57,7 @@ function openMapsApp(latitude, longitude, venueName) {
   });
 }
 
-export default function EventDetailScreen({ route, navigation }) {
+function EventDetailContent({ route, navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { session } = useAuth();
@@ -266,38 +265,72 @@ export default function EventDetailScreen({ route, navigation }) {
       }
 
       const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
-      const { latitude, longitude } = location.coords;
+      const { latitude, longitude, accuracy } = location.coords;
 
-      const distance = getDistanceInMeters(latitude, longitude, event.venueLatitude, event.venueLongitude);
+      const goToPost = () =>
+        navigation.navigate('CreatePost', { event, verified: true });
 
-      const distanceFormatted =
-        distance < 1000
-          ? `${Math.round(distance)} metre`
-          : `${(distance / 1000).toFixed(1)} km`;
-
-      if (distance <= 200) {
-        if (!isVerified) {
-          try {
-            await API.post(`/events/${event.id}/verify`);
-            setIsVerified(true);
-          } catch (err) {
-            if (err.response?.status === 409) setIsVerified(true);
-          }
-        }
+      const celebrate = (meters) => {
+        setIsVerified(true);
         confettiRef.current?.fire();
         Alert.alert(
           t('detail_verified_alert_title'),
-          t('detail_verified_alert_msg', { distance: distanceFormatted }),
-          [{ text: t('detail_verified_alert_btn'), onPress: () => navigation.navigate('CreatePost', { event, verified: true }) }]
+          t('detail_verified_alert_msg', { distance: formatMeters(meters) }),
+          [{ text: t('detail_verified_alert_btn'), onPress: goToPost }]
         );
-      } else {
+      };
+
+      // Mesafe/zaman kararını SUNUCU verir. İstemci yalnızca koordinatı taşır —
+      // burada yapılacak bir kontrol istemci tarafından atlatılabilir olurdu.
+      const res = await API.post(`/events/${event.id}/verify`, {
+        latitude,
+        longitude,
+        accuracyMeters: accuracy ?? null,
+        mocked: location.mocked === true,
+      });
+
+      if (res.data?.verified) {
+        celebrate(res.data.distanceMeters);
+        return;
+      }
+
+      // Beklenen ret durumları 200 + reason ile gelir; kendi dilimizde anlatıyoruz.
+      const { reason, distanceMeters, maxDistanceMeters } = res.data ?? {};
+      if (reason === 'TOO_FAR') {
         Alert.alert(
           t('detail_far_alert_title'),
-          t('detail_far_alert_msg', { distance: distanceFormatted }),
+          t('detail_far_alert_msg', {
+            distance: formatMeters(distanceMeters),
+            max: formatMeters(maxDistanceMeters),
+          }),
           [{ text: t('confirm') }]
         );
+        return;
       }
+      const reasonKey = {
+        TOO_EARLY: 'detail_verify_too_early',
+        TOO_LATE: 'detail_verify_too_late',
+        MOCK_LOCATION: 'detail_verify_mock',
+        VENUE_NO_COORDS: 'detail_verify_no_venue_coords',
+        EVENT_NO_DATE: 'detail_verify_no_date',
+      }[reason];
+      Alert.alert(
+        t('detail_verify_failed_title'),
+        reasonKey ? t(reasonKey) : t('detail_location_error'),
+        [{ text: t('confirm') }]
+      );
     } catch (err) {
+      // 409 = bu konser zaten doğrulanmış; kullanıcıyı cezalandırmadan devam et.
+      if (err.response?.status === 409) {
+        setIsVerified(true);
+        confettiRef.current?.fire();
+        Alert.alert(
+          t('detail_verified_alert_title'),
+          t('detail_already_verified'),
+          [{ text: t('detail_verified_alert_btn'), onPress: () => navigation.navigate('CreatePost', { event, verified: true }) }]
+        );
+        return;
+      }
       Alert.alert(t('error'), t('detail_location_error'));
       console.log(err.message);
     } finally {
@@ -378,6 +411,19 @@ export default function EventDetailScreen({ route, navigation }) {
     }
   };
 
+  // Kaynağı doğrulanmış etkinlik (Ticketmaster, organizatör hesabı ya da
+  // admin incelemesi). Kullanıcı önerisi onaylanana kadar rozet çıkmaz.
+  const verifiedBadge = event.isVerified ? (
+    <View style={styles.verifiedBadge}>
+      <Text style={styles.verifiedBadgeText}>{t('event_verified_source')}</Text>
+    </View>
+  ) : null;
+
+  const shareEvent = () => {
+    const venue = event.venueName ? ` · ${event.venueName}` : '';
+    shareWithLink(`🎫 ${event.name}${venue}`, buildShareUrl('event', event.id));
+  };
+
   // Hero üstü aksiyonlar — sol: geri, sağ: bilet / takvim / kaydet (ikon butonlar)
   const heroActions = (
     <View style={styles.heroTopActions}>
@@ -385,6 +431,10 @@ export default function EventDetailScreen({ route, navigation }) {
         <Text style={styles.backText}>{t('back')}</Text>
       </TouchableOpacity>
       <View style={styles.heroIconRow}>
+        {/* Paylaş — link uygulamayı açar, yüklü değilse indirme sayfasına gider */}
+        <TouchableOpacity style={styles.iconBtn} onPress={shareEvent} activeOpacity={0.8}>
+          <Text style={styles.iconBtnText}>🔗</Text>
+        </TouchableOpacity>
         {/* Bilet, içeride belirgin CTA olarak gösteriliyor — hero ikonu kaldırıldı */}
         {!isExpired && (
           <TouchableOpacity style={styles.iconBtn} onPress={addToCalendar} activeOpacity={0.8}>
@@ -437,6 +487,7 @@ export default function EventDetailScreen({ route, navigation }) {
                 <Text style={styles.genreText}>🎵 {event.genre}</Text>
               </View>
             )}
+            {verifiedBadge}
           </LinearGradient>
         </View>
       ) : (
@@ -456,6 +507,7 @@ export default function EventDetailScreen({ route, navigation }) {
               <Text style={styles.genreText}>🎵 {event.genre}</Text>
             </View>
           )}
+          {verifiedBadge}
         </LinearGradient>
       )}
 
@@ -1010,6 +1062,17 @@ function createStyles(colors) {
       fontSize: 120, fontWeight: '900',
       color: 'rgba(255,255,255,0.15)', letterSpacing: -4,
     },
+    verifiedBadge: {
+      alignSelf: 'flex-start',
+      marginTop: 8,
+      backgroundColor: 'rgba(0,212,170,0.18)',
+      borderWidth: 1,
+      borderColor: 'rgba(0,212,170,0.45)',
+      borderRadius: 14,
+      paddingHorizontal: 11,
+      paddingVertical: 5,
+    },
+    verifiedBadgeText: { color: '#00D4AA', fontSize: 12, fontWeight: '800' },
     heroTitle: {
       fontSize: 32, fontWeight: '900', color: '#fff',
       textAlign: 'left', marginBottom: 4, letterSpacing: 0.5,
@@ -1297,4 +1360,34 @@ function createStyles(colors) {
       justifyContent: 'center', alignItems: 'center',
     },
   });
+}
+
+/**
+ * Paylaşılan link ya da bildirim yalnızca `eventId` taşır; normal gezinme ise
+ * etkinlik nesnesinin tamamını verir. Ekranın gövdesi nesneye göre yazıldığı
+ * için id'yi burada çözüp içeriye tam nesne geçiyoruz.
+ */
+export default function EventDetailScreen({ route, navigation }) {
+  const { event, eventId } = route.params || {};
+  const [resolved, setResolved] = useState(event || null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    if (resolved || !eventId) return;
+    let cancelled = false;
+    API.get(`/events/${eventId}`)
+      .then((res) => !cancelled && setResolved(res.data))
+      .catch(() => !cancelled && setFailed(true));
+    return () => { cancelled = true; };
+  }, [eventId, resolved]);
+
+  if (!resolved) {
+    return <DeepLinkLoader error={failed || !eventId} onBack={() => navigation.navigate('MainApp')} />;
+  }
+  return (
+    <EventDetailContent
+      route={{ ...route, params: { ...route.params, event: resolved } }}
+      navigation={navigation}
+    />
+  );
 }

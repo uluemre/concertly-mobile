@@ -1,8 +1,13 @@
 import axios from 'axios';
 import Constants from 'expo-constants';
 
-// İnternetteki canlı sunucu (Railway)
-const PROD_API = 'https://concertly-mobile-production.up.railway.app/api';
+// Production API adresi Expo build sırasında EXPO_PUBLIC_API_URL ile
+// değiştirilebilir. Varsayılan hedef Render servisidir.
+const PROD_API = (
+  process.env.EXPO_PUBLIC_API_URL
+  || Constants.expoConfig?.extra?.apiUrl
+  || 'https://concertly-backend.onrender.com/api'
+).replace(/\/$/, '');
 
 // Geliştirme sırasında da canlı sunucuyu kullanmak istersen bunu true yap
 // (örn. telefonda Expo Go ile yayın sunucusunu test etmek için)

@@ -44,6 +44,10 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     @EntityGraph(attributePaths = {"artist", "venue", "createdBy"})
     List<Event> findByArtistIdOrderByEventDateDesc(Long artistId);
 
+    // Kullanicinin kendi etkinlik onerileri (en yeni once)
+    @EntityGraph(attributePaths = {"artist", "venue", "createdBy"})
+    List<Event> findByCreatedByIdOrderByIdDesc(Long userId);
+
     @EntityGraph(attributePaths = {"artist", "venue", "createdBy"})
     List<Event> findByVenueIdOrderByEventDateAsc(Long venueId);
 
@@ -68,6 +72,15 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     @EntityGraph(attributePaths = {"artist", "venue", "createdBy"})
     @Query("SELECT e FROM Event e WHERE LOWER(REPLACE(e.venue.city, 'İ', 'I')) = LOWER(REPLACE(:city, 'İ', 'I'))")
     List<Event> findByCityNormalized(@Param("city") String city);
+
+    @EntityGraph(attributePaths = {"artist", "venue", "createdBy"})
+    @Query("""
+            SELECT e FROM Event e
+            WHERE LOWER(REPLACE(e.venue.city, 'İ', 'I'))
+            IN :cities
+            ORDER BY e.eventDate ASC
+            """)
+    List<Event> findByCitiesNormalized(@Param("cities") List<String> cities);
 
     @EntityGraph(attributePaths = {"artist", "venue", "createdBy"})
     List<Event> findByIsApproved(Boolean isApproved);

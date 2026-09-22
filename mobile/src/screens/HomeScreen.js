@@ -14,14 +14,14 @@ import { HomeSkeletonPage } from '../components/SkeletonLoader';
 import SearchModal from './SearchModal';
 import FeaturedCard from '../components/home/FeaturedCard';
 import HomePostCard from '../components/home/HomePostCard';
-import { TURKISH_CITIES } from '../constants/cities';
+import { LAUNCH_CITIES, launchCityOrNull } from '../constants/cities';
 import { parseEventDate } from '../utils/time';
 
 const { width } = Dimensions.get('window');
 const FEATURED_CARD_WIDTH = width * 0.78;
 const FEATURED_CARD_HEIGHT = 240;
 
-const CITIES = ['Tümü', ...TURKISH_CITIES];
+const CITIES = ['Tümü', ...LAUNCH_CITIES];
 
 export default function HomeScreen({ navigation }) {
   const { colors } = useTheme();
@@ -34,7 +34,7 @@ export default function HomeScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [search, setSearch] = useState('');
-  const [selectedCity, setSelectedCity] = useState(session.userCity || null);
+  const [selectedCity, setSelectedCity] = useState(launchCityOrNull(session.userCity));
   const [cityModalVisible, setCityModalVisible] = useState(false);
   const [searchModalVisible, setSearchModalVisible] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);

@@ -1,8 +1,12 @@
 package com.concertly.backend.controller;
 
 import com.concertly.backend.dto.request.CreateEventRequest;
+import com.concertly.backend.dto.request.SuggestEventRequest;
 import com.concertly.backend.dto.response.EventResponse;
+import com.concertly.backend.security.JwtUtil;
 import com.concertly.backend.service.EventService;
+import com.concertly.backend.service.EventSuggestionService;
+import com.concertly.backend.service.OrganizerService;
 import com.concertly.backend.service.TicketmasterService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -18,10 +22,35 @@ public class EventController {
 
     private final EventService eventService;
     private final TicketmasterService ticketmasterService;
+    private final EventSuggestionService suggestionService;
+    private final OrganizerService organizerService;
 
-    public EventController(EventService eventService, TicketmasterService ticketmasterService) {
+    public EventController(EventService eventService,
+                           TicketmasterService ticketmasterService,
+                           EventSuggestionService suggestionService,
+                           OrganizerService organizerService) {
         this.eventService = eventService;
         this.ticketmasterService = ticketmasterService;
+        this.suggestionService = suggestionService;
+        this.organizerService = organizerService;
+    }
+
+    /**
+     * Kullanıcı etkinlik önerisi — Ticketmaster dışı ikinci veri kanalı.
+     * Doğrulanmış organizatörün önerisi doğrudan yayına girer, diğerleri
+     * admin onay kuyruğuna düşer. Mükerrer etkinlik 409 ile reddedilir.
+     */
+    @PostMapping("/suggest")
+    @ResponseStatus(HttpStatus.CREATED)
+    public EventResponse suggestEvent(@RequestBody SuggestEventRequest request) {
+        Long userId = JwtUtil.getCurrentUserId();
+        return suggestionService.suggest(userId, request, organizerService.isTrustedOrganizer(userId));
+    }
+
+    /** Kendi önerilerim ve onay durumları. */
+    @GetMapping("/suggestions/me")
+    public List<EventResponse> mySuggestions() {
+        return suggestionService.mySuggestions(JwtUtil.getCurrentUserId());
     }
 
     @PostMapping

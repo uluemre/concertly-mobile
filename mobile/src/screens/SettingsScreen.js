@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   View, Text, StyleSheet, TextInput,
   TouchableOpacity, ScrollView, Alert,
-  ActivityIndicator, Modal, FlatList
+  ActivityIndicator, Modal, FlatList, Switch
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as WebBrowser from 'expo-web-browser';
@@ -10,7 +10,7 @@ import API from '../services/api';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
-import { TURKISH_CITIES } from '../constants/cities';
+import { LAUNCH_CITIES } from '../constants/cities';
 
 // Hesap silme sebepleri — code backend'e (dil bağımsız) gönderilir, key UI metni.
 const DELETE_REASONS = [
@@ -37,6 +37,9 @@ export default function SettingsScreen({ navigation, route }) {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [deleteReason, setDeleteReason] = useState(null);
   const [deleteDetails, setDeleteDetails] = useState('');
+  // Bildirim ve gizlilik tercihleri sunucuda tutulur (cihaz değişse de korunsun).
+  const [notifSettings, setNotifSettings] = useState(null);
+  const [privacy, setPrivacy] = useState(null);
 
   const [formData, setFormData] = useState({
     username: '',
@@ -49,6 +52,7 @@ export default function SettingsScreen({ navigation, route }) {
   useEffect(() => {
     fetchProfile();
     fetchSpotifyStatus();
+    fetchPreferences();
   }, []);
 
   const fetchSpotifyStatus = async () => {
@@ -104,6 +108,40 @@ export default function SettingsScreen({ navigation, route }) {
       Alert.alert(t('error'), t('settings_load_error'));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchPreferences = async () => {
+    const [notifRes, privacyRes] = await Promise.allSettled([
+      API.get('/notifications/settings'),
+      API.get('/users/me/privacy'),
+    ]);
+    if (notifRes.status === 'fulfilled') setNotifSettings(notifRes.value.data);
+    if (privacyRes.status === 'fulfilled') setPrivacy(privacyRes.value.data);
+  };
+
+  /** İyimser güncelleme: anahtar hemen döner, istek başarısızsa geri alınır. */
+  const toggleNotif = async (key, value) => {
+    const previous = notifSettings;
+    setNotifSettings((prev) => ({ ...prev, [key]: value }));
+    try {
+      const res = await API.put('/notifications/settings', { [key]: value });
+      setNotifSettings(res.data);
+    } catch {
+      setNotifSettings(previous);
+      Alert.alert(t('error'), t('settings_pref_save_error'));
+    }
+  };
+
+  const changeMessagePrivacy = async (value) => {
+    const previous = privacy;
+    setPrivacy((prev) => ({ ...prev, messagePrivacy: value }));
+    try {
+      const res = await API.put('/users/me/privacy', { messagePrivacy: value });
+      setPrivacy(res.data);
+    } catch {
+      setPrivacy(previous);
+      Alert.alert(t('error'), t('settings_pref_save_error'));
     }
   };
 
@@ -307,6 +345,87 @@ export default function SettingsScreen({ navigation, route }) {
           />
         </View>
 
+        {/* ── BİLDİRİMLER ─────────────────────────────────────────────── */}
+        <Text style={styles.sectionTitle}>{t('settings_notifications_section')}</Text>
+        <View style={styles.prefCard}>
+          <View style={styles.prefRow}>
+            <View style={styles.prefTextWrap}>
+              <Text style={styles.prefTitle}>{t('settings_notif_all')}</Text>
+              <Text style={styles.prefDesc}>{t('settings_notif_all_desc')}</Text>
+            </View>
+            <Switch
+              value={!!notifSettings?.pushEnabled}
+              onValueChange={(v) => toggleNotif('pushEnabled', v)}
+              disabled={!notifSettings}
+              trackColor={{ false: colors.border, true: colors.primary }}
+              thumbColor="#fff"
+            />
+          </View>
+
+          {/* Ana anahtar kapalıyken alt kategoriler anlamsız — gizleniyor. */}
+          {notifSettings?.pushEnabled ? (
+            <>
+              {[
+                { key: 'pushSocial', title: 'settings_notif_social', desc: 'settings_notif_social_desc' },
+                { key: 'pushMessages', title: 'settings_notif_messages', desc: 'settings_notif_messages_desc' },
+                { key: 'pushEvents', title: 'settings_notif_events', desc: 'settings_notif_events_desc' },
+                { key: 'pushCommunities', title: 'settings_notif_communities', desc: 'settings_notif_communities_desc' },
+                { key: 'pushGames', title: 'settings_notif_games', desc: 'settings_notif_games_desc' },
+              ].map((row) => (
+                <View key={row.key} style={[styles.prefRow, styles.prefRowDivider]}>
+                  <View style={styles.prefTextWrap}>
+                    <Text style={styles.prefTitle}>{t(row.title)}</Text>
+                    <Text style={styles.prefDesc}>{t(row.desc)}</Text>
+                  </View>
+                  <Switch
+                    value={!!notifSettings?.[row.key]}
+                    onValueChange={(v) => toggleNotif(row.key, v)}
+                    trackColor={{ false: colors.border, true: colors.primary }}
+                    thumbColor="#fff"
+                  />
+                </View>
+              ))}
+            </>
+          ) : null}
+        </View>
+
+        {/* ── GİZLİLİK & GÜVENLİK ─────────────────────────────────────── */}
+        <Text style={styles.sectionTitle}>{t('settings_privacy_section')}</Text>
+        <View style={styles.prefCard}>
+          <Text style={styles.prefTitle}>{t('settings_dm_title')}</Text>
+          <Text style={[styles.prefDesc, { marginBottom: 12 }]}>{t('settings_dm_desc')}</Text>
+          <View style={styles.choiceRow}>
+            {[
+              { value: 'EVERYONE', label: 'settings_dm_everyone' },
+              { value: 'FOLLOWING', label: 'settings_dm_following' },
+              { value: 'NOBODY', label: 'settings_dm_nobody' },
+            ].map((option) => {
+              const active = privacy?.messagePrivacy === option.value;
+              return (
+                <TouchableOpacity
+                  key={option.value}
+                  style={[styles.choiceChip, active && styles.choiceChipActive]}
+                  onPress={() => changeMessagePrivacy(option.value)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.choiceChipText, active && styles.choiceChipTextActive]}>
+                    {t(option.label)}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <TouchableOpacity
+            style={styles.prefLinkRow}
+            onPress={() => navigation.navigate('BlockedUsers')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.prefLinkText}>{t('settings_blocked_users')}</Text>
+            <Text style={styles.prefLinkArrow}>›</Text>
+          </TouchableOpacity>
+        </View>
+
         <Text style={styles.sectionTitle}>{t('settings_spotify')}</Text>
         <View style={styles.spotifyCard}>
           <View style={styles.spotifyRow}>
@@ -443,7 +562,7 @@ export default function SettingsScreen({ navigation, route }) {
               </TouchableOpacity>
             </View>
             <FlatList
-              data={TURKISH_CITIES}
+              data={LAUNCH_CITIES}
               keyExtractor={(item) => item}
               renderItem={({ item }) => (
                 <TouchableOpacity
@@ -539,6 +658,54 @@ function createStyles(colors) {
     backButtonText: { color: colors.primary, fontSize: 16, fontWeight: '600' },
     headerTitle: { fontSize: 18, fontWeight: 'bold', color: colors.text },
     scrollContent: { padding: 20, paddingBottom: 60 },
+    // Bildirim & gizlilik tercih kartları
+    prefCard: {
+      backgroundColor: colors.card,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: 16,
+      marginBottom: 28,
+    },
+    prefRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 12,
+      paddingVertical: 8,
+    },
+    prefRowDivider: {
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      marginTop: 4,
+      paddingTop: 12,
+    },
+    prefTextWrap: { flex: 1 },
+    prefTitle: { color: colors.text, fontSize: 15, fontWeight: '700' },
+    prefDesc: { color: colors.textSecondary, fontSize: 12.5, lineHeight: 18, marginTop: 2 },
+    choiceRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+    choiceChip: {
+      paddingHorizontal: 14,
+      paddingVertical: 9,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.background,
+    },
+    choiceChipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+    choiceChipText: { color: colors.textSecondary, fontSize: 13, fontWeight: '700' },
+    choiceChipTextActive: { color: '#fff' },
+    prefLinkRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      marginTop: 16,
+      paddingTop: 14,
+    },
+    prefLinkText: { color: colors.text, fontSize: 15, fontWeight: '700' },
+    prefLinkArrow: { color: colors.textSecondary, fontSize: 22, fontWeight: '700' },
     sectionTitle: {
       fontSize: 16,
       fontWeight: 'bold',

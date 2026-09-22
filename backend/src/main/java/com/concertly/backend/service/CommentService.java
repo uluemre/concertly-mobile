@@ -18,15 +18,18 @@ public class CommentService {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final ContentLimitService contentLimitService;
 
     public CommentService(CommentRepository commentRepository,
                           PostRepository postRepository,
                           UserRepository userRepository,
-                          NotificationService notificationService) {
+                          NotificationService notificationService,
+                          ContentLimitService contentLimitService) {
         this.commentRepository   = commentRepository;
         this.postRepository      = postRepository;
         this.userRepository      = userRepository;
         this.notificationService = notificationService;
+        this.contentLimitService = contentLimitService;
     }
 
     // ✅ YORUM EKLE
@@ -44,6 +47,7 @@ public class CommentService {
         if (request.getContent() == null || request.getContent().isBlank()) {
             throw new IllegalArgumentException("Yorum içeriği boş olamaz.");
         }
+        contentLimitService.checkComment(userId);
 
         Comment comment = new Comment();
         comment.setContent(request.getContent());
@@ -64,6 +68,7 @@ public class CommentService {
 
         return commentRepository.findByPostIdOrderByCreatedAtDesc(postId)
                 .stream()
+                .filter(c -> !c.getIsHidden())
                 .map(CommentResponse::from)
                 .toList();
     }

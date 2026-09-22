@@ -33,6 +33,7 @@ public class PostService {
     private final PollVoteRepository pollVoteRepository;
     private final BadgeService badgeService;
     private final ModerationService moderationService;
+    private final ContentLimitService contentLimitService;
 
     public PostService(PostRepository postRepository,
                        UserRepository userRepository,
@@ -43,7 +44,8 @@ public class PostService {
                        PollOptionRepository pollOptionRepository,
                        PollVoteRepository pollVoteRepository,
                        BadgeService badgeService,
-                       ModerationService moderationService) {
+                       ModerationService moderationService,
+                       ContentLimitService contentLimitService) {
         this.postRepository      = postRepository;
         this.userRepository      = userRepository;
         this.eventRepository     = eventRepository;
@@ -54,6 +56,7 @@ public class PostService {
         this.pollVoteRepository   = pollVoteRepository;
         this.badgeService         = badgeService;
         this.moderationService    = moderationService;
+        this.contentLimitService = contentLimitService;
     }
 
     private PostResponse toResponse(Post post, Long currentUserId) {
@@ -124,6 +127,7 @@ public class PostService {
 
     // ✅ POST OLUŞTUR
     public PostResponse createPost(Long userId, CreatePostRequest request) {
+        contentLimitService.checkPost(userId);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Kullanıcı bulunamadı: " + userId));
@@ -165,11 +169,30 @@ public class PostService {
         return toResponse(saved, userId);
     }
 
+    /**
+     * Tek gönderi — paylaşım linki ve bildirim yönlendirmesi id ile gelir.
+     * Gizlenen içerik sahibi ve admin dışında görünmez.
+     */
+    public PostResponse getPost(Long postId, Long currentUserId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new ResourceNotFoundException("Post bulunamadı: " + postId));
+        boolean isOwner = post.getUser() != null && post.getUser().getId().equals(currentUserId);
+        if (post.getIsHidden() && !isOwner) {
+            throw new ResourceNotFoundException("Post bulunamadı: " + postId);
+        }
+        if (post.getUser() != null
+                && moderationService.getHiddenUserIds(currentUserId).contains(post.getUser().getId())) {
+            throw new ResourceNotFoundException("Post bulunamadı: " + postId);
+        }
+        return toResponse(post, currentUserId);
+    }
+
     // ✅ TRENDING FEED (sayfalı)
     public List<PostResponse> getTrendingFeed(Long currentUserId, int page, int size) {
         Set<Long> hidden = moderationService.getHiddenUserIds(currentUserId);
         List<Post> posts = postRepository.findByOrderByCreatedAtDesc(PageRequest.of(page, size))
                 .stream()
+                .filter(p -> !p.getIsHidden())
                 .filter(p -> p.getUser() == null || !hidden.contains(p.getUser().getId()))
                 .toList();
         return toResponses(posts, currentUserId);
@@ -184,6 +207,7 @@ public class PostService {
         Set<Long> hidden = moderationService.getHiddenUserIds(userId);
         List<Post> posts = postRepository.getFollowingFeed(userId, PageRequest.of(page, size))
                 .stream()
+                .filter(p -> !p.getIsHidden())
                 .filter(p -> p.getUser() == null || !hidden.contains(p.getUser().getId()))
                 .toList();
         return toResponses(posts, userId);

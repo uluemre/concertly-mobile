@@ -33,4 +33,15 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
     void markConversationRead(@Param("userId") Long userId, @Param("partnerId") Long partnerId);
 
     long countByReceiverIdAndIsReadFalse(Long receiverId);
+
+    // Yeni hesap spam limiti
+    long countBySenderIdAndCreatedAtAfter(Long senderId, java.time.LocalDateTime since);
+
+    /** İki kullanıcı daha önce yazışmış mı — DM izni "kimse" olsa bile mevcut sohbet sürsün. */
+    @Query("""
+            SELECT COUNT(m) > 0 FROM Message m
+            WHERE (m.sender.id = :userA AND m.receiver.id = :userB)
+               OR (m.sender.id = :userB AND m.receiver.id = :userA)
+            """)
+    boolean conversationExists(@Param("userA") Long userA, @Param("userB") Long userB);
 }

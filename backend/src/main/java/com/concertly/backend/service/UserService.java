@@ -7,7 +7,9 @@ import com.concertly.backend.dto.response.PassportResponse;
 import com.concertly.backend.dto.response.PassportResponse.PassportEventDto;
 import com.concertly.backend.dto.response.PassportResponse.TopArtistDto;
 import com.concertly.backend.dto.response.PassportResponse.TopGenreDto;
+import com.concertly.backend.dto.request.PrivacySettingsRequest;
 import com.concertly.backend.dto.response.PostResponse;
+import com.concertly.backend.dto.response.PrivacySettingsResponse;
 import com.concertly.backend.dto.response.UserResponse;
 import com.concertly.backend.exception.ResourceNotFoundException;
 import com.concertly.backend.model.AttendanceStatus;
@@ -100,6 +102,36 @@ public class UserService {
         return new UserResponse(user.getId(), user.getUsername(), null);
     }
 
+    /**
+     * Kullanıcı adından profil çözümler. Paylaşılan /u/{kullanıcıadı} linki
+     * uygulamada açıldığında ekranın hangi id'yi yükleyeceğini bulmak için.
+     */
+    public UserResponse getUserByUsername(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Kullanıcı bulunamadı: " + username));
+        return new UserResponse(user.getId(), user.getUsername(), null);
+    }
+
+    // ── GİZLİLİK AYARLARI ─────────────────────────────────────────────────────
+
+    public PrivacySettingsResponse getPrivacySettings(Long userId) {
+        return PrivacySettingsResponse.from(userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Kullanıcı bulunamadı: " + userId)));
+    }
+
+    @Transactional
+    public PrivacySettingsResponse updatePrivacySettings(Long userId, PrivacySettingsRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Kullanıcı bulunamadı: " + userId));
+        if (request != null) {
+            if (request.getMessagePrivacy() != null) user.setMessagePrivacy(request.getMessagePrivacy());
+            if (request.getPrivateAccount() != null) user.setPrivateAccount(request.getPrivateAccount());
+            userRepository.save(user);
+        }
+        return PrivacySettingsResponse.from(user);
+    }
+
     // ✅ PROFİL GÜNCELLE
     @Transactional
     public UserResponse updateProfile(Long id, UpdateProfileRequest request) {
@@ -137,7 +169,10 @@ public class UserService {
             throw new ResourceNotFoundException("Kullanıcı bulunamadı: " + userId);
         }
 
-        return toResponses(postRepository.findByUserIdOrderByCreatedAtDesc(userId), currentUserId);
+        // Moderasyonca gizlenen paylaşımlar profilde de görünmez
+        return toResponses(postRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
+                .filter(p -> !p.getIsHidden())
+                .toList(), currentUserId);
     }
 
     // ✅ KULLANICININ ETKİNLİKLERİ

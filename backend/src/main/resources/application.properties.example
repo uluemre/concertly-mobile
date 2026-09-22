@@ -35,6 +35,41 @@ management.health.mail.enabled=${MAIL_HEALTH_ENABLED:false}
 # değerini sadece yayımlanan uygulama alan adlarıyla sınırlandır.
 app.cors.allowed-origin-patterns=${CORS_ALLOWED_ORIGIN_PATTERNS:https://your-app.example.com}
 
+# İlk canlı sürümde açık şehirler. Yeni şehir eklemek için env ile override edilebilir.
+# NOT: .properties dosyalari Spring tarafindan ISO-8859-1 olarak okunur.
+# Turkce karakterler \uXXXX kacisiyla yazilmali; duz UTF-8 yazilirsa
+# deger mojibake olur ve sehir eslesmesi SESSIZCE bozulur (Istanbul listesi bos doner).
+app.launch.cities=${LAUNCH_CITIES:\u0130stanbul,Ankara,\u0130zmir,Antalya}
+
+# Konser katilim dogrulamasi (GPS). Karar sunucuda verilir; istemci yalnizca
+# koordinat tasir. Buyuk mekanlarda (stadyum/festival alani) GPS sapmasi icin
+# 500 m makul bir taban; daraltmak icin env ile override et.
+app.verification.max-distance-meters=${VERIFY_MAX_DISTANCE_METERS:500}
+app.verification.window-hours-before=${VERIFY_WINDOW_HOURS_BEFORE:6}
+app.verification.window-hours-after=${VERIFY_WINDOW_HOURS_AFTER:12}
+app.verification.reject-mock-location=${VERIFY_REJECT_MOCK_LOCATION:true}
+
+# Push bildirimleri (Expo Push API).
+# PUSH_ENABLED=false yaparsan bildirimler yalnızca veritabanına yazılır, cihaza gitmez.
+# EXPO_ACCESS_TOKEN yalnızca Expo hesabında "Enhanced Security" açıksa gerekir.
+app.push.enabled=${PUSH_ENABLED:true}
+app.push.expo-endpoint=${EXPO_PUSH_ENDPOINT:https://exp.host/--/api/v2/push/send}
+app.push.expo-access-token=${EXPO_ACCESS_TOKEN:}
+
+# Paylaşım linkleri — uygulama yüklü değilse açılacak web adresi.
+app.share.base-url=${SHARE_BASE_URL:https://concertly-backend.onrender.com}
+app.share.ios-app-id=${IOS_APP_ID:}
+app.share.android-package=${ANDROID_PACKAGE:com.concertly.app}
+app.share.ios-bundle-id=${IOS_BUNDLE_ID:com.concertly.app}
+app.share.app-scheme=${APP_SCHEME:concertly}
+
+# Moderasyon — yeni hesaplara gunluk uretim tavani (spam yavaslatma).
+# NEW_ACCOUNT_HOURS=0 yaparsan limit tamamen kapanir.
+app.moderation.new-account-hours=${NEW_ACCOUNT_HOURS:48}
+app.moderation.new-account-max-posts-per-day=${NEW_ACCOUNT_MAX_POSTS:10}
+app.moderation.new-account-max-comments-per-day=${NEW_ACCOUNT_MAX_COMMENTS:50}
+app.moderation.new-account-max-messages-per-day=${NEW_ACCOUNT_MAX_MESSAGES:50}
+
 # Görsel yükleme
 app.upload.dir=${UPLOAD_DIR:uploads}
 spring.servlet.multipart.max-file-size=10MB

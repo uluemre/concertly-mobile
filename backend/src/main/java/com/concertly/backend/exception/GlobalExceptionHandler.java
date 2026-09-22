@@ -7,6 +7,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -64,6 +65,18 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.CONFLICT)
                 .body(new ApiError(409, msg));
+    }
+
+    // Servis/controller'ın bilerek seçtiği HTTP durumunu koru.
+    // Bu handler OLMADAN ResponseStatusException aşağıdaki Exception.class
+    // catch-all'ına düşüyor ve 409/403/400 niyetleri 500 olarak dönüyordu —
+    // istemci tarafındaki durum koduna bakan akışlar (ör. "zaten doğrulandı"
+    // için 409 kontrolü) bu yüzden hiç çalışmıyordu.
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ApiError> handleResponseStatus(ResponseStatusException ex) {
+        int status = ex.getStatusCode().value();
+        String msg = ex.getReason() != null ? ex.getReason() : ex.getMessage();
+        return ResponseEntity.status(status).body(new ApiError(status, msg));
     }
 
     // 500 — beklenmedik hatalar

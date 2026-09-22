@@ -25,3 +25,32 @@ export const TURKISH_CITIES = [
 export const POPULAR_CITIES = [
   'İstanbul', 'Ankara', 'İzmir', 'Antalya', 'Bursa', 'Adana', 'Eskişehir', 'Konya',
 ];
+
+// İlk canlı sürümün kontrollü kapsamı. Yeni şehirler buraya eklenmeden
+// onboarding, profil ve etkinlik filtrelerinde görünmez.
+// Backend tarafındaki karşılığı: app.launch.cities (LaunchCityConfig).
+export const LAUNCH_CITIES = ['İstanbul', 'Ankara', 'İzmir', 'Antalya'];
+
+// Backend'in LaunchCityConfig.normalize'ı ile birebir aynı kural: 'İ'→'I',
+// 'ı'→'i', sonra küçült. Ticketmaster "Istanbul" yazarken bizim canonical
+// adımız "İstanbul" olduğu için bu karşılaştırma şart.
+const normalizeCity = (city) =>
+  (city || '').trim().replace(/İ/g, 'I').replace(/ı/g, 'i').toLowerCase();
+
+/** Şehir ilk yayın kapsamında mı? (Türkçe-duyarlı karşılaştırma) */
+export function isLaunchCity(city) {
+  if (!city) return false;
+  const n = normalizeCity(city);
+  return LAUNCH_CITIES.some(c => normalizeCity(c) === n);
+}
+
+/**
+ * Kayıtlı şehri ekran filtresine çevirir: kapsam içindeyse canonical adını,
+ * değilse null ("Tümü") döner. Kapsam dışı bir şehirle açılan ekran backend'den
+ * boş liste alıp sebepsiz boş görünüyordu — guard'ı tek yerde tutuyoruz.
+ */
+export function launchCityOrNull(city) {
+  if (!city) return null;
+  const n = normalizeCity(city);
+  return LAUNCH_CITIES.find(c => normalizeCity(c) === n) || null;
+}

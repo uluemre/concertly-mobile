@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, Dimensions, Share, Animated,
+  ActivityIndicator, Dimensions, Animated,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -9,6 +9,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { buildShareUrl, shareWithLink } from '../services/shareLinks';
 import API from '../services/api';
 import { parseEventDate } from '../utils/time';
 
@@ -94,8 +95,9 @@ export default function ConcertPassportScreen({ navigation, route }) {
       + `🎤 ${passport.uniqueArtists} farklı sanatçı\n`
       + `📍 ${passport.uniqueCities} farklı şehir\n`
       + (topArtist ? `⭐ En çok: ${topArtist}\n` : '')
-      + `\nConcertly ile müziği yaşa! 🎵\nhttps://concertly.app`;
-    Share.share({ message: msg });
+      + `\nConcertly ile müziği yaşa! 🎵`;
+    // Paylaşıma profil linki eklenir: karşı taraf tek dokunuşla pasaportu görebilsin.
+    shareWithLink(msg, session.username ? buildShareUrl('user', session.username) : null);
   };
 
   const yearGroups = useMemo(() => passport ? groupByYear(passport.events) : [], [passport]);

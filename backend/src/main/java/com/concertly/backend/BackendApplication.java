@@ -13,7 +13,7 @@ public class BackendApplication {
 	public static void main(String[] args) {
 		// Pin the app's default timezone so wall-clock timestamps (LocalDateTime.now(),
 		// Hibernate-generated createdAt, the "skip past events" check, reminders, ...)
-		// stay in Turkish local time even when deployed to a UTC cloud host (Railway).
+		// stay in Turkish local time even when deployed to a UTC cloud host.
 		// Without this, "now" shifts by 3h after deploy and past/upcoming filtering breaks.
 		// Override with the APP_TIMEZONE env var if you ever host for another region.
 		TimeZone.setDefault(TimeZone.getTimeZone(
