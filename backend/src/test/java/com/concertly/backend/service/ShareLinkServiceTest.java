@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class ShareLinkServiceTest {
 
     private final ShareLinkConfig config = new ShareLinkConfig(
-            "https://concertly-backend.onrender.com/", "", "com.concertly.app", "com.concertly.app", "concertly");
+            "https://concertly-api.onrender.com/", "", "com.concertly.app", "com.concertly.app", "concertly");
     private final ShareLinkService service = new ShareLinkService(config);
 
     @Test
@@ -30,29 +30,29 @@ class ShareLinkServiceTest {
         String html = service.renderLandingPage("event/42", "Hadise", "Zorlu PSM", null);
 
         assertTrue(html.contains("concertly://event/42"));
-        assertTrue(html.contains("https://concertly-backend.onrender.com/event/42"));
+        assertTrue(html.contains("https://concertly-api.onrender.com/event/42"));
     }
 
     /** App Store id yokken mağaza linki tanıtım sayfasına düşmeli. */
     @Test
     void fallsBackToPromoPageWithoutAppStoreId() {
-        assertEquals("https://concertly-backend.onrender.com/promo/", config.iosStoreUrl());
+        assertEquals("https://concertly-api.onrender.com/promo/", config.iosStoreUrl());
     }
 
     @Test
     void usesAppStoreWhenIdConfigured() {
         ShareLinkConfig withId = new ShareLinkConfig(
-                "https://concertly-backend.onrender.com", "6501234567",
+                "https://concertly-api.onrender.com", "6501234567",
                 "com.concertly.app", "com.concertly.app", "concertly");
         assertEquals("https://apps.apple.com/app/id6501234567", withId.iosStoreUrl());
     }
 
     @Test
     void absolutizesRelativeUploadPaths() {
-        assertEquals("https://concertly-backend.onrender.com/uploads/a.jpg",
+        assertEquals("https://concertly-api.onrender.com/uploads/a.jpg",
                 config.absoluteImage("/uploads/a.jpg"));
         assertEquals("https://cdn.example.com/a.jpg", config.absoluteImage("https://cdn.example.com/a.jpg"));
-        assertEquals("https://concertly-backend.onrender.com/promo/og.png", config.absoluteImage(null));
+        assertEquals("https://concertly-api.onrender.com/promo/og.png", config.absoluteImage(null));
     }
 
     @Test

@@ -64,7 +64,7 @@ public class BiletinialSource {
     private final int maxRetries;
 
     public BiletinialSource(RestTemplateBuilder builder,
-            @Value("${app.sources.biletinial.user-agent:ConcertlyBot/0.1 (+https://concertly-backend.onrender.com/promo/)}") String userAgent,
+            @Value("${app.sources.biletinial.user-agent:ConcertlyBot/0.1 (+https://concertly-api.onrender.com/promo/)}") String userAgent,
             @Value("${app.sources.biletinial.delay-ms:800}") long politeDelayMs,
             @Value("${app.sources.biletinial.max-retries:2}") int maxRetries) {
         this.politeDelayMs = politeDelayMs;

@@ -147,7 +147,7 @@ JDBC PostgreSQL URL, for example:
 jdbc:postgresql://<host>:5432/concertly_mobile?sslmode=require
 ```
 
-The mobile app uses `https://concertly-backend.onrender.com/api` by default.
+The mobile app uses `https://concertly-api.onrender.com/api` by default.
 Override it for another Render service or a custom domain with
 `EXPO_PUBLIC_API_URL` before an EAS build.
 

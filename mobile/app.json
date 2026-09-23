@@ -14,7 +14,7 @@
         "usesNonExemptEncryption": false
       },
       "associatedDomains": [
-        "applinks:concertly-backend.onrender.com"
+        "applinks:concertly-api.onrender.com"
       ]
     },
     "android": {
@@ -41,7 +41,7 @@
           "data": [
             {
               "scheme": "https",
-              "host": "concertly-backend.onrender.com",
+              "host": "concertly-api.onrender.com",
               "pathPrefix": "/e"
             }
           ],
@@ -56,22 +56,22 @@
           "data": [
             {
               "scheme": "https",
-              "host": "concertly-backend.onrender.com",
+              "host": "concertly-api.onrender.com",
               "pathPrefix": "/a"
             },
             {
               "scheme": "https",
-              "host": "concertly-backend.onrender.com",
+              "host": "concertly-api.onrender.com",
               "pathPrefix": "/u"
             },
             {
               "scheme": "https",
-              "host": "concertly-backend.onrender.com",
+              "host": "concertly-api.onrender.com",
               "pathPrefix": "/p"
             },
             {
               "scheme": "https",
-              "host": "concertly-backend.onrender.com",
+              "host": "concertly-api.onrender.com",
               "pathPrefix": "/c"
             }
           ],
@@ -150,7 +150,7 @@
       "expo-secure-store"
     ],
     "extra": {
-      "apiUrl": "https://concertly-backend.onrender.com/api",
+      "apiUrl": "https://concertly-api.onrender.com/api",
       "eas": {
         "projectId": "9089b703-90c1-4c42-b444-7f2dcf39a4cb"
       }

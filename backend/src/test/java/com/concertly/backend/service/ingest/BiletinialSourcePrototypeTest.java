@@ -36,7 +36,7 @@ class BiletinialSourcePrototypeTest {
 
         BiletinialSource source = new BiletinialSource(
                 new RestTemplateBuilder(),
-                "ConcertlyBot/0.1 (+https://concertly-backend.onrender.com/promo/)",
+                "ConcertlyBot/0.1 (+https://concertly-api.onrender.com/promo/)",
                 800,
                 2);
 

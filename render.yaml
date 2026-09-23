@@ -68,7 +68,7 @@ services:
       - key: JPA_SHOW_SQL
         value: "false"
       - key: CORS_ALLOWED_ORIGIN_PATTERNS
-        value: https://concertly-backend.onrender.com
+        value: https://concertly-api.onrender.com
 
 databases:
   - name: concertly-db

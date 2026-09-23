@@ -20,7 +20,7 @@ public class ShareLinkConfig {
     private final String appScheme;
 
     public ShareLinkConfig(
-            @Value("${app.share.base-url:https://concertly-backend.onrender.com}") String baseUrl,
+            @Value("${app.share.base-url:https://concertly-api.onrender.com}") String baseUrl,
             @Value("${app.share.ios-app-id:}") String iosAppId,
             @Value("${app.share.android-package:com.concertly.app}") String androidPackage,
             @Value("${app.share.ios-bundle-id:com.concertly.app}") String iosBundleId,

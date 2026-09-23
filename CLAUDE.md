@@ -68,7 +68,7 @@ Backend requires a local PostgreSQL instance: database `concertly_mobile`, user 
 
 **API client** (`src/services/api.js`):
 - Axios instance. `getBaseUrl()` picks the host automatically:
-  - production builds (and dev when `USE_PROD_IN_DEV = true`) → the configured production server, defaulting to `https://concertly-backend.onrender.com/api`.
+  - production builds (and dev when `USE_PROD_IN_DEV = true`) → the configured production server, defaulting to `https://concertly-api.onrender.com/api`.
   - dev with `USE_PROD_IN_DEV = false` → the LAN IP from Expo's `hostUri` on port 8082, so a phone on the same network hits the local backend. To test against the local backend, flip `USE_PROD_IN_DEV` to `false`.
 - JWT is attached automatically by a request interceptor reading a module-level `_authToken` (set by `AuthContext`).
 - **Refresh-token rotation**: on `401`, the response interceptor calls `/auth/refresh` once, queues concurrent requests while refreshing, retries them with the new token, and on failure invokes the session-expired handler (logout + navigate to Login).

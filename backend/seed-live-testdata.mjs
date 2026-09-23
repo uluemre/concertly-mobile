@@ -2,7 +2,7 @@
 // Tamamen normal kullanıcı API akışını kullanır (admin/redeploy gerekmez).
 // Çalıştır: node backend/seed-live-testdata.mjs
 // Başka bir sunucuya yazmak için: SEED_BASE_URL=... node backend/seed-live-testdata.mjs
-const BASE = process.env.SEED_BASE_URL || 'https://concertly-backend.onrender.com/api';
+const BASE = process.env.SEED_BASE_URL || 'https://concertly-api.onrender.com/api';
 const PW = 'Demo1234';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

@@ -6,7 +6,7 @@ import Constants from 'expo-constants';
 const PROD_API = (
   process.env.EXPO_PUBLIC_API_URL
   || Constants.expoConfig?.extra?.apiUrl
-  || 'https://concertly-backend.onrender.com/api'
+  || 'https://concertly-api.onrender.com/api'
 ).replace(/\/$/, '');
 
 // Geliştirme sırasında da canlı sunucuyu kullanmak istersen bunu true yap

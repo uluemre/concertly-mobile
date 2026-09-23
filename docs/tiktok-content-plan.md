@@ -20,7 +20,7 @@ Hedef kitle: Türkiye, 16-30 yaş, konser/festival/müzik ilgilisi.
 📍 Konserleri keşfet · gittiğini kanıtla · paylaş
 👇 Yakında App Store'da
 ```
-Bio linki: `https://concertly-backend.onrender.com/promo/`
+Bio linki: `https://concertly-api.onrender.com/promo/`
 (App Store yayınlanınca link doğrudan App Store'a çevrilir.)
 
 ### Sabit hashtag seti

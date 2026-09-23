@@ -8,7 +8,7 @@ import { Share } from 'react-native';
  * bir web adresi taşır.
  */
 
-export const SHARE_BASE_URL = 'https://concertly-backend.onrender.com';
+export const SHARE_BASE_URL = 'https://concertly-api.onrender.com';
 
 /** Uygulama indirme adresi — App Store yayınlanınca doğrudan oraya çevrilir. */
 export const DOWNLOAD_URL = `${SHARE_BASE_URL}/promo/`;
