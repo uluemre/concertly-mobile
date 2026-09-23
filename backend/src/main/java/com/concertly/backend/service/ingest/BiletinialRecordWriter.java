@@ -3,6 +3,7 @@ package com.concertly.backend.service.ingest;
 import com.concertly.backend.model.Artist;
 import com.concertly.backend.model.Event;
 import com.concertly.backend.model.EventSource;
+import com.concertly.backend.model.EventSourceLink;
 import com.concertly.backend.model.Venue;
 import com.concertly.backend.repository.ArtistRepository;
 import com.concertly.backend.repository.EventRepository;
@@ -26,13 +27,16 @@ public class BiletinialRecordWriter {
     private final EventRepository eventRepository;
     private final ArtistRepository artistRepository;
     private final VenueRepository venueRepository;
+    private final EventSourceLinkService sourceLinks;
 
     public BiletinialRecordWriter(EventRepository eventRepository,
             ArtistRepository artistRepository,
-            VenueRepository venueRepository) {
+            VenueRepository venueRepository,
+            EventSourceLinkService sourceLinks) {
         this.eventRepository = eventRepository;
         this.artistRepository = artistRepository;
         this.venueRepository = venueRepository;
+        this.sourceLinks = sourceLinks;
     }
 
     /**
@@ -43,15 +47,33 @@ public class BiletinialRecordWriter {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public boolean upsert(RawConcertData raw) {
         String externalId = BiletinialImportService.EXTERNAL_ID_PREFIX + raw.sourceEventId();
-        Event event = eventRepository.findByExternalId(externalId).orElse(null);
+
+        // Kimlik once event_sources uzerinden aranir: kayit baska bir etkinlikle
+        // BIRLESTIRILMIS olabilir, o zaman asil kaydi guncelleriz ve mukerrer
+        // yeniden olusmaz. Bulunamazsa eski yol (events.external_id) denenir;
+        // bu satirlar backfill oncesinden kalanlardir.
+        Event event = sourceLinks.find(EventSource.BILETINIAL, externalId)
+                .map(EventSourceLink::getEvent)
+                .orElseGet(() -> eventRepository.findByExternalId(externalId).orElse(null));
+
         boolean isNew = event == null;
         if (isNew) {
             event = new Event();
             event.setExternalId(externalId);
         }
+        // Birlestirilmis asil kaydin kendi alanlari ezilmemeli; yalnizca kaynak
+        // satiri tazelenir.
+        boolean canonicalFromOtherSource = !isNew && event.getSource() != EventSource.BILETINIAL;
 
         Artist artist = findOrCreateArtist(raw);
         Venue venue = findOrCreateVenue(raw);
+
+        if (canonicalFromOtherSource) {
+            // Asil kayit baska kaynaktan; yalnizca kaynak satirini guncelledik.
+            sourceLinks.upsert(event, EventSource.BILETINIAL, externalId,
+                    raw.ticketUrl(), raw.ticketUrl(), false);
+            return false;
+        }
 
         event.setName(raw.concertName());
         event.setEventDate(raw.startsAt());
@@ -66,7 +88,10 @@ public class BiletinialRecordWriter {
         event.setSource(EventSource.BILETINIAL);
         event.setSourceUrl(raw.ticketUrl());
 
-        eventRepository.save(event);
+        Event saved = eventRepository.save(event);
+        // Kaynak kimligi her kosuda tazelenir (last_seen_at).
+        sourceLinks.upsert(saved, EventSource.BILETINIAL, externalId,
+                raw.ticketUrl(), raw.ticketUrl(), !canonicalFromOtherSource);
         return isNew;
     }
 

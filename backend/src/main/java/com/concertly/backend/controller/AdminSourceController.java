@@ -3,10 +3,13 @@ package com.concertly.backend.controller;
 import com.concertly.backend.dto.response.DuplicateCandidateResponse;
 import com.concertly.backend.service.ingest.ConcertSyncScheduler;
 import com.concertly.backend.service.ingest.CrossSourceDuplicateReport;
+import com.concertly.backend.service.ingest.EventMergeService;
+import com.concertly.backend.service.ingest.EventSourceLinkService;
 import com.concertly.backend.service.ingest.SourceSyncResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -28,11 +31,41 @@ public class AdminSourceController {
 
     private final ConcertSyncScheduler scheduler;
     private final CrossSourceDuplicateReport duplicateReport;
+    private final EventSourceLinkService sourceLinkService;
+    private final EventMergeService mergeService;
 
     public AdminSourceController(ConcertSyncScheduler scheduler,
-            CrossSourceDuplicateReport duplicateReport) {
+            CrossSourceDuplicateReport duplicateReport,
+            EventSourceLinkService sourceLinkService,
+            EventMergeService mergeService) {
         this.scheduler = scheduler;
         this.duplicateReport = duplicateReport;
+        this.sourceLinkService = sourceLinkService;
+        this.mergeService = mergeService;
+    }
+
+    /**
+     * Kaynak satiri olmayan etkinlikler icin event_sources kayitlarini uretir.
+     * Yalnizca EKLER: etkinlik sayisi degismez. Tekrar calistirilabilir.
+     */
+    @PostMapping("/backfill")
+    public EventSourceLinkService.BackfillResult backfill() {
+        return sourceLinkService.backfill();
+    }
+
+    /**
+     * Onaylanmis bir mukerrer cifti birlestirir. Kendiliginden calismaz;
+     * admin cift cift cagirir. Kayit silinmez, gizlenir.
+     */
+    @PostMapping("/merge")
+    public EventMergeService.MergeResult merge(@RequestBody Map<String, Long> body) {
+        return mergeService.merge(body.get("eventIdA"), body.get("eventIdB"));
+    }
+
+    /** Birlestirmeyi geri alir. */
+    @PostMapping("/unmerge")
+    public EventMergeService.MergeResult unmerge(@RequestBody Map<String, Long> body) {
+        return mergeService.unmerge(body.get("eventId"));
     }
 
     /** Tanimli kaynaklar. */

@@ -1145,6 +1145,8 @@ export const translations = {
     event_verified_source: '✓ Kaynak doğrulandı',
     events_load_error: 'Konserler yüklenemedi. Bağlantını kontrol edip tekrar dene.',
     events_retry: 'Tekrar dene',
+    detail_ticket_sources: 'Bu konser birden fazla sitede satışta',
+    detail_ticket_link_error: 'Bu link açılamıyor',
   },
 
   en: {
@@ -2288,5 +2290,7 @@ export const translations = {
     event_verified_source: '✓ Verified source',
     events_load_error: 'Could not load concerts. Check your connection and try again.',
     events_retry: 'Try again',
+    detail_ticket_sources: 'This concert is on sale at more than one site',
+    detail_ticket_link_error: 'This link cannot be opened',
   },
 };

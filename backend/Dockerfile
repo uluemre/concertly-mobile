@@ -16,9 +16,10 @@ FROM eclipse-temurin:17-jre
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 # Platform PORT'u kendisi atar; uygulama ${PORT}'u dinler (application.properties)
-# Bellek: 1GB container'da heap'i SABİT 384MB'a, metaspace'i 128MB'a tavanla.
-# Böylece toplam (heap 384 + metaspace 128 + thread/Tomcat ~150) <700MB kalır,
-# startup'taki bean-oluşturma pikinde bile 1GB'ı asla aşmaz. %50 (512MB heap)
-# bu piki aşıp OOM-kill yiyordu ("Started" satırına varmadan temiz kesiliyordu).
-# SerialGC az RAM/az çekirdek ortamında daha az bellek ve thread harcar.
-ENTRYPOINT ["java", "-Xmx384m", "-XX:MaxMetaspaceSize=128m", "-XX:+UseSerialGC", "-jar", "app.jar"]
+# Bellek: ucretsiz planlarin cogu 512MB veriyor. Olculdu: -Xmx256m ile uygulama
+# aciliyor ve 40 es zamanli istek altinda RSS ~333MB'da kaliyor, yani 512MB'lik
+# bir kutuya rahat sigiyor. Daha buyuk bir makineye gecersen JAVA_OPTS ile
+# override et, ornegin: JAVA_OPTS="-Xmx768m -XX:MaxMetaspaceSize=192m"
+# SerialGC + TieredStopAtLevel=1 az RAM/az cekirdekte daha az bellek ve thread harcar.
+ENV JAVA_OPTS="-Xmx256m -XX:MaxMetaspaceSize=96m -XX:+UseSerialGC -XX:TieredStopAtLevel=1"
+ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar app.jar"]

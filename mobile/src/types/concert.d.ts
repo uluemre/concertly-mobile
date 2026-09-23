@@ -29,6 +29,15 @@ export interface Concert {
   venueAddress: string | null;
   venueLatitude: number | null;
   venueLongitude: number | null;
+  /** Bilet alınabilecek adresler; backend merge sonrası birden fazla olabilir. */
+  ticketLinks?: TicketLink[];
+}
+
+/** Kullanıcıya gösterilen bilet bağlantısı. Kaynak/enum bilgisi taşımaz. */
+export interface TicketLink {
+  /** Site adı: Biletix, Biletinial ... */
+  label: string;
+  url: string;
 }
 
 /** GET /api/concerts sayfalı cevabı. */

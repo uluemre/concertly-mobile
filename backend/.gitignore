@@ -38,3 +38,4 @@ build/
 # Secrets — yerel profil dosyaları (gerçek anahtarlar burada; ASLA commit edilmez)
 # application.properties artık commit EDİLİR: yalnızca env placeholder + güvenli default içerir, gerçek secret YOK.
 src/main/resources/application-*.properties
+local.properties

@@ -2,7 +2,9 @@ package com.concertly.backend.controller;
 
 import com.concertly.backend.dto.response.ConcertResponse;
 import com.concertly.backend.model.Event;
+import com.concertly.backend.model.EventSourceLink;
 import com.concertly.backend.repository.EventRepository;
+import com.concertly.backend.repository.EventSourceLinkRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -13,7 +15,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Mobil uygulamanin konser listesi.
@@ -29,9 +33,12 @@ public class ConcertController {
     private static final int MAX_PAGE_SIZE = 100;
 
     private final EventRepository eventRepository;
+    private final EventSourceLinkRepository sourceLinkRepository;
 
-    public ConcertController(EventRepository eventRepository) {
+    public ConcertController(EventRepository eventRepository,
+            EventSourceLinkRepository sourceLinkRepository) {
         this.eventRepository = eventRepository;
+        this.sourceLinkRepository = sourceLinkRepository;
     }
 
     /**
@@ -63,8 +70,18 @@ public class ConcertController {
                 past,
                 PageRequest.of(safePage, safeSize, sort));
 
+        // Bilet adresleri sayfa icin TEK sorguda yuklenir; etkinlik basina ayri
+        // sorgu (N+1) olmasin.
+        List<Long> eventIds = result.getContent().stream().map(Event::getId).toList();
+        Map<Long, List<EventSourceLink>> linksByEvent = eventIds.isEmpty()
+                ? Map.of()
+                : sourceLinkRepository.findByEventIdIn(eventIds).stream()
+                        .collect(Collectors.groupingBy(link -> link.getEvent().getId()));
+
         Map<String, Object> body = new LinkedHashMap<>();
-        body.put("content", result.getContent().stream().map(ConcertResponse::from).toList());
+        body.put("content", result.getContent().stream()
+                .map(e -> ConcertResponse.from(e, linksByEvent.getOrDefault(e.getId(), List.of())))
+                .toList());
         body.put("page", result.getNumber());
         body.put("size", result.getSize());
         body.put("totalElements", result.getTotalElements());

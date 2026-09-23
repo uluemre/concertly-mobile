@@ -12,6 +12,7 @@ import * as Calendar from 'expo-calendar';
 import API from '../services/api';
 import DeepLinkLoader from '../components/DeepLinkLoader';
 import { buildShareUrl, shareWithLink } from '../services/shareLinks';
+import { resolveTicketLinks, ticketButtonLabel } from '../services/concerts';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -61,7 +62,7 @@ function EventDetailContent({ route, navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { session } = useAuth();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const { event } = route.params;
   const confettiRef = useRef(null);
   const scrollViewRef = useRef(null);
@@ -401,13 +402,18 @@ function EventDetailContent({ route, navigation }) {
     ]);
   };
 
-  const openTicket = async () => {
-    if (!event.ticketUrl) return;
-    const supported = await Linking.canOpenURL(event.ticketUrl);
+  // Konser birden fazla bilet sitesinde satiliyorsa hepsi listelenir; tek
+  // adres varsa mevcut tek butonlu davranis korunur.
+  const ticketLinks = useMemo(() => resolveTicketLinks(event), [event]);
+
+  const openTicket = async (url) => {
+    const target = url || ticketLinks[0]?.url;
+    if (!target) return;
+    const supported = await Linking.canOpenURL(target);
     if (supported) {
-      await Linking.openURL(event.ticketUrl);
+      await Linking.openURL(target);
     } else {
-      Alert.alert(t('error'), 'Bu link açılamıyor');
+      Alert.alert(t('error'), t('detail_ticket_link_error'));
     }
   };
 
@@ -559,17 +565,35 @@ function EventDetailContent({ route, navigation }) {
         </View>
 
         {/* BİLET AL — belirgin ana CTA (eski hero ikonu fark edilmiyordu) */}
-        {!isExpired && event.ticketUrl && (
-          <TouchableOpacity onPress={openTicket} activeOpacity={0.85} style={styles.ticketCtaWrap}>
-            <LinearGradient
-              colors={['#F5A623', '#E94560']}
-              style={styles.ticketCta}
-              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-            >
-              <Text style={styles.ticketCtaText}>{t('events_ticket')}</Text>
-              <Text style={styles.ticketCtaArrow}>→</Text>
-            </LinearGradient>
-          </TouchableOpacity>
+        {!isExpired && ticketLinks.length > 0 && (
+          <>
+            {ticketLinks.length > 1 && (
+              <Text style={styles.ticketMultiTitle}>{t('detail_ticket_sources')}</Text>
+            )}
+            {ticketLinks.map((link, index) => (
+              <TouchableOpacity
+                key={link.url}
+                onPress={() => openTicket(link.url)}
+                activeOpacity={0.85}
+                style={styles.ticketCtaWrap}
+              >
+                <LinearGradient
+                  // İkinci ve sonraki siteler biraz daha sakin dursun,
+                  // ana CTA tek kalsın.
+                  colors={index === 0 ? ['#F5A623', '#E94560'] : ['#7C3AED', '#E94560']}
+                  style={styles.ticketCta}
+                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                >
+                  <Text style={styles.ticketCtaText}>
+                    {ticketLinks.length === 1
+                      ? t('events_ticket')
+                      : ticketButtonLabel(link, lang, t('events_ticket'))}
+                  </Text>
+                  <Text style={styles.ticketCtaArrow}>→</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            ))}
+          </>
         )}
 
         {/* KONSER ARKADAŞI */}
@@ -1093,6 +1117,10 @@ function createStyles(colors) {
     ticketCta: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
       paddingVertical: 17, borderRadius: 16,
+    },
+    ticketMultiTitle: {
+      color: colors.textSecondary, fontSize: 13, fontWeight: '700',
+      marginHorizontal: 20, marginBottom: 8, marginTop: 4,
     },
     ticketCtaText: { color: '#fff', fontSize: 17, fontWeight: '800', letterSpacing: 0.3 },
     ticketCtaArrow: { color: '#fff', fontSize: 18, fontWeight: '800' },

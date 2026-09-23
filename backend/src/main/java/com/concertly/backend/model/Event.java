@@ -49,6 +49,14 @@ public class Event {
 
     private Boolean isApproved = false;
 
+    /**
+     * Mükerrer birleştirildiğinde asıl kaydın kimliği.
+     *
+     * Birleştirilen kayıt SİLİNMEZ: is_approved=false ile gizlenir ve burada
+     * hangi kayda taşındığı tutulur. Böylece işlem geri alınabilir.
+     */
+    private Long mergedIntoEventId;
+
     /** Etkinliğin geldiği kanal — tek veri kaynağına bağımlılığı ölçmek için. */
     @Enumerated(EnumType.STRING)
     @Column(length = 20)
@@ -141,6 +149,9 @@ public class Event {
     public void setCreatedBy(User user) {
         this.createdBy = user;
     }
+
+    public Long getMergedIntoEventId() { return mergedIntoEventId; }
+    public void setMergedIntoEventId(Long mergedIntoEventId) { this.mergedIntoEventId = mergedIntoEventId; }
 
     public EventSource getSource() { return source == null ? EventSource.ADMIN : source; }
     public void setSource(EventSource source) { this.source = source; }

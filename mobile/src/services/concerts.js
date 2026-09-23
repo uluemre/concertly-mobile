@@ -25,6 +25,11 @@ import API from './api';
  * @property {string|null} venueAddress
  * @property {number|null} venueLatitude
  * @property {number|null} venueLongitude
+ * @property {TicketLink[]} [ticketLinks]  bilet alinabilecek adresler
+ *
+ * @typedef {Object} TicketLink
+ * @property {string} label  kullaniciya gosterilecek site adi (Biletix, Biletinial)
+ * @property {string} url
  *
  * @typedef {Object} ConcertPage
  * @property {Concert[]} content
@@ -82,4 +87,59 @@ export async function fetchAllConcerts({
     if (data?.last || items.length === 0) break;
   }
   return all;
+}
+
+/**
+ * Etkinligin bilet adreslerini tek bicime indirger.
+ *
+ * Konser listesi /api/concerts'ten gelir ve ticketLinks tasir. Ama derin
+ * baglanti ya da bildirimden gelindiginde ekran /events/{id} ile besleniyor ve
+ * o cevapta yalnizca ticketUrl var. Bu yuzden eksikse tek elemanli listeye
+ * duseriz; boylece ekran tek bir kurala bakar ve backend'e yeni uc gerekmez.
+ *
+ * @param {Concert|{ticketUrl?: string|null, ticketLinks?: TicketLink[]}} event
+ * @returns {TicketLink[]}
+ */
+export function resolveTicketLinks(event) {
+  if (!event) return [];
+
+  const links = Array.isArray(event.ticketLinks) ? event.ticketLinks : [];
+  const valid = links.filter((l) => l && typeof l.url === 'string' && l.url.trim());
+  if (valid.length) {
+    return valid.map((l) => ({ label: l.label || null, url: l.url.trim() }));
+  }
+
+  const legacy = typeof event.ticketUrl === 'string' ? event.ticketUrl.trim() : '';
+  return legacy ? [{ label: null, url: legacy }] : [];
+}
+
+/** Turkce ayrilma eki icin son sesli harf ve son harfin sertligi. */
+function ablativeSuffix(word) {
+  const lower = String(word).toLowerCase();
+  const backVowels = 'aıou';
+  let lastVowel = null;
+  for (const ch of lower) {
+    if ('aeıioöuü'.includes(ch)) lastVowel = ch;
+  }
+  // Sert unsuzden sonra "t", digerlerinden sonra "d".
+  // fstkçşhp + yabanci site adlarinda gecen sert harfler (Biletix -> 'ten).
+  const hard = 'fstkçşhpxq'.includes(lower[lower.length - 1]) ? 't' : 'd';
+  const vowel = lastVowel && backVowels.includes(lastVowel) ? 'a' : 'e';
+  return hard + vowel + 'n';
+}
+
+/**
+ * Bilet butonunun metni.
+ *
+ * Tek adres varsa mevcut "Bilet Al" metni korunur; birden fazlaysa hangi
+ * siteden alinacagi yazilir.
+ *
+ * @param {TicketLink} link
+ * @param {string} lang  'tr' | 'en'
+ * @param {string} fallback  tek adres durumundaki mevcut metin
+ */
+export function ticketButtonLabel(link, lang, fallback) {
+  if (!link || !link.label) return fallback;
+  if (lang === 'en') return `🎟 Buy on ${link.label}`;
+  return `🎟 ${link.label}'${ablativeSuffix(link.label)} Al`;
 }

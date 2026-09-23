@@ -1,0 +1,7 @@
+# Bu dosya ÖRNEKTİR ve repoya girer; gerçek değer içermez.
+# Kopyala: cp local.properties.example local.properties
+# Sonra gerçek anahtarları local.properties içine yaz (o dosya .gitignore'da).
+
+spotify.client.id=
+spotify.client.secret=
+ticketmaster.api.key=
