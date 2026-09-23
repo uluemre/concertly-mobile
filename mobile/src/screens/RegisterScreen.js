@@ -7,7 +7,6 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import API from '../services/api';
 import { useTheme } from '../theme';
-import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 
 function createStyles(colors) {
@@ -41,7 +40,6 @@ function createStyles(colors) {
 export default function RegisterScreen({ navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const { login } = useAuth();
   const { t } = useLanguage();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -55,12 +53,15 @@ export default function RegisterScreen({ navigation }) {
     }
     setLoading(true);
     try {
-      await API.post('/auth/register', { username, email, password });
-      const loginRes = await API.post('/auth/login', { email, password });
-      await login({ ...loginRes.data, onboardingCompleted: false });
-      navigation.replace('GenreSelection');
+      const cleanEmail = email.trim();
+      await API.post('/auth/register', { username: username.trim(), email: cleanEmail, password });
+      // Hesap, e-postaya giden kod girilene kadar açılmaz
+      navigation.replace('VerifyEmail', { email: cleanEmail });
     } catch (err) {
-      Alert.alert(t('error'), t('reg_already_exists'));
+      const status = err?.response?.status;
+      Alert.alert(t('error'), t(status === 409 ? 'reg_already_exists'
+        : status === 400 ? 'reset_password_too_short'
+        : 'verify_network_error'));
     } finally {
       setLoading(false);
     }

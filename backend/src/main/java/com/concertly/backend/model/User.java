@@ -42,6 +42,15 @@ public class User {
     private String resetToken;
     private LocalDateTime resetTokenExpiry;
 
+    // ── E-posta doğrulama ────────────────────────────────────────────────────
+    // null = bu özellikten önce açılmış hesap → doğrulanmış sayılır.
+    // Yeni kayıtlar false başlar, kod girilince true olur.
+    private Boolean emailVerified;
+    private String emailVerificationCodeHash;   // BCrypt; düz kod DB'de tutulmaz
+    private LocalDateTime emailVerificationExpiry;
+    private LocalDateTime emailVerificationSentAt;
+    private Integer emailVerificationAttempts;
+
     private LocalDateTime createdAt = LocalDateTime.now();
 
     private LocalDateTime updatedAt = LocalDateTime.now();
@@ -185,6 +194,19 @@ public class User {
     public void setResetToken(String resetToken) { this.resetToken = resetToken; }
     public LocalDateTime getResetTokenExpiry() { return resetTokenExpiry; }
     public void setResetTokenExpiry(LocalDateTime resetTokenExpiry) { this.resetTokenExpiry = resetTokenExpiry; }
+
+    public Boolean getEmailVerified() { return emailVerified; }
+    public void setEmailVerified(Boolean emailVerified) { this.emailVerified = emailVerified; }
+    /** Eski hesaplar (null) doğrulanmış sayılır; yalnızca açıkça false olan bekler. */
+    public boolean isEmailVerificationPending() { return Boolean.FALSE.equals(emailVerified); }
+    public String getEmailVerificationCodeHash() { return emailVerificationCodeHash; }
+    public void setEmailVerificationCodeHash(String h) { this.emailVerificationCodeHash = h; }
+    public LocalDateTime getEmailVerificationExpiry() { return emailVerificationExpiry; }
+    public void setEmailVerificationExpiry(LocalDateTime t) { this.emailVerificationExpiry = t; }
+    public LocalDateTime getEmailVerificationSentAt() { return emailVerificationSentAt; }
+    public void setEmailVerificationSentAt(LocalDateTime t) { this.emailVerificationSentAt = t; }
+    public Integer getEmailVerificationAttempts() { return emailVerificationAttempts; }
+    public void setEmailVerificationAttempts(Integer n) { this.emailVerificationAttempts = n; }
 
     // ── Bildirim tercihleri ───────────────────────────────────────────────────
     public Boolean getPushEnabled() { return pushEnabled; }

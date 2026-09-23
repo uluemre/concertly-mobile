@@ -39,6 +39,20 @@ public class AuthController {
         return authService.register(request);
     }
 
+    // POST /api/auth/verify-email  Body: { "email": "...", "code": "123456" }
+    // Kod doğruysa hesabı doğrular ve login ile aynı AuthResponse'u döner.
+    @PostMapping("/verify-email")
+    public AuthResponse verifyEmail(@RequestBody Map<String, String> body) {
+        return authService.verifyEmail(body.get("email"), body.get("code"));
+    }
+
+    // POST /api/auth/resend-verification  Body: { "email": "..." }
+    @PostMapping("/resend-verification")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void resendVerification(@RequestBody Map<String, String> body) {
+        authService.resendVerification(body.get("email"));
+    }
+
     @PostMapping("/refresh")
     public AuthResponse refresh(@RequestBody RefreshRequest request) {
         return authService.refreshToken(request.getRefreshToken());

@@ -82,6 +82,7 @@ import WrappedScreen from '../screens/WrappedScreen';
 import ConcertBingoScreen from '../screens/ConcertBingoScreen';
 import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
 import ResetPasswordScreen from '../screens/ResetPasswordScreen';
+import VerifyEmailScreen from '../screens/VerifyEmailScreen';
 import ChangePasswordScreen from '../screens/ChangePasswordScreen';
 import BlockedUsersScreen from '../screens/BlockedUsersScreen';
 import LegalScreen from '../screens/LegalScreen';
@@ -277,6 +278,11 @@ export default function AppNavigator() {
         <Stack.Screen
           name="Register"
           component={RegisterScreen}
+        />
+
+        <Stack.Screen
+          name="VerifyEmail"
+          component={VerifyEmailScreen}
         />
 
         {/* MAIN APP */}

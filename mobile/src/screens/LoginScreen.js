@@ -73,6 +73,12 @@ export default function LoginScreen({ navigation }) {
         navigation.replace('MainApp');
       }
     } catch (err) {
+      // Şifre doğru ama e-posta henüz doğrulanmamış → yeni kod gönder, kod ekranına geç
+      if (err?.response?.status === 403 && err?.response?.data?.message === 'EMAIL_NOT_VERIFIED') {
+        API.post('/auth/resend-verification', { email: email.trim() }).catch(() => {});
+        navigation.navigate('VerifyEmail', { email: email.trim() });
+        return;
+      }
       Alert.alert(t('error'), t('login_error'));
     } finally {
       setLoading(false);

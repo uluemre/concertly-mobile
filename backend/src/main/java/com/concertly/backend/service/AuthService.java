@@ -14,15 +14,17 @@ import com.concertly.backend.repository.ArtistFollowRepository;
 import com.concertly.backend.repository.ArtistRepository;
 import com.concertly.backend.repository.UserRepository;
 import com.concertly.backend.security.JwtUtil;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
-import java.util.Random;
+import java.security.SecureRandom;
 
 @Service
 public class AuthService {
@@ -35,6 +37,9 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final RefreshTokenService refreshTokenService;
     private final EmailService emailService;
+    private final EmailVerificationService emailVerificationService;
+
+    private static final SecureRandom RANDOM = new SecureRandom();
 
     public AuthService(UserRepository userRepository,
             ArtistRepository artistRepository,
@@ -43,7 +48,8 @@ public class AuthService {
             JwtUtil jwtUtil,
             AuthenticationManager authenticationManager,
             RefreshTokenService refreshTokenService,
-            EmailService emailService) {
+            EmailService emailService,
+            EmailVerificationService emailVerificationService) {
         this.userRepository = userRepository;
         this.artistRepository = artistRepository;
         this.artistFollowRepository = artistFollowRepository;
@@ -52,6 +58,7 @@ public class AuthService {
         this.authenticationManager = authenticationManager;
         this.refreshTokenService = refreshTokenService;
         this.emailService = emailService;
+        this.emailVerificationService = emailVerificationService;
     }
 
     // ✅ KAYIT — şifreyi hash'le, duplicate kontrolü yap
@@ -61,24 +68,38 @@ public class AuthService {
             throw new IllegalArgumentException("Şifre en az 6 karakter olmalı");
         }
 
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+        // Aynı e-postada 24 saattir doğrulanmamış bir kayıt varsa üzerine yazılabilir;
+        // böylece başkasının adresiyle açılmış sahte kayıt adresi sonsuza kadar
+        // kilitlemez. Daha yeni bekleyen kayıt korunur: sahibi giriş ekranından
+        // kod ekranına döner. (Hemen üzerine yazmaya izin vermek, sahibi yeni
+        // kodu girdiğinde hesabı başkasının belirlediği şifreyle açardı.)
+        User user = userRepository.findByEmail(request.getEmail()).orElse(null);
+        boolean abandonedPending = user != null && user.isEmailVerificationPending()
+                && (user.getEmailVerificationSentAt() == null
+                    || user.getEmailVerificationSentAt().isBefore(LocalDateTime.now().minusHours(24)));
+        if (user != null && !abandonedPending) {
             throw new AlreadyExistsException(
                     "Bu email zaten kullanılıyor: " + request.getEmail());
         }
 
-        if (userRepository.findByUsername(request.getUsername()).isPresent()) {
+        User usernameOwner = userRepository.findByUsername(request.getUsername()).orElse(null);
+        if (usernameOwner != null && (user == null || !usernameOwner.getId().equals(user.getId()))) {
             throw new AlreadyExistsException(
                     "Bu kullanıcı adı zaten kullanılıyor: " + request.getUsername());
         }
 
-        User user = new User();
+        if (user == null) {
+            user = new User();
+            user.setEmail(request.getEmail());
+        }
         user.setUsername(request.getUsername());
-        user.setEmail(request.getEmail());
         user.setCity(request.getCity());
         // ✅ Plain text yerine BCrypt hash
         user.setPassword(passwordEncoder.encode(request.getPassword()));
 
         User saved = userRepository.save(user);
+        // Hesap, e-postaya giden kod girilene kadar giriş yapamaz
+        emailVerificationService.start(saved);
         return new UserResponse(saved.getId(), saved.getUsername(), saved.getEmail(), saved.getCity());
     }
 
@@ -99,6 +120,25 @@ public class AuthService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Kullanıcı bulunamadı: " + request.getEmail()));
 
+        // Şifre doğru ama e-posta doğrulanmamış → mobil kod ekranına yönlendirir
+        if (user.isEmailVerificationPending()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "EMAIL_NOT_VERIFIED");
+        }
+
+        return issueTokens(user);
+    }
+
+    // ✅ E-POSTA DOĞRULAMA — kod doğruysa oturum açar (şifreyi tekrar sormadan)
+    public AuthResponse verifyEmail(String email, String code) {
+        User user = emailVerificationService.verify(email, code);
+        return issueTokens(user);
+    }
+
+    public void resendVerification(String email) {
+        emailVerificationService.resend(email);
+    }
+
+    private AuthResponse issueTokens(User user) {
         String accessToken = jwtUtil.generateToken(user.getId(), user.getEmail());
         RefreshToken refreshToken = refreshTokenService.create(user);
 
@@ -193,7 +233,7 @@ public class AuthService {
         // Kullanıcı sayımına (enumeration) karşı: e-posta kayıtlı olsun olmasın
         // dışarıya aynı (boş) yanıt döner. Kod yalnızca kayıtlı kullanıcıya gider.
         userRepository.findByEmail(email).ifPresent(user -> {
-            String token = String.format("%06d", new Random().nextInt(1_000_000));
+            String token = String.format("%06d", RANDOM.nextInt(1_000_000));
             user.setResetToken(token);
             user.setResetTokenExpiry(LocalDateTime.now().plusMinutes(30));
             userRepository.save(user);
