@@ -38,7 +38,8 @@ public class VenueService {
 
         Double avgRating = reviewRepository.avgRatingByVenueId(venueId);
         long reviewCount = reviewRepository.countByVenueId(venueId);
-        long totalEvents = eventRepository.findByVenueIdOrderByEventDateAsc(venueId).size();
+        long totalEvents = eventRepository.findByVenueIdOrderByEventDateAsc(venueId).stream()
+                .filter(com.concertly.backend.model.Event::listedPublicly).count();
 
         Integer myRating = null;
         if (currentUserId != null) {
@@ -52,6 +53,7 @@ public class VenueService {
     public List<EventResponse> getVenueEvents(Long venueId) {
         return eventRepository.findByVenueIdOrderByEventDateAsc(venueId)
                 .stream()
+                .filter(com.concertly.backend.model.Event::listedPublicly)
                 .map(EventResponse::from)
                 .toList();
     }

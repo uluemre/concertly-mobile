@@ -91,6 +91,7 @@ public class EventService {
                 : eventRepository.findByCityNormalized(city);
 
         return events.stream()
+                .filter(Event::listedPublicly)
                 .sorted(Comparator.comparing(Event::getEventDate))
                 .map(EventResponse::from)
                 .toList();
@@ -108,13 +109,16 @@ public class EventService {
                 .toList();
         String queryCity = (city == null || city.isBlank()) ? launchCityConfig.firstCity() : city;
 
-        List<Event> matching = eventRepository.findByVenueCityAndGenreIn(queryCity, lowerGenres);
+        List<Event> matching = new java.util.ArrayList<>(eventRepository.findByVenueCityAndGenreIn(queryCity, lowerGenres));
+        matching.removeIf(e -> !e.listedPublicly());
         matching.sort(Comparator.comparing(Event::getEventDate));
 
         List<Event> all = (city == null || city.isBlank())
                 ? eventRepository.findByCitiesNormalized(launchCityConfig.getCities().stream()
                         .map(LaunchCityConfig::normalize).toList())
                 : eventRepository.findByCityNormalized(city);
+        all = new java.util.ArrayList<>(all);
+        all.removeIf(e -> !e.listedPublicly());
         all.sort(Comparator.comparing(Event::getEventDate));
 
         // Matching events first, then remaining ones
@@ -148,6 +152,7 @@ public class EventService {
         }
 
         event.setIsApproved(true);
+        event.setDelistedReason(null);   // admin geri açtıysa listelere döner
         // Admin incelemesinden geçen etkinlik artık doğrulanmış sayılır —
         // kullanıcı önerisiyle gelen kayıtlar da listede rozet kazanır.
         event.setIsVerified(true);

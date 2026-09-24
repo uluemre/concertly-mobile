@@ -28,7 +28,8 @@ function TabIcon({ emoji, focused }) {
     }
   }, [focused]);
   return (
-    <Animated.Text style={{ fontSize: 20, transform: [{ scale }] }}>
+    // Seçili olmayan sekmeler hafif soluk: aktif sekme bir bakışta ayırt edilsin
+    <Animated.Text style={{ fontSize: 20, opacity: focused ? 1 : 0.55, transform: [{ scale }] }}>
       {emoji}
     </Animated.Text>
   );
@@ -83,6 +84,7 @@ import ConcertBingoScreen from '../screens/ConcertBingoScreen';
 import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
 import ResetPasswordScreen from '../screens/ResetPasswordScreen';
 import VerifyEmailScreen from '../screens/VerifyEmailScreen';
+import ConcertPrepScreen from '../screens/ConcertPrepScreen';
 import ChangePasswordScreen from '../screens/ChangePasswordScreen';
 import BlockedUsersScreen from '../screens/BlockedUsersScreen';
 import LegalScreen from '../screens/LegalScreen';
@@ -151,7 +153,7 @@ function TabNavigator() {
         component={ExploreScreen}
         options={{
           tabBarLabel: t('tab_menu'),
-          tabBarIcon: ({ focused }) => <TabIcon emoji="☰" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon emoji="🧭" focused={focused} />,
         }}
       />
 
@@ -384,6 +386,7 @@ export default function AppNavigator() {
         <Stack.Screen name="Games" component={GamesScreen} />
         <Stack.Screen name="Wrapped" component={WrappedScreen} />
         <Stack.Screen name="ConcertBingo" component={ConcertBingoScreen} />
+        <Stack.Screen name="ConcertPrep" component={ConcertPrepScreen} />
         <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
         <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
         <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />

@@ -30,6 +30,10 @@ public class EmailVerificationService {
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
 
+    /** Kapalıyken yeni kayıtlar kod beklemeden açılır (e-posta sağlayıcısı kurulana kadar). */
+    @Value("${app.email-verification.enabled:false}")
+    private boolean enabled;
+
     @Value("${app.email-verification.code-minutes:15}")
     private int codeMinutes;
 
@@ -45,6 +49,10 @@ public class EmailVerificationService {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
+    }
+
+    public boolean isEnabled() {
+        return enabled;
     }
 
     /** Hesabı doğrulanmamış işaretler, yeni kod üretip e-postalar. */

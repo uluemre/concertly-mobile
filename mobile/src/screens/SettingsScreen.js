@@ -25,7 +25,7 @@ const DELETE_REASONS = [
 export default function SettingsScreen({ navigation, route }) {
   const { colors, themeMode, setThemeMode } = useTheme();
   const { session, updateSession, logout } = useAuth();
-  const { lang, setLang, t } = useLanguage();
+  const { lang, setLang, t, tu } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [loading, setLoading] = useState(true);
@@ -236,7 +236,7 @@ export default function SettingsScreen({ navigation, route }) {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.sectionTitle}>{t('settings_appearance_section')}</Text>
+        <Text style={styles.sectionTitle}>{tu('settings_appearance_section')}</Text>
 
         <View style={styles.themeToggleContainer}>
           <Text style={styles.label}>{t('settings_theme')}</Text>
@@ -279,7 +279,7 @@ export default function SettingsScreen({ navigation, route }) {
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>{t('settings_personal_section')}</Text>
+        <Text style={styles.sectionTitle}>{tu('settings_personal_section')}</Text>
 
         <View style={styles.inputGroup}>
           <Text style={styles.label}>{t('settings_username')}</Text>
@@ -346,7 +346,7 @@ export default function SettingsScreen({ navigation, route }) {
         </View>
 
         {/* ── BİLDİRİMLER ─────────────────────────────────────────────── */}
-        <Text style={styles.sectionTitle}>{t('settings_notifications_section')}</Text>
+        <Text style={styles.sectionTitle}>{tu('settings_notifications_section')}</Text>
         <View style={styles.prefCard}>
           <View style={styles.prefRow}>
             <View style={styles.prefTextWrap}>
@@ -390,7 +390,7 @@ export default function SettingsScreen({ navigation, route }) {
         </View>
 
         {/* ── GİZLİLİK & GÜVENLİK ─────────────────────────────────────── */}
-        <Text style={styles.sectionTitle}>{t('settings_privacy_section')}</Text>
+        <Text style={styles.sectionTitle}>{tu('settings_privacy_section')}</Text>
         <View style={styles.prefCard}>
           <Text style={styles.prefTitle}>{t('settings_dm_title')}</Text>
           <Text style={[styles.prefDesc, { marginBottom: 12 }]}>{t('settings_dm_desc')}</Text>
@@ -426,7 +426,7 @@ export default function SettingsScreen({ navigation, route }) {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.sectionTitle}>{t('settings_spotify')}</Text>
+        <Text style={styles.sectionTitle}>{tu('settings_spotify')}</Text>
         <View style={styles.spotifyCard}>
           <View style={styles.spotifyRow}>
             <View style={styles.spotifyIconWrap}>
@@ -486,7 +486,7 @@ export default function SettingsScreen({ navigation, route }) {
           )}
         </View>
 
-        <Text style={styles.sectionTitle}>{t('settings_privacy_section')}</Text>
+        <Text style={styles.sectionTitle}>{tu('settings_privacy_section')}</Text>
         <TouchableOpacity
           style={[styles.privacyRow, { marginBottom: 12 }]}
           onPress={() => navigation.navigate('ChangePassword')}
@@ -504,7 +504,7 @@ export default function SettingsScreen({ navigation, route }) {
           <Text style={styles.chevron}>›</Text>
         </TouchableOpacity>
 
-        <Text style={styles.sectionTitle}>{t('settings_legal_section')}</Text>
+        <Text style={styles.sectionTitle}>{tu('settings_legal_section')}</Text>
         <TouchableOpacity
           style={[styles.privacyRow, { marginBottom: 12 }]}
           onPress={() => navigation.navigate('Legal', { doc: 'privacy' })}
@@ -537,7 +537,7 @@ export default function SettingsScreen({ navigation, route }) {
           </LinearGradient>
         </TouchableOpacity>
 
-        <Text style={[styles.sectionTitle, styles.dangerSectionTitle]}>{t('settings_danger_section')}</Text>
+        <Text style={[styles.sectionTitle, styles.dangerSectionTitle]}>{tu('settings_danger_section')}</Text>
         <TouchableOpacity
           style={styles.deleteButton}
           onPress={handleDeleteAccount}
@@ -711,7 +711,6 @@ function createStyles(colors) {
       fontWeight: 'bold',
       color: colors.textSecondary,
       marginBottom: 20,
-      textTransform: 'uppercase',
       letterSpacing: 1,
     },
     themeToggleContainer: { marginBottom: 30 },

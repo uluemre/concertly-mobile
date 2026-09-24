@@ -48,7 +48,7 @@ export default function ConcertPassportScreen({ navigation, route }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { session } = useAuth();
-  const { t } = useLanguage();
+  const { t, tu } = useLanguage();
 
   const targetUserId = route.params?.userId ?? session.userId;
   const isOwn = targetUserId === session.userId;
@@ -228,7 +228,7 @@ export default function ConcertPassportScreen({ navigation, route }) {
             {/* Kilitli */}
             {lockedBadges.length > 0 && (
               <View style={styles.lockedRow}>
-                <Text style={[styles.lockedLabel, { color: colors.textSecondary }]}>{t('passport_locked')}</Text>
+                <Text style={[styles.lockedLabel, { color: colors.textSecondary }]}>{tu('passport_locked')}</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   {lockedBadges.map(badge => (
                     <View key={badge.code} style={[styles.badgeCard, styles.badgeCardLocked]}>
@@ -524,7 +524,7 @@ function createStyles(colors) {
     badgeName: { fontSize: 12, fontWeight: '800', textAlign: 'center', marginBottom: 3 },
     badgeDesc: { fontSize: 10, textAlign: 'center', lineHeight: 14 },
     lockedRow: { marginTop: 8 },
-    lockedLabel: { fontSize: 11, fontWeight: '700', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 },
+    lockedLabel: { fontSize: 11, fontWeight: '700', marginBottom: 8, letterSpacing: 1 },
     progressWrap: { width: '100%', alignItems: 'center', marginTop: 4 },
     progressTrack: { width: '80%', height: 4, borderRadius: 2, overflow: 'hidden' },
     progressFill: { height: '100%', backgroundColor: '#7C3AED', borderRadius: 2 },

@@ -86,7 +86,7 @@ const eventEmojis = ['🎸', '🎤', '🥁', '🎹', '🎺', '🎻', '🎪', '�
 export default function ArtistProfileScreen({ route, navigation }) {
   const { colors } = useTheme();
   const { session } = useAuth();
-  const { t } = useLanguage();
+  const { t, tu } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { artistId, artistName } = route.params;
 
@@ -441,7 +441,7 @@ export default function ArtistProfileScreen({ route, navigation }) {
               <View style={styles.pastSection}>
                 <View style={styles.pastSectionHeader}>
                   <View style={[styles.pastSectionLine, { backgroundColor: colors.border }]} />
-                  <Text style={[styles.pastSectionTitle, { color: colors.textSecondary }]}>{t('artist_past_concerts')}</Text>
+                  <Text style={[styles.pastSectionTitle, { color: colors.textSecondary }]}>{tu('artist_past_concerts')}</Text>
                   <View style={[styles.pastSectionLine, { backgroundColor: colors.border }]} />
                 </View>
 
@@ -753,7 +753,7 @@ function createStyles(colors) {
     pastSection: { marginTop: 24 },
     pastSectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
     pastSectionLine: { flex: 1, height: 1 },
-    pastSectionTitle: { fontSize: 12, fontWeight: '800', letterSpacing: 1.2, textTransform: 'uppercase' },
+    pastSectionTitle: { fontSize: 12, fontWeight: '800', letterSpacing: 1.2, },
     pastCard: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
       borderRadius: 14, borderWidth: 1,

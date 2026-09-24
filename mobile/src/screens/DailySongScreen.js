@@ -12,7 +12,7 @@ import { stopPlayer } from '../utils/audio';
 
 export default function DailySongScreen({ navigation }) {
   const { colors } = useTheme();
-  const { t } = useLanguage();
+  const { t, tu } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [game, setGame] = useState(null);       // /daily-song/today cevabı
@@ -318,7 +318,7 @@ export default function DailySongScreen({ navigation }) {
               </View>
             )}
             <View style={styles.answerInfo}>
-              <Text style={[styles.answerLabel, { color: colors.textSecondary }]}>{t('daily_answer_was')}</Text>
+              <Text style={[styles.answerLabel, { color: colors.textSecondary }]}>{tu('daily_answer_was')}</Text>
               <Text style={[styles.answerTitle, { color: colors.text }]} numberOfLines={2}>{game.answer?.title}</Text>
               <Text style={[styles.answerArtist, { color: colors.textSecondary }]} numberOfLines={1}>{game.answer?.artist}</Text>
             </View>
@@ -406,7 +406,7 @@ function createStyles(colors) {
     answerCover: { width: 72, height: 72, borderRadius: 12 },
     answerCoverFallback: { backgroundColor: '#7C3AED33', justifyContent: 'center', alignItems: 'center' },
     answerInfo: { flex: 1 },
-    answerLabel: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8 },
+    answerLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 0.8 },
     answerTitle: { fontSize: 17, fontWeight: '900', marginTop: 3 },
     answerArtist: { fontSize: 13, marginTop: 2 },
     fullPlayBtn: { paddingVertical: 14, borderRadius: 14, alignItems: 'center' },

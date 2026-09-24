@@ -133,6 +133,12 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     @EntityGraph(attributePaths = {"artist", "venue", "createdBy"})
     List<Event> findByIsApproved(Boolean isApproved);
 
+    /** Admin onay kuyruğu: listeden bilerek kaldırılanlar (delisted) kuyruğu doldurmasın. */
+    @EntityGraph(attributePaths = {"artist", "venue", "createdBy"})
+    List<Event> findByIsApprovedAndDelistedReasonIsNull(Boolean isApproved);
+
+    long countByDelistedReasonIsNotNull();
+
     @EntityGraph(attributePaths = {"artist", "venue", "createdBy"})
     @Query("""
                 SELECT e FROM Event e

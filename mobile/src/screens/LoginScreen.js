@@ -17,16 +17,16 @@ function createStyles(colors) {
 
     logoArea: { alignItems: 'center', marginBottom: 48 },
     logo: {
-      width: 100,
-      height: 100,
-      marginBottom: 16,
+      width: 140,
+      height: 140,
+      marginBottom: 12,
     },
     title: {
       fontSize: 36, fontWeight: 'bold',
       color: colors.text, letterSpacing: 2,
     },
     subtitle: {
-      fontSize: 14, color: colors.textSecondary, marginTop: 6,
+      fontSize: 16, color: colors.textSecondary, marginTop: 4,
     },
 
     form: { gap: 12 },
@@ -100,8 +100,9 @@ export default function LoginScreen({ navigation }) {
             source={require('../../assets/icon.png')}
             style={styles.logo}
             resizeMode="contain"
+            accessibilityLabel={t('login_title')}
           />
-          <Text style={styles.title}>{t('login_title')}</Text>
+          {/* Logo zaten "Concertly" yazısını taşıyor; altına ikinci kez dev başlık yazmıyoruz */}
           <Text style={styles.subtitle}>{t('login_subtitle')}</Text>
 
         </View>

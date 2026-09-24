@@ -32,7 +32,7 @@ const VISIBILITIES = [
 
 export default function CreateCommunityScreen({ navigation }) {
   const { colors } = useTheme();
-  const { t } = useLanguage();
+  const { t, tu } = useLanguage();
   const { session } = useAuth();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -87,7 +87,7 @@ export default function CreateCommunityScreen({ navigation }) {
         </LinearGradient>
 
         {/* İsim */}
-        <Text style={styles.label}>{t('community_create_name')}</Text>
+        <Text style={styles.label}>{tu('community_create_name')}</Text>
         <TextInput
           style={styles.input}
           value={name}
@@ -98,7 +98,7 @@ export default function CreateCommunityScreen({ navigation }) {
         />
 
         {/* Açıklama */}
-        <Text style={styles.label}>{t('community_create_desc')}</Text>
+        <Text style={styles.label}>{tu('community_create_desc')}</Text>
         <TextInput
           style={[styles.input, styles.textarea]}
           value={description}
@@ -110,7 +110,7 @@ export default function CreateCommunityScreen({ navigation }) {
         />
 
         {/* Tema (emoji + renk) */}
-        <Text style={styles.label}>{t('community_create_emoji')}</Text>
+        <Text style={styles.label}>{tu('community_create_emoji')}</Text>
         <View style={styles.themeRow}>
           {THEMES.map((th, i) => (
             <TouchableOpacity key={i} onPress={() => setThemeIdx(i)} activeOpacity={0.85}>
@@ -125,7 +125,7 @@ export default function CreateCommunityScreen({ navigation }) {
         </View>
 
         {/* Tür */}
-        <Text style={styles.label}>{t('community_create_type')}</Text>
+        <Text style={styles.label}>{tu('community_create_type')}</Text>
         <View style={styles.chipRow}>
           {TYPES.map(tp => (
             <TouchableOpacity
@@ -139,11 +139,11 @@ export default function CreateCommunityScreen({ navigation }) {
         </View>
 
         {/* Şehir */}
-        <Text style={styles.label}>{t('community_create_city')}</Text>
+        <Text style={styles.label}>{tu('community_create_city')}</Text>
         <CityPicker value={city} onChange={setCity} colors={colors} t={t} />
 
         {/* Görünürlük */}
-        <Text style={styles.label}>{t('community_create_visibility')}</Text>
+        <Text style={styles.label}>{tu('community_create_visibility')}</Text>
         {VISIBILITIES.map(v => (
           <TouchableOpacity
             key={v.value}
@@ -193,7 +193,7 @@ function createStyles(colors) {
     heroTitle: { color: '#fff', fontSize: 22, fontWeight: '900', textAlign: 'center' },
     label: {
       color: colors.textSecondary, fontSize: 12, fontWeight: '800',
-      letterSpacing: 0.5, textTransform: 'uppercase',
+      letterSpacing: 0.5,
       marginHorizontal: 18, marginTop: 22, marginBottom: 10,
     },
     input: {

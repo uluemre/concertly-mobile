@@ -6,7 +6,15 @@ const LanguageContext = createContext({
   lang: 'tr',
   setLang: () => {},
   t: (k) => k,
+  tu: (k) => k,
 });
+
+/** Dile duyarlı büyük harf: Türkçede i→İ, ı→I (motorun Intl desteğine güvenmeden). */
+export function upperLocale(str, lang) {
+  if (str == null) return '';
+  const s = String(str);
+  return lang === 'en' ? s.toUpperCase() : s.replace(/i/g, 'İ').replace(/ı/g, 'I').toUpperCase();
+}
 
 export function LanguageProvider({ children }) {
   const [lang, setLangState] = useState('tr');
@@ -32,7 +40,11 @@ export function LanguageProvider({ children }) {
     return str;
   }, [lang]);
 
-  const value = useMemo(() => ({ lang, setLang, t }), [lang, setLang, t]);
+  // Büyük harf başlıklar için: RN'in textTransform:'uppercase'ı iOS'ta dile
+  // bakmıyor ve Türkçede "Etkinlik" → "ETKINLIK" (noktasız) yazıyordu.
+  const tu = useCallback((key, params) => upperLocale(t(key, params), lang), [t, lang]);
+
+  const value = useMemo(() => ({ lang, setLang, t, tu }), [lang, setLang, t, tu]);
 
   return (
     <LanguageContext.Provider value={value}>

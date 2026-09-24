@@ -15,6 +15,7 @@ import AnimatedListItem from '../components/AnimatedListItem';
 import { EventsSkeletonPage } from '../components/SkeletonLoader';
 import { LAUNCH_CITIES, launchCityOrNull } from '../constants/cities';
 import { parseEventDate } from '../utils/time';
+import { showArtistLine } from '../utils/text';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2;
@@ -220,7 +221,7 @@ export default function EventsScreen({ navigation, route }) {
       </View>
       <View style={styles.cardBody}>
         <Text style={[styles.cardName, { color: colors.text }]} numberOfLines={2}>{item.name}</Text>
-        {item.artistName && <Text style={[styles.cardArtist, { color: colors.textSecondary }]} numberOfLines={1}>🎤 {item.artistName}</Text>}
+        {showArtistLine(item.artistName, item.name) && <Text style={[styles.cardArtist, { color: colors.textSecondary }]} numberOfLines={1}>🎤 {item.artistName}</Text>}
         {item.venueCity && <Text style={[styles.cardCity, { color: colors.textSecondary }]} numberOfLines={1}>📍 {item.venueCity}</Text>}
         {item.genre && (
           <View style={[styles.genrePill, { backgroundColor: colors.primary + '22' }]}>
@@ -244,7 +245,7 @@ export default function EventsScreen({ navigation, route }) {
       <LinearGradient colors={colors.headerGradient} style={styles.header}>
         {pickForSetlist && (
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.pickerBack} activeOpacity={0.7}>
-            <Text style={styles.pickerBackText}>‹ {t('back')}</Text>
+            <Text style={styles.pickerBackText}>{t('back')}</Text>
           </TouchableOpacity>
         )}
         <View style={styles.headerRow}>

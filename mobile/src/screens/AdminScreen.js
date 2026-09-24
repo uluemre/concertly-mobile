@@ -83,7 +83,7 @@ const NAV_ITEMS = [
 
 export default function AdminScreen({ navigation }) {
   const { colors } = useTheme();
-  const { t } = useLanguage();
+  const { t, tu } = useLanguage();
   const { session } = useAuth();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [stats, setStats] = useState(null);
@@ -369,22 +369,22 @@ export default function AdminScreen({ navigation }) {
           <View style={[styles.summaryCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={styles.summaryItem}>
               <Text style={styles.summaryNum}>{stats?.totalFollows ?? 0}</Text>
-              <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>{t('admin_sum_follows')}</Text>
+              <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>{tu('admin_sum_follows')}</Text>
             </View>
             <View style={[styles.summaryDivider, { backgroundColor: colors.border }]} />
             <View style={styles.summaryItem}>
               <Text style={styles.summaryNum}>{stats?.totalCommunities ?? 0}</Text>
-              <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>{t('admin_sum_communities')}</Text>
+              <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>{tu('admin_sum_communities')}</Text>
             </View>
             <View style={[styles.summaryDivider, { backgroundColor: colors.border }]} />
             <View style={styles.summaryItem}>
               <Text style={styles.summaryNum}>{stats?.adminUsers ?? 0}</Text>
-              <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>{t('admin_sum_admins')}</Text>
+              <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>{tu('admin_sum_admins')}</Text>
             </View>
             <View style={[styles.summaryDivider, { backgroundColor: colors.border }]} />
             <View style={styles.summaryItem}>
               <Text style={styles.summaryNum}>{stats?.approvedEvents ?? 0}</Text>
-              <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>{t('admin_sum_approved')}</Text>
+              <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>{tu('admin_sum_approved')}</Text>
             </View>
           </View>
         </>
@@ -486,7 +486,7 @@ function createStyles(colors) {
     },
     summaryItem: { flex: 1, alignItems: 'center' },
     summaryNum: { fontSize: 20, fontWeight: '800', color: colors.text },
-    summaryLabel: { fontSize: 10, marginTop: 3, textTransform: 'uppercase', letterSpacing: 0.8 },
+    summaryLabel: { fontSize: 10, marginTop: 3, letterSpacing: 0.8 },
     summaryDivider: { width: 1, marginVertical: 4 },
   });
 }

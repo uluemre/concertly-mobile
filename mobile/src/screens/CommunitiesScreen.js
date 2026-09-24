@@ -23,7 +23,7 @@ const FILTERS = [
 export default function CommunitiesScreen({ navigation }) {
   const { colors } = useTheme();
   const { session } = useAuth();
-  const { t } = useLanguage();
+  const { t, tu } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [activeFilter, setActiveFilter] = useState('all');
   const [query, setQuery] = useState('');
@@ -141,7 +141,7 @@ export default function CommunitiesScreen({ navigation }) {
       {/* HEADER */}
       <LinearGradient colors={colors.headerGradient} style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backText}>‹ {t('back')}</Text>
+          <Text style={styles.backText}>{t('back')}</Text>
         </TouchableOpacity>
         <Text style={styles.headerLabel}>👥 CONCERTLY</Text>
         <Text style={styles.headerTitle}>{t('communities_title')}</Text>
@@ -227,7 +227,7 @@ export default function CommunitiesScreen({ navigation }) {
         })}
       </ScrollView>
 
-      <Text style={styles.sectionTitle}>{t('communities_discover')}</Text>
+      <Text style={styles.sectionTitle}>{tu('communities_discover')}</Text>
 
       {loading ? (
         <View style={styles.loadingContainer}>
@@ -391,7 +391,7 @@ function createStyles(colors) {
 
     sectionTitle: {
       color: colors.textSecondary, fontSize: 12, fontWeight: '800',
-      letterSpacing: 1.2, textTransform: 'uppercase',
+      letterSpacing: 1.2,
       marginHorizontal: 20, marginTop: 22, marginBottom: 2,
     },
 

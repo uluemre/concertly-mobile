@@ -3,7 +3,8 @@ import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../theme';
-import { useLanguage } from '../../context/LanguageContext';
+import { useLanguage, upperLocale } from '../../context/LanguageContext';
+import { showArtistLine } from '../../utils/text';
 import { getGenreGradient } from '../../utils/gradients';
 import { formatDateShort } from '../../utils/time';
 
@@ -18,7 +19,7 @@ function getInitials(name) {
 
 export default React.memo(function FeaturedCard({ item, index, cardWidth, cardHeight, onPress, followed }) {
   const { colors } = useTheme();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const styles = useMemo(() => createStyles(colors, cardWidth, cardHeight), [colors, cardWidth, cardHeight]);
   const scale = useRef(new Animated.Value(0.92)).current;
   const opacity = useRef(new Animated.Value(0)).current;
@@ -65,7 +66,7 @@ export default React.memo(function FeaturedCard({ item, index, cardWidth, cardHe
           />
           <View style={[styles.dateBadge, { backgroundColor: accent }]}>
             <Text style={styles.dateBadgeDay}>{day}</Text>
-            <Text style={styles.dateBadgeMon}>{month}</Text>
+            <Text style={styles.dateBadgeMon}>{upperLocale(month, lang)}</Text>
           </View>
           {item.genre && (
             <View style={styles.genreTag}>
@@ -78,7 +79,7 @@ export default React.memo(function FeaturedCard({ item, index, cardWidth, cardHe
             </View>
           )}
           <View style={styles.content}>
-            {item.artistName && (
+            {showArtistLine(item.artistName, item.name) && (
               <Text style={styles.artist} numberOfLines={1}>🎤 {item.artistName}</Text>
             )}
             <Text style={styles.title} numberOfLines={2}>{item.name}</Text>
@@ -122,7 +123,7 @@ function createStyles(colors, cardWidth, cardHeight) {
       alignItems: 'center', justifyContent: 'center',
     },
     dateBadgeDay: { fontSize: 18, fontWeight: '900', color: '#fff', lineHeight: 20 },
-    dateBadgeMon: { fontSize: 10, fontWeight: '700', color: '#fff', textTransform: 'uppercase', opacity: 0.85 },
+    dateBadgeMon: { fontSize: 10, fontWeight: '700', color: '#fff', opacity: 0.85 },
     genreTag: {
       position: 'absolute', top: 14, right: 14,
       backgroundColor: 'rgba(0,0,0,0.5)',

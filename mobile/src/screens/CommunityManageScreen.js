@@ -13,7 +13,7 @@ import API, { getErrorMessage } from '../services/api';
 export default function CommunityManageScreen({ route, navigation }) {
   const { communityId } = route.params;
   const { colors } = useTheme();
-  const { t } = useLanguage();
+  const { t, tu } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [community, setCommunity] = useState(null);
@@ -119,7 +119,7 @@ export default function CommunityManageScreen({ route, navigation }) {
       </LinearGradient>
 
       {/* DAVET KODU */}
-      <Text style={styles.sectionTitle}>{t('community_manage_invite_link')}</Text>
+      <Text style={styles.sectionTitle}>{tu('community_manage_invite_link')}</Text>
       <View style={styles.inviteCard}>
         <Text style={styles.inviteCode}>{community?.inviteCode || '—'}</Text>
         <Text style={styles.inviteHint}>{t('community_manage_invite_hint')}</Text>
@@ -137,7 +137,7 @@ export default function CommunityManageScreen({ route, navigation }) {
 
       {/* KATILMA İSTEKLERİ */}
       <Text style={styles.sectionTitle}>
-        {t('community_manage_requests')}{requests.length > 0 ? ` (${requests.length})` : ''}
+        {tu('community_manage_requests')}{requests.length > 0 ? ` (${requests.length})` : ''}
       </Text>
       {requests.length === 0 ? (
         <Text style={styles.empty}>{t('community_manage_no_requests')}</Text>
@@ -155,7 +155,7 @@ export default function CommunityManageScreen({ route, navigation }) {
       ))}
 
       {/* ÜYELER */}
-      <Text style={styles.sectionTitle}>{t('community_manage_members')} ({members.length})</Text>
+      <Text style={styles.sectionTitle}>{tu('community_manage_members')} ({members.length})</Text>
       {members.map(m => (
         <View key={m.userId} style={styles.row}>
           <Avatar user={m} styles={styles} />
@@ -215,7 +215,7 @@ function createStyles(colors) {
     headerSub: { color: colors.textSecondary, fontSize: 14, marginTop: 4 },
     sectionTitle: {
       color: colors.textSecondary, fontSize: 11, fontWeight: '800',
-      letterSpacing: 1.2, textTransform: 'uppercase',
+      letterSpacing: 1.2,
       marginHorizontal: 18, marginTop: 24, marginBottom: 12,
     },
     inviteCard: {

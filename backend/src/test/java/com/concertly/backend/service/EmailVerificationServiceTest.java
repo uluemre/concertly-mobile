@@ -37,6 +37,7 @@ class EmailVerificationServiceTest {
     @BeforeEach
     void setUp() {
         service = new EmailVerificationService(userRepository, encoder, emailService);
+        ReflectionTestUtils.setField(service, "enabled", true);
         ReflectionTestUtils.setField(service, "codeMinutes", 15);
         ReflectionTestUtils.setField(service, "resendSeconds", 60);
         ReflectionTestUtils.setField(service, "maxAttempts", 5);

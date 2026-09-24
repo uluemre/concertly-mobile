@@ -96,7 +96,8 @@ public class AdminController {
 
         long totalEvents = eventRepository.count();
         long approvedEvents = eventRepository.findByIsApproved(true).size();
-        long pendingEvents = totalEvents - approvedEvents;
+        long delistedEvents = eventRepository.countByDelistedReasonIsNotNull();
+        long pendingEvents = totalEvents - approvedEvents - delistedEvents;
 
         long totalPosts = postRepository.count();
         long totalCommunities = communityRepository.count();
@@ -116,6 +117,7 @@ public class AdminController {
         stats.put("totalEvents", totalEvents);
         stats.put("approvedEvents", approvedEvents);
         stats.put("pendingEvents", pendingEvents);
+        stats.put("delistedEvents", delistedEvents);
         stats.put("totalPosts", totalPosts);
         stats.put("totalCommunities", totalCommunities);
         stats.put("totalAttendance", totalAttendance);
@@ -127,9 +129,11 @@ public class AdminController {
 
     @GetMapping("/events")
     public List<EventResponse> getEvents(@RequestParam(required = false) Boolean approved) {
-        List<Event> events = approved != null
-            ? eventRepository.findByIsApproved(approved)
-            : eventRepository.findAll();
+        List<Event> events = approved == null
+            ? eventRepository.findAll()
+            : approved
+                ? eventRepository.findByIsApproved(true)
+                : eventRepository.findByIsApprovedAndDelistedReasonIsNull(false);
         events.sort(Comparator.comparing(Event::getEventDate));
         return events.stream().map(EventResponse::from).toList();
     }

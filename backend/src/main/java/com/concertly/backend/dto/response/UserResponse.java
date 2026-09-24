@@ -11,6 +11,8 @@ public class UserResponse {
     private Boolean isActive;
     private Boolean isAdmin;
     private Integer postCount;
+    // true → mobil kayıttan sonra kod ekranına geçer; false/null → eski akış (direkt giriş)
+    private Boolean emailVerificationRequired;
 
     public UserResponse(Long id, String username, String email) {
         this(id, username, email, null);
@@ -40,6 +42,8 @@ public class UserResponse {
     public void setFavoriteGenres(String favoriteGenres) { this.favoriteGenres = favoriteGenres; }
     public Boolean getOnboardingCompleted() { return onboardingCompleted; }
     public void setOnboardingCompleted(Boolean onboardingCompleted) { this.onboardingCompleted = onboardingCompleted; }
+    public Boolean getEmailVerificationRequired() { return emailVerificationRequired; }
+    public void setEmailVerificationRequired(Boolean v) { this.emailVerificationRequired = v; }
     public Boolean getIsActive() { return isActive; }
     public void setIsActive(Boolean isActive) { this.isActive = isActive; }
     public Boolean getIsAdmin() { return isAdmin; }

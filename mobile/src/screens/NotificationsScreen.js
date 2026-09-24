@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import {
-  View, Text, FlatList, TouchableOpacity,
+  View, Text, SectionList, TouchableOpacity,
   StyleSheet, ActivityIndicator, Image,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
@@ -8,6 +8,7 @@ import { useTheme } from '../theme';
 import API, { getErrorMessage } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { parseEventDate } from '../utils/time';
 
 export default function NotificationsScreen({ navigation }) {
   const { colors } = useTheme();
@@ -72,6 +73,25 @@ export default function NotificationsScreen({ navigation }) {
     }
     return groups;
   }, [notifications]);
+
+  // Zaman bölümleri: 16 saat önceki ile 3 ay önceki bildirim ayrımsız alt alta durmasın
+  const sections = useMemo(() => {
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const weekAgo = startOfToday - 6 * 86400000;
+    const buckets = { today: [], week: [], earlier: [] };
+    for (const g of grouped) {
+      const ts = parseEventDate(g.rep.createdAt).getTime();
+      if (ts >= startOfToday) buckets.today.push(g);
+      else if (ts >= weekAgo) buckets.week.push(g);
+      else buckets.earlier.push(g);
+    }
+    return [
+      { key: 'today', title: t('notif_section_today'), data: buckets.today },
+      { key: 'week', title: t('notif_section_week'), data: buckets.week },
+      { key: 'earlier', title: t('notif_section_earlier'), data: buckets.earlier },
+    ].filter(s => s.data.length > 0);
+  }, [grouped, t]);
 
   // Bir grup için aktör etiketi + metin (1'den fazlaysa grup metni)
   const getLine = (g) => {
@@ -222,10 +242,14 @@ export default function NotificationsScreen({ navigation }) {
         <Text style={styles.headerTitle}>{t('notifications_title')}</Text>
       </View>
 
-      <FlatList
-        data={grouped}
+      <SectionList
+        sections={sections}
         keyExtractor={g => g.key}
         renderItem={renderItem}
+        renderSectionHeader={({ section }) => (
+          <Text style={styles.sectionHeader}>{section.title}</Text>
+        )}
+        stickySectionHeadersEnabled={false}
         contentContainerStyle={grouped.length === 0 && styles.emptyContainer}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         initialNumToRender={12}
@@ -300,6 +324,11 @@ function createStyles(colors) {
     },
 
     separator: { height: 1, backgroundColor: colors.border },
+    sectionHeader: {
+      fontSize: 13, fontWeight: '800', color: colors.textSecondary,
+      paddingHorizontal: 20, paddingTop: 18, paddingBottom: 8,
+      backgroundColor: colors.background,
+    },
     emptyContainer: { flex: 1 },
     empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 100, paddingHorizontal: 40 },
     emptyEmoji: { fontSize: 52, marginBottom: 16 },

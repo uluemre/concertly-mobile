@@ -20,6 +20,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Service
 public class TicketmasterService {
 
+    /** Ticketmaster Discovery API "Music" segmentinin kimliği. */
+    static final String MUSIC_SEGMENT_ID = "KZFzniwnSyZfZ7v7nJ";
+
     @Value("${ticketmaster.api.key}")
     private String apiKey;
 
@@ -93,6 +96,9 @@ public class TicketmasterService {
                             "city", launchCityConfig.ticketmasterCity(city),
                             "sort", "date,asc",
                             "size", "100",
+                            // Yalnızca müzik: bu filtre yokken tiyatro, stand-up,
+                            // bale ve müze kayıtları da konser gibi içeri alınıyordu.
+                            "segmentId", MUSIC_SEGMENT_ID,
                             "startDateTime", nowIso),
                     city);
         }
@@ -461,6 +467,13 @@ public class TicketmasterService {
                     continue;
                 }
 
+                // İkinci güvenlik ağı: sorgu filtresine rağmen müzik dışı gelirse alma
+                String segment = extractSegment(e);
+                if (segment != null && !"Music".equalsIgnoreCase(segment)) {
+                    System.out.println("  🎭 Müzik dışı atlandı (" + segment + "): " + e.get("name"));
+                    continue;
+                }
+
                 // DB'de var mı?
                 Optional<Event> existingEvent = eventRepository.findByExternalId(externalId);
 
@@ -588,7 +601,8 @@ public class TicketmasterService {
                 event.setName(name);
                 event.setDescription(description);
                 event.setEventDate(eventDate);
-                event.setIsApproved(true);
+                // Listeden bilerek kaldırılmış bir kaydı sync geri açmasın
+                event.setIsApproved(event.getDelistedReason() == null);
                 event.setArtist(artist);
                 event.setVenue(venue);
                 event.setImageUrl(eventImageUrl);
@@ -704,6 +718,19 @@ public class TicketmasterService {
     }
 
     @SuppressWarnings("unchecked")
+    /** TM "segment" (Music, Arts & Theatre, Sports, Miscellaneous…); yoksa null. */
+    @SuppressWarnings("unchecked")
+    private String extractSegment(Map<String, Object> event) {
+        try {
+            List<Map<String, Object>> classifications = (List<Map<String, Object>>) event.get("classifications");
+            if (classifications == null || classifications.isEmpty()) return null;
+            Map<String, Object> segment = (Map<String, Object>) classifications.get(0).get("segment");
+            return segment != null ? (String) segment.get("name") : null;
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
     private String extractGenre(Map<String, Object> event) {
         try {
             List<Map<String, Object>> classifications = (List<Map<String, Object>>) event.get("classifications");

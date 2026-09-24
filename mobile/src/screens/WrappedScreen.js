@@ -46,7 +46,7 @@ function FadeIn({ delay, children }) {
 export default function WrappedScreen({ navigation }) {
   const { colors } = useTheme();
   const { session } = useAuth();
-  const { t, lang } = useLanguage();
+  const { t, tu, lang } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [passport, setPassport] = useState(null);
@@ -121,7 +121,7 @@ export default function WrappedScreen({ navigation }) {
           <Text style={styles.heroBackText}>‹</Text>
         </TouchableOpacity>
         <FadeIn delay={100}>
-          <Text style={styles.heroLabel}>{t('wrapped_title', { year })}</Text>
+          <Text style={styles.heroLabel}>{tu('wrapped_title', { year })}</Text>
         </FadeIn>
         <FadeIn delay={400}>
           <Text style={styles.heroEmoji}>{identity.personality.emoji}</Text>
@@ -152,7 +152,7 @@ export default function WrappedScreen({ navigation }) {
                 <View key={s.labelKey} style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
                   <Text style={styles.statEmoji}>{s.emoji}</Text>
                   <Text style={[styles.statNum, { color: colors.text }]}>{s.num}</Text>
-                  <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t(s.labelKey)}</Text>
+                  <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{tu(s.labelKey)}</Text>
                 </View>
               ))}
             </View>
@@ -162,7 +162,7 @@ export default function WrappedScreen({ navigation }) {
           {identity.topArtist && (
             <FadeIn delay={1400}>
               <View style={[styles.bigCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                <Text style={[styles.bigCardLabel, { color: colors.textSecondary }]}>{t('wrapped_top_artist')}</Text>
+                <Text style={[styles.bigCardLabel, { color: colors.textSecondary }]}>{tu('wrapped_top_artist')}</Text>
                 <Text style={[styles.bigCardValue, { color: colors.text }]}>🌟 {identity.topArtist[0]}</Text>
                 <Text style={[styles.bigCardSub, { color: colors.textSecondary }]}>
                   {t('wrapped_top_artist_sub', { count: identity.topArtist[1] })}
@@ -175,7 +175,7 @@ export default function WrappedScreen({ navigation }) {
           {identity.topGenres.length > 0 && (
             <FadeIn delay={1600}>
               <View style={[styles.bigCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                <Text style={[styles.bigCardLabel, { color: colors.textSecondary }]}>{t('wrapped_genres')}</Text>
+                <Text style={[styles.bigCardLabel, { color: colors.textSecondary }]}>{tu('wrapped_genres')}</Text>
                 {identity.topGenres.map((g, i) => (
                   <View key={g.genre} style={styles.genreRow}>
                     <Text style={[styles.genreName, { color: colors.text }]}>{g.genre}</Text>
@@ -197,7 +197,7 @@ export default function WrappedScreen({ navigation }) {
           {identity.topMonth && (
             <FadeIn delay={1800}>
               <View style={[styles.bigCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                <Text style={[styles.bigCardLabel, { color: colors.textSecondary }]}>{t('wrapped_busy_month')}</Text>
+                <Text style={[styles.bigCardLabel, { color: colors.textSecondary }]}>{tu('wrapped_busy_month')}</Text>
                 <Text style={[styles.bigCardValue, { color: colors.text }]}>📅 {identity.topMonth.name}</Text>
                 <Text style={[styles.bigCardSub, { color: colors.textSecondary }]}>
                   {t('wrapped_busy_month_sub', { count: identity.topMonth.count })}
@@ -273,7 +273,7 @@ function createStyles(colors) {
     heroBackText: { color: '#fff', fontSize: 34, fontWeight: '600', lineHeight: 36 },
     heroLabel: {
       color: 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: '800',
-      letterSpacing: 2, textTransform: 'uppercase', marginBottom: 18, textAlign: 'center',
+      letterSpacing: 2, marginBottom: 18, textAlign: 'center',
     },
     heroEmoji: { fontSize: 72, textAlign: 'center', marginBottom: 12 },
     heroPersonality: { color: '#fff', fontSize: 30, fontWeight: '900', textAlign: 'center', letterSpacing: -0.5 },
@@ -289,13 +289,13 @@ function createStyles(colors) {
     },
     statEmoji: { fontSize: 24 },
     statNum: { fontSize: 28, fontWeight: '900' },
-    statLabel: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.6 },
+    statLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 0.6 },
 
     bigCard: {
       marginHorizontal: 16, marginTop: 14,
       borderRadius: 18, borderWidth: 1, padding: 18, gap: 6,
     },
-    bigCardLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 1.2, textTransform: 'uppercase' },
+    bigCardLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 1.2, },
     bigCardValue: { fontSize: 22, fontWeight: '900' },
     bigCardSub: { fontSize: 13 },
 

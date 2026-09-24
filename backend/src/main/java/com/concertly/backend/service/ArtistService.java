@@ -73,6 +73,7 @@ public class ArtistService {
         }
         return eventRepository.findByArtistIdOrderByEventDateDesc(artistId)
                 .stream()
+                .filter(Event::listedPublicly)
                 .map(EventResponse::from)
                 .toList();
     }
@@ -219,6 +220,7 @@ public class ArtistService {
         }
         List<Event> pastEvents = eventRepository.findByArtistIdOrderByEventDateDesc(artistId)
                 .stream()
+                .filter(Event::listedPublicly)
                 .filter(e -> e.getEventDate().isBefore(LocalDateTime.now()))
                 .toList();
         if (pastEvents.isEmpty()) return List.of();

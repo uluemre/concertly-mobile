@@ -14,6 +14,7 @@ import { HomeSkeletonPage } from '../components/SkeletonLoader';
 import SearchModal from './SearchModal';
 import FeaturedCard from '../components/home/FeaturedCard';
 import HomePostCard from '../components/home/HomePostCard';
+import NextConcertCard from '../components/home/NextConcertCard';
 import { LAUNCH_CITIES, launchCityOrNull } from '../constants/cities';
 import { parseEventDate } from '../utils/time';
 
@@ -212,6 +213,9 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.searchPlaceholder}>{t('home_search_placeholder')}</Text>
           </TouchableOpacity>
         </LinearGradient>
+
+        {/* KONSER GÜNÜ — gidiyorum dediğin en yakın konser (yoksa görünmez) */}
+        <NextConcertCard navigation={navigation} />
 
         {/* ÖNE ÇIKANLAR */}
         <View style={styles.section}>

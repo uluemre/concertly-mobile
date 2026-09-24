@@ -28,7 +28,7 @@ function UserProfileContent({ route, navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { session } = useAuth();
-  const { t } = useLanguage();
+  const { t, tu } = useLanguage();
   const { userId } = route.params;
 
   const [profile, setProfile] = useState(null);
@@ -292,7 +292,7 @@ function UserProfileContent({ route, navigation }) {
       {/* ── TAKİP ETTİĞİ SANATÇILAR ──────────────────────────────────────── */}
       {followedArtists.length > 0 && (
         <View style={styles.followedSection}>
-          <Text style={styles.followedTitle}>{t('userprofile_followed_artists')}</Text>
+          <Text style={styles.followedTitle}>{tu('userprofile_followed_artists')}</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -507,8 +507,7 @@ function createStyles(colors) {
     followedSection: { marginTop: 16, marginBottom: 4 },
     followedTitle: {
       fontSize: 13, fontWeight: '700', color: colors.text,
-      paddingHorizontal: 16, marginBottom: 12,
-      textTransform: 'uppercase', letterSpacing: 0.5,
+      paddingHorizontal: 16, marginBottom: 12, letterSpacing: 0.5,
     },
     followedRow: { paddingHorizontal: 16, gap: 16 },
     followedItem: { alignItems: 'center', width: 64 },

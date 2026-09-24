@@ -80,7 +80,7 @@ export default function VerifyEmailScreen({ navigation, route }) {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.inner}>
 
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.back}>
-          <Text style={[styles.backText, { color: colors.primary }]}>‹ {t('back')}</Text>
+          <Text style={[styles.backText, { color: colors.primary }]}>{t('back')}</Text>
         </TouchableOpacity>
 
         <Text style={styles.emoji}>📬</Text>

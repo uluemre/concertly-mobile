@@ -33,6 +33,7 @@ public class SearchService {
 
         List<EventResponse> events = eventRepository.search(query)
                 .stream()
+                .filter(com.concertly.backend.model.Event::listedPublicly)
                 .map(EventResponse::from)
                 .toList();
 

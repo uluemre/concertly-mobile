@@ -30,7 +30,7 @@ export default function ProfileScreen({ navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { session, logout } = useAuth();
-  const { t } = useLanguage();
+  const { t, tu } = useLanguage();
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
   const [events, setEvents] = useState([]);
@@ -241,7 +241,7 @@ export default function ProfileScreen({ navigation }) {
             <View style={styles.statsInline}>
               <View style={styles.stat}>
                 <Text style={styles.statNumber}>{posts.length}</Text>
-                <Text style={styles.statLabel}>{t('profile_stat_posts')}</Text>
+                <Text style={styles.statLabel}>{tu('profile_stat_posts')}</Text>
               </View>
               <View style={styles.statDivider} />
               <TouchableOpacity
@@ -250,7 +250,7 @@ export default function ProfileScreen({ navigation }) {
                 activeOpacity={0.7}
               >
                 <Text style={styles.statNumber}>{profile?.followerCount || 0}</Text>
-                <Text style={styles.statLabel}>{t('profile_followers')}</Text>
+                <Text style={styles.statLabel}>{tu('profile_followers')}</Text>
               </TouchableOpacity>
               <View style={styles.statDivider} />
               <TouchableOpacity
@@ -259,12 +259,12 @@ export default function ProfileScreen({ navigation }) {
                 activeOpacity={0.7}
               >
                 <Text style={styles.statNumber}>{profile?.followingCount || 0}</Text>
-                <Text style={styles.statLabel}>{t('profile_following')}</Text>
+                <Text style={styles.statLabel}>{tu('profile_following')}</Text>
               </TouchableOpacity>
               <View style={styles.statDivider} />
               <View style={styles.stat}>
                 <Text style={styles.statNumber}>{events.length}</Text>
-                <Text style={styles.statLabel}>{t('profile_stat_events')}</Text>
+                <Text style={styles.statLabel}>{tu('profile_stat_events')}</Text>
               </View>
             </View>
           </View>
@@ -304,17 +304,17 @@ export default function ProfileScreen({ navigation }) {
               <View style={styles.gameStatsRow}>
                 <View style={styles.gameStat}>
                   <Text style={styles.gameStatValue}>🔥 {gameStats.streak}</Text>
-                  <Text style={styles.gameStatLabel}>{t('profile_game_streak')}</Text>
+                  <Text style={styles.gameStatLabel}>{tu('profile_game_streak')}</Text>
                 </View>
                 <View style={styles.gameStatDivider} />
                 <View style={styles.gameStat}>
                   <Text style={styles.gameStatValue}>🎤 {gameStats.quizGames}</Text>
-                  <Text style={styles.gameStatLabel}>{t('profile_game_quiz')}</Text>
+                  <Text style={styles.gameStatLabel}>{tu('profile_game_quiz')}</Text>
                 </View>
                 <View style={styles.gameStatDivider} />
                 <View style={styles.gameStat}>
                   <Text style={styles.gameStatValue}>🏆 {gameStats.quizBest}</Text>
-                  <Text style={styles.gameStatLabel}>{t('profile_game_best')}</Text>
+                  <Text style={styles.gameStatLabel}>{tu('profile_game_best')}</Text>
                 </View>
               </View>
             </TouchableOpacity>
@@ -324,7 +324,7 @@ export default function ProfileScreen({ navigation }) {
         {/* TAKİP EDİLEN SANATÇILAR */}
         {followedArtists.length > 0 && (
           <View style={styles.followedSection}>
-            <Text style={styles.followedTitle}>{t('profile_followed_artists')}</Text>
+            <Text style={styles.followedTitle}>{tu('profile_followed_artists')}</Text>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -356,10 +356,10 @@ export default function ProfileScreen({ navigation }) {
         {/* SEKMELER */}
         <View style={styles.tabs}>
           {[
-            { key: 'posts', icon: '📝', count: posts.length },
-            { key: 'events', icon: '🎫', count: events.length },
-            { key: 'bookmarks', icon: '🔖', count: bookmarks.length },
-            { key: 'badges', icon: '🏅', count: `${badges.filter(b => b.earned).length}/${badges.length}` },
+            { key: 'posts', icon: '📝', label: t('profile_tab_posts'), count: posts.length },
+            { key: 'events', icon: '🎫', label: t('profile_tab_events'), count: events.length },
+            { key: 'bookmarks', icon: '🔖', label: t('profile_tab_saved'), count: bookmarks.length },
+            { key: 'badges', icon: '🏅', label: t('profile_tab_badges'), count: `${badges.filter(b => b.earned).length}/${badges.length}` },
           ].map(tab => (
             <TouchableOpacity
               key={tab.key}
@@ -368,8 +368,9 @@ export default function ProfileScreen({ navigation }) {
               activeOpacity={0.7}
             >
               <Text style={styles.tabIcon}>{tab.icon}</Text>
-              <Text style={[styles.tabCount, activeTab === tab.key && styles.tabCountActive]}>
-                {tab.count}
+              {/* Etiketsiz ikonlar ne olduklarını söylemiyordu */}
+              <Text style={[styles.tabLabel, activeTab === tab.key && styles.tabCountActive]} numberOfLines={1}>
+                {tab.label} <Text style={styles.tabCount}>{tab.count}</Text>
               </Text>
             </TouchableOpacity>
           ))}
@@ -640,7 +641,7 @@ function createStyles(colors) {
     },
     stat: { flex: 1, alignItems: 'center' },
     statNumber: { fontSize: 18, fontWeight: '800', color: colors.text },
-    statLabel: { fontSize: 10, color: colors.textSecondary, marginTop: 3, textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: '700' },
+    statLabel: { fontSize: 10, color: colors.textSecondary, marginTop: 3, letterSpacing: 0.8, fontWeight: '700' },
     statDivider: { width: 1, height: 22, backgroundColor: colors.border },
 
     // TABS
@@ -664,10 +665,15 @@ function createStyles(colors) {
     tabIcon: {
       fontSize: 20,
     },
-    tabCount: {
+    tabLabel: {
       fontSize: 12,
       color: colors.textSecondary,
       fontWeight: '700',
+    },
+    tabCount: {
+      fontSize: 11,
+      color: colors.textSecondary,
+      fontWeight: '600',
     },
     tabCountActive: {
       color: colors.text,
@@ -744,15 +750,14 @@ function createStyles(colors) {
     gameStatsRow: { flexDirection: 'row', alignItems: 'center' },
     gameStat: { flex: 1, alignItems: 'center' },
     gameStatValue: { fontSize: 18, fontWeight: '800', color: colors.text },
-    gameStatLabel: { fontSize: 10, color: colors.textSecondary, marginTop: 4, textTransform: 'uppercase', letterSpacing: 0.6, fontWeight: '700', textAlign: 'center' },
+    gameStatLabel: { fontSize: 10, color: colors.textSecondary, marginTop: 4, letterSpacing: 0.6, fontWeight: '700', textAlign: 'center' },
     gameStatDivider: { width: 1, height: 30, backgroundColor: colors.border },
 
     // TAKİP EDİLEN SANATÇILAR
     followedSection: { marginTop: 16, marginBottom: 4 },
     followedTitle: {
       fontSize: 13, fontWeight: '700', color: colors.text,
-      paddingHorizontal: 16, marginBottom: 12,
-      textTransform: 'uppercase', letterSpacing: 0.5,
+      paddingHorizontal: 16, marginBottom: 12, letterSpacing: 0.5,
     },
     followedRow: { paddingHorizontal: 16, gap: 16 },
     followedItem: { alignItems: 'center', width: 64 },

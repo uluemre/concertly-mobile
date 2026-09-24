@@ -51,7 +51,7 @@ export default function ResetPasswordScreen({ navigation, route }) {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.inner}>
 
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.back}>
-          <Text style={[styles.backText, { color: colors.primary }]}>‹ {t('back')}</Text>
+          <Text style={[styles.backText, { color: colors.primary }]}>{t('back')}</Text>
         </TouchableOpacity>
 
         <Text style={[styles.title, { color: colors.text }]}>🔐 {t('reset_title')}</Text>

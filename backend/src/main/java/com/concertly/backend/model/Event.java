@@ -66,6 +66,14 @@ public class Event {
      *  admin incelemesi. Kullanıcı önerisi onaylanana kadar false kalır. */
     private Boolean isVerified = false;
 
+    /**
+     * Doluysa etkinlik listelerden kaldırılmıştır (silinmez): katılımlar,
+     * postlar ve yorumlar korunur, admin onaylarsa geri döner.
+     * Örn. "NOT_MUSIC" — konser olmayan tiyatro/stand-up/sergi kayıtları.
+     */
+    @Column(length = 40)
+    private String delistedReason;
+
     /** Öneriyi destekleyen bağlantı (Instagram gönderisi, mekan sitesi, bilet linki). */
     @Column(length = 500)
     private String sourceUrl;
@@ -158,6 +166,18 @@ public class Event {
 
     public Boolean getIsVerified() { return isVerified != null && isVerified; }
     public void setIsVerified(Boolean isVerified) { this.isVerified = isVerified; }
+
+    /**
+     * Herkese açık listelerde (şehir, sanatçı, mekân, arama) görünmeli mi?
+     * Onay bekleyenler ve bilerek listeden kaldırılanlar görünmez; doğrudan
+     * linkle açılan detay sayfası ve katılımcılara hatırlatmalar etkilenmez.
+     */
+    public boolean listedPublicly() {
+        return Boolean.TRUE.equals(isApproved) && delistedReason == null;
+    }
+
+    public String getDelistedReason() { return delistedReason; }
+    public void setDelistedReason(String delistedReason) { this.delistedReason = delistedReason; }
 
     public String getSourceUrl() { return sourceUrl; }
     public void setSourceUrl(String sourceUrl) { this.sourceUrl = sourceUrl; }

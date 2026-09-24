@@ -30,7 +30,7 @@ export default function VenueProfileScreen({ route, navigation }) {
   const { venueId, venueName } = route.params;
   const { colors } = useTheme();
   const { session } = useAuth();
-  const { t } = useLanguage();
+  const { t, tu } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const MONTHS = t('venue_months').split(',');
@@ -201,17 +201,17 @@ export default function VenueProfileScreen({ route, navigation }) {
             <Text style={styles.statValue}>
               {venue?.avgRating > 0 ? venue.avgRating.toFixed(1) : '—'}
             </Text>
-            <Text style={styles.statLabel}>⭐ {t('venue_stat_rating')}</Text>
+            <Text style={styles.statLabel}>⭐ {tu('venue_stat_rating')}</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statBox}>
             <Text style={styles.statValue}>{venue?.reviewCount || 0}</Text>
-            <Text style={styles.statLabel}>{t('venue_stat_reviews')}</Text>
+            <Text style={styles.statLabel}>{tu('venue_stat_reviews')}</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statBox}>
             <Text style={styles.statValue}>{venue?.totalEvents || 0}</Text>
-            <Text style={styles.statLabel}>{t('venue_stat_events')}</Text>
+            <Text style={styles.statLabel}>{tu('venue_stat_events')}</Text>
           </View>
         </View>
 
@@ -367,7 +367,7 @@ function createStyles(colors) {
     },
     statBox: { flex: 1, alignItems: 'center' },
     statValue: { fontSize: 20, fontWeight: '800', color: colors.text },
-    statLabel: { fontSize: 11, color: colors.textSecondary, marginTop: 3, textTransform: 'uppercase', letterSpacing: 0.6 },
+    statLabel: { fontSize: 11, color: colors.textSecondary, marginTop: 3, letterSpacing: 0.6 },
     statDivider: { width: 1, backgroundColor: colors.border },
 
     // SECTION

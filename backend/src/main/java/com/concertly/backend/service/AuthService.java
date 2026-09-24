@@ -98,9 +98,13 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(request.getPassword()));
 
         User saved = userRepository.save(user);
-        // Hesap, e-postaya giden kod girilene kadar giriş yapamaz
-        emailVerificationService.start(saved);
-        return new UserResponse(saved.getId(), saved.getUsername(), saved.getEmail(), saved.getCity());
+        UserResponse response = new UserResponse(saved.getId(), saved.getUsername(), saved.getEmail(), saved.getCity());
+        // Açıksa hesap, e-postaya giden kod girilene kadar giriş yapamaz
+        if (emailVerificationService.isEnabled()) {
+            emailVerificationService.start(saved);
+            response.setEmailVerificationRequired(true);
+        }
+        return response;
     }
 
     // ✅ GİRİŞ — kimlik doğrula, JWT üret

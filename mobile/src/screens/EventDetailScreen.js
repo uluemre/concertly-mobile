@@ -564,6 +564,20 @@ function EventDetailContent({ route, navigation }) {
           </Animated.View>
         </View>
 
+        {/* KONSERE HAZIRLAN — yalnızca "gidiyorum" diyenlere */}
+        {attendance === 'GOING' && !isExpired && (
+          <TouchableOpacity
+            onPress={() => navigation.navigate('ConcertPrep', { eventId: event.id })}
+            activeOpacity={0.85}
+            style={styles.prepBtnWrap}
+          >
+            <LinearGradient colors={['#7C3AED', '#E94560']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.prepBtn}>
+              <Text style={styles.prepBtnText}>🎒 {t('cday_prepare_btn')}</Text>
+              <Text style={styles.prepBtnSub}>{t('cday_prepare_btn_sub')}</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
+
         {/* BİLET AL — belirgin ana CTA (eski hero ikonu fark edilmiyordu) */}
         {!isExpired && ticketLinks.length > 0 && (
           <>
@@ -716,11 +730,13 @@ function EventDetailContent({ route, navigation }) {
           </TouchableOpacity>
         )}
 
-        {/* ETKİNLİK HAKKINDA */}
-        <View style={styles.infoCard}>
-          <Text style={styles.sectionTitle}>{t('events_about')}</Text>
-          <Text style={styles.description}>{event.description}</Text>
-        </View>
+        {/* ETKİNLİK HAKKINDA — açıklama yoksa boş kutu göstermeyelim */}
+        {!!event.description?.trim() && (
+          <View style={styles.infoCard}>
+            <Text style={styles.sectionTitle}>{t('events_about')}</Text>
+            <Text style={styles.description}>{event.description}</Text>
+          </View>
+        )}
 
         {/* TARİH & SAAT */}
         <View style={styles.infoCard}>
@@ -763,9 +779,11 @@ function EventDetailContent({ route, navigation }) {
               onPress={() => event.venueId && navigation.navigate('VenueProfile', { venueId: event.venueId, venueName: event.venueName })}
               activeOpacity={event.venueId ? 0.7 : 1}
             >
-              <Text style={[styles.infoValue, event.venueId && { color: '#E94560', textDecorationLine: 'underline' }]}>
-                {event.venueName}
-              </Text>
+              {/* Sanatçı satırıyla aynı dil: ad + › (eski altı çizili kırmızı web linki gibiydi) */}
+              <View style={styles.artistRow}>
+                <Text style={[styles.infoValue, { flex: 1 }]}>{event.venueName}</Text>
+                {!!event.venueId && <Text style={styles.chevron}>›</Text>}
+              </View>
             </TouchableOpacity>
             {event.venueCity && event.venueCountry && (
               <Text style={styles.infoValueSub}>
@@ -1108,6 +1126,10 @@ function createStyles(colors) {
 
     // KATILIM
     attendanceRow: { flexDirection: 'row', gap: 12, alignItems: 'stretch' },
+    prepBtnWrap: { marginTop: 12, borderRadius: 14, overflow: 'hidden' },
+    prepBtn: { paddingVertical: 12, paddingHorizontal: 16, alignItems: 'center' },
+    prepBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
+    prepBtnSub: { color: 'rgba(255,255,255,0.85)', fontSize: 12, marginTop: 2 },
     ticketCtaWrap: {
       marginTop: 14,
       borderRadius: 16,

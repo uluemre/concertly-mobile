@@ -27,7 +27,7 @@ function formatRelativeTime(isoString) {
 export default function CommunityDetailScreen({ route, navigation }) {
   const { communityId } = route.params;
   const { colors } = useTheme();
-  const { t } = useLanguage();
+  const { t, tu } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [community, setCommunity] = useState(null);
@@ -272,7 +272,7 @@ export default function CommunityDetailScreen({ route, navigation }) {
         style={styles.hero}
       >
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backText}>‹ {t('back')}</Text>
+          <Text style={styles.backText}>{t('back')}</Text>
         </TouchableOpacity>
 
         <View style={styles.heroTopRow}>
@@ -363,7 +363,7 @@ export default function CommunityDetailScreen({ route, navigation }) {
               <Text style={styles.pinnedIconText}>📌</Text>
             </LinearGradient>
             <View style={{ flex: 1 }}>
-              <Text style={styles.pinnedLabel}>{t('communities_next_event')}</Text>
+              <Text style={styles.pinnedLabel}>{tu('communities_next_event')}</Text>
               <Text style={styles.pinnedTitle} numberOfLines={2}>{community.nextEvent}</Text>
             </View>
           </View>
@@ -680,7 +680,7 @@ function createStyles(colors) {
     pinnedIconText: { fontSize: 20 },
     pinnedLabel: {
       color: colors.textSecondary, fontSize: 11, fontWeight: '800',
-      letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 3,
+      letterSpacing: 0.8, marginBottom: 3,
     },
     pinnedTitle: { color: colors.text, fontSize: 15, fontWeight: '800', lineHeight: 20 },
 
