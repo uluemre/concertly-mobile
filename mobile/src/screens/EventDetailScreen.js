@@ -9,7 +9,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
-import * as Calendar from 'expo-calendar';
+// SDK 57: fonksiyon tabanlı API artık 'expo-calendar/legacy' altında; ana giriş hata fırlatıyor
+import * as Calendar from 'expo-calendar/legacy';
 import API from '../services/api';
 import DeepLinkLoader from '../components/DeepLinkLoader';
 import { buildShareUrl, shareWithLink } from '../services/shareLinks';
@@ -173,6 +174,24 @@ function EventDetailContent({ route, navigation }) {
     event.venueLatitude != null && event.venueLongitude != null;
   const isExpired = parseEventDate(event.eventDate) < new Date();
 
+  // Yazılabilir asıl takvim: iOS'ta varsayılan takvim; Android'de kullanıcının
+  // kendi (OWNER) görünür takvimi. "İlk yazılabilir" seçimi bazen abone olunan /
+  // salt okunur bir takvime denk gelip eklemeyi bozuyordu.
+  const pickWritableCalendarId = async () => {
+    if (Platform.OS === 'ios') {
+      try {
+        const def = await Calendar.getDefaultCalendarAsync();
+        if (def?.allowsModifications) return def.id;
+      } catch {}
+    }
+    const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
+    const writable = calendars.filter(c => c.allowsModifications);
+    const owner = writable.filter(c => c.accessLevel === Calendar.CalendarAccessLevel?.OWNER);
+    const best = owner.find(c => c.isPrimary) || owner.find(c => c.isVisible !== false)
+      || writable.find(c => c.isPrimary) || writable[0];
+    return best?.id || null;
+  };
+
   const addToCalendar = async () => {
     const { status } = await Calendar.requestCalendarPermissionsAsync();
     if (status !== 'granted') {
@@ -181,29 +200,33 @@ function EventDetailContent({ route, navigation }) {
     }
 
     try {
-      const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
-      const writable = calendars.find(c => c.allowsModifications);
-      if (!writable) {
-        Alert.alert(t('error'), 'Düzenlenebilir takvim bulunamadı.');
+      const calendarId = await pickWritableCalendarId();
+      if (!calendarId) {
+        Alert.alert(t('error'), t('cal_no_calendar'));
         return;
       }
 
       const startDate = parseEventDate(event.eventDate);
       const endDate = new Date(startDate.getTime() + 3 * 60 * 60 * 1000);
+      // Android'de timeZone zorunlu; verilmezse createEventAsync hata atıyordu
+      const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Istanbul';
 
-      await Calendar.createEventAsync(writable.id, {
+      const details = {
         title: event.name,
         startDate,
         endDate,
+        timeZone,
         location: [event.venueName, event.venueCity].filter(Boolean).join(', '),
-        notes: event.description || '',
+        notes: [event.description, event.ticketUrl].filter(Boolean).join('\n\n'),
         alarms: [{ relativeOffset: -60 }, { relativeOffset: -1440 }],
-        url: event.ticketUrl || undefined,
-      });
+      };
+      if (Platform.OS === 'ios' && event.ticketUrl) details.url = event.ticketUrl;
 
+      await Calendar.createEventAsync(calendarId, details);
       Alert.alert(t('cal_added_title'), t('cal_added_msg', { name: event.name }));
     } catch (err) {
-      Alert.alert(t('error'), 'Takvime eklenemedi.');
+      console.warn('calendar error:', err?.message);
+      Alert.alert(t('error'), `${t('cal_add_failed')}${err?.message ? `\n\n(${err.message})` : ''}`);
     }
   };
 

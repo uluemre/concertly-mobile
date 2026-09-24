@@ -542,6 +542,8 @@ export const translations = {
     cal_perm_msg: 'Takvim erişimine izin vermeniz gerekiyor.',
     cal_added_title: '✅ Eklendi!',
     cal_added_msg: '"{name}" takvimine eklendi.',
+    cal_no_calendar: "Telefonda düzenlenebilir bir takvim bulunamadı.",
+    cal_add_failed: "Takvime eklenemedi.",
     detail_action_error: 'İşlem gerçekleştirilemedi.',
     detail_location_error: 'Konum alınamadı, tekrar dene.',
 
@@ -1769,6 +1771,8 @@ export const translations = {
     cal_perm_msg: 'You need to grant calendar access.',
     cal_added_title: '✅ Added!',
     cal_added_msg: '"{name}" was added to your calendar.',
+    cal_no_calendar: "No writable calendar was found on this phone.",
+    cal_add_failed: "Could not add to your calendar.",
     detail_action_error: 'Action failed.',
     detail_location_error: 'Could not get location, try again.',
 
