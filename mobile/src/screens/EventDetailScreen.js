@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import * as Calendar from 'expo-calendar';
@@ -439,16 +440,16 @@ function EventDetailContent({ route, navigation }) {
       <View style={styles.heroIconRow}>
         {/* Paylaş — link uygulamayı açar, yüklü değilse indirme sayfasına gider */}
         <TouchableOpacity style={styles.iconBtn} onPress={shareEvent} activeOpacity={0.8}>
-          <Text style={styles.iconBtnText}>🔗</Text>
+          <Ionicons name="share-social-outline" size={20} color="#fff" />
         </TouchableOpacity>
         {/* Bilet, içeride belirgin CTA olarak gösteriliyor — hero ikonu kaldırıldı */}
         {!isExpired && (
           <TouchableOpacity style={styles.iconBtn} onPress={addToCalendar} activeOpacity={0.8}>
-            <Text style={styles.iconBtnText}>📅</Text>
+            <Ionicons name="calendar-outline" size={20} color="#fff" />
           </TouchableOpacity>
         )}
         <TouchableOpacity style={styles.bookmarkButton} onPress={handleBookmark} activeOpacity={0.8}>
-          <Text style={styles.bookmarkIcon}>{bookmarked ? '🔖' : '🏷️'}</Text>
+          <Ionicons name={bookmarked ? 'bookmark' : 'bookmark-outline'} size={20} color={bookmarked ? '#F5A623' : '#fff'} />
         </TouchableOpacity>
       </View>
     </View>

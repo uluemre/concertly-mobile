@@ -200,7 +200,7 @@ export default function AdminScreen({ navigation }) {
       }
     >
       {/* HEADER */}
-      <LinearGradient colors={['#0A0A14', '#1a0a2e', '#0A0A14']} style={styles.header}>
+      <LinearGradient colors={colors.screenGradient} style={styles.header}>
         <View style={styles.headerBadge}>
           <Text style={styles.headerBadgeText}>⚡ ADMIN</Text>
         </View>

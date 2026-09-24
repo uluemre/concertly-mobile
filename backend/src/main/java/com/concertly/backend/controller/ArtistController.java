@@ -63,6 +63,12 @@ public class ArtistController {
         artistService.bulkFollow(userId, body.get("artistIds"));
     }
 
+    // GET /api/artists/popular?limit=12 — yaklaşan konser sayısına göre
+    @GetMapping("/popular")
+    public List<ArtistResponse> getPopular(@RequestParam(defaultValue = "12") int limit) {
+        return artistService.getPopularArtists(limit, JwtUtil.getCurrentUserId());
+    }
+
     @GetMapping("/recommended")
     public List<ArtistResponse> getRecommended(@RequestParam("genres") String genresCsv) {
         Long currentUserId = JwtUtil.getCurrentUserId();

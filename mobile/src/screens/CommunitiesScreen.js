@@ -6,6 +6,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../theme';
+import { ListSkeletonPage } from '../components/SkeletonLoader';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import API, { getErrorMessage } from '../services/api';
@@ -230,9 +231,7 @@ export default function CommunitiesScreen({ navigation }) {
       <Text style={styles.sectionTitle}>{tu('communities_discover')}</Text>
 
       {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
+        <ListSkeletonPage rows={5} avatar="square" />
       ) : (error && communities.length === 0) ? (
         <View style={styles.errorBox}>
           <Text style={styles.errorEmoji}>📡</Text>

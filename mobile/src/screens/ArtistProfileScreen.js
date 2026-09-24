@@ -8,6 +8,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import API from '../services/api';
 import { useTheme } from '../theme';
+import { ProfileSkeletonPage } from '../components/SkeletonLoader';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { buildShareUrl, shareWithLink } from '../services/shareLinks';
@@ -223,11 +224,7 @@ export default function ArtistProfileScreen({ route, navigation }) {
     shareWithLink(`🎤 ${artist.name}${genre}`, buildShareUrl('artist', artistId));
   };
 
-  if (loading) return (
-    <View style={styles.loadingContainer}>
-      <ActivityIndicator size="large" color={colors.primary} />
-    </View>
-  );
+  if (loading) return <ProfileSkeletonPage hero />;
 
   return (
     <KeyboardAvoidingView

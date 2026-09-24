@@ -146,6 +146,28 @@ public class ArtistService {
                 .toList();
     }
 
+    /**
+     * Arama ekranının "Popüler sanatçılar" şeridi: yaklaşan konser sayısı en
+     * yüksek, fotoğrafı olan sanatçılar.
+     */
+    public List<ArtistResponse> getPopularArtists(int limit, Long currentUserId) {
+        int safe = Math.max(1, Math.min(limit, 30));
+        List<Object[]> rows = eventRepository.topArtistsByUpcomingEvents(
+                LocalDateTime.now(), org.springframework.data.domain.PageRequest.of(0, safe * 2));
+        List<Long> ids = rows.stream().map(r -> (Long) r[0]).toList();
+        java.util.Map<Long, Artist> byId = artistRepository.findAllById(ids).stream()
+                .collect(Collectors.toMap(Artist::getId, a -> a));
+        return ids.stream()
+                .map(byId::get)
+                .filter(a -> a != null && a.getImageUrl() != null && !a.getImageUrl().isBlank())
+                .limit(safe)
+                .map(a -> ArtistResponse.from(a,
+                        artistFollowRepository.countByArtistId(a.getId()),
+                        currentUserId != null && artistFollowRepository
+                                .findByUserIdAndArtistId(currentUserId, a.getId()).isPresent()))
+                .toList();
+    }
+
     public List<ArtistResponse> getFollowedArtists(Long userId) {
         return artistFollowRepository.findAllByUserId(userId).stream()
                 .map(af -> {

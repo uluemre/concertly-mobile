@@ -8,6 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import API from '../services/api';
 import DeepLinkLoader from '../components/DeepLinkLoader';
 import { useTheme } from '../theme';
+import { ProfileSkeletonPage } from '../components/SkeletonLoader';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { parseEventDate } from '../utils/time';
@@ -153,11 +154,7 @@ function UserProfileContent({ route, navigation }) {
     ]);
   };
 
-  if (loading) return (
-    <View style={styles.loadingContainer}>
-      <ActivityIndicator size="large" color={colors.primary} />
-    </View>
-  );
+  if (loading) return <ProfileSkeletonPage />;
 
   return (
     <Animated.ScrollView

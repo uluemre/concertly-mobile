@@ -5,6 +5,7 @@ import {
   Animated, StatusBar, FlatList, Modal, AppState,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import API, { getErrorMessage } from '../services/api';
 import { useTheme } from '../theme';
@@ -15,6 +16,8 @@ import SearchModal from './SearchModal';
 import FeaturedCard from '../components/home/FeaturedCard';
 import HomePostCard from '../components/home/HomePostCard';
 import NextConcertCard from '../components/home/NextConcertCard';
+import EventRail from '../components/home/EventRail';
+import { GENRE_SHORTCUTS } from '../constants/genres';
 import { LAUNCH_CITIES, launchCityOrNull } from '../constants/cities';
 import { parseEventDate } from '../utils/time';
 
@@ -136,6 +139,35 @@ export default function HomeScreen({ navigation }) {
     return list;
   }, [events, search, followedArtistIds]);
 
+  // Bu hafta sonu: Cuma 00:00 – Pazar 23:59 (hafta sonundaysak bugünden itibaren)
+  const weekendEvents = useMemo(() => {
+    const now = new Date();
+    const day = now.getDay();                       // 0 Pazar … 5 Cuma, 6 Cumartesi
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    if (day >= 1 && day <= 4) start.setDate(start.getDate() + (5 - day));
+    const end = new Date(start);
+    end.setDate(end.getDate() + ((7 - start.getDay()) % 7));
+    end.setHours(23, 59, 59, 999);
+    return filteredEvents
+      .filter(e => {
+        const d = parseEventDate(e.eventDate);
+        return d >= now && d >= start && d <= end;
+      })
+      .sort((a, b) => parseEventDate(a.eventDate) - parseEventDate(b.eventDate))
+      .slice(0, 12);
+  }, [filteredEvents]);
+
+  // Takip edilen sanatçıların yaklaşan konserleri
+  const followedEvents = useMemo(
+    () => filteredEvents.filter(e => followedArtistIds.has(e.artistId)).slice(0, 12),
+    [filteredEvents, followedArtistIds]
+  );
+
+  const openGenre = useCallback(
+    genre => navigation.navigate('MainApp', { screen: 'Events', params: { genre } }),
+    [navigation]
+  );
+
   const filteredPosts = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return posts;
@@ -177,7 +209,7 @@ export default function HomeScreen({ navigation }) {
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 
         {/* HEADER */}
-        <LinearGradient colors={['#0A0A14', '#12121E', '#0A0A14']} style={styles.header}>
+        <LinearGradient colors={colors.screenGradient} style={styles.header}>
           <Animated.View style={[styles.headerTop, { opacity: headerOpacity, transform: [{ translateY: headerAnim }] }]}>
             <View>
               <Text style={styles.headerBrand}>Concertly</Text>
@@ -195,7 +227,7 @@ export default function HomeScreen({ navigation }) {
               onPress={() => navigation.navigate('ChatList')}
               activeOpacity={0.8}
             >
-              <Text style={styles.dmBtnIcon}>💬</Text>
+              <Ionicons name="chatbubble-ellipses-outline" size={21} color={colors.text} />
               {unreadMessages > 0 && (
                 <View style={styles.dmBadge}>
                   <Text style={styles.dmBadgeText}>{unreadMessages > 99 ? '99+' : unreadMessages}</Text>
@@ -209,7 +241,7 @@ export default function HomeScreen({ navigation }) {
             onPress={() => setSearchModalVisible(true)}
             activeOpacity={0.7}
           >
-            <Text style={styles.searchIcon}>⌕</Text>
+            <Ionicons name="search" size={18} color={colors.textSecondary} style={styles.searchIcon} />
             <Text style={styles.searchPlaceholder}>{t('home_search_placeholder')}</Text>
           </TouchableOpacity>
         </LinearGradient>
@@ -254,6 +286,41 @@ export default function HomeScreen({ navigation }) {
               )}
             />
           )}
+        </View>
+
+        {/* BU HAFTA SONU + TAKİP ETTİKLERİN (boşsa görünmez) */}
+        <EventRail
+          title={t('home_weekend')}
+          emoji="🗓️"
+          accent={colors.secondary}
+          events={weekendEvents}
+          onPressEvent={handleNavigateToEvent}
+          onSeeAll={() => navigation.navigate('MainApp', { screen: 'Events' })}
+        />
+        <EventRail
+          title={t('home_followed_artists')}
+          emoji="⭐"
+          accent={colors.purple}
+          events={followedEvents}
+          onPressEvent={handleNavigateToEvent}
+        />
+
+        {/* TÜRE GÖRE KEŞFET */}
+        <View style={styles.genreSection}>
+          <View style={[styles.sectionTitleRow, styles.genreSectionHead]}>
+            <View style={[styles.sectionAccent, { backgroundColor: colors.accent }]} />
+            <Text style={styles.sectionTitle}>{t('search_by_genre')}</Text>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.genreRow}>
+            {GENRE_SHORTCUTS.map(g => (
+              <TouchableOpacity key={g.name} onPress={() => openGenre(g.name)} activeOpacity={0.85}>
+                <LinearGradient colors={g.colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.genreChip}>
+                  <Text style={styles.genreChipEmoji}>{g.emoji}</Text>
+                  <Text style={styles.genreChipText}>{g.name}</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
 
         {/* GÜNLÜK ŞARKI WIDGET */}
@@ -370,6 +437,12 @@ function createStyles(colors) {
     loadingText: { color: colors.textSecondary, fontSize: 14 },
     header: { paddingTop: 60, paddingBottom: 22, paddingHorizontal: 20 },
     headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+    genreSection: { marginTop: 22 },
+    genreSectionHead: { paddingHorizontal: 20, marginBottom: 12 },
+    genreRow: { paddingHorizontal: 20, gap: 10 },
+    genreChip: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 9 },
+    genreChipEmoji: { fontSize: 16 },
+    genreChipText: { color: '#fff', fontSize: 14, fontWeight: '800' },
     headerBrand: { fontSize: 30, fontWeight: '900', color: colors.text, letterSpacing: -0.5 },
     cityRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4, alignSelf: 'flex-start' },
     cityRowText: { fontSize: 13, color: colors.textSecondary, fontWeight: '600' },

@@ -17,7 +17,9 @@ import {
   setBadgeCount,
 } from '../services/pushNotifications';
 
-function TabIcon({ emoji, focused }) {
+// Alt menü ikonları: tek tip çizgi ikonlar (seçiliyken dolu). Emojiler her
+// cihazda farklı çizildiği ve renkleri temaya uymadığı için bırakıldı.
+function TabIcon({ name, focused, color }) {
   const scale = useRef(new Animated.Value(1)).current;
   useEffect(() => {
     if (focused) {
@@ -28,10 +30,9 @@ function TabIcon({ emoji, focused }) {
     }
   }, [focused]);
   return (
-    // Seçili olmayan sekmeler hafif soluk: aktif sekme bir bakışta ayırt edilsin
-    <Animated.Text style={{ fontSize: 20, opacity: focused ? 1 : 0.55, transform: [{ scale }] }}>
-      {emoji}
-    </Animated.Text>
+    <Animated.View style={{ transform: [{ scale }] }}>
+      <Ionicons name={focused ? name : `${name}-outline`} size={23} color={color} />
+    </Animated.View>
   );
 }
 
@@ -90,6 +91,7 @@ import BlockedUsersScreen from '../screens/BlockedUsersScreen';
 import LegalScreen from '../screens/LegalScreen';
 
 import { useTheme } from '../theme';
+import { Ionicons } from '@expo/vector-icons';
 import { useLanguage } from '../context/LanguageContext';
 
 const Stack = createNativeStackNavigator();
@@ -135,7 +137,7 @@ function TabNavigator() {
         component={HomeScreen}
         options={{
           tabBarLabel: t('tab_home'),
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🏠" focused={focused} />,
+          tabBarIcon: ({ focused, color }) => <TabIcon name="home" focused={focused} color={color} />,
         }}
       />
 
@@ -144,7 +146,7 @@ function TabNavigator() {
         component={EventsScreen}
         options={{
           tabBarLabel: t('tab_events'),
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🎫" focused={focused} />,
+          tabBarIcon: ({ focused, color }) => <TabIcon name="ticket" focused={focused} color={color} />,
         }}
       />
 
@@ -153,7 +155,7 @@ function TabNavigator() {
         component={ExploreScreen}
         options={{
           tabBarLabel: t('tab_menu'),
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🧭" focused={focused} />,
+          tabBarIcon: ({ focused, color }) => <TabIcon name="compass" focused={focused} color={color} />,
         }}
       />
 
@@ -162,7 +164,7 @@ function TabNavigator() {
         component={NotificationsScreen}
         options={{
           tabBarLabel: t('tab_notifications'),
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🔔" focused={focused} />,
+          tabBarIcon: ({ focused, color }) => <TabIcon name="notifications" focused={focused} color={color} />,
           tabBarBadge: notificationCount > 0 ? notificationCount : undefined,
           tabBarBadgeStyle: { backgroundColor: '#E94560', fontSize: 11 },
         }}
@@ -173,7 +175,7 @@ function TabNavigator() {
         component={ProfileScreen}
         options={{
           tabBarLabel: t('tab_profile'),
-          tabBarIcon: ({ focused }) => <TabIcon emoji="👤" focused={focused} />,
+          tabBarIcon: ({ focused, color }) => <TabIcon name="person" focused={focused} color={color} />,
         }}
       />
     </Tab.Navigator>

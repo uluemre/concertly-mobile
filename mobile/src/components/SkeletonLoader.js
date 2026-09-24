@@ -161,7 +161,79 @@ export function HomeSkeletonPage() {
   );
 }
 
+// ── Liste iskeleti (bildirimler, sohbetler, topluluklar, akış) ──────────────
+function ListRowSkeleton({ avatar }) {
+  const { colors } = useTheme();
+  return (
+    <View style={[styles.listRow, { borderBottomColor: colors.border }]}>
+      <SkeletonBox w={48} h={48} radius={avatar === 'square' ? 12 : 24} />
+      <View style={{ flex: 1, gap: 8 }}>
+        <SkeletonBox w="72%" h={13} radius={6} />
+        <SkeletonBox w="46%" h={11} radius={6} />
+      </View>
+    </View>
+  );
+}
+
+export function ListSkeletonPage({ rows = 8, avatar = 'circle' }) {
+  return (
+    <ShimmerProvider>
+      <View style={styles.listPage}>
+        {Array.from({ length: rows }, (_, i) => <ListRowSkeleton key={i} avatar={avatar} />)}
+      </View>
+    </ShimmerProvider>
+  );
+}
+
+// ── Profil iskeleti (profil, kullanıcı, sanatçı, mekân) ───────────────────────
+export function ProfileSkeletonPage({ hero = false }) {
+  const { colors } = useTheme();
+  return (
+    <ShimmerProvider>
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        {hero ? (
+          <SkeletonBox w="100%" h={260} radius={0} />
+        ) : (
+          <View style={[styles.profileCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.profileTop}>
+              <SkeletonBox w={80} h={80} radius={40} />
+              <View style={{ flex: 1, gap: 10 }}>
+                <SkeletonBox w="60%" h={18} radius={6} />
+                <SkeletonBox w="40%" h={12} radius={6} />
+              </View>
+            </View>
+            <View style={styles.profileStats}>
+              {[0, 1, 2, 3].map(i => (
+                <View key={i} style={{ alignItems: 'center', gap: 6 }}>
+                  <SkeletonBox w={28} h={18} radius={6} />
+                  <SkeletonBox w={52} h={10} radius={5} />
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+        <View style={{ paddingHorizontal: 20, paddingTop: 20, gap: 12 }}>
+          <SkeletonBox w="100%" h={56} radius={14} />
+          {[0, 1, 2].map(i => <EventRowSkeleton key={i} />)}
+        </View>
+      </View>
+    </ShimmerProvider>
+  );
+}
+
 const styles = StyleSheet.create({
+  // Liste
+  listPage: { paddingTop: 8 },
+  listRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1,
+  },
+
+  // Profil
+  profileCard: { marginHorizontal: 16, marginTop: 56, borderRadius: 22, borderWidth: 1, padding: 18, gap: 18 },
+  profileTop: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  profileStats: { flexDirection: 'row', justifyContent: 'space-around' },
+
   // Events
   eventCard: {
     width: CARD_W,

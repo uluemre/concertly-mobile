@@ -6,6 +6,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../theme';
+import { ListSkeletonPage } from '../components/SkeletonLoader';
 import { useLanguage } from '../context/LanguageContext';
 import API, { getErrorMessage } from '../services/api';
 import { formatTimeAgo } from '../utils/time';
@@ -121,7 +122,7 @@ export default function ChatListScreen({ navigation }) {
       </LinearGradient>
 
       {loading ? (
-        <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 48 }} />
+        <ListSkeletonPage />
       ) : (error && conversations.length === 0) ? (
         <View style={styles.empty}>
           <Text style={styles.emptyEmoji}>📡</Text>

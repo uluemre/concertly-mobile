@@ -35,7 +35,7 @@ export default function ForgotPasswordScreen({ navigation }) {
   };
 
   return (
-    <LinearGradient colors={['#0A0A14', '#1a0a2e', '#0A0A14']} style={styles.container}>
+    <LinearGradient colors={colors.screenGradient} style={styles.container}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.inner}>
 
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.back}>

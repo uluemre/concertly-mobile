@@ -7,6 +7,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import API, { getErrorMessage } from '../services/api';
 import { useTheme } from '../theme';
+import { ListSkeletonPage } from '../components/SkeletonLoader';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import PostCard from '../components/feed/PostCard';
@@ -149,10 +150,7 @@ export default function FeedScreen({ navigation }) {
       </LinearGradient>
 
       {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>{t('feed_loading')}</Text>
-        </View>
+        <ListSkeletonPage rows={6} />
       ) : (error && posts.length === 0) ? (
         <View style={styles.empty}>
           <Text style={styles.emptyEmoji}>📡</Text>

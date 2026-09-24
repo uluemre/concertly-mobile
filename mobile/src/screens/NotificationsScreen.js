@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../theme';
+import { ListSkeletonPage } from '../components/SkeletonLoader';
 import API, { getErrorMessage } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -208,8 +209,11 @@ export default function NotificationsScreen({ navigation }) {
 
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={colors.primary} />
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>{t('notifications_title')}</Text>
+        </View>
+        <ListSkeletonPage />
       </View>
     );
   }

@@ -207,7 +207,7 @@ export default function BlindRankScreen({ navigation }) {
   if (phase === 'ranking') {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <LinearGradient colors={['#0A0A14', '#1a0a2e', '#0A0A14']} style={styles.rankHeader}>
+        <LinearGradient colors={colors.screenGradient} style={styles.rankHeader}>
           <Text style={[styles.rankProgress, { color: colors.textSecondary }]}>
             {t('blind_song_progress', { current: placedCount + 1, total: tracks.length })} · {artist?.name}
           </Text>
@@ -277,7 +277,7 @@ export default function BlindRankScreen({ navigation }) {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
-        <LinearGradient colors={['#0A0A14', '#1a0a2e', '#0A0A14']} style={styles.resultHeader}>
+        <LinearGradient colors={colors.screenGradient} style={styles.resultHeader}>
           <Text style={styles.resultEmoji}>🏆</Text>
           <Text style={[styles.resultTitle, { color: colors.text }]}>{t('blind_result_title')}</Text>
           <Text style={[styles.resultSub, { color: colors.textSecondary }]}>

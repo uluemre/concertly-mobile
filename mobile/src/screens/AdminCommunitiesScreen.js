@@ -60,7 +60,7 @@ export default function AdminCommunitiesScreen({ navigation }) {
         <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchPending(); }} tintColor={colors.primary} />
       }
     >
-      <LinearGradient colors={['#0A0A14', '#1a0a2e', '#0A0A14']} style={styles.header}>
+      <LinearGradient colors={colors.screenGradient} style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Text style={styles.backText}>{t('back')}</Text>
         </TouchableOpacity>

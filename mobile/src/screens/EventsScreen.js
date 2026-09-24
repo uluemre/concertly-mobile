@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import API from '../services/api';
 import { fetchAllConcerts } from '../services/concerts';
 import { useTheme } from '../theme';
@@ -101,6 +102,15 @@ export default function EventsScreen({ navigation, route }) {
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+
+  // Arama ekranı / ana sayfadaki tür kısayolundan gelindiyse o türle aç
+  const genreParam = route?.params?.genre;
+  useEffect(() => {
+    if (!genreParam) return;
+    setSelectedGenre(genreParam);
+    setShowPast(false);
+    navigation.setParams({ genre: undefined });   // aynı türe tekrar basılabilsin
+  }, [genreParam]);
 
   const isMounted = useRef(true);
   // Hızlı şehir/sekme değişiminde eski cevabın yeniyi ezmesini engeller.
@@ -264,7 +274,7 @@ export default function EventsScreen({ navigation, route }) {
               style={[styles.headerBtn, { borderColor: (selectedGenre || sortKey !== 'date_asc') ? colors.primary : colors.border }]}
               activeOpacity={0.8}
             >
-              <Text style={styles.headerBtnIcon}>⚙️</Text>
+              <Ionicons name="options-outline" size={17} color={(selectedGenre || sortKey !== 'date_asc') ? colors.primary : colors.textSecondary} />
               <Text style={[styles.headerBtnText, { color: (selectedGenre || sortKey !== 'date_asc') ? colors.primary : colors.textSecondary }]}>{t('events_filter')}</Text>
               {(selectedGenre || sortKey !== 'date_asc') && <View style={[styles.filterDot, { backgroundColor: colors.primary }]} />}
             </TouchableOpacity>
@@ -273,7 +283,7 @@ export default function EventsScreen({ navigation, route }) {
 
         {/* SEARCH */}
         <View style={[styles.searchBar, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Text style={[styles.searchIcon, { color: colors.textSecondary }]}>⌕</Text>
+          <Ionicons name="search" size={18} color={colors.textSecondary} style={styles.searchIcon} />
           <TextInput
             style={[styles.searchInput, { color: colors.text }]}
             placeholder={t('events_search_hint')}

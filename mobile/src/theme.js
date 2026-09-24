@@ -1,4 +1,7 @@
-import React, { createContext, useContext, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const THEME_KEY = 'themeMode';
 
 export const themePalettes = {
   dark: {
@@ -13,6 +16,8 @@ export const themePalettes = {
     textSecondary: '#A0A0B0',
     border: '#2A2A3E',
     headerGradient: ['#0F0F1A', '#1A1A2E'],
+    // Ekran başlıkları / tam ekran arka planlar için mor dokunuşlu 3 duraklı gradyan
+    screenGradient: ['#0A0A14', '#1a0a2e', '#0A0A14'],
     profileGradient: ['#7C3AED', '#E94560'],
     input: '#2A2A3E',
   },
@@ -28,6 +33,7 @@ export const themePalettes = {
     textSecondary: '#5F6378',
     border: '#CCD1DB',
     headerGradient: ['#F8E4E8', '#EBE0F6'],
+    screenGradient: ['#F4F1FA', '#EBE0F6', '#F4F1FA'],
     profileGradient: ['#E94560', '#7C3AED'],
     input: '#ECEDF2',
   },
@@ -53,13 +59,25 @@ const ThemeContext = createContext({
 });
 
 export function ThemeProvider({ children }) {
-  const [themeMode, setThemeMode] = useState('dark');
+  const [themeMode, setThemeModeState] = useState('dark');
+
+  // Seçilen tema hatırlanır; eskiden her açılışta koyu temaya dönüyordu
+  useEffect(() => {
+    AsyncStorage.getItem(THEME_KEY)
+      .then(v => { if (v === 'light' || v === 'dark') setThemeModeState(v); })
+      .catch(() => {});
+  }, []);
+
+  const setThemeMode = useCallback((mode) => {
+    setThemeModeState(mode);
+    AsyncStorage.setItem(THEME_KEY, mode).catch(() => {});
+  }, []);
 
   const value = useMemo(() => ({
     themeMode,
     colors: themePalettes[themeMode] || themePalettes.dark,
     setThemeMode,
-  }), [themeMode]);
+  }), [themeMode, setThemeMode]);
 
   return (
     <ThemeContext.Provider value={value}>

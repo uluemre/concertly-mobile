@@ -324,7 +324,7 @@ export default function SongQuizScreen({ navigation }) {
 
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <LinearGradient colors={['#0A0A14', '#1a0a2e', '#0A0A14']} style={styles.quizHeader}>
+        <LinearGradient colors={colors.screenGradient} style={styles.quizHeader}>
           <View style={styles.quizTopRow}>
             <Text style={[styles.quizProgress, { color: colors.textSecondary }]}>
               {t('quiz_question', { current: qIndex + 1, total: questions.length })}
@@ -415,7 +415,7 @@ export default function SongQuizScreen({ navigation }) {
         contentContainerStyle={{ paddingBottom: 40 }}
         ListHeaderComponent={
           <>
-            <LinearGradient colors={['#0A0A14', '#1a0a2e', '#0A0A14']} style={styles.resultHeader}>
+            <LinearGradient colors={colors.screenGradient} style={styles.resultHeader}>
               <Text style={styles.resultEmoji}>🎉</Text>
               <Text style={[styles.resultTitle, { color: colors.text }]}>{t('quiz_result_title')}</Text>
               <Text style={[styles.resultArtist, { color: colors.textSecondary }]}>{artist?.name}</Text>

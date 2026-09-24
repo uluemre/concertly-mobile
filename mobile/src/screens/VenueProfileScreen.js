@@ -7,6 +7,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import API from '../services/api';
 import { useTheme } from '../theme';
+import { ProfileSkeletonPage } from '../components/SkeletonLoader';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { parseEventDate } from '../utils/time';
@@ -133,11 +134,7 @@ export default function VenueProfileScreen({ route, navigation }) {
     ]);
   };
 
-  if (loading) return (
-    <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-      <ActivityIndicator size="large" color={colors.primary} />
-    </View>
-  );
+  if (loading) return <ProfileSkeletonPage hero />;
 
   return (
     <>

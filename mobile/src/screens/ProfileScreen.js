@@ -10,9 +10,11 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { DOWNLOAD_URL, buildShareUrl, shareWithLink } from '../services/shareLinks';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import API, { uploadImage } from '../services/api';
 import { useTheme } from '../theme';
+import { ProfileSkeletonPage } from '../components/SkeletonLoader';
 import BadgeGrid from '../components/profile/BadgeGrid';
 import { parseEventDate } from '../utils/time';
 
@@ -145,11 +147,7 @@ export default function ProfileScreen({ navigation }) {
     ]);
   };
 
-  if (loading) return (
-    <View style={styles.loadingContainer}>
-      <ActivityIndicator size="large" color={colors.primary} />
-    </View>
-  );
+  if (loading) return <ProfileSkeletonPage />;
 
   const handleEditSave = async () => {
     if (!editText.trim() || !editingPost) return;
@@ -206,7 +204,7 @@ export default function ProfileScreen({ navigation }) {
               style={styles.settingsButton}
               activeOpacity={0.8}
             >
-              <Text style={styles.settingsIcon}>⚙️</Text>
+              <Ionicons name="settings-outline" size={20} color={colors.text} />
             </TouchableOpacity>
 
             <View style={styles.profileTop}>
@@ -384,6 +382,13 @@ export default function ProfileScreen({ navigation }) {
                 <Text style={styles.emptyEmoji}>📭</Text>
                 <Text style={styles.emptyText}>{t('profile_empty_posts')}</Text>
                 <Text style={styles.emptySubText}>{t('profile_empty_posts_sub')}</Text>
+                <TouchableOpacity
+                  style={styles.emptyCta}
+                  onPress={() => navigation.navigate('MainApp', { screen: 'Events' })}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.emptyCtaText}>{t('profile_empty_cta')}</Text>
+                </TouchableOpacity>
               </View>
             ) : (
               posts.map((item) => (
@@ -438,6 +443,13 @@ export default function ProfileScreen({ navigation }) {
                 <Text style={styles.emptyEmoji}>🎭</Text>
                 <Text style={styles.emptyText}>{t('profile_empty_events')}</Text>
                 <Text style={styles.emptySubText}>{t('profile_empty_events_sub')}</Text>
+                <TouchableOpacity
+                  style={styles.emptyCta}
+                  onPress={() => navigation.navigate('MainApp', { screen: 'Events' })}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.emptyCtaText}>{t('profile_empty_cta')}</Text>
+                </TouchableOpacity>
               </View>
             ) : (
               <View style={styles.eventGrid}>
@@ -473,6 +485,13 @@ export default function ProfileScreen({ navigation }) {
                 <Text style={styles.emptyEmoji}>🔖</Text>
                 <Text style={styles.emptyText}>{t('profile_empty_bookmarks')}</Text>
                 <Text style={styles.emptySubText}>{t('profile_empty_bookmarks_sub')}</Text>
+                <TouchableOpacity
+                  style={styles.emptyCta}
+                  onPress={() => navigation.navigate('MainApp', { screen: 'Events' })}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.emptyCtaText}>{t('profile_empty_cta')}</Text>
+                </TouchableOpacity>
               </View>
             ) : (
               <View style={styles.eventGrid}>
@@ -729,6 +748,8 @@ function createStyles(colors) {
     emptyEmoji: { fontSize: 52, marginBottom: 14 },
     emptyText: { color: colors.text, fontSize: 16, fontWeight: '600', marginBottom: 6 },
     emptySubText: { color: colors.textSecondary, fontSize: 13, textAlign: 'center' },
+    emptyCta: { marginTop: 16, borderWidth: 1.5, borderColor: colors.primary, borderRadius: 999, paddingHorizontal: 18, paddingVertical: 9 },
+    emptyCtaText: { color: colors.primary, fontSize: 14, fontWeight: '800' },
 
     // OYUN BAŞARILARI
     gameSection: { paddingHorizontal: 16, marginTop: 12 },

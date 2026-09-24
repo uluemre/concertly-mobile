@@ -2,14 +2,20 @@ import React, { useState, useRef, useCallback, useMemo } from 'react';
 import {
     View, Text, StyleSheet, TextInput, TouchableOpacity,
     Modal, FlatList, ActivityIndicator, Animated,
-    Dimensions, Image, KeyboardAvoidingView, Platform
+    Dimensions, Image, KeyboardAvoidingView, Platform, ScrollView
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import API from '../services/api';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { parseEventDate } from '../utils/time';
+import { GENRE_SHORTCUTS } from '../constants/genres';
+
+const RECENT_KEY = 'recentSearches';
+const RECENT_MAX = 8;
 
 const { width, height } = Dimensions.get('window');
 
@@ -41,6 +47,8 @@ export default function SearchModal({ visible, onClose, navigation }) {
     const [loading, setLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('events');
     const [searched, setSearched] = useState(false);
+    const [recent, setRecent] = useState([]);
+    const [popular, setPopular] = useState([]);
 
     const inputRef = useRef(null);
     const tabAnim = useRef(new Animated.Value(0)).current;
@@ -53,6 +61,14 @@ export default function SearchModal({ visible, onClose, navigation }) {
             setResults({ events: [], artists: [], users: [] });
             setSearched(false);
             setActiveTab('events');
+            AsyncStorage.getItem(RECENT_KEY)
+                .then(v => setRecent(v ? JSON.parse(v) : []))
+                .catch(() => {});
+            if (popular.length === 0) {
+                API.get('/artists/popular?limit=10')
+                    .then(res => setPopular(Array.isArray(res.data) ? res.data : []))
+                    .catch(() => {});
+            }
             Animated.spring(slideAnim, {
                 toValue: 0, tension: 65, friction: 11, useNativeDriver: true,
             }).start(() => inputRef.current?.focus());
@@ -85,6 +101,40 @@ export default function SearchModal({ visible, onClose, navigation }) {
 
     const debouncedSearch = useDebounce(doSearch, 400);
 
+    // Son aramalar: bir sonuca dokunulunca ya da klavyeden "ara" denince kaydedilir
+    const rememberQuery = useCallback((q) => {
+        const clean = (q || '').trim();
+        if (clean.length < 2) return;
+        setRecent(prev => {
+            const next = [clean, ...prev.filter(x => x.toLowerCase() !== clean.toLowerCase())].slice(0, RECENT_MAX);
+            AsyncStorage.setItem(RECENT_KEY, JSON.stringify(next)).catch(() => {});
+            return next;
+        });
+    }, []);
+
+    const removeRecent = (q) => {
+        setRecent(prev => {
+            const next = prev.filter(x => x !== q);
+            AsyncStorage.setItem(RECENT_KEY, JSON.stringify(next)).catch(() => {});
+            return next;
+        });
+    };
+
+    const clearRecent = () => {
+        setRecent([]);
+        AsyncStorage.removeItem(RECENT_KEY).catch(() => {});
+    };
+
+    const runRecent = (q) => {
+        setQuery(q);
+        doSearch(q);
+    };
+
+    const openGenre = (genre) => {
+        onClose();
+        navigation.navigate('MainApp', { screen: 'Events', params: { genre } });
+    };
+
     const handleChangeText = (text) => {
         setQuery(text);
         debouncedSearch(text);
@@ -111,6 +161,7 @@ export default function SearchModal({ visible, onClose, navigation }) {
         <TouchableOpacity
             style={styles.resultCard}
             onPress={() => {
+                rememberQuery(query);
                 onClose();
                 navigation.navigate('EventDetail', { event: item });
             }}
@@ -142,6 +193,7 @@ export default function SearchModal({ visible, onClose, navigation }) {
         <TouchableOpacity
             style={styles.resultCard}
             onPress={() => {
+                rememberQuery(query);
                 onClose();
                 navigation.navigate('ArtistProfile', {
                     artistId: item.id,
@@ -174,6 +226,7 @@ export default function SearchModal({ visible, onClose, navigation }) {
         <TouchableOpacity
             style={styles.resultCard}
             onPress={() => {
+                rememberQuery(query);
                 onClose();
                 navigation.navigate('UserProfile', { userId: item.id });
             }}
@@ -221,7 +274,7 @@ export default function SearchModal({ visible, onClose, navigation }) {
                     {/* ARAMA BAŞLIĞI */}
                     <View style={styles.header}>
                         <View style={styles.searchBox}>
-                            <Text style={styles.searchIcon}>🔍</Text>
+                            <Ionicons name="search" size={18} color={colors.textSecondary} style={styles.searchIcon} />
                             <TextInput
                                 ref={inputRef}
                                 style={styles.searchInput}
@@ -231,6 +284,7 @@ export default function SearchModal({ visible, onClose, navigation }) {
                                 onChangeText={handleChangeText}
                                 autoCapitalize="none"
                                 returnKeyType="search"
+                                onSubmitEditing={() => { rememberQuery(query); doSearch(query); }}
                             />
                             {query.length > 0 && (
                                 <TouchableOpacity onPress={() => {
@@ -280,10 +334,75 @@ export default function SearchModal({ visible, onClose, navigation }) {
                             <ActivityIndicator size="large" color={colors.primary} />
                         </View>
                     ) : !searched ? (
-                        <View style={styles.center}>
-                            <Text style={styles.hintEmoji}>🔍</Text>
-                            <Text style={styles.hintText}>{t('search_min_chars')}</Text>
-                        </View>
+                        // Boş bekleme ekranı yerine keşif: son aramalar, popüler sanatçılar, türler
+                        <ScrollView
+                            contentContainerStyle={styles.discover}
+                            keyboardShouldPersistTaps="handled"
+                            showsVerticalScrollIndicator={false}
+                        >
+                            {recent.length > 0 && (
+                                <View style={styles.discoverSection}>
+                                    <View style={styles.discoverHead}>
+                                        <Text style={styles.discoverTitle}>{t('search_recent')}</Text>
+                                        <TouchableOpacity onPress={clearRecent} hitSlop={10}>
+                                            <Text style={styles.discoverAction}>{t('search_clear_recent')}</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                    {recent.map(q => (
+                                        <TouchableOpacity key={q} style={styles.recentRow} onPress={() => runRecent(q)} activeOpacity={0.7}>
+                                            <Text style={styles.recentIcon}>🕘</Text>
+                                            <Text style={styles.recentText} numberOfLines={1}>{q}</Text>
+                                            <TouchableOpacity onPress={() => removeRecent(q)} hitSlop={10}>
+                                                <Text style={styles.recentRemove}>✕</Text>
+                                            </TouchableOpacity>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            )}
+
+                            {popular.length > 0 && (
+                                <View style={styles.discoverSection}>
+                                    <Text style={styles.discoverTitle}>{t('search_popular_artists')}</Text>
+                                    <ScrollView
+                                        horizontal
+                                        showsHorizontalScrollIndicator={false}
+                                        contentContainerStyle={styles.popularRow}
+                                        keyboardShouldPersistTaps="handled"
+                                    >
+                                        {popular.map(a => (
+                                            <TouchableOpacity
+                                                key={a.id}
+                                                style={styles.popularItem}
+                                                activeOpacity={0.8}
+                                                onPress={() => {
+                                                    onClose();
+                                                    navigation.navigate('ArtistProfile', { artistId: a.id, artistName: a.name });
+                                                }}
+                                            >
+                                                <Image source={{ uri: a.imageUrl }} style={styles.popularAvatar} />
+                                                <Text style={styles.popularName} numberOfLines={2}>{a.name}</Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </ScrollView>
+                                </View>
+                            )}
+
+                            <View style={styles.discoverSection}>
+                                <Text style={styles.discoverTitle}>{t('search_by_genre')}</Text>
+                                <View style={styles.genreGrid}>
+                                    {GENRE_SHORTCUTS.map(g => (
+                                        <TouchableOpacity key={g.name} style={styles.genreTileWrap} onPress={() => openGenre(g.name)} activeOpacity={0.85}>
+                                            <LinearGradient colors={g.colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.genreTile}>
+                                                <Text style={styles.genreTileName}>{g.name}</Text>
+                                                <Text style={styles.genreTileEmoji}>{g.emoji}</Text>
+                                            </LinearGradient>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            </View>
+
+                            <Text style={styles.discoverHint}>{t('search_min_chars')}</Text>
+                        </ScrollView>
                     ) : totalResults === 0 ? (
                         <View style={styles.center}>
                             <Text style={styles.hintEmoji}>😕</Text>
@@ -410,6 +529,30 @@ function createStyles(colors) {
             alignItems: 'center', paddingTop: 80,
         },
         hintEmoji: { fontSize: 48, marginBottom: 14 },
+
+        // KEŞİF (boş arama)
+        discover: { padding: 16, paddingBottom: 48, gap: 22 },
+        discoverSection: { gap: 10 },
+        discoverHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+        discoverTitle: { color: colors.text, fontSize: 16, fontWeight: '800' },
+        discoverAction: { color: colors.primary, fontSize: 13, fontWeight: '700' },
+        recentRow: {
+            flexDirection: 'row', alignItems: 'center', gap: 10,
+            paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border,
+        },
+        recentIcon: { fontSize: 14, opacity: 0.7 },
+        recentText: { flex: 1, color: colors.text, fontSize: 15 },
+        recentRemove: { color: colors.textSecondary, fontSize: 14, paddingHorizontal: 4 },
+        popularRow: { gap: 14, paddingRight: 8 },
+        popularItem: { width: 72, alignItems: 'center' },
+        popularAvatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.card },
+        popularName: { color: colors.text, fontSize: 12, fontWeight: '600', textAlign: 'center', marginTop: 6 },
+        genreGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+        genreTileWrap: { width: '48%', flexGrow: 1, borderRadius: 14, overflow: 'hidden' },
+        genreTile: { height: 64, borderRadius: 14, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+        genreTileName: { color: '#fff', fontSize: 16, fontWeight: '800' },
+        genreTileEmoji: { fontSize: 28 },
+        discoverHint: { color: colors.textSecondary, fontSize: 12, textAlign: 'center' },
         hintText: { color: colors.textSecondary, fontSize: 15, textAlign: 'center' },
     });
 }

@@ -139,6 +139,17 @@ public interface EventRepository extends JpaRepository<Event, Long> {
 
     long countByDelistedReasonIsNotNull();
 
+    /** Yaklaşan (listelenen) konser sayısına göre sanatçılar: [artistId, konserSayısı]. */
+    @Query("""
+            SELECT e.artist.id, COUNT(e) FROM Event e
+            WHERE e.artist IS NOT NULL AND e.eventDate >= :from
+              AND e.isApproved = true AND e.delistedReason IS NULL
+            GROUP BY e.artist.id
+            ORDER BY COUNT(e) DESC
+            """)
+    List<Object[]> topArtistsByUpcomingEvents(@Param("from") java.time.LocalDateTime from,
+                                              org.springframework.data.domain.Pageable pageable);
+
     @EntityGraph(attributePaths = {"artist", "venue", "createdBy"})
     @Query("""
                 SELECT e FROM Event e
