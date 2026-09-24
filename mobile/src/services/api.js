@@ -14,6 +14,9 @@ const PROD_API = (
 const USE_PROD_IN_DEV = false;
 
 function getBaseUrl() {
+  // EXPO_PUBLIC_API_URL verilmişse geliştirmede de o adres kullanılır
+  if (process.env.EXPO_PUBLIC_API_URL) return PROD_API;
+
   // Yayınlanan (production) uygulama → her zaman internetteki sunucu
   if (!__DEV__ || USE_PROD_IN_DEV) return PROD_API;
 
