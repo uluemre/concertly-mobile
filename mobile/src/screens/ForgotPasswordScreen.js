@@ -28,7 +28,7 @@ export default function ForgotPasswordScreen({ navigation }) {
       await API.post('/auth/forgot-password', { email: email.trim() });
       setSent(true);
     } catch (err) {
-      Alert.alert(t('error'), t('forgot_not_found'));
+      Alert.alert(t('error'), t(err?.response?.status === 429 ? 'auth_too_many' : 'forgot_not_found'));
     } finally {
       setLoading(false);
     }

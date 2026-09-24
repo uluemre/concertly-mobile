@@ -11,6 +11,8 @@ public class Post {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(length = ContentLimits.COLUMN_LENGTH)
+
     private String content;
 
     /** Moderasyon: admin gizlediğinde içerik akışlardan düşer ama silinmez

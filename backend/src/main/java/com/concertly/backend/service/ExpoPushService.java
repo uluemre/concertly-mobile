@@ -1,5 +1,6 @@
 package com.concertly.backend.service;
 
+import com.concertly.backend.config.ExternalHttp;
 import com.concertly.backend.model.PushToken;
 import com.concertly.backend.repository.PushTokenRepository;
 import org.slf4j.Logger;
@@ -42,7 +43,7 @@ public class ExpoPushService {
     private static final int CHUNK_SIZE = 100;
 
     private final PushTokenRepository pushTokenRepository;
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate = ExternalHttp.restTemplate();
     private final ExecutorService executor = Executors.newFixedThreadPool(2, r -> {
         Thread t = new Thread(r, "expo-push");
         t.setDaemon(true);

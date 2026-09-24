@@ -75,8 +75,9 @@ export default function WrappedScreen({ navigation }) {
       }
     });
 
-    // Konser yoksa profildeki favori türlerden kişilik çıkar
-    if (events.length === 0 && session.favoriteGenres) {
+    // Konser yoksa profildeki favori türlerden kişilik çıkar (yüzde gösterilmez)
+    const fromPrefs = events.length === 0 && !!session.favoriteGenres;
+    if (fromPrefs) {
       session.favoriteGenres.split(',').map(g => g.trim()).filter(Boolean)
         .forEach(g => { genreCounts[g] = 1; });
     }
@@ -92,6 +93,7 @@ export default function WrappedScreen({ navigation }) {
 
     return {
       personality: pickPersonality(genreCounts),
+      fromPrefs,
       topArtist,
       topGenres: topGenres.map(([g, c]) => ({ genre: g, percent: Math.round(c * 100 / genreTotal) })),
       topMonth: topMonth ? { name: monthName, count: topMonth[1] } : null,
@@ -131,9 +133,11 @@ export default function WrappedScreen({ navigation }) {
         </FadeIn>
         <FadeIn delay={1000}>
           <Text style={styles.heroSub}>
-            {identity.personality.percent > 0
-              ? t('wrapped_personality_sub', { percent: identity.personality.percent, genre: identity.personality.genre })
-              : t('wrapped_personality_new')}
+            {identity.fromPrefs
+              ? t('wrapped_personality_prefs', { genre: identity.personality.genre })
+              : identity.personality.percent > 0
+                ? t('wrapped_personality_sub', { percent: identity.personality.percent, genre: identity.personality.genre })
+                : t('wrapped_personality_new')}
           </Text>
         </FadeIn>
       </LinearGradient>

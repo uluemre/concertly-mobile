@@ -35,9 +35,14 @@ const SERVER_ORIGIN = BASE_URL.replace(/\/api$/, '');
 if (__DEV__) console.log('API Base URL:', BASE_URL);
 console.log('### CONCERTLY API URL ###', BASE_URL);
 
+// Render ücretsiz planı boşta uyuyor; uyanırken ilk yanıt ~90 sn sürebiliyor.
+// 15 sn'de vazgeçince uygulama boş ekranla açılıyordu. (İnternet yoksa axios
+// zaten hemen "Network Error" verir; bu süre yalnızca yavaş yanıtı bekler.)
+export const API_TIMEOUT_MS = 100000;
+
 const API = axios.create({
   baseURL: BASE_URL,
-  timeout: 15000,
+  timeout: API_TIMEOUT_MS,
 });
 
 // Backend görselleri "/uploads/<dosya>" göreli yoluyla saklar — cihaz hangi
@@ -194,7 +199,7 @@ export async function uploadImage(localUri) {
 
   const res = await API.post('/media/upload', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
-    timeout: 30000, // büyük görseller için daha geniş süre
+    timeout: 120000, // büyük görseller + olası soğuk başlangıç
   });
   // interceptor tam URL'ye çevirmiş olabilir — saklamak için göreli hale getir
   return res.data.url.replace(SERVER_ORIGIN, '');

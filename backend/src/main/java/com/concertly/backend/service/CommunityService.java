@@ -731,6 +731,8 @@ public class CommunityService {
             throw new IllegalArgumentException("Sadece uyeler post olusturabilir.");
         }
 
+        ContentLimits.check(request.getContent(), ContentLimits.COMMUNITY_POST_MAX);
+
         String postType = request.getPostType() != null ? request.getPostType() : "TEXT";
 
         CommunityPost post = new CommunityPost();

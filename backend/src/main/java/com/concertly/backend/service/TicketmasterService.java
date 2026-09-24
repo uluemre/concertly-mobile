@@ -1,7 +1,9 @@
 package com.concertly.backend.service;
 
+import com.concertly.backend.config.ExternalHttp;
 import com.concertly.backend.config.LaunchCityConfig;
 import com.concertly.backend.model.*;
+import com.concertly.backend.service.ingest.EventSourceLinkService;
 import com.concertly.backend.repository.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -36,6 +38,8 @@ public class TicketmasterService {
     private final RestTemplate restTemplate;
     private final LaunchCityConfig launchCityConfig;
 
+    private final EventSourceLinkService sourceLinks;
+
     public TicketmasterService(EventRepository eventRepository,
             ArtistRepository artistRepository,
             VenueRepository venueRepository,
@@ -43,7 +47,8 @@ public class TicketmasterService {
             DeezerService deezerService,
             com.concertly.backend.repository.ArtistFollowRepository artistFollowRepository,
             NotificationService notificationService,
-            LaunchCityConfig launchCityConfig) {
+            LaunchCityConfig launchCityConfig,
+            EventSourceLinkService sourceLinks) {
         this.eventRepository = eventRepository;
         this.artistRepository = artistRepository;
         this.venueRepository = venueRepository;
@@ -51,8 +56,9 @@ public class TicketmasterService {
         this.deezerService = deezerService;
         this.artistFollowRepository = artistFollowRepository;
         this.notificationService = notificationService;
-        this.restTemplate = new RestTemplate();
+        this.restTemplate = ExternalHttp.restTemplate();
         this.launchCityConfig = launchCityConfig;
+        this.sourceLinks = sourceLinks;
     }
 
     /**
@@ -474,8 +480,25 @@ public class TicketmasterService {
                     continue;
                 }
 
-                // DB'de var mı?
-                Optional<Event> existingEvent = eventRepository.findByExternalId(externalId);
+                // DB'de var mı? Kimlik önce event_sources üzerinden aranır (Biletinial ile
+                // aynı yol): kayıt başka bir etkinlikle BİRLEŞTİRİLMİŞ olabilir, o zaman
+                // kaynak satırı asıl kayıttadır. Bulunamazsa eski yol (events.external_id).
+                Event resolved = sourceLinks.find(EventSource.TICKETMASTER, externalId)
+                        .map(EventSourceLink::getEvent)
+                        .orElseGet(() -> eventRepository.findByExternalId(externalId).orElse(null));
+
+                // Birleştirilip gizlenmiş kopya: sync onu yeniden onaylayıp listeye
+                // geri getirmemeli (eskiden her gece geri geliyordu).
+                if (resolved != null && resolved.getMergedIntoEventId() != null) {
+                    System.out.println("  🔗 Birleştirilmiş kopya atlandı: " + externalId);
+                    continue;
+                }
+
+                // Bu Ticketmaster kaydı başka bir asıl kayda bağlı ikincil kaynak mı?
+                // (Asıl kaydın alanları ezilmez; yalnızca kaynak satırı tazelenir.)
+                boolean secondarySource = resolved != null && !externalId.equals(resolved.getExternalId());
+
+                Optional<Event> existingEvent = Optional.ofNullable(resolved);
 
                 Event event;
 
@@ -594,15 +617,24 @@ public class TicketmasterService {
                     eventImageUrl = artist.getImageUrl();
                 }
 
+                if (secondarySource) {
+                    sourceLinks.upsert(event, EventSource.TICKETMASTER, externalId, ticketUrl, ticketUrl, false);
+                    continue;
+                }
+
                 // =========================
                 // EVENT BİLGİLERİ
                 // =========================
 
                 event.setName(name);
+                // Kaynak kimliği: eskiden hiç yazılmıyordu ve yeni kayıtlar varsayılan ADMIN kalıyordu
+                if (event.getSource() == null || event.getSource() == EventSource.ADMIN) {
+                    event.setSource(EventSource.TICKETMASTER);
+                }
                 event.setDescription(description);
                 event.setEventDate(eventDate);
-                // Listeden bilerek kaldırılmış bir kaydı sync geri açmasın
-                event.setIsApproved(event.getDelistedReason() == null);
+                // Listeden bilerek kaldırılmış ya da birleştirilmiş bir kaydı sync geri açmasın
+                event.setIsApproved(event.getDelistedReason() == null && event.getMergedIntoEventId() == null);
                 event.setArtist(artist);
                 event.setVenue(venue);
                 event.setImageUrl(eventImageUrl);
@@ -617,7 +649,10 @@ public class TicketmasterService {
                 // SAVE
                 // =========================
 
-                eventRepository.save(event);
+                Event saved = eventRepository.save(event);
+                // Kaynak kimliği her koşuda tazelenir (Biletinial ile aynı): merge/unmerge
+                // bu satırı taşır, sync de bir sonraki gece doğru kaydı bulur.
+                sourceLinks.upsert(saved, EventSource.TICKETMASTER, externalId, ticketUrl, ticketUrl, true);
 
                 count++;
 

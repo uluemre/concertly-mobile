@@ -9,6 +9,7 @@ import com.concertly.backend.exception.ResourceNotFoundException;
 import com.concertly.backend.model.*;
 import com.concertly.backend.repository.*;
 import com.concertly.backend.service.CommunityService;
+import com.concertly.backend.service.RefreshTokenService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -33,6 +34,7 @@ public class AdminController {
     private final FollowRepository followRepository;
     private final AccountDeletionFeedbackRepository deletionFeedbackRepository;
     private final CommunityService communityService;
+    private final RefreshTokenService refreshTokenService;
 
     public AdminController(UserRepository userRepository,
                            EventRepository eventRepository,
@@ -46,7 +48,8 @@ public class AdminController {
                            CommunityRepository communityRepository,
                            FollowRepository followRepository,
                            AccountDeletionFeedbackRepository deletionFeedbackRepository,
-                           CommunityService communityService) {
+                           CommunityService communityService,
+                           RefreshTokenService refreshTokenService) {
         this.userRepository = userRepository;
         this.eventRepository = eventRepository;
         this.artistRepository = artistRepository;
@@ -60,6 +63,7 @@ public class AdminController {
         this.followRepository = followRepository;
         this.deletionFeedbackRepository = deletionFeedbackRepository;
         this.communityService = communityService;
+        this.refreshTokenService = refreshTokenService;
     }
 
     // ── TOPLULUK ONAYI ───────────────────────────────────────────────────────────
@@ -246,7 +250,11 @@ public class AdminController {
         User user = userRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Kullanici bulunamadi: " + id));
         user.setIsActive(false);
-        return buildUserResponse(userRepository.save(user));
+        User saved = userRepository.save(user);
+        // Açık oturumlar hemen kapanır: refresh token'lar silinir, erişim token'ı
+        // da JwtFilter'da reddedilir.
+        refreshTokenService.deleteByUser(saved);
+        return buildUserResponse(saved);
     }
 
     @PatchMapping("/users/{id}/unban")

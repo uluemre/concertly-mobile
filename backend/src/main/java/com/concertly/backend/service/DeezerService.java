@@ -1,5 +1,6 @@
 package com.concertly.backend.service;
 
+import com.concertly.backend.config.ExternalHttp;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -12,7 +13,7 @@ import java.util.Map;
 @Service
 public class DeezerService {
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate = ExternalHttp.restTemplate();
 
     public DeezerArtistData searchArtist(String artistName) {
         if (artistName == null || artistName.isBlank()) return null;

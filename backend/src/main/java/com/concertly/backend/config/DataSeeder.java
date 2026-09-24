@@ -3,6 +3,7 @@ package com.concertly.backend.config;
 import com.concertly.backend.model.Artist;
 import com.concertly.backend.model.Community;
 import com.concertly.backend.repository.ArtistRepository;
+import com.concertly.backend.repository.CommunityMemberRepository;
 import com.concertly.backend.repository.CommunityRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
@@ -12,17 +13,21 @@ public class DataSeeder implements CommandLineRunner {
 
     private final CommunityRepository communityRepository;
     private final ArtistRepository artistRepository;
+    private final CommunityMemberRepository communityMemberRepository;
 
     public DataSeeder(CommunityRepository communityRepository,
-                      ArtistRepository artistRepository) {
+                      ArtistRepository artistRepository,
+                      CommunityMemberRepository communityMemberRepository) {
         this.communityRepository = communityRepository;
         this.artistRepository = artistRepository;
+        this.communityMemberRepository = communityMemberRepository;
     }
 
     @Override
     public void run(String... args) {
         seedCommunities();
         backfillCommunityDefaults();
+        backfillMemberDefaults();
         seedArtists();
     }
 
@@ -36,6 +41,14 @@ public class DataSeeder implements CommandLineRunner {
             if (c.getApprovalStatus() == null) c.setApprovalStatus("APPROVED");
         }
         communityRepository.saveAll(legacy);
+    }
+
+    private void backfillMemberDefaults() {
+        int status = communityMemberRepository.backfillNullStatus();
+        int role = communityMemberRepository.backfillNullRole();
+        if (status + role > 0) {
+            System.out.println("👥 Eski topluluk üyelikleri tamamlandı: status=" + status + ", role=" + role);
+        }
     }
 
     private void seedCommunities() {

@@ -1,5 +1,6 @@
 package com.concertly.backend.service;
 
+import com.concertly.backend.config.ExternalHttp;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -18,7 +19,7 @@ public class SpotifyService {
     @Value("${spotify.client.secret}")
     private String clientSecret;
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate = ExternalHttp.restTemplate();
 
     private String cachedToken;
     private long tokenExpiry = 0;

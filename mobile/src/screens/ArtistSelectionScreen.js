@@ -45,10 +45,26 @@ export default function ArtistSelectionScreen({ route, navigation }) {
     );
   };
 
-  const filteredArtists = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return q ? artists.filter(a => a.name.toLowerCase().includes(q)) : artists;
+  // Türü boş/farklı sanatçılar öneri listesinde yok; arama listede bir şey
+  // bulamazsa genel sanatçı aramasına düşer (eskiden "bulunamadı" diyordu).
+  const [remoteResults, setRemoteResults] = useState([]);
+  const localMatches = useMemo(() => {
+    const q = search.trim().toLocaleLowerCase('tr');
+    return q ? artists.filter(a => a.name.toLocaleLowerCase('tr').includes(q)) : artists;
   }, [artists, search]);
+
+  useEffect(() => {
+    const q = search.trim();
+    if (q.length < 2 || localMatches.length > 0) { setRemoteResults([]); return undefined; }
+    const timer = setTimeout(() => {
+      API.get(`/search?q=${encodeURIComponent(q)}`)
+        .then(res => setRemoteResults(res.data?.artists || []))
+        .catch(() => setRemoteResults([]));
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [search, localMatches.length]);
+
+  const filteredArtists = localMatches.length > 0 || !search.trim() ? localMatches : remoteResults;
 
   const handleComplete = async () => {
     setCompleting(true);

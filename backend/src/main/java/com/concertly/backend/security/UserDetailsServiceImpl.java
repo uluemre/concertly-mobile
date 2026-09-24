@@ -34,9 +34,16 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                 .map(role -> new SimpleGrantedAuthority(role.getName()))
                 .collect(Collectors.toList());
 
+        // Admin tarafından yasaklanan (isActive=false) hesap devre dışıdır: login,
+        // JWT filtresi ve token yenileme bunu kontrol eder. null = eski kayıt = aktif.
+        boolean enabled = !Boolean.FALSE.equals(user.getIsActive());
         return new org.springframework.security.core.userdetails.User(
                 user.getId() + ":" + user.getEmail(),
                 user.getPassword(),
+                enabled,
+                true,
+                true,
+                true,
                 authorities
         );
     }

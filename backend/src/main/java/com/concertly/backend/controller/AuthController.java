@@ -6,7 +6,9 @@ import com.concertly.backend.dto.request.RefreshRequest;
 import com.concertly.backend.dto.request.RegisterRequest;
 import com.concertly.backend.dto.response.AuthResponse;
 import com.concertly.backend.dto.response.UserResponse;
+import com.concertly.backend.security.AuthRateLimiter;
 import com.concertly.backend.security.JwtUtil;
+import jakarta.servlet.http.HttpServletRequest;
 import com.concertly.backend.service.AuthService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -27,8 +29,8 @@ public class AuthController {
     // Body: { "email": "...", "password": "..." }
     // Response: { "accessToken": "eyJ...", "userId": 1, "username": "...", "email": "..." }
     @PostMapping("/login")
-    public AuthResponse login(@RequestBody LoginRequest request) {
-        return authService.login(request);
+    public AuthResponse login(@RequestBody LoginRequest request, HttpServletRequest http) {
+        return authService.login(request, AuthRateLimiter.clientIp(http));
     }
 
     // POST /api/auth/register
@@ -72,14 +74,15 @@ public class AuthController {
 
     @PostMapping("/forgot-password")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void forgotPassword(@RequestBody Map<String, String> body) {
-        authService.forgotPassword(body.get("email"));
+    public void forgotPassword(@RequestBody Map<String, String> body, HttpServletRequest http) {
+        authService.forgotPassword(body.get("email"), AuthRateLimiter.clientIp(http));
     }
 
     @PostMapping("/reset-password")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void resetPassword(@RequestBody Map<String, String> body) {
-        authService.resetPassword(body.get("email"), body.get("token"), body.get("newPassword"));
+    public void resetPassword(@RequestBody Map<String, String> body, HttpServletRequest http) {
+        authService.resetPassword(body.get("email"), body.get("token"), body.get("newPassword"),
+                AuthRateLimiter.clientIp(http));
     }
 
     // PUT /api/auth/change-password (giriş yapmış kullanıcı)

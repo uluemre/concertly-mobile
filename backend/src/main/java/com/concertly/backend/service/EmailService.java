@@ -1,5 +1,6 @@
 package com.concertly.backend.service;
 
+import com.concertly.backend.config.ExternalHttp;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -30,7 +31,7 @@ public class EmailService {
     private static final Pattern NAMED_ADDRESS = Pattern.compile("^\\s*(.*?)\\s*<\\s*([^>]+?)\\s*>\\s*$");
 
     private final ObjectProvider<JavaMailSender> mailSenderProvider;
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate = ExternalHttp.restTemplate();
 
     @Value("${app.mail.enabled:false}")
     private boolean mailEnabled;

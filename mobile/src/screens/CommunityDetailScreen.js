@@ -386,6 +386,7 @@ export default function CommunityDetailScreen({ route, navigation }) {
                 onChangeText={setDraft}
                 placeholder={t('communities_compose')}
                 placeholderTextColor={colors.textSecondary}
+                maxLength={500}
                 multiline
                 style={styles.composerInput}
               />

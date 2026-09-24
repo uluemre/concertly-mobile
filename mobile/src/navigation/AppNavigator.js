@@ -238,7 +238,12 @@ export default function AppNavigator() {
 
   let initialRoute = 'Login';
   if (session.authToken) {
-    initialRoute = session.isAdmin ? 'Admin' : 'MainApp';
+    // Kayıttan sonra tür/sanatçı seçimini bitirmeden uygulamayı kapatan kullanıcı
+    // bir dahaki açılışta oraya döner (eskiden doğrudan ana sayfaya düşüyordu).
+    // Eski oturumlarda alan hiç yok (undefined) → ana sayfa.
+    initialRoute = session.isAdmin ? 'Admin'
+      : (session.onboardingCompleted === false && !session.favoriteGenres) ? 'GenreSelection'
+      : 'MainApp';
   } else if (showOnboarding) {
     initialRoute = 'Onboarding';
   }

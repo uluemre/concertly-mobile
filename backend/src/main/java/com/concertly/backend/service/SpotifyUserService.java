@@ -1,5 +1,6 @@
 package com.concertly.backend.service;
 
+import com.concertly.backend.config.ExternalHttp;
 import com.concertly.backend.dto.response.SpotifyRecommendationDto;
 import com.concertly.backend.model.Artist;
 import com.concertly.backend.model.SpotifyConnection;
@@ -35,7 +36,7 @@ public class SpotifyUserService {
     private final ArtistRepository artistRepository;
     private final ArtistFollowRepository artistFollowRepository;
     private final SpotifyService spotifyService;
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate = ExternalHttp.restTemplate();
 
     public SpotifyUserService(SpotifyConnectionRepository connectionRepository,
                                UserRepository userRepository,

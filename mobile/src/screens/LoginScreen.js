@@ -79,7 +79,13 @@ export default function LoginScreen({ navigation }) {
         navigation.navigate('VerifyEmail', { email: email.trim() });
         return;
       }
-      Alert.alert(t('error'), t('login_error'));
+      const status = err?.response?.status;
+      const reason = err?.response?.data?.message;
+      Alert.alert(t('error'), t(
+        reason === 'ACCOUNT_BANNED' ? 'login_banned'
+          : status === 429 ? 'auth_too_many'
+          : 'login_error'
+      ));
     } finally {
       setLoading(false);
     }

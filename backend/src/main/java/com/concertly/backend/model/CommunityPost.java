@@ -12,6 +12,8 @@ public class CommunityPost {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(length = ContentLimits.COLUMN_LENGTH)
+
     private String content;
 
     private String postType = "TEXT"; // TEXT, IMAGE, POLL

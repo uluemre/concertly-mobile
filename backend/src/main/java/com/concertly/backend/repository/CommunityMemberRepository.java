@@ -2,6 +2,8 @@ package com.concertly.backend.repository;
 
 import com.concertly.backend.model.CommunityMember;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -37,4 +39,19 @@ public interface CommunityMemberRepository extends JpaRepository<CommunityMember
     // Kullanıcının ACTIVE üye olduğu topluluk id'leri — "joined" bilgisini tek sorguda verir
     @Query("SELECT m.community.id FROM CommunityMember m WHERE m.user.id = :userId AND m.status = 'ACTIVE'")
     Set<Long> findActiveCommunityIdsByUserId(@Param("userId") Long userId);
+
+    /**
+     * Topluluk sistemi v2'den önce eklenen üyelikler: durum/rol kolonları sonradan
+     * geldiği için NULL kaldı; ACTIVE sayımına girmedikleri için "0 üye"
+     * görünüyor ve bu kişiler üye sayılmıyordu. Açılışta bir kez tamamlanır.
+     */
+    @Modifying
+    @Transactional
+    @Query("UPDATE CommunityMember m SET m.status = 'ACTIVE' WHERE m.status IS NULL")
+    int backfillNullStatus();
+
+    @Modifying
+    @Transactional
+    @Query("UPDATE CommunityMember m SET m.role = 'MEMBER' WHERE m.role IS NULL")
+    int backfillNullRole();
 }

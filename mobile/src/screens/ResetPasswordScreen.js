@@ -40,7 +40,13 @@ export default function ResetPasswordScreen({ navigation, route }) {
         { text: t('ok'), onPress: () => navigation.navigate('Login') },
       ]);
     } catch (err) {
-      Alert.alert(t('error'), t('reset_invalid_token'));
+      const reason = err?.response?.data?.message;
+      Alert.alert(t('error'), t(
+        reason === 'CODE_ATTEMPTS_EXCEEDED' ? 'reset_too_many_attempts'
+          : reason === 'CODE_EXPIRED' ? 'reset_code_expired'
+          : reason === 'TOO_MANY_REQUESTS' ? 'auth_too_many'
+          : 'reset_invalid_token'
+      ));
     } finally {
       setLoading(false);
     }

@@ -127,6 +127,7 @@ public class PostService {
 
     // ✅ POST OLUŞTUR
     public PostResponse createPost(Long userId, CreatePostRequest request) {
+        ContentLimits.check(request.getContent(), ContentLimits.POST_MAX);
         contentLimitService.checkPost(userId);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -286,6 +287,7 @@ public class PostService {
         if (!post.getUser().getId().equals(userId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bu postu düzenleyemezsiniz.");
         }
+        ContentLimits.check(content, ContentLimits.POST_MAX);
         post.setContent(content);
         post.setUpdatedAt(LocalDateTime.now());
         return toResponse(postRepository.save(post), userId);

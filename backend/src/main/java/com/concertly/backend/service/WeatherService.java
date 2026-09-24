@@ -1,5 +1,6 @@
 package com.concertly.backend.service;
 
+import com.concertly.backend.config.ExternalHttp;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -27,7 +28,7 @@ public class WeatherService {
     private static final long CACHE_MS = 60 * 60 * 1000L;
     private static final ZoneId ZONE = ZoneId.of("Europe/Istanbul");
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate = ExternalHttp.restTemplate();
     private final Map<String, Cached> cache = new ConcurrentHashMap<>();
 
     private record Cached(Forecast value, long at) {}

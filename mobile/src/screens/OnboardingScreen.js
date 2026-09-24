@@ -219,7 +219,11 @@ export default function OnboardingScreen({ navigation }) {
 
     const goNext = () => {
         if (currentIndex < SLIDES.length - 1) {
-            flatListRef.current?.scrollToIndex({ index: currentIndex + 1, animated: true });
+            // Ofsetle kaydır + indeksi hemen güncelle: scrollToIndex, ölçü
+            // (getItemLayout) olmadan web'de hiç, telefonda bazen çalışmıyordu
+            const next = currentIndex + 1;
+            flatListRef.current?.scrollToOffset({ offset: next * width, animated: true });
+            setCurrentIndex(next);
         } else {
             finish();
         }
@@ -257,6 +261,7 @@ export default function OnboardingScreen({ navigation }) {
                 keyExtractor={item => item.key}
                 horizontal
                 pagingEnabled
+                getItemLayout={(_, index) => ({ length: width, offset: width * index, index })}
                 showsHorizontalScrollIndicator={false}
                 bounces={false}
                 onScroll={Animated.event(

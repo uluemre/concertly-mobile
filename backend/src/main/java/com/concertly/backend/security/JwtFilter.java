@@ -53,6 +53,12 @@ public class JwtFilter extends OncePerRequestFilter {
         if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
+            if (!userDetails.isEnabled()) {
+                // Yasaklı hesap: erişim token'ı süresi dolmamış olsa bile kabul edilmez (→ 401)
+                filterChain.doFilter(request, response);
+                return;
+            }
+
             UsernamePasswordAuthenticationToken authToken =
                     new UsernamePasswordAuthenticationToken(
                             userDetails,

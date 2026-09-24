@@ -13,16 +13,19 @@ import com.concertly.backend.model.User;
 import com.concertly.backend.repository.ArtistFollowRepository;
 import com.concertly.backend.repository.ArtistRepository;
 import com.concertly.backend.repository.UserRepository;
+import com.concertly.backend.security.AuthRateLimiter;
 import com.concertly.backend.security.JwtUtil;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.security.SecureRandom;
 
@@ -38,6 +41,19 @@ public class AuthService {
     private final RefreshTokenService refreshTokenService;
     private final EmailService emailService;
     private final EmailVerificationService emailVerificationService;
+    private final AuthRateLimiter rateLimiter;
+
+    // Şifre sıfırlama: kod süresi ve deneme hakkı (e-posta doğrulamasıyla aynı desen)
+    static final int RESET_CODE_MINUTES = 30;
+    static final int RESET_MAX_ATTEMPTS = 5;
+    // İstek sınırları — asıl koruma e-posta anahtarı; IP sınırları bilerek geniş
+    private static final Duration WINDOW = Duration.ofMinutes(15);
+    static final int LOGIN_PER_EMAIL = 10;
+    static final int LOGIN_PER_IP = 100;
+    static final int FORGOT_PER_EMAIL = 3;
+    static final int FORGOT_PER_IP = 30;
+    static final int RESET_PER_EMAIL = 10;
+    static final int RESET_PER_IP = 60;
 
     private static final SecureRandom RANDOM = new SecureRandom();
 
@@ -49,7 +65,8 @@ public class AuthService {
             AuthenticationManager authenticationManager,
             RefreshTokenService refreshTokenService,
             EmailService emailService,
-            EmailVerificationService emailVerificationService) {
+            EmailVerificationService emailVerificationService,
+            AuthRateLimiter rateLimiter) {
         this.userRepository = userRepository;
         this.artistRepository = artistRepository;
         this.artistFollowRepository = artistFollowRepository;
@@ -59,6 +76,7 @@ public class AuthService {
         this.refreshTokenService = refreshTokenService;
         this.emailService = emailService;
         this.emailVerificationService = emailVerificationService;
+        this.rateLimiter = rateLimiter;
     }
 
     // ✅ KAYIT — şifreyi hash'le, duplicate kontrolü yap
@@ -109,6 +127,12 @@ public class AuthService {
 
     // ✅ GİRİŞ — kimlik doğrula, JWT üret
     public AuthResponse login(LoginRequest request) {
+        return login(request, null);
+    }
+
+    public AuthResponse login(LoginRequest request, String clientIp) {
+        rateLimiter.check("login:ip:" + clientIp, LOGIN_PER_IP, WINDOW);
+        rateLimiter.check("login:email:" + AuthRateLimiter.emailKey(request.getEmail()), LOGIN_PER_EMAIL, WINDOW);
 
         try {
             // Spring Security ile doğrulama yap — hatalıysa exception fırlatır
@@ -116,6 +140,9 @@ public class AuthService {
                     new UsernamePasswordAuthenticationToken(
                             request.getEmail(),
                             request.getPassword()));
+        } catch (DisabledException e) {
+            // Şifre doğru ya da yanlış, yasaklı hesap açılmaz
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "ACCOUNT_BANNED");
         } catch (BadCredentialsException e) {
             throw new BadCredentialsException("Email veya şifre hatalı.");
         }
@@ -143,6 +170,9 @@ public class AuthService {
     }
 
     private AuthResponse issueTokens(User user) {
+        if (Boolean.FALSE.equals(user.getIsActive())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "ACCOUNT_BANNED");
+        }
         String accessToken = jwtUtil.generateToken(user.getId(), user.getEmail());
         RefreshToken refreshToken = refreshTokenService.create(user);
 
@@ -171,6 +201,11 @@ public class AuthService {
         }
 
         User user = refreshToken.getUser();
+        if (Boolean.FALSE.equals(user.getIsActive())) {
+            // Yasaklandıktan sonra elde kalan refresh token ile oturum yenilenemez
+            refreshTokenService.delete(refreshToken);
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "ACCOUNT_BANNED");
+        }
         String newAccessToken = jwtUtil.generateToken(user.getId(), user.getEmail());
 
         boolean isAdmin = user.getRoles() != null && user.getRoles().stream()
@@ -232,14 +267,26 @@ public class AuthService {
         return response;
     }
 
-    @Transactional
     public void forgotPassword(String email) {
+        forgotPassword(email, null);
+    }
+
+    public void forgotPassword(String email, String clientIp) {
+        rateLimiter.check("forgot:ip:" + clientIp, FORGOT_PER_IP, WINDOW);
+        // E-posta sınırı aşıldıysa sessizce hiçbir şey yapma: hem mail bombalamayı
+        // hem de "bu e-posta kayıtlı mı" sızıntısını engeller.
+        if (!rateLimiter.tryAcquire("forgot:email:" + AuthRateLimiter.emailKey(email), FORGOT_PER_EMAIL, WINDOW)) {
+            return;
+        }
         // Kullanıcı sayımına (enumeration) karşı: e-posta kayıtlı olsun olmasın
         // dışarıya aynı (boş) yanıt döner. Kod yalnızca kayıtlı kullanıcıya gider.
-        userRepository.findByEmail(email).ifPresent(user -> {
+        if (email == null) return;
+        userRepository.findByEmail(email.trim()).ifPresent(user -> {
             String token = String.format("%06d", RANDOM.nextInt(1_000_000));
-            user.setResetToken(token);
-            user.setResetTokenExpiry(LocalDateTime.now().plusMinutes(30));
+            // Düz kod saklanmaz; yalnızca özeti. Yeni kod deneme sayacını sıfırlar.
+            user.setResetToken(passwordEncoder.encode(token));
+            user.setResetTokenExpiry(LocalDateTime.now().plusMinutes(RESET_CODE_MINUTES));
+            user.setResetTokenAttempts(0);
             userRepository.save(user);
 
             // Kodu e-posta ile gönder (mail kapalıysa EmailService log'a yazar)
@@ -267,27 +314,52 @@ public class AuthService {
         refreshTokenService.deleteByUser(user);
     }
 
-    @Transactional
     public void resetPassword(String email, String token, String newPassword) {
+        resetPassword(email, token, newPassword, null);
+    }
+
+    /**
+     * Kodla yeni şifre belirler. Bilerek @Transactional DEĞİL: yanlış denemede
+     * artırılan sayaç, ardından fırlatılan hata yüzünden geri alınmamalı
+     * (EmailVerificationService ile aynı gerekçe).
+     */
+    public void resetPassword(String email, String token, String newPassword, String clientIp) {
+        rateLimiter.check("reset:ip:" + clientIp, RESET_PER_IP, WINDOW);
+        rateLimiter.check("reset:email:" + AuthRateLimiter.emailKey(email), RESET_PER_EMAIL, WINDOW);
         if (newPassword == null || newPassword.length() < 6) {
             throw new IllegalArgumentException("Yeni şifre en az 6 karakter olmalı");
         }
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Kullanıcı bulunamadı"));
+        // Kayıtlı olmayan e-posta da "kod geçersiz" gibi görünür (e-posta sızmasın)
+        User user = email == null ? null : userRepository.findByEmail(email.trim()).orElse(null);
+        if (user == null || user.getResetToken() == null || token == null || token.isBlank()) {
+            throw resetInvalid();
+        }
 
-        if (user.getResetToken() == null
-                || !user.getResetToken().equals(token)
-                || user.getResetTokenExpiry() == null
-                || user.getResetTokenExpiry().isBefore(LocalDateTime.now())) {
-            throw new IllegalArgumentException("Kod geçersiz veya süresi dolmuş");
+        int attempts = user.getResetTokenAttempts() == null ? 0 : user.getResetTokenAttempts();
+        if (attempts >= RESET_MAX_ATTEMPTS) {
+            // Kod yakıldı: doğru olsa bile kabul edilmez, yeni kod istenmeli
+            throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "CODE_ATTEMPTS_EXCEEDED");
+        }
+        if (user.getResetTokenExpiry() == null || user.getResetTokenExpiry().isBefore(LocalDateTime.now())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "CODE_EXPIRED");
+        }
+        if (!passwordEncoder.matches(token.trim(), user.getResetToken())) {
+            user.setResetTokenAttempts(attempts + 1);
+            userRepository.save(user);
+            throw resetInvalid();
         }
 
         user.setPassword(passwordEncoder.encode(newPassword));
         user.setResetToken(null);
         user.setResetTokenExpiry(null);
+        user.setResetTokenAttempts(null);
         user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
         // Şifre sıfırlandı → mevcut tüm oturumları geçersiz kıl
         refreshTokenService.deleteByUser(user);
+    }
+
+    private static ResponseStatusException resetInvalid() {
+        return new ResponseStatusException(HttpStatus.BAD_REQUEST, "CODE_INVALID");
     }
 }

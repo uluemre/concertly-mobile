@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.concertly.backend.model.Post;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -132,11 +133,20 @@ public class ArtistService {
         if (genres == null || genres.isEmpty()) {
             return List.of();
         }
-        List<String> lowerGenres = genres.stream()
-                .map(String::toLowerCase)
-                .toList();
+        // Seçim ekranındaki adlar (Electronic, Classical…) kayıtlardaki türlere çevrilir
+        List<String> lowerGenres = EventService.expandGenres(genres);
+        // Popüler (yaklaşan konseri çok olan) sanatçılar üstte; eskiden alfabetikti
+        // ve "7PF2P", "90'lar…" gibi kayıtlar bilinen isimleri aşağı itiyordu.
+        java.util.Map<Long, Long> upcoming = new java.util.HashMap<>();
+        for (Object[] r : eventRepository.topArtistsByUpcomingEvents(
+                LocalDateTime.now(), org.springframework.data.domain.PageRequest.of(0, 1000))) {
+            upcoming.put((Long) r[0], (Long) r[1]);
+        }
         return artistRepository.findByGenreIn(lowerGenres)
                 .stream()
+                .sorted(Comparator.<Artist>comparingLong(a -> upcoming.getOrDefault(a.getId(), 0L)).reversed()
+                        .thenComparing(a -> a.getImageUrl() == null || a.getImageUrl().isBlank())
+                        .thenComparing(a -> a.getName() == null ? "" : a.getName(), String.CASE_INSENSITIVE_ORDER))
                 .map(a -> {
                     long followerCount = artistFollowRepository.countByArtistId(a.getId());
                     boolean isFollowed = currentUserId != null &&

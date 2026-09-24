@@ -97,6 +97,35 @@ public class EventService {
                 .toList();
     }
 
+    /**
+     * Tür seçim ekranındaki adlar (Electronic, Classical, Techno, Metal…) etkinlik
+     * kayıtlarındaki türlerle (elektronik, klasik, rock…) birebir aynı değil;
+     * eşleşme olmayınca öneriler hiç gelmiyordu. Seçilen türe karşılık gelen
+     * etkinlik türlerini de sorguya ekler.
+     */
+    static final java.util.Map<String, List<String>> GENRE_ALIASES = java.util.Map.ofEntries(
+            java.util.Map.entry("electronic", List.of("elektronik")),
+            java.util.Map.entry("techno", List.of("elektronik")),
+            java.util.Map.entry("lo-fi", List.of("elektronik")),
+            java.util.Map.entry("classical", List.of("klasik")),
+            java.util.Map.entry("metal", List.of("rock")),
+            java.util.Map.entry("indie", List.of("rock", "alternatif rock")),
+            java.util.Map.entry("alternatif rock", List.of("rock")),
+            java.util.Map.entry("türkçe rock", List.of("rock")),
+            java.util.Map.entry("k-pop", List.of("pop")),
+            java.util.Map.entry("arabesk", List.of("folk")));
+
+    public static List<String> expandGenres(List<String> genres) {
+        java.util.LinkedHashSet<String> out = new java.util.LinkedHashSet<>();
+        for (String g : genres) {
+            if (g == null || g.isBlank()) continue;
+            String key = g.trim().toLowerCase(java.util.Locale.ROOT);   // tr kuralı "Indie"yi "ındie" yapardı
+            out.add(key);
+            out.addAll(GENRE_ALIASES.getOrDefault(key, List.of()));
+        }
+        return List.copyOf(out);
+    }
+
     public List<EventResponse> getRecommendedEvents(String city, List<String> genres) {
         if (city != null && !city.isBlank() && !launchCityConfig.contains(city)) {
             return List.of();
@@ -104,9 +133,7 @@ public class EventService {
         if (genres == null || genres.isEmpty()) {
             return getAllEvents(city);
         }
-        List<String> lowerGenres = genres.stream()
-                .map(String::toLowerCase)
-                .toList();
+        List<String> lowerGenres = expandGenres(genres);
         String queryCity = (city == null || city.isBlank()) ? launchCityConfig.firstCity() : city;
 
         List<Event> matching = new java.util.ArrayList<>(eventRepository.findByVenueCityAndGenreIn(queryCity, lowerGenres));

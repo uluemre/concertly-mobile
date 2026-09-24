@@ -39,8 +39,9 @@ public class User {
 
     private Boolean isActive = true;
 
-    private String resetToken;
+    private String resetToken;              // şifre sıfırlama kodunun BCrypt özeti (düz kod saklanmaz)
     private LocalDateTime resetTokenExpiry;
+    private Integer resetTokenAttempts;     // yanlış deneme sayısı; sınırda kod geçersizleşir
 
     // ── E-posta doğrulama ────────────────────────────────────────────────────
     // null = bu özellikten önce açılmış hesap → doğrulanmış sayılır.
@@ -194,6 +195,8 @@ public class User {
     public void setResetToken(String resetToken) { this.resetToken = resetToken; }
     public LocalDateTime getResetTokenExpiry() { return resetTokenExpiry; }
     public void setResetTokenExpiry(LocalDateTime resetTokenExpiry) { this.resetTokenExpiry = resetTokenExpiry; }
+    public Integer getResetTokenAttempts() { return resetTokenAttempts; }
+    public void setResetTokenAttempts(Integer resetTokenAttempts) { this.resetTokenAttempts = resetTokenAttempts; }
 
     public Boolean getEmailVerified() { return emailVerified; }
     public void setEmailVerified(Boolean emailVerified) { this.emailVerified = emailVerified; }

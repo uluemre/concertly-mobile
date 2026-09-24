@@ -47,6 +47,7 @@ public class CommentService {
         if (request.getContent() == null || request.getContent().isBlank()) {
             throw new IllegalArgumentException("Yorum içeriği boş olamaz.");
         }
+        ContentLimits.check(request.getContent(), ContentLimits.COMMENT_MAX);
         contentLimitService.checkComment(userId);
 
         Comment comment = new Comment();
