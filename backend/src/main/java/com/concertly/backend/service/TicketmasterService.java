@@ -717,7 +717,6 @@ public class TicketmasterService {
         return isBlank(url) ? null : url;
     }
 
-    @SuppressWarnings("unchecked")
     /** TM "segment" (Music, Arts & Theatre, Sports, Miscellaneous…); yoksa null. */
     @SuppressWarnings("unchecked")
     private String extractSegment(Map<String, Object> event) {
@@ -731,6 +730,7 @@ public class TicketmasterService {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private String extractGenre(Map<String, Object> event) {
         try {
             List<Map<String, Object>> classifications = (List<Map<String, Object>>) event.get("classifications");
