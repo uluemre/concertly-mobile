@@ -11,6 +11,7 @@ import { ProfileSkeletonPage } from '../components/SkeletonLoader';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { parseEventDate } from '../utils/time';
+import { goBackOrFallback, openEvent } from '../navigation/navHelpers';
 
 const { width } = Dimensions.get('window');
 const DAY_SIZE = Math.floor((width - 32) / 7);
@@ -182,7 +183,7 @@ export default function VenueProfileScreen({ route, navigation }) {
             <LinearGradient colors={['#1A1A2E', '#7C3AED']} style={styles.headerImage} />
           )}
           <LinearGradient colors={['transparent', 'rgba(0,0,0,0.85)']} style={styles.headerGradient} />
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.backBtn}>
             <Text style={styles.backBtnText}>←</Text>
           </TouchableOpacity>
           <View style={styles.headerInfo}>
@@ -243,7 +244,7 @@ export default function VenueProfileScreen({ route, navigation }) {
                   key={idx}
                   style={[styles.calCell, { width: DAY_SIZE, height: DAY_SIZE + 12 }]}
                   disabled={!firstEvent}
-                  onPress={() => firstEvent && navigation.navigate('EventDetail', { event: firstEvent })}
+                  onPress={() => firstEvent && openEvent(navigation, firstEvent)}
                   activeOpacity={0.75}
                 >
                   {firstEvent?.imageUrl ? (

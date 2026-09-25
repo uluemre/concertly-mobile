@@ -191,6 +191,11 @@ public class AuthService {
                 isAdmin);
     }
 
+    // RefreshToken.user LAZY ve open-in-view kapalı: transaction olmadan user.getEmail()
+    // "could not initialize proxy - no session" ile 500 veriyordu (her yenileme başarısız,
+    // kullanıcı Login'e atılıyordu). noRollbackFor: süresi dolmuş/yasaklı yolda token
+    // silinip hata fırlatılıyor; silme geri alınmasın.
+    @Transactional(noRollbackFor = { BadCredentialsException.class, ResponseStatusException.class })
     public AuthResponse refreshToken(String refreshTokenStr) {
         RefreshToken refreshToken = refreshTokenService.findByToken(refreshTokenStr)
                 .orElseThrow(() -> new BadCredentialsException("Geçersiz refresh token."));

@@ -1,6 +1,7 @@
 package com.concertly.backend.dto.response;
 
 import com.concertly.backend.model.Artist;
+import com.concertly.backend.model.ImageUrls;
 
 public class ArtistResponse {
 
@@ -24,7 +25,7 @@ public class ArtistResponse {
         dto.name                    = artist.getName();
         dto.genre                   = artist.getGenre();
         dto.genreTags               = artist.getGenreTags();
-        dto.imageUrl                = artist.getImageUrl();
+        dto.imageUrl                = ImageUrls.usable(artist.getImageUrl());
         dto.externalId              = artist.getExternalId();
         dto.spotifyId               = artist.getSpotifyId();
         dto.popularity              = artist.getPopularity();

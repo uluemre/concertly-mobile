@@ -7,6 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
+import { goBackOrFallback } from '../navigation/navHelpers';
 
 const FILTERS = [
   { key: 'all',    labelKey: 'admin_filter_all' },
@@ -192,7 +193,7 @@ export default function AdminUsersScreen({ navigation }) {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* HEADER */}
       <LinearGradient colors={colors.headerGradient} style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation, 'Admin')}>
           <Text style={[styles.backText, { color: colors.primary }]}>{t('back')}</Text>
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>{t('admin_users_title')}</Text>

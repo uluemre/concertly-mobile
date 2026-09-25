@@ -2,6 +2,7 @@ package com.concertly.backend.model;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -37,8 +38,9 @@ public class Post {
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Media> mediaList;
 
+    // Boş liste ile başlar: createPost aynı transaction'da seçenekleri buraya ekler
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<PollOption> pollOptions;
+    private List<PollOption> pollOptions = new ArrayList<>();
 
     // Getters/Setters...
     public Long getId() { return id; }

@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
 import { stopPlayer } from '../utils/audio';
+import { goBackOrFallback } from '../navigation/navHelpers';
 
 const QUESTION_TIME = 10000; // soru başına 10 sn
 const FEEDBACK_DELAY = 900;  // doğru/yanlış rengini gösterme süresi
@@ -244,7 +245,7 @@ export default function SongQuizScreen({ navigation }) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <LinearGradient colors={colors.headerGradient} style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
+          <TouchableOpacity onPress={() => goBackOrFallback(navigation)}>
             <Text style={[styles.backText, { color: colors.primary }]}>{t('back')}</Text>
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: colors.text }]}>{t('quiz_title')}</Text>

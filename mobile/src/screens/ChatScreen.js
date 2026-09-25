@@ -9,6 +9,7 @@ import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
+import { goBackOrFallback } from '../navigation/navHelpers';
 
 function formatClock(dateStr, lang) {
   if (!dateStr) return '';
@@ -100,7 +101,7 @@ export default function ChatScreen({ navigation, route }) {
               try {
                 await API.post(`/users/${userId}/block`);
                 Alert.alert('', t('mod_blocked_msg'));
-                navigation.goBack();
+                goBackOrFallback(navigation);
               } catch {
                 Alert.alert('', t('mod_error'));
               }
@@ -147,7 +148,7 @@ export default function ChatScreen({ navigation, route }) {
     >
       {/* HEADER */}
       <LinearGradient colors={colors.headerGradient} style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <Text style={[styles.backText, { color: colors.primary }]}>‹</Text>
         </TouchableOpacity>
         <TouchableOpacity

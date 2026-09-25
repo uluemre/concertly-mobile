@@ -14,12 +14,13 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByUsername(String username);
 
-    // 🔥 SEARCH EKLENDİ
-    @Query("""
-                SELECT u FROM User u
-                WHERE LOWER(u.username) LIKE LOWER(CONCAT('%', :q, '%'))
-                OR LOWER(u.email) LIKE LOWER(CONCAT('%', :q, '%'))
-                ORDER BY u.username ASC
-            """)
-    List<User> search(@Param("q") String q);
+    // 🔥 SEARCH — yalnızca herkese açık kullanıcı adı; e-posta ile kullanıcı bulunamaz (gizlilik)
+    default List<User> search(String q) {
+        return searchByPattern(SearchText.containsPattern(q));
+    }
+
+    @Query("SELECT u FROM User u"
+            + " WHERE " + SearchText.FOLD_OPEN + "u.username" + SearchText.FOLD_CLOSE + " LIKE :pattern ESCAPE '!'"
+            + " ORDER BY u.username ASC")
+    List<User> searchByPattern(@Param("pattern") String pattern);
 }

@@ -77,6 +77,19 @@ export function setApiRefreshToken(token) {
   _refreshToken = token;
 }
 
+/**
+ * Çıkışta refresh token'ı sunucuda geçersiz kılar; yoksa çıkıştan sonra da
+ * eski token ile yeni oturum alınabiliyordu. Hata yutulur: çıkış her durumda
+ * tamamlanmalı (kısa timeout — uyuyan sunucu çıkışı bekletmesin).
+ */
+export async function revokeRefreshToken() {
+  const token = _refreshToken;
+  if (!token) return;
+  try {
+    await API.post('/auth/logout', { refreshToken: token }, { timeout: 10000 });
+  } catch {}
+}
+
 // Session sona erdiğinde çağrılacak callback (logout + navigate)
 let _onSessionExpired = null;
 export function setSessionExpiredHandler(cb) {
@@ -87,6 +100,14 @@ export function setSessionExpiredHandler(cb) {
 let _onTokenRefreshed = null;
 export function setTokenRefreshedHandler(cb) {
   _onTokenRefreshed = cb;
+}
+
+// Oturum gerektirmeyen, kimlik bilgisi alan auth uçları. Buralardan gelen 401
+// oturumun bittiği anlamına gelmez. (/auth/onboarding, /auth/change-password ve
+// /auth/logout oturum ister; onlar normal 401 akışında kalır.)
+const CREDENTIAL_ENDPOINTS = /\/auth\/(login|register|refresh|logout|verify-email|resend-verification|forgot-password|reset-password)(\?|$)/;
+function isCredentialEndpoint(url) {
+  return CREDENTIAL_ENDPOINTS.test(String(url || ''));
 }
 
 // Eş zamanlı refresh denemelerini engellemek için kuyruk
@@ -125,8 +146,12 @@ API.interceptors.response.use(
       console.error('Ağ hatası: Backend çalışmıyor veya IP yanlış. URL:', BASE_URL);
     }
 
-    // 401 — token geçersiz veya süresi dolmuş
-    if (status === 401) {
+    // 401 — token geçersiz veya süresi dolmuş.
+    // Kimlik bilgisi alan uçlardaki 401 ise "şifre/kod yanlış" demektir, oturumla
+    // ilgisi yoktur: refresh/oturum-sonu akışına sokulmaz, hata olduğu gibi ekrana
+    // döner. (Eskiden yanlış şifre logout + Login'e reset tetikliyor, form
+    // temizleniyor ve kullanıcı gerçek hata mesajını göremiyordu.)
+    if (status === 401 && !isCredentialEndpoint(originalRequest?.url)) {
       if (_refreshToken && !originalRequest._retry) {
         // Refresh token var → yenilenmeyi dene
         if (_isRefreshing) {

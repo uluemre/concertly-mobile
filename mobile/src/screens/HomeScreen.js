@@ -17,9 +17,11 @@ import FeaturedCard from '../components/home/FeaturedCard';
 import HomePostCard from '../components/home/HomePostCard';
 import NextConcertCard from '../components/home/NextConcertCard';
 import EventRail from '../components/home/EventRail';
-import { GENRE_SHORTCUTS } from '../constants/genres';
 import { LAUNCH_CITIES, launchCityOrNull } from '../constants/cities';
 import { parseEventDate } from '../utils/time';
+import { foldSearch } from '../utils/text';
+import { openEvent } from '../navigation/navHelpers';
+import { usePostUpdates } from '../services/postUpdates';
 
 const { width } = Dimensions.get('window');
 const FEATURED_CARD_WIDTH = width * 0.78;
@@ -35,6 +37,8 @@ export default function HomeScreen({ navigation }) {
 
   const [events, setEvents] = useState([]);
   const [posts, setPosts] = useState([]);
+  // PostDetail'de değişen beğeni / yorum sayıları geri dönünce burada da görünsün
+  usePostUpdates(setPosts);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [search, setSearch] = useState('');
@@ -102,14 +106,18 @@ export default function HomeScreen({ navigation }) {
     url += '?' + params.join('&');
 
     setLoading(true);
-    Promise.all([API.get(url), API.get('/posts/feed/trending')])
+    // allSettled: tek bir bölüm (ör. trend postlar) hata verirse ekranın geri kalanı yine gelsin
+    Promise.allSettled([API.get(url), API.get('/posts/feed/trending')])
       .then(([evRes, postRes]) => {
         if (!isMounted.current) return;
-        setEvents(evRes.data);
-        setPosts(postRes.data);
-        setError(null);
+        if (evRes.status === 'fulfilled') setEvents(evRes.value.data);
+        if (postRes.status === 'fulfilled') setPosts(postRes.value.data);
+        const failed = [evRes, postRes].find(r => r.status === 'rejected');
+        if (!failed) { setError(null); return; }
+        // Sunucu hatasının ham (teknik) mesajı kullanıcıya gösterilmez
+        const serverError = (failed.reason?.response?.status ?? 0) >= 500;
+        setError(serverError ? t('home_load_error') : getErrorMessage(failed.reason));
       })
-      .catch(err => { if (isMounted.current) setError(getErrorMessage(err)); })
       .finally(() => {
         if (isMounted.current) setLoading(false);
       });
@@ -123,13 +131,14 @@ export default function HomeScreen({ navigation }) {
 
   const filteredEvents = useMemo(() => {
     const today = new Date(); today.setHours(0, 0, 0, 0);
-    const q = search.trim().toLowerCase();
+    // Türkçe harf / büyük-küçük harf duyarsız ("sebnem" → "Şebnem", "istanbul" → "İstanbul")
+    const q = foldSearch(search.trim());
     const list = events.filter(e => {
       if (parseEventDate(e.eventDate) < today) return false;
       return !q ||
-        e.name?.toLowerCase().includes(q) ||
-        e.artistName?.toLowerCase().includes(q) ||
-        e.venueCity?.toLowerCase().includes(q);
+        foldSearch(e.name).includes(q) ||
+        foldSearch(e.artistName).includes(q) ||
+        foldSearch(e.venueCity).includes(q);
     });
     // Takip edilen sanatçıların etkinliklerini öne al (stabil sıralama)
     if (followedArtistIds.size > 0) {
@@ -163,23 +172,18 @@ export default function HomeScreen({ navigation }) {
     [filteredEvents, followedArtistIds]
   );
 
-  const openGenre = useCallback(
-    genre => navigation.navigate('MainApp', { screen: 'Events', params: { genre } }),
-    [navigation]
-  );
-
   const filteredPosts = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = foldSearch(search.trim());
     if (!q) return posts;
     return posts.filter(p =>
-      p.content?.toLowerCase().includes(q) ||
-      p.username?.toLowerCase().includes(q) ||
-      p.eventName?.toLowerCase().includes(q)
+      foldSearch(p.content).includes(q) ||
+      foldSearch(p.username).includes(q) ||
+      foldSearch(p.eventName).includes(q)
     );
   }, [posts, search]);
 
   const handleNavigateToEvent = useCallback(
-    ev => navigation.navigate('EventDetail', { event: ev }),
+    ev => openEvent(navigation, ev),
     [navigation]
   );
 
@@ -305,24 +309,6 @@ export default function HomeScreen({ navigation }) {
           onPressEvent={handleNavigateToEvent}
         />
 
-        {/* TÜRE GÖRE KEŞFET */}
-        <View style={styles.genreSection}>
-          <View style={[styles.sectionTitleRow, styles.genreSectionHead]}>
-            <View style={[styles.sectionAccent, { backgroundColor: colors.accent }]} />
-            <Text style={styles.sectionTitle}>{t('search_by_genre')}</Text>
-          </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.genreRow}>
-            {GENRE_SHORTCUTS.map(g => (
-              <TouchableOpacity key={g.name} onPress={() => openGenre(g.name)} activeOpacity={0.85}>
-                <LinearGradient colors={g.colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.genreChip}>
-                  <Text style={styles.genreChipEmoji}>{g.emoji}</Text>
-                  <Text style={styles.genreChipText}>{g.name}</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-
         {/* GÜNLÜK ŞARKI WIDGET */}
         <TouchableOpacity
           onPress={() => navigation.navigate('DailySong')}
@@ -437,12 +423,6 @@ function createStyles(colors) {
     loadingText: { color: colors.textSecondary, fontSize: 14 },
     header: { paddingTop: 60, paddingBottom: 22, paddingHorizontal: 20 },
     headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-    genreSection: { marginTop: 22 },
-    genreSectionHead: { paddingHorizontal: 20, marginBottom: 12 },
-    genreRow: { paddingHorizontal: 20, gap: 10 },
-    genreChip: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 9 },
-    genreChipEmoji: { fontSize: 16 },
-    genreChipText: { color: '#fff', fontSize: 14, fontWeight: '800' },
     headerBrand: { fontSize: 30, fontWeight: '900', color: colors.text, letterSpacing: -0.5 },
     cityRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4, alignSelf: 'flex-start' },
     cityRowText: { fontSize: 13, color: colors.textSecondary, fontWeight: '600' },
@@ -477,7 +457,7 @@ function createStyles(colors) {
     featuredList: { paddingRight: 20, gap: 14, paddingBottom: 4 },
     moreBtn: { marginTop: 4, paddingVertical: 14, borderRadius: 14, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, alignItems: 'center' },
     moreBtnText: { color: colors.textSecondary, fontSize: 13, fontWeight: '700' },
-    dailyWidget: { marginHorizontal: 16, marginTop: 12, marginBottom: 4, borderRadius: 16, overflow: 'hidden' },
+    dailyWidget: { marginHorizontal: 16, marginTop: 22, marginBottom: 4, borderRadius: 16, overflow: 'hidden' },
     dailyWidgetGrad: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14 },
     dailyLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
     dailyTextCol: { flex: 1 },

@@ -8,6 +8,7 @@ import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
 import { formatTimeAgo } from '../utils/time';
+import { goBackOrFallback } from '../navigation/navHelpers';
 
 const POST_TYPE_CONFIG = {
   TEXT:  { icon: '💬', labelKey: 'admin_type_text', color: '#7C3AED' },
@@ -127,7 +128,7 @@ export default function AdminPostsScreen({ navigation }) {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* HEADER */}
       <LinearGradient colors={colors.headerGradient} style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation, 'Admin')}>
           <Text style={[styles.backText, { color: colors.primary }]}>{t('back')}</Text>
         </TouchableOpacity>
         <View style={styles.headerTop}>

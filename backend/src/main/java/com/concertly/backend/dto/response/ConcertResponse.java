@@ -2,6 +2,7 @@ package com.concertly.backend.dto.response;
 
 import com.concertly.backend.model.Event;
 import com.concertly.backend.model.EventSourceLink;
+import com.concertly.backend.model.ImageUrls;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -62,14 +63,14 @@ public class ConcertResponse {
         dto.name = event.getName();
         dto.eventDate = event.getEventDate();
         dto.genre = event.getGenre();
-        dto.imageUrl = event.getImageUrl();
+        dto.imageUrl = ImageUrls.usable(event.getImageUrl());
         dto.ticketUrl = event.getTicketUrl();
         dto.isVerified = event.getIsVerified();
 
         if (event.getArtist() != null) {
             dto.artistId = event.getArtist().getId();
             dto.artistName = event.getArtist().getName();
-            dto.artistImageUrl = event.getArtist().getImageUrl();
+            dto.artistImageUrl = ImageUrls.usable(event.getArtist().getImageUrl());
         }
         if (event.getVenue() != null) {
             dto.venueId = event.getVenue().getId();
@@ -81,6 +82,73 @@ public class ConcertResponse {
         }
         dto.ticketLinks = buildTicketLinks(event, sourceLinks);
         return dto;
+    }
+
+    /**
+     * Ayni konserin birden fazla kaydini (orn. Ticketmaster + Biletinial ya da
+     * Ticketmaster'in ayni konser icin actigi ikinci kimlik) TEK kart olarak
+     * sunar. Veri degismez; yalnizca cevap birlestirilir.
+     *
+     * @param canonical listede gosterilecek kayit (merge kuralindaki asil kayit)
+     * @param members   grubun tum kayitlari, canonical dahil
+     * @param links     gruptaki kayitlarin kaynak satirlari
+     */
+    public static ConcertResponse fromGroup(Event canonical, List<Event> members, List<EventSourceLink> links) {
+        ConcertResponse dto = from(canonical, List.of());
+        List<Event> ordered = new ArrayList<>();
+        ordered.add(canonical);
+        for (Event m : members) if (m != canonical) ordered.add(m);
+
+        dto.ticketLinks = resolveTicketLinks(ordered, links);
+        dto.ticketUrl = dto.ticketLinks.isEmpty() ? null : dto.ticketLinks.get(0).url();
+        for (Event m : ordered) {
+            if (dto.imageUrl == null) dto.imageUrl = ImageUrls.usable(m.getImageUrl());
+            if (dto.genre == null || dto.genre.isBlank()) dto.genre = m.getGenre();
+        }
+        return dto;
+    }
+
+    /** Bir kaynagin satiri, gruptaki en taze satirdan bu kadar gun geride kaldiysa bayat sayilir. */
+    static final long STALE_LINK_DAYS = 3;
+
+    /**
+     * Grubun bilet adresleri: asil kayit once, her kaydin kendi adresi ve kaynak
+     * satirlari. Bir kaynak gece senkronunda artik gorulmuyorsa (last_seen_at
+     * digerlerinin gerisinde kaldiysa) adresi eskimis olabilir; gosterilmez.
+     * Karsilastirma goreli: sunucu birkac gun uyusa bile tum adresler birden
+     * elenmez.
+     */
+    public static List<TicketLink> resolveTicketLinks(List<Event> events, List<EventSourceLink> links) {
+        List<EventSourceLink> all = links == null ? List.of() : links;
+        LocalDateTime newest = all.stream().map(EventSourceLink::getLastSeenAt)
+                .filter(java.util.Objects::nonNull).max(LocalDateTime::compareTo).orElse(null);
+        java.util.Set<String> stale = new java.util.HashSet<>();
+        java.util.Set<String> fresh = new java.util.HashSet<>();
+        for (EventSourceLink l : all) {
+            if (l.getTicketUrl() == null || l.getTicketUrl().isBlank()) continue;
+            boolean isStale = newest != null && l.getLastSeenAt() != null
+                    && l.getLastSeenAt().isBefore(newest.minusDays(STALE_LINK_DAYS));
+            (isStale ? stale : fresh).add(l.getTicketUrl().trim());
+        }
+
+        Map<String, TicketLink> byUrl = new LinkedHashMap<>();
+        for (Event e : events) {
+            String own = e.getTicketUrl() == null ? null : e.getTicketUrl().trim();
+            if (own != null && !(stale.contains(own) && !fresh.contains(own))) addLink(byUrl, own);
+            all.stream()
+                    .filter(l -> l.getEvent() != null && e.getId() != null && e.getId().equals(l.getEvent().getId()))
+                    .sorted(java.util.Comparator.comparing(l -> !l.getIsPrimary()))
+                    .forEach(l -> {
+                        String url = l.getTicketUrl() == null ? null : l.getTicketUrl().trim();
+                        if (url != null && fresh.contains(url)) addLink(byUrl, url);
+                    });
+        }
+        // Site basina tek secenek: Ticketmaster ayni konseri birden fazla kimlikle
+        // acabiliyor; kullaniciya uc ayri "Biletix" gostermeyiz. Ilk adres (asil
+        // kaydinki) kalir.
+        Map<String, TicketLink> bySite = new LinkedHashMap<>();
+        for (TicketLink l : byUrl.values()) bySite.putIfAbsent(l.label(), l);
+        return new ArrayList<>(bySite.values());
     }
 
     /**

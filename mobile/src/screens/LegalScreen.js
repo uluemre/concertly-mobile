@@ -5,6 +5,7 @@ import {
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import { LEGAL_CONTENT } from '../constants/legalContent';
+import { goBackOrFallback } from '../navigation/navHelpers';
 
 export default function LegalScreen({ navigation, route }) {
   const { colors } = useTheme();
@@ -17,7 +18,7 @@ export default function LegalScreen({ navigation, route }) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.backBtn}>
           <Text style={styles.backText}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>{content.title}</Text>

@@ -9,6 +9,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import API, { getErrorMessage } from '../services/api';
 import CityPicker from '../components/CityPicker';
+import { goBackOrFallback } from '../navigation/navHelpers';
 
 const TYPES = ['Rock', 'Festival', 'Elektronik', 'Şehir', 'Caz', 'Pop', 'Rap', 'Diğer'];
 
@@ -79,7 +80,7 @@ export default function CreateCommunityScreen({ navigation }) {
     >
       <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <LinearGradient colors={[theme.start, theme.end]} style={styles.hero}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.backButton}>
             <Text style={styles.backText}>{t('back')}</Text>
           </TouchableOpacity>
           <Text style={styles.heroEmoji}>{theme.emoji}</Text>

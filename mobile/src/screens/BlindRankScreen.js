@@ -9,6 +9,7 @@ import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
 import { stopPlayer } from '../utils/audio';
+import { goBackOrFallback } from '../navigation/navHelpers';
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
@@ -135,7 +136,7 @@ export default function BlindRankScreen({ navigation }) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <LinearGradient colors={colors.headerGradient} style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
+          <TouchableOpacity onPress={() => goBackOrFallback(navigation)}>
             <Text style={[styles.backText, { color: colors.primary }]}>{t('back')}</Text>
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: colors.text }]}>{t('blind_title')}</Text>

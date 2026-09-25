@@ -10,7 +10,9 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
 import DeepLinkLoader from '../components/DeepLinkLoader';
+import { publishPostUpdate } from '../services/postUpdates';
 import { formatTimeAgo } from '../utils/time';
+import { goBackOrFallback, openEvent } from '../navigation/navHelpers';
 
 const GRADIENTS = [
   ['#E94560', '#7C3AED'],
@@ -41,6 +43,10 @@ function PostDetailContent({ route, navigation }) {
 
   const isOwner = post.userId === session.userId;
 
+  // Yorum silme callback'i eski kapanıştan okumasın diye güncel yorum sayısı
+  const commentCountRef = useRef(post.commentCount || 0);
+  commentCountRef.current = post.commentCount || 0;
+
   useEffect(() => {
     fetchComments();
   }, []);
@@ -64,15 +70,13 @@ function PostDetailContent({ route, navigation }) {
       Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 200 }),
     ]).start();
     try {
-      if (liked) {
-        await API.delete(`/posts/${post.id}/like`);
-        setLiked(false);
-        setLikeCount(prev => Math.max(0, prev - 1));
-      } else {
-        await API.post(`/posts/${post.id}/like`);
-        setLiked(true);
-        setLikeCount(prev => prev + 1);
-      }
+      if (liked) await API.delete(`/posts/${post.id}/like`);
+      else await API.post(`/posts/${post.id}/like`);
+      const nextCount = liked ? Math.max(0, likeCount - 1) : likeCount + 1;
+      setLiked(!liked);
+      setLikeCount(nextCount);
+      // Geri dönülen akış / ana sayfa kartı da güncel sayıyı göstersin
+      publishPostUpdate(post.id, { likedByMe: !liked, likeCount: nextCount });
     } catch (err) {
       console.log('Like hatası:', err.message);
     } finally {
@@ -90,7 +94,9 @@ function PostDetailContent({ route, navigation }) {
       });
       setText('');
       setComments(prev => [...prev, res.data]);
-      setPost(prev => ({ ...prev, commentCount: (prev.commentCount || 0) + 1 }));
+      const nextComments = commentCountRef.current + 1;
+      setPost(prev => ({ ...prev, commentCount: nextComments }));
+      publishPostUpdate(post.id, { commentCount: nextComments });
       setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
     } catch {
       Alert.alert(t('error'), t('postdetail_error'));
@@ -107,7 +113,9 @@ function PostDetailContent({ route, navigation }) {
           try {
             await API.delete(`/posts/${post.id}/comments/${commentId}`);
             setComments(prev => prev.filter(c => c.id !== commentId));
-            setPost(prev => ({ ...prev, commentCount: Math.max(0, (prev.commentCount || 0) - 1) }));
+            const nextComments = Math.max(0, commentCountRef.current - 1);
+            setPost(prev => ({ ...prev, commentCount: nextComments }));
+            publishPostUpdate(post.id, { commentCount: nextComments });
           } catch {
             Alert.alert(t('error'), t('postdetail_del_error'));
           }
@@ -194,7 +202,7 @@ function PostDetailContent({ route, navigation }) {
       {post.eventName && (
         <TouchableOpacity
           style={styles.eventTag}
-          onPress={() => post.eventId && navigation.navigate('EventDetail', { event: { id: post.eventId, name: post.eventName } })}
+          onPress={() => openEvent(navigation, post.eventId)}
           activeOpacity={0.8}
         >
           <Text style={styles.eventTagText}>🎵 {post.eventName}</Text>
@@ -230,7 +238,7 @@ function PostDetailContent({ route, navigation }) {
     <View style={styles.container}>
       {/* Header */}
       <LinearGradient colors={colors.headerGradient} style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.backBtn}>
           <Text style={[styles.backText, { color: colors.primary }]}>{t('back')}</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('postdetail_title')}</Text>

@@ -19,3 +19,15 @@ export function getGenreGradient(genre) {
   );
   return GENRE_GRADIENTS[key] || ['#E94560', '#7C3AED'];
 }
+
+function luminance(hex) {
+  const n = parseInt(String(hex).replace('#', '').slice(0, 6), 16);
+  const r = (n >> 16) & 255, gr = (n >> 8) & 255, b = n & 255;
+  return 0.2126 * r + 0.7152 * gr + 0.0722 * b;
+}
+
+/** Karanlık zeminde okunabilir tek tür rengi: degradenin daha açık ucu. */
+export function genreAccent(genre) {
+  const [a, b] = getGenreGradient(genre);
+  return luminance(a) >= luminance(b) ? a : b;
+}

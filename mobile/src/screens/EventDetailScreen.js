@@ -14,13 +14,14 @@ import * as Calendar from 'expo-calendar/legacy';
 import API from '../services/api';
 import DeepLinkLoader from '../components/DeepLinkLoader';
 import { buildShareUrl, shareWithLink } from '../services/shareLinks';
-import { resolveTicketLinks, ticketButtonLabel } from '../services/concerts';
+import { resolveTicketLinks, ticketSiteHost } from '../services/concerts';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { getGenreGradient } from '../utils/gradients';
 import { formatTimeAgo, parseEventDate } from '../utils/time';
 import ConfettiOverlay from '../components/ConfettiOverlay';
+import { goBackOrFallback } from '../navigation/navHelpers';
 
 function getInitials(name) {
   if (!name) return '?';
@@ -426,19 +427,39 @@ function EventDetailContent({ route, navigation }) {
     ]);
   };
 
-  // Konser birden fazla bilet sitesinde satiliyorsa hepsi listelenir; tek
-  // adres varsa mevcut tek butonlu davranis korunur.
-  const ticketLinks = useMemo(() => resolveTicketLinks(event), [event]);
+  // Bilet adresleri sunucudan: konserin kendi kaynakları + henüz
+  // birleştirilmemiş kopyalarının kaynakları (ör. aynı konser hem Biletix hem
+  // Biletinial'de). Eskiden hangi kopyanın kartına basıldıysa yalnızca o
+  // siteye gidiliyordu. İstek bitene / başarısız olana kadar eldeki veri kullanılır.
+  const [serverTicketLinks, setServerTicketLinks] = useState(null);
+  useEffect(() => {
+    if (!event?.id) return undefined;
+    let alive = true;
+    API.get(`/concerts/${event.id}/tickets`)
+      .then(res => { if (alive && Array.isArray(res.data)) setServerTicketLinks(res.data); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [event?.id]);
+  const ticketLinks = useMemo(() => {
+    const fromServer = resolveTicketLinks({ ticketLinks: serverTicketLinks || [] });
+    return fromServer.length ? fromServer : resolveTicketLinks(event);
+  }, [serverTicketLinks, event]);
+  const [ticketSheetVisible, setTicketSheetVisible] = useState(false);
 
   const openTicket = async (url) => {
     const target = url || ticketLinks[0]?.url;
     if (!target) return;
-    const supported = await Linking.canOpenURL(target);
-    if (supported) {
+    try {
       await Linking.openURL(target);
-    } else {
+    } catch {
       Alert.alert(t('error'), t('detail_ticket_link_error'));
     }
+  };
+
+  // Tek site: doğrudan o site. Birden fazla: kullanıcı seçsin (rastgele biri değil).
+  const onTicketPress = () => {
+    if (ticketLinks.length > 1) setTicketSheetVisible(true);
+    else openTicket(ticketLinks[0]?.url);
   };
 
   // Kaynağı doğrulanmış etkinlik (Ticketmaster, organizatör hesabı ya da
@@ -454,10 +475,16 @@ function EventDetailContent({ route, navigation }) {
     shareWithLink(`🎫 ${event.name}${venue}`, buildShareUrl('event', event.id));
   };
 
+  // Uzun etkinlik adı (festival kadrosu vb.) başlığı hero'nun üstüne taşırıp geri / paylaş /
+  // takvim / kaydet butonlarını kapatıyordu: en fazla 2 satır, uzun adlarda daha küçük yazı.
+  const heroTitleStyle = (event.name || '').length > 32
+    ? [styles.heroTitle, styles.heroTitleLong]
+    : styles.heroTitle;
+
   // Hero üstü aksiyonlar — sol: geri, sağ: bilet / takvim / kaydet (ikon butonlar)
   const heroActions = (
     <View style={styles.heroTopActions}>
-      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+      <TouchableOpacity style={styles.backButton} onPress={() => goBackOrFallback(navigation)}>
         <Text style={styles.backText}>{t('back')}</Text>
       </TouchableOpacity>
       <View style={styles.heroIconRow}>
@@ -511,7 +538,7 @@ function EventDetailContent({ route, navigation }) {
 
           <LinearGradient colors={['transparent', 'rgba(0,0,0,0.9)']} style={styles.heroOverlay}>
             {heroActions}
-            <Text style={styles.heroTitle}>{event.name}</Text>
+            <Text style={heroTitleStyle} numberOfLines={2} ellipsizeMode="tail">{event.name}</Text>
             {event.genre && (
               <View style={styles.genreBadge}>
                 <Text style={styles.genreText}>🎵 {event.genre}</Text>
@@ -531,7 +558,7 @@ function EventDetailContent({ route, navigation }) {
           <Text style={styles.heroPlaceholderInitials}>
             {getInitials(event.artistName || event.name)}
           </Text>
-          <Text style={styles.heroTitle}>{event.name}</Text>
+          <Text style={heroTitleStyle} numberOfLines={2} ellipsizeMode="tail">{event.name}</Text>
           {event.genre && (
             <View style={styles.genreBadge}>
               <Text style={styles.genreText}>🎵 {event.genre}</Text>
@@ -602,35 +629,28 @@ function EventDetailContent({ route, navigation }) {
           </TouchableOpacity>
         )}
 
-        {/* BİLET AL — belirgin ana CTA (eski hero ikonu fark edilmiyordu) */}
+        {/* BİLET AL — tek ana CTA; birden fazla site varsa seçim menüsü açar */}
         {!isExpired && ticketLinks.length > 0 && (
           <>
-            {ticketLinks.length > 1 && (
-              <Text style={styles.ticketMultiTitle}>{t('detail_ticket_sources')}</Text>
-            )}
-            {ticketLinks.map((link, index) => (
-              <TouchableOpacity
-                key={link.url}
-                onPress={() => openTicket(link.url)}
-                activeOpacity={0.85}
-                style={styles.ticketCtaWrap}
+            <TouchableOpacity onPress={onTicketPress} activeOpacity={0.85} style={styles.ticketCtaWrap}>
+              <LinearGradient
+                colors={['#F5A623', '#E94560']}
+                style={styles.ticketCta}
+                start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
               >
-                <LinearGradient
-                  // İkinci ve sonraki siteler biraz daha sakin dursun,
-                  // ana CTA tek kalsın.
-                  colors={index === 0 ? ['#F5A623', '#E94560'] : ['#7C3AED', '#E94560']}
-                  style={styles.ticketCta}
-                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                >
-                  <Text style={styles.ticketCtaText}>
-                    {ticketLinks.length === 1
-                      ? t('events_ticket')
-                      : ticketButtonLabel(link, lang, t('events_ticket'))}
-                  </Text>
-                  <Text style={styles.ticketCtaArrow}>→</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            ))}
+                <Text style={styles.ticketCtaText}>{t('events_ticket')}</Text>
+                <Ionicons
+                  name={ticketLinks.length > 1 ? 'chevron-down' : 'arrow-forward'}
+                  size={19}
+                  color="#fff"
+                />
+              </LinearGradient>
+            </TouchableOpacity>
+            {ticketLinks.length > 1 && (
+              <Text style={styles.ticketSitesHint} numberOfLines={1}>
+                {t('detail_ticket_on_sites', { count: ticketLinks.length })}: {ticketLinks.map(l => l.label || ticketSiteHost(l.url)).join(' · ')}
+              </Text>
+            )}
           </>
         )}
 
@@ -1043,6 +1063,36 @@ function EventDetailContent({ route, navigation }) {
       </View>
     </ScrollView>
 
+    {/* BİLET SİTESİ SEÇİMİ */}
+    <Modal visible={ticketSheetVisible} transparent animationType="slide" onRequestClose={() => setTicketSheetVisible(false)}>
+      <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setTicketSheetVisible(false)} />
+      <View style={styles.ticketSheet}>
+        <View style={styles.sheetHandle} />
+        <Text style={styles.sheetTitle}>{t('detail_ticket_choose_title')}</Text>
+        <Text style={styles.ticketSheetSub}>{t('detail_ticket_sources')}</Text>
+        {ticketLinks.map((link, index) => (
+          <TouchableOpacity
+            key={link.url}
+            style={[styles.ticketSiteRow, index === 0 && styles.ticketSiteRowFirst]}
+            activeOpacity={0.75}
+            onPress={() => { setTicketSheetVisible(false); openTicket(link.url); }}
+          >
+            <View style={styles.ticketSiteIcon}>
+              <Ionicons name="ticket-outline" size={20} color={colors.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.ticketSiteName}>{link.label || ticketSiteHost(link.url)}</Text>
+              <Text style={styles.ticketSiteHost} numberOfLines={1}>{ticketSiteHost(link.url)}</Text>
+            </View>
+            <Ionicons name="open-outline" size={18} color={colors.textSecondary} />
+          </TouchableOpacity>
+        ))}
+        <TouchableOpacity style={styles.ticketSheetCancel} onPress={() => setTicketSheetVisible(false)} activeOpacity={0.7}>
+          <Text style={styles.ticketSheetCancelText}>{t('cancel')}</Text>
+        </TouchableOpacity>
+      </View>
+    </Modal>
+
     {/* ARKADAŞLAR MODAL */}
     <Modal visible={friendsModalVisible} transparent animationType="none" onRequestClose={closeFriendsModal}>
       <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={closeFriendsModal} />
@@ -1091,6 +1141,7 @@ function createStyles(colors) {
     heroTopActions: {
       position: 'absolute', top: 56, left: 20, right: 20,
       flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+      zIndex: 2, elevation: 2,
     },
     bookmarkButton: {
       backgroundColor: 'rgba(255,255,255,0.15)',
@@ -1113,7 +1164,7 @@ function createStyles(colors) {
     genreText: { color: '#fff', fontSize: 13, fontWeight: '700', letterSpacing: 0.5 },
     container: { flex: 1, backgroundColor: colors.background },
     heroSection: {
-      paddingTop: 52, paddingBottom: 32,
+      paddingTop: 112, paddingBottom: 32,
       paddingHorizontal: 24, alignItems: 'flex-start', minHeight: 260,
     },
     backButton: {
@@ -1145,6 +1196,7 @@ function createStyles(colors) {
       textShadowColor: 'rgba(0,0,0,0.5)',
       textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 4,
     },
+    heroTitleLong: { fontSize: 24, lineHeight: 30 },
 
     content: { padding: 20, gap: 16 },
 
@@ -1164,12 +1216,33 @@ function createStyles(colors) {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
       paddingVertical: 17, borderRadius: 16,
     },
-    ticketMultiTitle: {
-      color: colors.textSecondary, fontSize: 13, fontWeight: '700',
-      marginHorizontal: 20, marginBottom: 8, marginTop: 4,
+    ticketSitesHint: {
+      color: colors.textSecondary, fontSize: 12.5, fontWeight: '600',
+      textAlign: 'center', marginTop: 8,
     },
+    ticketSheet: {
+      position: 'absolute', bottom: 0, left: 0, right: 0,
+      backgroundColor: colors.card,
+      borderTopLeftRadius: 24, borderTopRightRadius: 24,
+      padding: 20, paddingBottom: 36,
+    },
+    ticketSheetSub: { color: colors.textSecondary, fontSize: 13, marginTop: -8, marginBottom: 14 },
+    ticketSiteRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      paddingVertical: 13, paddingHorizontal: 14, borderRadius: 14,
+      borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background,
+      marginBottom: 10,
+    },
+    ticketSiteRowFirst: { borderColor: colors.primary + '66' },
+    ticketSiteIcon: {
+      width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center',
+      backgroundColor: colors.primary + '1F',
+    },
+    ticketSiteName: { color: colors.text, fontSize: 15.5, fontWeight: '800' },
+    ticketSiteHost: { color: colors.textSecondary, fontSize: 12, marginTop: 1 },
+    ticketSheetCancel: { alignItems: 'center', paddingVertical: 12, marginTop: 2 },
+    ticketSheetCancelText: { color: colors.textSecondary, fontSize: 15, fontWeight: '700' },
     ticketCtaText: { color: '#fff', fontSize: 17, fontWeight: '800', letterSpacing: 0.3 },
-    ticketCtaArrow: { color: '#fff', fontSize: 18, fontWeight: '800' },
     attendBtn: {
       flex: 1, flexDirection: 'row', alignItems: 'center',
       justifyContent: 'center', gap: 8,
@@ -1442,8 +1515,11 @@ function createStyles(colors) {
  * için id'yi burada çözüp içeriye tam nesne geçiyoruz.
  */
 export default function EventDetailScreen({ route, navigation }) {
-  const { event, eventId } = route.params || {};
-  const [resolved, setResolved] = useState(event || null);
+  const { event: eventParam, eventId } = route.params || {};
+  // Web'de yenilenen eski bir adresten `event` "[object Object]" metni olarak gelebilir:
+  // yalnızca gerçek bir nesneyse ön izleme olarak kullan, değilse id ile çek.
+  const event = eventParam && typeof eventParam === 'object' ? eventParam : null;
+  const [resolved, setResolved] = useState(event);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {

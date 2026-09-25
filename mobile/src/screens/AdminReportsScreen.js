@@ -9,6 +9,7 @@ import API from '../services/api';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import { formatTimeAgo } from '../utils/time';
+import { goBackOrFallback } from '../navigation/navHelpers';
 
 /**
  * Şikayet kuyruğu (admin).
@@ -148,7 +149,7 @@ export default function AdminReportsScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <LinearGradient colors={colors.headerGradient} style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <TouchableOpacity style={styles.backButton} onPress={() => goBackOrFallback(navigation, 'Admin')}>
           <Text style={styles.backText}>{t('back')}</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('admin_reports_title')}</Text>

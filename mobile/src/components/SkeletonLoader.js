@@ -75,17 +75,17 @@ function SkeletonBox({ w, h, radius = 8, style }) {
 }
 
 // ── EventsScreen grid skeleton ────────────────────────────────────────────────
-const CARD_W = (width - 48) / 2;
 
 function EventCardSkeleton() {
   const { colors } = useTheme();
   return (
     <View style={[styles.eventCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-      <SkeletonBox w="100%" h={120} radius={0} />
+      <SkeletonBox w={96} h={108} radius={14} />
       <View style={styles.eventBody}>
-        <SkeletonBox w="85%" h={13} radius={6} style={{ marginBottom: 8 }} />
-        <SkeletonBox w="60%" h={11} radius={6} style={{ marginBottom: 6 }} />
-        <SkeletonBox w="40%" h={11} radius={6} />
+        <SkeletonBox w="35%" h={10} radius={5} style={{ marginBottom: 8 }} />
+        <SkeletonBox w="85%" h={14} radius={6} style={{ marginBottom: 8 }} />
+        <SkeletonBox w="55%" h={11} radius={6} style={{ marginBottom: 6 }} />
+        <SkeletonBox w="70%" h={11} radius={6} />
       </View>
     </View>
   );
@@ -94,10 +94,32 @@ function EventCardSkeleton() {
 export function EventsSkeletonPage() {
   return (
     <ShimmerProvider>
-      <View style={styles.eventsGrid}>
+      <View style={styles.eventsList}>
         {Array.from({ length: 6 }, (_, i) => (
           <EventCardSkeleton key={i} />
         ))}
+      </View>
+    </ShimmerProvider>
+  );
+}
+
+// ── Sanatçı seçimi (kayıt akışı) grid skeleton ──────────────────────────────
+function ArtistCardSkeleton() {
+  const { colors } = useTheme();
+  return (
+    <View style={[styles.artistCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <SkeletonBox w={72} h={72} radius={36} style={{ marginBottom: 10 }} />
+      <SkeletonBox w="70%" h={12} radius={6} style={{ marginBottom: 6 }} />
+      <SkeletonBox w="40%" h={10} radius={5} />
+    </View>
+  );
+}
+
+export function ArtistGridSkeleton({ count = 8 }) {
+  return (
+    <ShimmerProvider>
+      <View style={styles.artistGrid}>
+        {Array.from({ length: count }, (_, i) => <ArtistCardSkeleton key={i} />)}
       </View>
     </ShimmerProvider>
   );
@@ -236,18 +258,17 @@ const styles = StyleSheet.create({
 
   // Events
   eventCard: {
-    width: CARD_W,
-    borderRadius: 16,
-    overflow: 'hidden',
+    flexDirection: 'row',
+    gap: 12,
+    padding: 10,
+    marginBottom: 12,
+    borderRadius: 18,
     borderWidth: 1,
   },
-  eventBody: { padding: 10 },
-  eventsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: 14,
-    gap: 14,
-  },
+  eventBody: { flex: 1, paddingVertical: 4 },
+  artistGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  artistCard: { width: '48%', borderWidth: 1, borderRadius: 16, padding: 12, alignItems: 'center', marginBottom: 12 },
+  eventsList: { paddingHorizontal: 16 },
 
   // Home
   homePage: { paddingHorizontal: 20 },

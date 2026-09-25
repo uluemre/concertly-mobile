@@ -8,6 +8,7 @@ import API from '../services/api';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { goBackOrFallback } from '../navigation/navHelpers';
 
 const { width } = Dimensions.get('window');
 
@@ -126,7 +127,7 @@ export default function SpotifyRecommendationsScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.backBtn}>
           <Text style={styles.backBtnText}>{t('back')}</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('spotify_title')}</Text>

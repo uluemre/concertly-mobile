@@ -4,12 +4,15 @@ import {
   StyleSheet, ActivityIndicator, Image,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../theme';
 import { ListSkeletonPage } from '../components/SkeletonLoader';
 import API, { getErrorMessage } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { parseEventDate } from '../utils/time';
+import { openEvent } from '../navigation/navHelpers';
 
 export default function NotificationsScreen({ navigation }) {
   const { colors } = useTheme();
@@ -156,10 +159,13 @@ export default function NotificationsScreen({ navigation }) {
     }
     // Etkinlik bildirimleri (turne duyurusu, hatırlatma) → etkinlik detayına git
     if (item.entityType === 'event' && item.entityId) {
-      try {
-        const res = await API.get(`/events/${item.entityId}`);
-        navigation.navigate('EventDetail', { event: res.data });
-      } catch {}
+      // Yalnızca id: sayfa etkinliği kendisi çeker, silinmişse "bulunamadı" gösterir
+      openEvent(navigation, item.entityId);
+      return;
+    }
+    // Beğeni / yorum bildirimi → ilgili gönderi (silinmişse PostDetail "bulunamadı" gösterir)
+    if (item.entityType === 'post' && item.entityId) {
+      navigation.navigate('PostDetail', { postId: item.entityId });
       return;
     }
     if (item.actorId) {
@@ -178,18 +184,30 @@ export default function NotificationsScreen({ navigation }) {
         onPress={() => handlePress(g)}
         activeOpacity={0.75}
       >
-        <View style={styles.avatarWrap}>
+        {/* Avatar ayrıca tıklanır: bildirimi oluşturan kişinin profili */}
+        <TouchableOpacity
+          style={styles.avatarWrap}
+          disabled={!rep.actorId}
+          onPress={() => navigation.navigate('UserProfile', { userId: rep.actorId })}
+          activeOpacity={0.75}
+        >
           {rep.actorProfileImageUrl ? (
             <Image source={{ uri: rep.actorProfileImageUrl }} style={styles.avatar} />
           ) : (
-            <View style={styles.avatarPlaceholder}>
-              <Text style={styles.avatarEmoji}>{rep.actorUsername ? '👤' : '🎵'}</Text>
-            </View>
+            <LinearGradient
+              colors={rep.actorUsername ? ['#7C3AED', '#E94560'] : ['#E94560', '#F5A623']}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+              style={styles.avatarPlaceholder}
+            >
+              {rep.actorUsername
+                ? <Text style={styles.avatarInitial}>{rep.actorUsername[0].toUpperCase()}</Text>
+                : <Ionicons name="musical-notes" size={22} color="#fff" />}
+            </LinearGradient>
           )}
           <View style={styles.typeBadge}>
             <Text style={styles.typeBadgeText}>{line.icon}</Text>
           </View>
-        </View>
+        </TouchableOpacity>
 
         <View style={styles.body}>
           <Text style={styles.message} numberOfLines={2}>
@@ -210,9 +228,9 @@ export default function NotificationsScreen({ navigation }) {
   if (loading) {
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
+        <LinearGradient colors={colors.headerGradient} style={styles.header}>
           <Text style={styles.headerTitle}>{t('notifications_title')}</Text>
-        </View>
+        </LinearGradient>
         <ListSkeletonPage />
       </View>
     );
@@ -221,9 +239,9 @@ export default function NotificationsScreen({ navigation }) {
   if (error && grouped.length === 0) {
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
+        <LinearGradient colors={colors.headerGradient} style={styles.header}>
           <Text style={styles.headerTitle}>{t('notifications_title')}</Text>
-        </View>
+        </LinearGradient>
         <View style={styles.empty}>
           <Text style={styles.emptyEmoji}>📡</Text>
           <Text style={styles.emptyTitle}>{t('load_failed')}</Text>
@@ -242,9 +260,9 @@ export default function NotificationsScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <LinearGradient colors={colors.headerGradient} style={styles.header}>
         <Text style={styles.headerTitle}>{t('notifications_title')}</Text>
-      </View>
+      </LinearGradient>
 
       <SectionList
         sections={sections}
@@ -254,7 +272,7 @@ export default function NotificationsScreen({ navigation }) {
           <Text style={styles.sectionHeader}>{section.title}</Text>
         )}
         stickySectionHeadersEnabled={false}
-        contentContainerStyle={grouped.length === 0 && styles.emptyContainer}
+        contentContainerStyle={grouped.length === 0 ? styles.emptyContainer : styles.listContent}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         initialNumToRender={12}
         maxToRenderPerBatch={12}
@@ -277,61 +295,57 @@ function createStyles(colors) {
     container: { flex: 1, backgroundColor: colors.background },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
 
-    header: {
-      paddingTop: 56,
-      paddingBottom: 14,
-      paddingHorizontal: 20,
-      backgroundColor: colors.card,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-    },
-    headerTitle: { fontSize: 22, fontWeight: '800', color: colors.text },
+    header: { paddingTop: 56, paddingBottom: 16, paddingHorizontal: 20 },
+    headerTitle: { fontSize: 26, fontWeight: '900', color: colors.text, letterSpacing: 0.2 },
+    listContent: { paddingHorizontal: 16, paddingBottom: 32 },
 
+    // Kart satırlar: okunmamış bildirim renkli kenarlık ve hafif vurguyla öne çıkar
     row: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingHorizontal: 16,
-      paddingVertical: 14,
-      backgroundColor: colors.background,
+      padding: 12,
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.card,
     },
     rowUnread: {
-      backgroundColor: colors.card,
+      borderColor: colors.primary + '66',
+      backgroundColor: colors.primary + '12',
     },
 
     avatarWrap: { position: 'relative', marginRight: 12 },
     avatar: { width: 50, height: 50, borderRadius: 25 },
     avatarPlaceholder: {
       width: 50, height: 50, borderRadius: 25,
-      backgroundColor: colors.card,
-      borderWidth: 1, borderColor: colors.border,
       justifyContent: 'center', alignItems: 'center',
     },
-    avatarEmoji: { fontSize: 22 },
+    avatarInitial: { color: '#fff', fontSize: 20, fontWeight: '900' },
     typeBadge: {
       position: 'absolute', bottom: -2, right: -4,
-      width: 22, height: 22, borderRadius: 11,
-      backgroundColor: colors.background,
+      width: 24, height: 24, borderRadius: 12,
+      backgroundColor: colors.card,
       justifyContent: 'center', alignItems: 'center',
-      borderWidth: 1.5, borderColor: colors.border,
+      borderWidth: 2, borderColor: colors.background,
     },
     typeBadgeText: { fontSize: 11 },
 
     body: { flex: 1 },
     message: { fontSize: 14, color: colors.text, lineHeight: 20 },
-    actor: { fontWeight: '700', color: colors.text },
-    time: { fontSize: 12, color: colors.textSecondary, marginTop: 3 },
+    actor: { fontWeight: '800', color: colors.text },
+    time: { fontSize: 12, color: colors.textSecondary, marginTop: 4, fontWeight: '600' },
 
     dot: {
-      width: 9, height: 9, borderRadius: 5,
+      width: 10, height: 10, borderRadius: 5,
       backgroundColor: colors.primary,
       marginLeft: 8,
     },
 
-    separator: { height: 1, backgroundColor: colors.border },
+    separator: { height: 10 },
     sectionHeader: {
-      fontSize: 13, fontWeight: '800', color: colors.textSecondary,
-      paddingHorizontal: 20, paddingTop: 18, paddingBottom: 8,
-      backgroundColor: colors.background,
+      fontSize: 12, fontWeight: '900', color: colors.textSecondary,
+      letterSpacing: 1.2, textTransform: 'uppercase',
+      paddingHorizontal: 4, paddingTop: 18, paddingBottom: 10,
     },
     emptyContainer: { flex: 1 },
     empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 100, paddingHorizontal: 40 },

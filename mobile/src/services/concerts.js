@@ -143,3 +143,9 @@ export function ticketButtonLabel(link, lang, fallback) {
   if (lang === 'en') return `🎟 Buy on ${link.label}`;
   return `🎟 ${link.label}'${ablativeSuffix(link.label)} Al`;
 }
+
+/** Bilet adresinin sitesi: "https://www.biletix.com/..." → "biletix.com". */
+export function ticketSiteHost(url) {
+  const m = /^https?:\/\/([^/?#]+)/i.exec(String(url || '').trim());
+  return m ? m[1].replace(/^www\./i, '').toLowerCase() : '';
+}

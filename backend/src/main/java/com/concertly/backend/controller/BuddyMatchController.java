@@ -8,6 +8,7 @@ import com.concertly.backend.repository.BuddySwipeRepository;
 import com.concertly.backend.repository.EventAttendanceRepository;
 import com.concertly.backend.repository.UserRepository;
 import com.concertly.backend.security.JwtUtil;
+import com.concertly.backend.service.ModerationService;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,13 +23,16 @@ public class BuddyMatchController {
     private final EventAttendanceRepository attendanceRepository;
     private final BuddySwipeRepository swipeRepository;
     private final UserRepository userRepository;
+    private final ModerationService moderationService;
 
     public BuddyMatchController(EventAttendanceRepository attendanceRepository,
                                 BuddySwipeRepository swipeRepository,
-                                UserRepository userRepository) {
+                                UserRepository userRepository,
+                                ModerationService moderationService) {
         this.attendanceRepository = attendanceRepository;
         this.swipeRepository = swipeRepository;
         this.userRepository = userRepository;
+        this.moderationService = moderationService;
     }
 
     // ── Kart listesi: aynı konserlere giden, henüz swipe edilmemiş kullanıcılar ──
@@ -55,6 +59,7 @@ public class BuddyMatchController {
                 .map(BuddySwipe::getTargetId)
                 .collect(Collectors.toSet());
         alreadySwiped.add(myId); // kendimi de dışla
+        alreadySwiped.addAll(moderationService.getHiddenUserIds(myId)); // engellediklerim / beni engelleyenler
 
         // Aynı etkinliklere giden diğer kullanıcılar → kandidat listesi
         Map<Long, Map<String, Object>> candidates = new LinkedHashMap<>();
@@ -88,7 +93,9 @@ public class BuddyMatchController {
                     "id", ea.getEvent().getId(),
                     "name", ea.getEvent().getName(),
                     "artistName", ea.getEvent().getArtist() != null ? ea.getEvent().getArtist().getName() : "",
-                    "eventDate", ea.getEvent().getEventDate().toString()
+                    "eventDate", ea.getEvent().getEventDate().toString(),
+                    // Kartın üst görseli: etkinlik görseli, yoksa sanatçı fotoğrafı
+                    "imageUrl", sharedEventImage(ea.getEvent())
             ));
         }
 
@@ -131,6 +138,8 @@ public class BuddyMatchController {
         Long myId = JwtUtil.getCurrentUserId();
         Long targetId = Long.valueOf(body.get("targetId").toString());
         boolean liked = Boolean.parseBoolean(body.get("liked").toString());
+        // Aralarında engel olan kullanıcıyla eşleşme kurulamaz
+        moderationService.requireCanInteract(myId, targetId);
 
         BuddySwipe swipe = swipeRepository.findBySwiperIdAndTargetId(myId, targetId)
                 .orElse(new BuddySwipe());
@@ -167,9 +176,13 @@ public class BuddyMatchController {
                 .map(BuddySwipe::getTargetId)
                 .collect(Collectors.toSet());
 
+        // Engel varken eşleşme listede görünmez (engel kalkınca geri gelir)
+        Set<Long> hidden = moderationService.getHiddenUserIds(myId);
+
         // Beni beğenenler
         return swipeRepository.findAll().stream()
                 .filter(s -> s.getTargetId().equals(myId) && s.isLiked() && iLiked.contains(s.getSwiperId()))
+                .filter(s -> !hidden.contains(s.getSwiperId()))
                 .map(s -> {
                     Map<String, Object> match = new LinkedHashMap<>();
                     userRepository.findById(s.getSwiperId()).ifPresent(u -> {
@@ -208,5 +221,13 @@ public class BuddyMatchController {
                     return m;
                 })
                 .collect(Collectors.toList());
+    }
+
+    private static String sharedEventImage(com.concertly.backend.model.Event event) {
+        String img = com.concertly.backend.model.ImageUrls.usable(event.getImageUrl());
+        if (img == null && event.getArtist() != null) {
+            img = com.concertly.backend.model.ImageUrls.usable(event.getArtist().getImageUrl());
+        }
+        return img != null ? img : "";
     }
 }

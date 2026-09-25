@@ -27,7 +27,8 @@ export const linking = {
 
   config: {
     screens: {
-      EventDetail: { path: 'event/:eventId', parse: { eventId: Number } },
+      // `event` (liste öğesi ön izlemesi) URL'ye yazılmaz — yoksa /event/undefined?event=[object Object] oluşuyordu
+      EventDetail: { path: 'event/:eventId', parse: { eventId: Number }, stringify: { event: () => undefined } },
       ArtistProfile: { path: 'artist/:artistId', parse: { artistId: Number } },
       UserProfile: { path: 'user/:userId' },
       PostDetail: { path: 'post/:postId', parse: { postId: Number } },

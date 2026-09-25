@@ -1,4 +1,4 @@
-import React, { useRef, useState, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Animated,
   Modal, TextInput, KeyboardAvoidingView, Platform,
@@ -12,6 +12,8 @@ import { useLanguage } from '../../context/LanguageContext';
 import { formatTimeAgo } from '../../utils/time';
 import PollCard from './PollCard';
 import CommentModal from './CommentModal';
+import { openEvent } from '../../navigation/navHelpers';
+import { publishPostUpdate } from '../../services/postUpdates';
 
 const GRADIENTS = [
   ['#E94560', '#7C3AED'],
@@ -56,6 +58,11 @@ export default React.memo(function PostCard({
 
   const [liked, setLiked] = useState(!!item.likedByMe);
   const [likeCount, setLikeCount] = useState(item.likeCount || 0);
+  // PostDetail'de değişen sayılar liste öğesine yazılır; kart onları göstersin
+  useEffect(() => {
+    setLiked(!!item.likedByMe);
+    setLikeCount(item.likeCount || 0);
+  }, [item.likedByMe, item.likeCount]);
   const [likeLoading, setLikeLoading] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -77,15 +84,13 @@ export default React.memo(function PostCard({
     ]).start();
     if (!liked) fireFloatingHearts();
     try {
-      if (liked) {
-        await API.delete(`/posts/${item.id}/like?userId=${currentUserId}`);
-        setLiked(false);
-        setLikeCount(prev => Math.max(0, prev - 1));
-      } else {
-        await API.post(`/posts/${item.id}/like?userId=${currentUserId}`);
-        setLiked(true);
-        setLikeCount(prev => prev + 1);
-      }
+      if (liked) await API.delete(`/posts/${item.id}/like?userId=${currentUserId}`);
+      else await API.post(`/posts/${item.id}/like?userId=${currentUserId}`);
+      const nextCount = liked ? Math.max(0, likeCount - 1) : likeCount + 1;
+      setLiked(!liked);
+      setLikeCount(nextCount);
+      // Aynı gönderiyi gösteren diğer ekranlar (ana sayfa, profil) da güncellensin
+      publishPostUpdate(item.id, { likedByMe: !liked, likeCount: nextCount });
     } catch (err) {
       console.log('Like hatası:', err.message);
     } finally {
@@ -205,7 +210,12 @@ export default React.memo(function PostCard({
 
   return (
     <View style={styles.card}>
-      <Animated.Text style={[styles.floatingHeart, { opacity: heartOpacity, transform: [{ scale: heartScale }] }]}>
+      {/* Animasyon kalpleri dokunmayı yakalamasın: saydamken bile içeriğin üstünde
+          duruyor ve gönderi metnine dokunmak PostDetail yerine bunlara gidiyordu (web) */}
+      <Animated.Text
+        pointerEvents="none"
+        style={[styles.floatingHeart, { opacity: heartOpacity, transform: [{ scale: heartScale }] }]}
+      >
         ❤️
       </Animated.Text>
 
@@ -213,6 +223,7 @@ export default React.memo(function PostCard({
       {floatAnims.map((a, i) => (
         <Animated.Text
           key={i}
+          pointerEvents="none"
           style={{
             position: 'absolute',
             bottom: 44,
@@ -238,7 +249,16 @@ export default React.memo(function PostCard({
           </LinearGradient>
           <View style={styles.headerInfo}>
             <Text style={styles.username}>@{item.username}</Text>
-            {item.eventName ? (
+            {item.eventName && item.eventId ? (
+              // Konsere bağlı gönderide etkinlik adı ayrıca tıklanır → EventDetail
+              <TouchableOpacity
+                onPress={() => openEvent(navigation, item.eventId)}
+                hitSlop={{ top: 6, bottom: 6, left: 0, right: 0 }}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.eventTag} numberOfLines={1}>📍 {item.eventName}</Text>
+              </TouchableOpacity>
+            ) : item.eventName ? (
               <Text style={styles.eventTag} numberOfLines={1}>📍 {item.eventName}</Text>
             ) : null}
           </View>
@@ -283,7 +303,7 @@ export default React.memo(function PostCard({
 
       {/* İÇERİK — tıklayınca detay */}
       {item.content ? (
-        <TouchableOpacity activeOpacity={0.85} onPress={() => navigation.navigate('PostDetail', { post: item })}>
+        <TouchableOpacity activeOpacity={0.85} onPress={() => navigation.navigate('PostDetail', { postId: item.id })}>
           <Text style={styles.content} numberOfLines={4}>{item.content}</Text>
         </TouchableOpacity>
       ) : null}
@@ -304,7 +324,7 @@ export default React.memo(function PostCard({
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.actionBtn}
-          onPress={() => navigation.navigate('PostDetail', { post: item })}
+          onPress={() => navigation.navigate('PostDetail', { postId: item.id })}
           activeOpacity={0.7}
         >
           <Text style={styles.actionIcon}>💬</Text>
@@ -335,6 +355,7 @@ function createStyles(colors) {
     },
     floatingHeart: {
       position: 'absolute', top: '40%', alignSelf: 'center', fontSize: 48, zIndex: 10,
+      pointerEvents: 'none',
     },
     header: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 10 },
     headerLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },

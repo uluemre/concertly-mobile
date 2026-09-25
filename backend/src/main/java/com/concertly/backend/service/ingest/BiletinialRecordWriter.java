@@ -106,7 +106,8 @@ public class BiletinialRecordWriter {
         String name = raw.artistName();
         if (name == null || name.isBlank()) return null;
         String trimmed = name.trim();
-        return artistRepository.findFirstByNameIgnoreCase(trimmed)
+        // Türkçe harf / noktalama duyarsız eşleşme: "Sila" ↔ "Sıla", "Levi Sct." ↔ "Levi .Sct" (N-09)
+        return artistRepository.findExisting(null, trimmed)
                 .orElseGet(() -> {
                     Artist artist = new Artist();
                     artist.setName(trimmed);

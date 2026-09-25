@@ -1,5 +1,7 @@
 import { registerRootComponent } from 'expo';
 
+// Web'de boş olan Alert.alert'i tarayıcı pencereleriyle değiştirir (native'e dokunmaz)
+import './src/utils/webAlert';
 import App from './App';
 
 // registerRootComponent calls AppRegistry.registerComponent('main', () => App);

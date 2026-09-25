@@ -44,10 +44,14 @@ public class EventService {
             artist = artistRepository.findById(request.getArtistId())
                     .orElseThrow(() -> new ResourceNotFoundException("Artist bulunamadi: " + request.getArtistId()));
         } else {
-            artist = new Artist();
-            artist.setName(request.getArtistName() != null ? request.getArtistName() : "Bilinmeyen Sanatçı");
-            artist.setGenre(request.getArtistGenre() != null ? request.getArtistGenre() : "Diger");
-            artist = artistRepository.save(artist);
+            // Aynı adlı sanatçı varsa onu kullan; eskiden her seferinde yeni kayıt açılıyordu (N-09: "Hadise" ×2)
+            String name = request.getArtistName() != null ? request.getArtistName() : "Bilinmeyen Sanatçı";
+            artist = artistRepository.findExisting(null, name).orElseGet(() -> {
+                Artist created = new Artist();
+                created.setName(name);
+                created.setGenre(request.getArtistGenre() != null ? request.getArtistGenre() : "Diger");
+                return artistRepository.save(created);
+            });
         }
 
         Venue venue;
@@ -81,6 +85,15 @@ public class EventService {
         return EventResponse.from(eventRepository.save(event));
     }
 
+    // Ayni konserin kopyalari (Biletix + Biletinial...) listede tek kart olsun.
+    // Alan enjeksiyonu: kurucu ve onu kullanan testler degismesin; yoksa liste aynen doner.
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.concertly.backend.service.ingest.ConcertGrouping concertGrouping;
+
+    private List<Event> collapseCopies(List<Event> events) {
+        return concertGrouping == null ? events : concertGrouping.collapse(events);
+    }
+
     public List<EventResponse> getAllEvents(String city) {
         if (city != null && !city.isBlank() && !launchCityConfig.contains(city)) {
             return List.of();
@@ -90,9 +103,11 @@ public class EventService {
                         .map(LaunchCityConfig::normalize).toList())
                 : eventRepository.findByCityNormalized(city);
 
-        return events.stream()
+        return collapseCopies(events.stream()
                 .filter(Event::listedPublicly)
                 .sorted(Comparator.comparing(Event::getEventDate))
+                .toList())
+                .stream()
                 .map(EventResponse::from)
                 .toList();
     }
@@ -157,7 +172,7 @@ public class EventService {
             }
         }
 
-        return sorted.stream()
+        return collapseCopies(sorted).stream()
                 .map(EventResponse::from)
                 .toList();
     }

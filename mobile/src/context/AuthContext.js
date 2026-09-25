@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import * as Storage from '../services/secureStorage';
 import { unregisterPushToken } from '../services/pushNotifications';
-import { setApiToken, setApiRefreshToken, setTokenRefreshedHandler } from '../services/api';
+import { setApiToken, setApiRefreshToken, setTokenRefreshedHandler, revokeRefreshToken } from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -95,6 +95,8 @@ export function AuthProvider({ children }) {
     // Cihazı hesaptan düşür, yoksa çıkış yapan kullanıcının bildirimleri
     // telefona gelmeye devam eder.
     await unregisterPushToken();
+    // Refresh token'ı sunucuda da geçersiz kıl (başarısız olsa bile yerel çıkış sürer)
+    await revokeRefreshToken();
     await Storage.multiRemove(STORAGE_KEYS);
     setSession(DEFAULT_SESSION);
     setNotificationCount(0);

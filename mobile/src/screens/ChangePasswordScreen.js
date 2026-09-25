@@ -7,6 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import API, { getErrorMessage } from '../services/api';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
+import { goBackOrFallback } from '../navigation/navHelpers';
 
 export default function ChangePasswordScreen({ navigation }) {
   const { colors } = useTheme();
@@ -36,7 +37,7 @@ export default function ChangePasswordScreen({ navigation }) {
     try {
       await API.put('/auth/change-password', { currentPassword, newPassword });
       Alert.alert(t('change_pw_title'), t('change_pw_success'), [
-        { text: t('confirm'), onPress: () => navigation.goBack() },
+        { text: t('confirm'), onPress: () => goBackOrFallback(navigation) },
       ]);
     } catch (err) {
       Alert.alert(t('error'), getErrorMessage(err, t('change_pw_error')));
@@ -48,7 +49,7 @@ export default function ChangePasswordScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.backButton}>
           <Text style={styles.backButtonText}>{t('back')}</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('change_pw_title')}</Text>

@@ -89,6 +89,35 @@ public interface EventRepository extends JpaRepository<Event, Long> {
             @Param("past") boolean past,
             org.springframework.data.domain.Pageable pageable);
 
+    /**
+     * searchConcerts ile AYNI suzgeclerden gecen, verilen zaman araligindaki
+     * etkinlikler. Konser listesinde ayni konserin kopyalarini (farkli kaynak ya
+     * da ayni kaynakta farkli kimlik) bir sayfanin sinirlarinin otesinde de
+     * gorebilmek icin kullanilir; veriyi degistirmez.
+     */
+    @Query(value = """
+            SELECT e.* FROM events e
+            LEFT JOIN venues v ON v.id = e.venue_id
+            LEFT JOIN artists a ON a.id = e.artist_id
+            WHERE e.is_approved = true
+              AND e.event_date BETWEEN :windowStart AND :windowEnd
+              AND ((CAST(:past AS boolean) = false AND e.event_date >= :from)
+                OR (CAST(:past AS boolean) = true  AND e.event_date <  :from))
+              AND (CAST(:city AS text) IS NULL
+                   OR lower(translate(v.city, 'İIıŞşĞğÜüÖöÇçÂâ','IIiSsGgUuOoCcAa'))
+                      LIKE '%' || lower(translate(CAST(:city AS text), 'İIıŞşĞğÜüÖöÇçÂâ','IIiSsGgUuOoCcAa')) || '%')
+              AND (CAST(:artist AS text) IS NULL
+                   OR lower(translate(a.name, 'İIıŞşĞğÜüÖöÇçÂâ','IIiSsGgUuOoCcAa'))
+                      LIKE '%' || lower(translate(CAST(:artist AS text), 'İIıŞşĞğÜüÖöÇçÂâ','IIiSsGgUuOoCcAa')) || '%')
+            """, nativeQuery = true)
+    List<Event> findConcertsBetween(
+            @Param("city") String city,
+            @Param("artist") String artist,
+            @Param("from") java.time.LocalDateTime from,
+            @Param("past") boolean past,
+            @Param("windowStart") java.time.LocalDateTime windowStart,
+            @Param("windowEnd") java.time.LocalDateTime windowEnd);
+
     @EntityGraph(attributePaths = {"artist", "venue", "createdBy"})
     List<Event> findByArtistIdOrderByEventDateDesc(Long artistId);
 
@@ -106,16 +135,18 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     @Override
     List<Event> findAll();
 
-    // 🔥 SEARCH QUERY EKLENDİ
+    // 🔥 SEARCH — Türkçe harf / büyük-küçük harf duyarsız, % ve _ joker değil (SearchText)
+    default List<Event> search(String q) {
+        return searchByPattern(SearchText.containsPattern(q));
+    }
+
     @EntityGraph(attributePaths = {"artist", "venue", "createdBy"})
-    @Query("""
-                SELECT e FROM Event e
-                WHERE LOWER(e.name) LIKE LOWER(CONCAT('%', :q, '%'))
-                OR LOWER(e.artist.name) LIKE LOWER(CONCAT('%', :q, '%'))
-                OR LOWER(e.venue.city) LIKE LOWER(CONCAT('%', :q, '%'))
-                ORDER BY e.eventDate DESC
-            """)
-    List<Event> search(@Param("q") String q);
+    @Query("SELECT e FROM Event e"
+            + " WHERE " + SearchText.FOLD_OPEN + "e.name" + SearchText.FOLD_CLOSE + " LIKE :pattern ESCAPE '!'"
+            + " OR " + SearchText.FOLD_OPEN + "e.artist.name" + SearchText.FOLD_CLOSE + " LIKE :pattern ESCAPE '!'"
+            + " OR " + SearchText.FOLD_OPEN + "e.venue.city" + SearchText.FOLD_CLOSE + " LIKE :pattern ESCAPE '!'"
+            + " ORDER BY e.eventDate DESC")
+    List<Event> searchByPattern(@Param("pattern") String pattern);
 
     @EntityGraph(attributePaths = {"artist", "venue", "createdBy"})
     @Query("SELECT e FROM Event e WHERE LOWER(REPLACE(e.venue.city, 'İ', 'I')) = LOWER(REPLACE(:city, 'İ', 'I'))")

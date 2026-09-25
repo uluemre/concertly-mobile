@@ -10,6 +10,7 @@ import API from '../services/api';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import { parseEventDate } from '../utils/time';
+import { openEvent } from '../navigation/navHelpers';
 
 const { width, height } = Dimensions.get('window');
 
@@ -261,7 +262,7 @@ export default function MapScreen({ navigation }) {
 
           <TouchableOpacity
             style={[styles.bottomCardBtn, { backgroundColor: getMarkerColor(selectedEvent.genre) }]}
-            onPress={() => navigation.navigate('EventDetail', { event: selectedEvent })}
+            onPress={() => openEvent(navigation, selectedEvent)}
             activeOpacity={0.85}
           >
             <Text style={styles.bottomCardBtnText}>{t('map_details')}</Text>

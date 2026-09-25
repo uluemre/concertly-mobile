@@ -63,7 +63,7 @@ public class DeezerService {
             if (imageUrl == null) imageUrl = (String) best.get("picture_medium");
 
             // Deezer default/placeholder görseli atla
-            if (imageUrl == null || imageUrl.contains("default_avatar")) return null;
+            if (com.concertly.backend.model.ImageUrls.isPlaceholder(imageUrl)) return null;
 
             String name = (String) best.get("name");
             System.out.println("  🎵 Deezer buldu: " + name + " | görsel var");
@@ -110,7 +110,7 @@ public class DeezerService {
                 artist.put("artistId", ((Number) item.get("id")).longValue());
                 artist.put("name", item.get("name"));
                 String img = (String) item.get("picture_medium");
-                artist.put("imageUrl", img != null ? img : "");
+                artist.put("imageUrl", com.concertly.backend.model.ImageUrls.isPlaceholder(img) ? "" : img);
                 results.add(artist);
             }
         } catch (Exception e) {

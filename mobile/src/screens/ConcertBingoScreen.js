@@ -8,6 +8,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
+import { goBackOrFallback } from '../navigation/navHelpers';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const GAP = 6;
@@ -95,7 +96,7 @@ export default function ConcertBingoScreen({ navigation, route }) {
 
       {/* HEADER */}
       <LinearGradient colors={['#0D0D1A', '#1a0a2e', '#0D0D1A']} style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation)}>
           <Text style={[styles.backText, { color: colors.primary }]}>{t('back')}</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('bingo_title')}</Text>

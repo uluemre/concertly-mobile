@@ -28,6 +28,92 @@ import static org.junit.jupiter.api.Assertions.*;
 class ConcertApiIntegrationTest {
 
     @Autowired private EventRepository eventRepository;
+    @Autowired private com.concertly.backend.controller.ConcertController concertController;
+    @Autowired private com.concertly.backend.service.EventService eventService;
+
+    @SuppressWarnings("unchecked")
+    private java.util.List<com.concertly.backend.dto.response.ConcertResponse> allCards(String city, String artist) {
+        java.util.List<com.concertly.backend.dto.response.ConcertResponse> all = new java.util.ArrayList<>();
+        for (int page = 0; page < 30; page++) {
+            java.util.Map<String, Object> body = concertController.list(city, artist, false, page, 100);
+            all.addAll((java.util.List<com.concertly.backend.dto.response.ConcertResponse>) body.get("content"));
+            if (Boolean.TRUE.equals(body.get("last"))) break;
+        }
+        return all;
+    }
+
+    /** Istenen 5 senaryo, gercek (yerel) veride. */
+    @Test
+    void ticketSourceScenariosOnRealData() {
+        var cards = allCards(null, null);
+        java.util.function.Function<com.concertly.backend.dto.response.ConcertResponse, java.util.List<String>> labels =
+                c -> c.getTicketLinks().stream().map(com.concertly.backend.dto.response.ConcertResponse.TicketLink::label).toList();
+
+        // 1) Biletix + Biletinial ayni konser: tek kart, iki secenek
+        var sami = allCards("Ankara", "Sami Yusuf").stream()
+                .filter(c -> c.getEventDate().toLocalDate().equals(java.time.LocalDate.of(2026, 9, 24))).toList();
+        assertEquals(1, sami.size(), "Sami Yusuf 24 Eylul tek kart olmali");
+        assertEquals(java.util.Set.of("Biletix", "Biletinial"), new java.util.HashSet<>(labels.apply(sami.get(0))));
+
+        // 2) ve 3) Tek kaynakli konserler tek secenekle
+        assertTrue(cards.stream().anyMatch(c -> labels.apply(c).equals(java.util.List.of("Biletix"))), "yalniz Biletix");
+        assertTrue(cards.stream().anyMatch(c -> labels.apply(c).equals(java.util.List.of("Biletinial"))), "yalniz Biletinial");
+
+        // 4) Ticketmaster + baska kaynak: asil kayit Ticketmaster'in karti, secenekler birlikte
+        long multi = cards.stream().filter(c -> labels.apply(c).size() > 1).count();
+        assertTrue(multi > 0);
+        for (var c : cards) {
+            var l = labels.apply(c);
+            assertEquals(new java.util.HashSet<>(l).size(), l.size(), "ayni site iki kez secenek olmamali: " + c.getId() + " " + l);
+        }
+
+        // 5) Gercekten farkli konserler: ayni gun iki seans ayri kalir
+        var gamze = allCards(null, "Gamze Karta").stream()
+                .filter(c -> c.getEventDate().toLocalDate().equals(java.time.LocalDate.of(2026, 9, 27))).toList();
+        assertEquals(2, gamze.size(), "14:00 ve 17:00 seanslari iki ayri konser");
+
+        // Ana sayfa / harita listesi de ayni kurali kullanir
+        var home = eventService.getAllEvents("Ankara").stream()
+                .filter(e -> "Sami Yusuf".equals(e.getArtistName())
+                        && e.getEventDate().toLocalDate().equals(java.time.LocalDate.of(2026, 9, 24))).toList();
+        assertEquals(1, home.size(), "ana sayfa listesinde de tek kart");
+        assertEquals(7336L, home.get(0).getId(), "asil kayit Ticketmaster (merge kuraliyla ayni)");
+
+        System.out.println("Senaryolar: coklu kaynakli kart " + multi + ", toplam kart " + cards.size());
+    }
+
+    /**
+     * Mobilin yaptigi gibi tum sayfalar: ayni id iki kez gelmemeli, ayni
+     * konserin kopyalari (STRONG eslesme) tek kart olmali, sayfalar arasi
+     * siralama bozulmamali.
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    void listingHasNoRepeatedIdsAndCollapsesStrongCopies() {
+        java.util.List<com.concertly.backend.dto.response.ConcertResponse> all = new java.util.ArrayList<>();
+        for (int page = 0; page < 30; page++) {
+            java.util.Map<String, Object> body = concertController.list(null, null, false, page, 100);
+            all.addAll((java.util.List<com.concertly.backend.dto.response.ConcertResponse>) body.get("content"));
+            if (Boolean.TRUE.equals(body.get("last"))) break;
+        }
+        java.util.Set<Long> ids = new java.util.HashSet<>();
+        for (var c : all) assertTrue(ids.add(c.getId()), "ayni kayit iki kez: " + c.getId());
+
+        java.util.Map<String, Long> keys = new java.util.HashMap<>();
+        int sameKey = 0;
+        for (var c : all) {
+            String k = EventMatcher.normalize(c.getArtistName()) + "|" + c.getEventDate() + "|"
+                    + EventMatcher.normalize(c.getVenueName()) + "|" + EventMatcher.normalize(c.getVenueCity());
+            if (keys.put(k, c.getId()) != null) sameKey++;
+        }
+        long multi = all.stream().filter(c -> c.getTicketLinks().size() > 1).count();
+        System.out.println("GET /api/concerts (tum sayfalar) -> " + all.size() + " kart, birden cok bilet kaynagi: "
+                + multi + ", ayni sanatci+saat+mekan kalan: " + sameKey);
+        assertEquals(0, sameKey, "birebir ayni konser iki kart olmamali");
+        for (int i = 1; i < all.size(); i++) {
+            assertFalse(all.get(i).getEventDate().isBefore(all.get(i - 1).getEventDate()), "tarih sirasi bozuldu");
+        }
+    }
 
     private Page<Event> search(String city, String artist, int page, int size) {
         return search(city, artist, false, page, size);

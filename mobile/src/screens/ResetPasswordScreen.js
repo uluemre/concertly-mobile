@@ -8,6 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import API from '../services/api';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
+import { goBackOrFallback } from '../navigation/navHelpers';
 
 export default function ResetPasswordScreen({ navigation, route }) {
   const { email } = route.params ?? {};
@@ -56,7 +57,7 @@ export default function ResetPasswordScreen({ navigation, route }) {
     <LinearGradient colors={colors.screenGradient} style={styles.container}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.inner}>
 
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.back}>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation, 'Login')} style={styles.back}>
           <Text style={[styles.backText, { color: colors.primary }]}>{t('back')}</Text>
         </TouchableOpacity>
 

@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '../../theme';
 import { formatTimeAgo } from '../../utils/time';
+import { openEvent } from '../../navigation/navHelpers';
 
 const ACCENT_COLORS = ['#E94560', '#7C3AED', '#F5A623', '#00D4AA', '#FF6B6B', '#4ECDC4'];
 
@@ -11,7 +12,8 @@ export default React.memo(function HomePostCard({ item, index, navigation }) {
   const accent = ACCENT_COLORS[index % ACCENT_COLORS.length];
 
   return (
-    <TouchableOpacity onPress={() => navigation.navigate('FeedTab')} activeOpacity={0.8} style={styles.card}>
+    // Kart gönderinin kendisini açar (eskiden Akış ekranına gidiyordu); URL /post/<id>
+    <TouchableOpacity onPress={() => navigation.navigate('PostDetail', { postId: item.id })} activeOpacity={0.8} style={styles.card}>
       <View style={[styles.accentBar, { backgroundColor: accent }]} />
       <View style={styles.inner}>
         <View style={styles.header}>
@@ -22,7 +24,14 @@ export default React.memo(function HomePostCard({ item, index, navigation }) {
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.username}>@{item.username}</Text>
-            <Text style={styles.event} numberOfLines={1}>🎵 {item.eventName}</Text>
+            {item.eventId ? (
+              // Konsere bağlı gönderide etkinlik satırı ayrıca etkinliği açar
+              <TouchableOpacity onPress={() => openEvent(navigation, item.eventId)} activeOpacity={0.7}>
+                <Text style={styles.event} numberOfLines={1}>🎵 {item.eventName}</Text>
+              </TouchableOpacity>
+            ) : (
+              <Text style={styles.event} numberOfLines={1}>🎵 {item.eventName}</Text>
+            )}
           </View>
           <Text style={styles.time}>{formatTimeAgo(item.createdAt)}</Text>
         </View>

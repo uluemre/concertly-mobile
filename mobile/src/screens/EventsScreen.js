@@ -2,84 +2,41 @@ import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react'
 import {
   View, Text, StyleSheet,
   TouchableOpacity, RefreshControl, FlatList,
-  Dimensions, TextInput, ScrollView, Modal,
+  TextInput, ScrollView, Modal,
 } from 'react-native';
-import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import API from '../services/api';
 import { fetchAllConcerts } from '../services/concerts';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import AnimatedListItem from '../components/AnimatedListItem';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import EventCard from '../components/EventCard';
+import { findGenericImages } from '../utils/eventImage';
 import { EventsSkeletonPage } from '../components/SkeletonLoader';
 import { LAUNCH_CITIES, launchCityOrNull } from '../constants/cities';
 import { parseEventDate } from '../utils/time';
-import { showArtistLine } from '../utils/text';
-
-const { width } = Dimensions.get('window');
-const CARD_WIDTH = (width - 48) / 2;
-
-const gradientSets = [
-  ['#E94560', '#7C3AED'],
-  ['#F5A623', '#E94560'],
-  ['#00D4AA', '#7C3AED'],
-  ['#7C3AED', '#F5A623'],
-];
-
-const eventEmojis = ['🎸', '🎤', '🥁', '🎹', '🎺', '🎻', '🎪', '🎭'];
-
-function CardImage({ item, index, cardImageStyle }) {
-  const [failed, setFailed] = useState(false);
-  const triedFallback = useRef(false);
-
-  const primary = item.imageUrl;
-  const fallback = item.artistImageUrl;
-
-  let uri = null;
-  if (!failed && primary) {
-    uri = primary;
-  } else if (fallback && fallback !== primary) {
-    uri = fallback;
-  }
-
-  if (uri) {
-    return (
-      <Image
-        source={{ uri }}
-        style={cardImageStyle}
-        contentFit="cover"
-        onError={() => {
-          if (!triedFallback.current) {
-            triedFallback.current = true;
-            setFailed(true);
-          }
-        }}
-      />
-    );
-  }
-
-  return (
-    <LinearGradient
-      colors={gradientSets[index % gradientSets.length]}
-      style={cardImageStyle}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-    >
-      <Text style={{ fontSize: 40 }}>{eventEmojis[index % eventEmojis.length]}</Text>
-    </LinearGradient>
-  );
-}
+import { foldSearch } from '../utils/text';
+import { goBackOrFallback, openEvent } from '../navigation/navHelpers';
 
 const CITIES = ['Tümü', ...LAUNCH_CITIES];
+
+// Kullanıcının seçtiği liste görünümü; cihazda hatırlanır.
+const LAYOUT_KEY = 'eventsLayout';
+const LAYOUTS = [
+  { key: 'poster', icon: 'square-outline', label: 'events_layout_large' },
+  { key: 'row', icon: 'reorder-four-outline', label: 'events_layout_list' },
+  { key: 'tile', icon: 'grid-outline', label: 'events_layout_grid' },
+];
 const GENRES = ['Tümü', 'Rock', 'Pop', 'Rap', 'Elektronik', 'Jazz', 'Klasik', 'Indie', 'R&B', 'Folk'];
 
 export default function EventsScreen({ navigation, route }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { session } = useAuth();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
+  const locale = lang === 'en' ? 'en-GB' : 'tr-TR';
   const pickForSetlist = route?.params?.pickForSetlist ?? false;
 
   const SORT_OPTIONS = useMemo(() => [
@@ -102,6 +59,17 @@ export default function EventsScreen({ navigation, route }) {
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [layout, setLayout] = useState('row');
+
+  useEffect(() => {
+    AsyncStorage.getItem(LAYOUT_KEY)
+      .then(v => { if (v && LAYOUTS.some(l => l.key === v)) setLayout(v); })
+      .catch(() => {});
+  }, []);
+  const chooseLayout = useCallback((key) => {
+    setLayout(key);
+    AsyncStorage.setItem(LAYOUT_KEY, key).catch(() => {});
+  }, []);
 
   // Arama ekranı / ana sayfadaki tür kısayolundan gelindiyse o türle aç
   const genreParam = route?.params?.genre;
@@ -141,7 +109,11 @@ export default function EventsScreen({ navigation, route }) {
       isCancelled: stale,
       onPage: (items, isFirstPage) => {
         if (stale()) return;
-        setEvents(prev => (isFirstPage ? items : [...prev, ...items]));
+        setEvents(prev => {
+          if (isFirstPage) return items;
+          const seen = new Set(prev.map(e => e.id));
+          return [...prev, ...items.filter(e => !seen.has(e.id))];
+        });
       },
     }).catch(err => {
       if (stale()) return;
@@ -176,17 +148,13 @@ export default function EventsScreen({ navigation, route }) {
       showPast ? parseEventDate(e.eventDate) < today : parseEventDate(e.eventDate) >= today
     );
 
-    // Geçmişte varsayılan sıra: en yeni önce
-    if (showPast && sortKey === 'date_asc') {
-      list = [...list].sort((a, b) => parseEventDate(b.eventDate) - parseEventDate(a.eventDate));
-    }
-
     if (search.trim()) {
-      const q = search.toLowerCase();
+      // Türkçe harf / büyük-küçük harf duyarsız ("sebnem" → "Şebnem", "istanbul" → "İstanbul")
+      const q = foldSearch(search.trim());
       list = list.filter(e =>
-        e.name?.toLowerCase().includes(q) ||
-        e.artistName?.toLowerCase().includes(q) ||
-        e.venueCity?.toLowerCase().includes(q)
+        foldSearch(e.name).includes(q) ||
+        foldSearch(e.artistName).includes(q) ||
+        foldSearch(e.venueCity).includes(q)
       );
     }
 
@@ -207,41 +175,34 @@ export default function EventsScreen({ navigation, route }) {
       if (!isNaN(end)) list = list.filter(e => parseEventDate(e.eventDate) <= end);
     }
 
-    if (sortKey === 'date_asc') list.sort((a, b) => parseEventDate(a.eventDate) - parseEventDate(b.eventDate));
-    else if (sortKey === 'date_desc') list.sort((a, b) => parseEventDate(b.eventDate) - parseEventDate(a.eventDate));
-    else if (sortKey === 'name_asc') list.sort((a, b) => a.name?.localeCompare(b.name));
+    // "Yakın tarih" (varsayılan): yaklaşanlarda en yakın gelecek, Geçmiş'te en yeni önce —
+    // sunucunun /concerts?past=true sırasıyla aynı. Eskiden Geçmiş önce yeniden eskiye
+    // sıralanıp burada tekrar eskiden yeniye çevriliyordu. Eşit tarihte id ile sabit sıra.
+    const byDate = (a, b) => (parseEventDate(a.eventDate) - parseEventDate(b.eventDate)) || (a.id - b.id);
+    const nearFirst = showPast ? (a, b) => byDate(b, a) : byDate;
+    if (sortKey === 'date_asc') list.sort(nearFirst);
+    else if (sortKey === 'date_desc') list.sort((a, b) => nearFirst(b, a));
+    else if (sortKey === 'name_asc') list.sort((a, b) => (a.name || '').localeCompare(b.name || '') || (a.id - b.id));
 
     return list;
   }, [events, search, selectedGenre, sortKey, startDate, endDate, showPast]);
 
+  // Ticketmaster'ın birçok sanatçıda tekrar eden genel görselleri: bu kartlarda
+  // sanatçının kendi fotoğrafı öne alınır.
+  const genericImages = useMemo(() => findGenericImages(events), [events]);
+
   const renderItem = useCallback(({ item, index }) => (
-    <AnimatedListItem index={index}>
-    <TouchableOpacity
-      style={[styles.cardWrapper, { backgroundColor: colors.card, borderColor: colors.border }]}
-      onPress={() => pickForSetlist
-        ? navigation.navigate('SetlistPrediction', { eventId: item.id })
-        : navigation.navigate('EventDetail', { event: item })}
-      activeOpacity={0.85}
-    >
-      <CardImage item={item} index={index} cardImageStyle={styles.cardImage} />
-      <View style={styles.datePill}>
-        <Text style={styles.datePillText}>
-          {parseEventDate(item.eventDate).getDate()} {parseEventDate(item.eventDate).toLocaleDateString('tr-TR', { month: 'short' })}
-        </Text>
-      </View>
-      <View style={styles.cardBody}>
-        <Text style={[styles.cardName, { color: colors.text }]} numberOfLines={2}>{item.name}</Text>
-        {showArtistLine(item.artistName, item.name) && <Text style={[styles.cardArtist, { color: colors.textSecondary }]} numberOfLines={1}>🎤 {item.artistName}</Text>}
-        {item.venueCity && <Text style={[styles.cardCity, { color: colors.textSecondary }]} numberOfLines={1}>📍 {item.venueCity}</Text>}
-        {item.genre && (
-          <View style={[styles.genrePill, { backgroundColor: colors.primary + '22' }]}>
-            <Text style={[styles.genrePillText, { color: colors.primary }]}>{item.genre}</Text>
-          </View>
-        )}
-      </View>
-    </TouchableOpacity>
+    <AnimatedListItem index={index} style={layout === 'tile' ? styles.tileCell : null}>
+      <EventCard
+        item={item}
+        variant={layout}
+        genericImages={genericImages}
+        onPress={() => pickForSetlist
+          ? navigation.navigate('SetlistPrediction', { eventId: item.id })
+          : openEvent(navigation, item)}
+      />
     </AnimatedListItem>
-  ), [styles, colors, navigation, pickForSetlist]);
+  ), [styles, navigation, pickForSetlist, genericImages, layout]);
 
   if (loading) return (
     <View style={styles.skeletonContainer}>
@@ -254,7 +215,7 @@ export default function EventsScreen({ navigation, route }) {
       {/* HEADER */}
       <LinearGradient colors={colors.headerGradient} style={styles.header}>
         {pickForSetlist && (
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.pickerBack} activeOpacity={0.7}>
+          <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.pickerBack} activeOpacity={0.7}>
             <Text style={styles.pickerBackText}>{t('back')}</Text>
           </TouchableOpacity>
         )}
@@ -305,8 +266,9 @@ export default function EventsScreen({ navigation, route }) {
             style={[styles.togglePill, !showPast && { backgroundColor: colors.primary }]}
             activeOpacity={0.8}
           >
+            <Ionicons name="calendar-outline" size={15} color={!showPast ? '#fff' : colors.textSecondary} />
             <Text style={[styles.toggleText, { color: !showPast ? '#fff' : colors.textSecondary }]}>
-              🗓 Yaklaşan
+              {t('events_upcoming')}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -314,10 +276,28 @@ export default function EventsScreen({ navigation, route }) {
             style={[styles.togglePill, showPast && { backgroundColor: colors.primary }]}
             activeOpacity={0.8}
           >
+            <Ionicons name="time-outline" size={15} color={showPast ? '#fff' : colors.textSecondary} />
             <Text style={[styles.toggleText, { color: showPast ? '#fff' : colors.textSecondary }]}>
-              🕐 Geçmiş
+              {t('events_past')}
             </Text>
           </TouchableOpacity>
+          <View style={{ flex: 1 }} />
+          <View style={[styles.layoutSwitch, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            {LAYOUTS.map(l => {
+              const active = layout === l.key;
+              return (
+                <TouchableOpacity
+                  key={l.key}
+                  onPress={() => chooseLayout(l.key)}
+                  style={[styles.layoutBtn, active && { backgroundColor: colors.primary }]}
+                  accessibilityLabel={t(l.label)}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name={l.icon} size={16} color={active ? '#fff' : colors.textSecondary} />
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </View>
       </LinearGradient>
 
@@ -328,10 +308,11 @@ export default function EventsScreen({ navigation, route }) {
       )}
 
       <FlatList
+        key={layout === 'tile' ? 'grid' : 'single'}
         data={filtered}
+        numColumns={layout === 'tile' ? 2 : 1}
+        columnWrapperStyle={layout === 'tile' ? styles.gridRow : undefined}
         keyExtractor={item => item.id.toString()}
-        numColumns={2}
-        columnWrapperStyle={styles.row}
         contentContainerStyle={styles.list}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
         renderItem={renderItem}
@@ -497,12 +478,15 @@ function createStyles(colors) {
     searchIcon: { fontSize: 17 },
     searchInput: { flex: 1, fontSize: 14 },
 
-    toggleRow: { flexDirection: 'row', gap: 8, marginTop: 10 },
+    toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 },
+    // Sabit yükseklik + iki eksende ortalama: yazı ve ikon hapın tam ortasında,
+    // sağdaki görünüm düğmeleriyle aynı hizada.
     togglePill: {
-      paddingHorizontal: 16, paddingVertical: 7, borderRadius: 20,
+      height: 38, paddingHorizontal: 14, borderRadius: 19,
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
       backgroundColor: 'rgba(255,255,255,0.1)',
     },
-    toggleText: { fontSize: 13, fontWeight: '700' },
+    toggleText: { fontSize: 13.5, fontWeight: '800', lineHeight: 18, textAlignVertical: 'center', includeFontPadding: false },
 
     filterSectionLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 1.2, marginBottom: 10 },
     filterChipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
@@ -519,22 +503,11 @@ function createStyles(colors) {
     setlistBanner: { backgroundColor: '#E9456022', borderBottomWidth: 1, borderBottomColor: '#E9456044', paddingVertical: 11, paddingHorizontal: 20 },
     setlistBannerText: { color: '#E94560', fontSize: 13, fontWeight: '800', textAlign: 'center' },
 
-    list: { padding: 14, paddingTop: 16, paddingBottom: 32 },
-    row: { justifyContent: 'space-between', marginBottom: 14 },
-    // Sabit yükseklik: 2 sütunlu grid'de değişken içerik (1-2 satır ad, opsiyonel
-    // sanatçı/şehir/tür) kartları farklı boyda bırakıp satırları kaydırıyordu.
-    cardWrapper: { width: CARD_WIDTH, height: 232, borderRadius: 16, overflow: 'hidden', borderWidth: 1 },
-    cardImage: { width: '100%', height: 120, justifyContent: 'center', alignItems: 'center' },
-    cardEmoji: { fontSize: 40 },
-    datePill: { position: 'absolute', top: 100, right: 8, backgroundColor: 'rgba(0,0,0,0.55)', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8 },
-    datePillText: { color: '#fff', fontSize: 10, fontWeight: '700' },
-    cardBody: { flex: 1, padding: 10 },
-    // 2 satırlık sabit alan — 1 satırlık adlar da aynı yüksekliği kaplasın
-    cardName: { fontSize: 13, lineHeight: 17, minHeight: 34, fontWeight: 'bold', marginBottom: 3 },
-    cardArtist: { fontSize: 11, marginBottom: 2 },
-    cardCity: { fontSize: 11, marginBottom: 4 },
-    genrePill: { alignSelf: 'flex-start', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 },
-    genrePillText: { fontSize: 10, fontWeight: '700' },
+    list: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 32 },
+    gridRow: { gap: 12 },
+    tileCell: { flex: 1, maxWidth: '50%' },
+    layoutSwitch: { flexDirection: 'row', alignItems: 'center', height: 38, borderWidth: 1, borderRadius: 12, paddingHorizontal: 3, gap: 2 },
+    layoutBtn: { width: 34, height: 30, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
 
     empty: { alignItems: 'center', marginTop: 80 },
     emptyEmoji: { fontSize: 56, marginBottom: 12 },

@@ -24,6 +24,15 @@ public class SearchService {
         this.artistFollowRepository = artistFollowRepository;
     }
 
+    // Ayni konserin kopyalari (Biletix + Biletinial...) listede tek kart olsun.
+    // Alan enjeksiyonu: kurucu ve onu kullanan testler degismesin; yoksa liste aynen doner.
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.concertly.backend.service.ingest.ConcertGrouping concertGrouping;
+
+    private List<com.concertly.backend.model.Event> collapseCopies(List<com.concertly.backend.model.Event> events) {
+        return concertGrouping == null ? events : concertGrouping.collapse(events);
+    }
+
     public SearchResponse search(String q, Long currentUserId) {
         if (q == null || q.trim().length() < 2) {
             return new SearchResponse(List.of(), List.of(), List.of());
@@ -31,9 +40,14 @@ public class SearchService {
 
         String query = q.trim();
 
-        List<EventResponse> events = eventRepository.search(query)
+        // Yaklaşanlar önce (en yakın üstte), sonra geçmişler (en yeni üstte) — sanatçı sayfasıyla
+        // aynı kural. Eskiden yalnızca tarihe göre azalandı: geçmiş ve yaklaşan karışık geliyordu.
+        List<EventResponse> events = collapseCopies(eventRepository.search(query)
                 .stream()
                 .filter(com.concertly.backend.model.Event::listedPublicly)
+                .toList())
+                .stream()
+                .sorted(EventOrder.nearestFirst(java.time.LocalDateTime.now()))
                 .map(EventResponse::from)
                 .toList();
 

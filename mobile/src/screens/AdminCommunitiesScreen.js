@@ -8,6 +8,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import API, { getErrorMessage } from '../services/api';
+import { goBackOrFallback } from '../navigation/navHelpers';
 
 function waitingLabel(createdAt, t) {
   if (!createdAt) return '';
@@ -61,7 +62,7 @@ export default function AdminCommunitiesScreen({ navigation }) {
       }
     >
       <LinearGradient colors={colors.screenGradient} style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation, 'Admin')} style={styles.backButton}>
           <Text style={styles.backText}>{t('back')}</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('admin_communities_title')}</Text>

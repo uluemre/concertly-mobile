@@ -126,6 +126,9 @@ public class PostService {
     }
 
     // ✅ POST OLUŞTUR
+    // Tek transaction: anket seçenekleri kaydedilemezse ya da yanıt üretilemezse post da
+    // geri alınır (eskiden post kaydedilip 500 dönüyordu, kullanıcı tekrar deneyince mükerrer oluyordu).
+    @Transactional
     public PostResponse createPost(Long userId, CreatePostRequest request) {
         ContentLimits.check(request.getContent(), ContentLimits.POST_MAX);
         contentLimitService.checkPost(userId);
@@ -160,10 +163,9 @@ public class PostService {
                     PollOption opt = new PollOption();
                     opt.setPost(saved);
                     opt.setOptionText(optText.trim());
-                    pollOptionRepository.save(opt);
+                    saved.getPollOptions().add(pollOptionRepository.save(opt));
                 }
             }
-            saved = postRepository.findById(saved.getId()).orElse(saved);
         }
 
         badgeService.checkAndAwardBadges(userId);
@@ -174,6 +176,8 @@ public class PostService {
      * Tek gönderi — paylaşım linki ve bildirim yönlendirmesi id ile gelir.
      * Gizlenen içerik sahibi ve admin dışında görünmez.
      */
+    // open-in-view kapalı: anket seçenekleri (LAZY) DTO'ya çevrilirken oturum açık olmalı
+    @Transactional(readOnly = true)
     public PostResponse getPost(Long postId, Long currentUserId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new ResourceNotFoundException("Post bulunamadı: " + postId));
@@ -189,6 +193,7 @@ public class PostService {
     }
 
     // ✅ TRENDING FEED (sayfalı)
+    @Transactional(readOnly = true)
     public List<PostResponse> getTrendingFeed(Long currentUserId, int page, int size) {
         Set<Long> hidden = moderationService.getHiddenUserIds(currentUserId);
         List<Post> posts = postRepository.findByOrderByCreatedAtDesc(PageRequest.of(page, size))
@@ -200,6 +205,7 @@ public class PostService {
     }
 
     // ✅ FOLLOWING FEED (sayfalı)
+    @Transactional(readOnly = true)
     public List<PostResponse> getFollowingFeed(Long userId, int page, int size) {
         if (!userRepository.existsById(userId)) {
             throw new ResourceNotFoundException("Kullanıcı bulunamadı: " + userId);
@@ -215,6 +221,7 @@ public class PostService {
     }
 
     // ✅ POLL OY VER
+    @Transactional
     public List<PollOptionDto> votePoll(Long userId, Long postId, Long optionId) {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new ResourceNotFoundException("Kullanıcı bulunamadı: " + userId));

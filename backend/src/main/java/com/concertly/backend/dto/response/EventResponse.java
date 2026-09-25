@@ -73,14 +73,14 @@ public class EventResponse {
         if (event.getArtist() != null) {
             dto.artistId = event.getArtist().getId();
             dto.artistName = event.getArtist().getName();
-            dto.artistImageUrl = event.getArtist().getImageUrl();
+            dto.artistImageUrl = com.concertly.backend.model.ImageUrls.usable(event.getArtist().getImageUrl());
             dto.artistGenre = event.getArtist().getGenre();
             dto.artistSpotifyId = event.getArtist().getSpotifyId();
         }
 
         // Sanatçı görseli (Deezer/Spotify CDN) her zaman öncelikli;
         // yoksa etkinliğin kendi görseline (TM) düş.
-        String eventImg = event.getImageUrl();
+        String eventImg = com.concertly.backend.model.ImageUrls.usable(event.getImageUrl());
         String artistImg = dto.artistImageUrl;
         if (artistImg != null && !artistImg.isBlank()) {
             dto.imageUrl = artistImg;

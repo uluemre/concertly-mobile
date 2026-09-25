@@ -1,21 +1,13 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
-import { Image } from 'expo-image';
+import EventImage from '../EventImage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../theme';
 import { useLanguage, upperLocale } from '../../context/LanguageContext';
 import { showArtistLine } from '../../utils/text';
-import { getGenreGradient } from '../../utils/gradients';
 import { formatDateShort } from '../../utils/time';
 
 const ACCENT_COLORS = ['#E94560', '#7C3AED', '#F5A623', '#00D4AA', '#FF6B6B', '#4ECDC4'];
-
-function getInitials(name) {
-  if (!name) return '?';
-  const words = name.trim().split(/\s+/);
-  if (words.length === 1) return words[0].substring(0, 2).toUpperCase();
-  return (words[0][0] + words[1][0]).toUpperCase();
-}
 
 export default React.memo(function FeaturedCard({ item, index, cardWidth, cardHeight, onPress, followed }) {
   const { colors } = useTheme();
@@ -23,7 +15,6 @@ export default React.memo(function FeaturedCard({ item, index, cardWidth, cardHe
   const styles = useMemo(() => createStyles(colors, cardWidth, cardHeight), [colors, cardWidth, cardHeight]);
   const scale = useRef(new Animated.Value(0.92)).current;
   const opacity = useRef(new Animated.Value(0)).current;
-  const [imgError, setImgError] = useState(false);
 
   useEffect(() => {
     Animated.parallel([
@@ -43,23 +34,7 @@ export default React.memo(function FeaturedCard({ item, index, cardWidth, cardHe
     <Animated.View style={[styles.outer, { opacity, transform: [{ scale }] }]}>
       <TouchableOpacity activeOpacity={0.92} onPress={() => onPress(item)}>
         <View style={styles.card}>
-          {(item.imageUrl || item.artistImageUrl) && !imgError ? (
-            <Image
-              source={{ uri: item.imageUrl || item.artistImageUrl }}
-              style={styles.bg}
-              contentFit="cover"
-              cachePolicy="memory-disk"
-              onError={() => setImgError(true)}
-            />
-          ) : null}
-          {(!(item.imageUrl || item.artistImageUrl) || imgError) && (
-            <LinearGradient
-              colors={getGenreGradient(item.genre)}
-              style={[styles.bg, styles.bgPlaceholder]}
-            >
-              <Text style={styles.initials}>{getInitials(item.artistName || item.name)}</Text>
-            </LinearGradient>
-          )}
+          <EventImage key={item.id} item={item} style={styles.bg} initialsSize={46} />
           <LinearGradient
             colors={['transparent', 'rgba(4,4,16,0.65)', 'rgba(4,4,16,0.97)']}
             style={styles.scrim}

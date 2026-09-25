@@ -50,10 +50,21 @@ public class VenueService {
         return VenueDetailResponse.from(venue, avgRating, reviewCount, totalEvents, myRating);
     }
 
+    // Ayni konserin kopyalari (Biletix + Biletinial...) listede tek kart olsun.
+    // Alan enjeksiyonu: kurucu ve onu kullanan testler degismesin; yoksa liste aynen doner.
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.concertly.backend.service.ingest.ConcertGrouping concertGrouping;
+
+    private List<com.concertly.backend.model.Event> collapseCopies(List<com.concertly.backend.model.Event> events) {
+        return concertGrouping == null ? events : concertGrouping.collapse(events);
+    }
+
     public List<EventResponse> getVenueEvents(Long venueId) {
-        return eventRepository.findByVenueIdOrderByEventDateAsc(venueId)
+        return collapseCopies(eventRepository.findByVenueIdOrderByEventDateAsc(venueId)
                 .stream()
                 .filter(com.concertly.backend.model.Event::listedPublicly)
+                .toList())
+                .stream()
                 .map(EventResponse::from)
                 .toList();
     }

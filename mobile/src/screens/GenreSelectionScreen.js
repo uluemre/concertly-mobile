@@ -3,11 +3,13 @@ import {
   View, Text, StyleSheet, TouchableOpacity, Animated, ScrollView
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { prefetchRecommendedArtists } from '../services/artists';
 import { useTheme } from '../theme';
 import GenreChip from '../components/GenreChip';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import CityPicker from '../components/CityPicker';
+import { goBackOrFallback } from '../navigation/navHelpers';
 
 const GENRES = [
   { name: 'Rock', emoji: '🎸', accent: '#E94560' },
@@ -68,7 +70,7 @@ export default function GenreSelectionScreen({ navigation, route }) {
     <View style={styles.container}>
       <ScrollView style={styles.inner} contentContainerStyle={styles.innerContent} showsVerticalScrollIndicator={false}>
         {editMode ? (
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.backBtn}>
             <Text style={styles.backText}>{t('back')}</Text>
           </TouchableOpacity>
         ) : (
@@ -123,11 +125,15 @@ export default function GenreSelectionScreen({ navigation, route }) {
         <Animated.View style={{ transform: [{ scale: buttonPulse }], width: '100%' }}>
           <TouchableOpacity
             disabled={!canContinue}
-            onPress={() => navigation.navigate('ArtistSelection', {
-              selectedGenres,
-              selectedCity,
-              editMode,
-            })}
+            onPress={() => {
+              // Sanatçı listesi ekran geçişi sırasında yüklenmeye başlasın
+              prefetchRecommendedArtists(selectedGenres).catch(() => {});
+              navigation.navigate('ArtistSelection', {
+                selectedGenres,
+                selectedCity,
+                editMode,
+              });
+            }}
           >
             <LinearGradient
               colors={canContinue ? ['#E94560', '#7C3AED'] : ['#2A2A3E', '#2A2A3E']}

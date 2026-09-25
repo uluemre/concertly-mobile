@@ -294,10 +294,14 @@ public class AdminController {
             return artistRepository.findById(req.getArtistId())
                 .orElseThrow(() -> new ResourceNotFoundException("Artist bulunamadi: " + req.getArtistId()));
         }
-        Artist artist = new Artist();
-        artist.setName(req.getArtistName() != null ? req.getArtistName() : "Bilinmeyen Sanatci");
-        artist.setGenre(req.getArtistGenre() != null ? req.getArtistGenre() : "Diger");
-        return artistRepository.save(artist);
+        // Aynı adlı sanatçı varsa onu kullan; eskiden her seferinde yeni kayıt açılıyordu (N-09)
+        String name = req.getArtistName() != null ? req.getArtistName() : "Bilinmeyen Sanatci";
+        return artistRepository.findExisting(null, name).orElseGet(() -> {
+            Artist artist = new Artist();
+            artist.setName(name);
+            artist.setGenre(req.getArtistGenre() != null ? req.getArtistGenre() : "Diger");
+            return artistRepository.save(artist);
+        });
     }
 
     private Venue resolveOrCreateVenue(CreateEventRequest req, Venue existing) {

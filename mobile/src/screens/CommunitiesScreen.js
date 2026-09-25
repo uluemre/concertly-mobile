@@ -10,6 +10,7 @@ import { ListSkeletonPage } from '../components/SkeletonLoader';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import API, { getErrorMessage } from '../services/api';
+import { goBackOrFallback } from '../navigation/navHelpers';
 
 // key: i18n key, apiValue: backend'e gönderilecek değer (null = hepsi), emoji: chip görseli
 const FILTERS = [
@@ -141,7 +142,7 @@ export default function CommunitiesScreen({ navigation }) {
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
       {/* HEADER */}
       <LinearGradient colors={colors.headerGradient} style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.backButton}>
           <Text style={styles.backText}>{t('back')}</Text>
         </TouchableOpacity>
         <Text style={styles.headerLabel}>👥 CONCERTLY</Text>

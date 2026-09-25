@@ -9,6 +9,7 @@ import * as ImagePicker from 'expo-image-picker';
 import API, { uploadImage } from '../services/api';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
+import { goBackOrFallback } from '../navigation/navHelpers';
 
 export default function CreatePostScreen({ route, navigation }) {
   const { colors } = useTheme();
@@ -95,7 +96,7 @@ export default function CreatePostScreen({ route, navigation }) {
         pollOptions: postType === 'POLL' ? pollOptions.filter(o => o.trim()) : undefined,
       });
       Alert.alert(t('post_success_title'), t('post_success_msg'), [
-        { text: t('confirm'), onPress: () => navigation.goBack() }
+        { text: t('confirm'), onPress: () => goBackOrFallback(navigation) }
       ]);
     } catch (err) {
       Alert.alert(t('error'), t('post_error_msg'));
@@ -113,7 +114,7 @@ export default function CreatePostScreen({ route, navigation }) {
       <ScrollView style={styles.container}>
         {/* HEADER */}
         <LinearGradient colors={['#E94560', '#7C3AED']} style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <TouchableOpacity style={styles.backButton} onPress={() => goBackOrFallback(navigation)}>
             <Text style={styles.backText}>{t('post_cancel')}</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{t('post_header')}</Text>

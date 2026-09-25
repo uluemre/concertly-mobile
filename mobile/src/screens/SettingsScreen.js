@@ -11,6 +11,7 @@ import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { LAUNCH_CITIES } from '../constants/cities';
+import { goBackOrFallback } from '../navigation/navHelpers';
 
 // Hesap silme sebepleri — code backend'e (dil bağımsız) gönderilir, key UI metni.
 const DELETE_REASONS = [
@@ -153,7 +154,7 @@ export default function SettingsScreen({ navigation, route }) {
         await updateSession({ userCity: formData.city });
       }
       Alert.alert(t('settings_save_success'), t('settings_save_success_msg'), [
-        { text: t('confirm'), onPress: () => navigation.goBack() }
+        { text: t('confirm'), onPress: () => goBackOrFallback(navigation) }
       ]);
     } catch (err) {
       const status = err?.response?.status;
@@ -228,7 +229,7 @@ export default function SettingsScreen({ navigation, route }) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.backButton}>
           <Text style={styles.backButtonText}>{t('back')}</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('settings_title')}</Text>

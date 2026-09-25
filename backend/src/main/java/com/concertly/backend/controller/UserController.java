@@ -14,6 +14,7 @@ import com.concertly.backend.security.JwtUtil;
 import com.concertly.backend.service.AccountDeletionService;
 import com.concertly.backend.service.ArtistService;
 import com.concertly.backend.service.AuthService;
+import com.concertly.backend.service.ModerationService;
 import com.concertly.backend.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
@@ -29,13 +30,21 @@ public class UserController {
     private final AuthService authService;
     private final ArtistService artistService;
     private final AccountDeletionService accountDeletionService;
+    private final ModerationService moderationService;
 
     public UserController(UserService userService, AuthService authService,
-                          ArtistService artistService, AccountDeletionService accountDeletionService) {
+                          ArtistService artistService, AccountDeletionService accountDeletionService,
+                          ModerationService moderationService) {
         this.userService = userService;
         this.authService = authService;
         this.artistService = artistService;
         this.accountDeletionService = accountDeletionService;
+        this.moderationService = moderationService;
+    }
+
+    /** Aralarında engel olan kullanıcıya bu kişi "bulunamadı" (404) görünür. */
+    private void requireVisible(Long targetId) {
+        moderationService.requireVisible(JwtUtil.getCurrentUserId(), targetId);
     }
 
     // ✅ HESABI SİL (yalnızca giriş yapan kullanıcı kendi hesabını siler)
@@ -70,13 +79,16 @@ public class UserController {
 
     @GetMapping("/{id}")
     public UserResponse getUserById(@PathVariable Long id) {
+        requireVisible(id);
         return userService.getUserById(id);
     }
 
     /** Paylaşım linkinden gelen kullanıcı adını id'ye çevirir. */
     @GetMapping("/by-username/{username}")
     public UserResponse getUserByUsername(@PathVariable String username) {
-        return userService.getUserByUsername(username);
+        UserResponse user = userService.getUserByUsername(username);
+        requireVisible(user.getId());
+        return user;
     }
 
     // ✅ PROFİL GÜNCELLE (yalnızca kendi profilini)
@@ -94,23 +106,27 @@ public class UserController {
     // ✅ KULLANICININ POSTLARİNI GETİR
     @GetMapping("/{id}/posts")
     public List<PostResponse> getUserPosts(@PathVariable Long id) {
+        requireVisible(id);
         return userService.getUserPosts(id, JwtUtil.getCurrentUserId());
     }
 
     // ✅ KULLANICININ GİTTİĞİ ETKİNLİKLER
     @GetMapping("/{id}/events")
     public List<EventResponse> getUserEvents(@PathVariable Long id) {
+        requireVisible(id);
         return userService.getUserEvents(id);
     }
 
     @GetMapping("/{id}/followed-artists")
     public List<ArtistResponse> getFollowedArtists(@PathVariable Long id) {
+        requireVisible(id);
         return artistService.getFollowedArtists(id);
     }
 
     // ✅ KONSER PASAPORTU
     @GetMapping("/{id}/passport")
     public PassportResponse getPassport(@PathVariable Long id) {
+        requireVisible(id);
         return userService.getUserPassport(id);
     }
 

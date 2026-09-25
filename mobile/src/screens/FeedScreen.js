@@ -12,6 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import PostCard from '../components/feed/PostCard';
 import AnimatedListItem from '../components/AnimatedListItem';
+import { usePostUpdates } from '../services/postUpdates';
 
 const PAGE_SIZE = 20;
 
@@ -22,6 +23,8 @@ export default function FeedScreen({ navigation }) {
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState('following');
   const [posts, setPosts] = useState([]);
+  // PostDetail'de değişen beğeni / yorum sayıları geri dönünce burada da görünsün
+  usePostUpdates(setPosts);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
@@ -96,6 +99,9 @@ export default function FeedScreen({ navigation }) {
   }, [loadFeed, loadingMore, loading, error]);
 
   const switchTab = (tab) => {
+    // Aynı sekme: activeTab değişmeyeceği için yükleme effect'i çalışmaz;
+    // setLoading(true) yapılırsa ekran iskelette takılı kalırdı.
+    if (tab === activeTab) return;
     setActiveTab(tab);
     setLoading(true);
     Animated.spring(tabIndicator, {

@@ -7,6 +7,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.server.ResponseStatusException;
 
 @RestControllerAdvice
@@ -50,6 +51,16 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(new ApiError(400, ex.getMessage()));
+    }
+
+    // 400 — adres/parametre tipi uyuşmuyor (ör. /api/events/null, /api/artists/NaN).
+    // Bu handler olmadan aşağıdaki Exception.class catch-all'ına düşüp 500 dönüyordu;
+    // istemcinin hatası sunucu hatası gibi görünüyordu.
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiError> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(new ApiError(400, "Geçersiz parametre: " + ex.getName()));
     }
 
     // 409 — veritabanı constraint ihlali (unique, foreign key vs.)

@@ -1,56 +1,37 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  ActivityIndicator, Animated,
+  View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
+import EventCard from '../components/EventCard';
+import EventImage from '../components/EventImage';
 import { parseEventDate } from '../utils/time';
+import { getGenreGradient } from '../utils/gradients';
+import { goBackOrFallback, openEvent } from '../navigation/navHelpers';
 
-// Baskın türe göre müzik kişiliği
-const PERSONALITIES = [
-  { match: ['rock', 'metal', 'alternative', 'indie'], key: 'wrapped_p_rock',    emoji: '🎸', gradient: ['#E94560', '#7C3AED'] },
-  { match: ['pop'],                                   key: 'wrapped_p_pop',     emoji: '✨', gradient: ['#EC4899', '#F5A623'] },
-  { match: ['electronic', 'dance', 'house', 'techno', 'edm'], key: 'wrapped_p_electronic', emoji: '🎧', gradient: ['#00D4AA', '#3B82F6'] },
-  { match: ['jazz', 'blues', 'soul', 'funk'],         key: 'wrapped_p_jazz',    emoji: '🎷', gradient: ['#F5A623', '#D97706'] },
-  { match: ['rap', 'hip-hop', 'hip hop'],             key: 'wrapped_p_rap',     emoji: '🎤', gradient: ['#3B82F6', '#7C3AED'] },
-  { match: ['folk', 'world', 'türk', 'arabesk'],      key: 'wrapped_p_folk',    emoji: '🪕', gradient: ['#00D4AA', '#F5A623'] },
-];
-const PERSONALITY_DEFAULT = { key: 'wrapped_p_explorer', emoji: '🧭', gradient: ['#7C3AED', '#00D4AA'] };
-
-function pickPersonality(genreCounts) {
-  const entries = Object.entries(genreCounts);
-  if (entries.length === 0) return { ...PERSONALITY_DEFAULT, percent: 0 };
-  const total = entries.reduce((s, [, c]) => s + c, 0);
-  const [topGenre, topCount] = entries.sort((a, b) => b[1] - a[1])[0];
-  const g = topGenre.toLowerCase();
-  const found = PERSONALITIES.find(p => p.match.some(m => g.includes(m)));
-  return { ...(found || PERSONALITY_DEFAULT), percent: Math.round(topCount * 100 / total), genre: topGenre };
-}
-
-function FadeIn({ delay, children }) {
-  const anim = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    Animated.timing(anim, { toValue: 1, duration: 500, delay, useNativeDriver: true }).start();
-  }, []);
-  return (
-    <Animated.View style={{ opacity: anim, transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [24, 0] }) }] }}>
-      {children}
-    </Animated.View>
-  );
-}
-
+/**
+ * Konser Yılın: kullanıcının bu yıl gittiği konserlerin sade özeti.
+ *
+ * Uydurma "kişilik" etiketleri (Rock Ruhu, Gece Kuşu...) yerine yalnızca gerçek
+ * veri gösterilir: kaç konser, hangi sanatçı, hangi türler, hangi ay. Konser
+ * yoksa slogan yerine seçtiği türlerde yaklaşan konserler listelenir.
+ */
 export default function WrappedScreen({ navigation }) {
   const { colors } = useTheme();
   const { session } = useAuth();
   const { t, tu, lang } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const locale = lang === 'en' ? 'en-US' : 'tr-TR';
+  const year = new Date().getFullYear();
 
   const [passport, setPassport] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [suggestions, setSuggestions] = useState([]);
 
   useEffect(() => {
     API.get(`/users/${session.userId}/passport`)
@@ -59,268 +40,341 @@ export default function WrappedScreen({ navigation }) {
       .finally(() => setLoading(false));
   }, []);
 
-  // ── Pasaport verisinden kimlik çıkarımı ─────────────────────────────────
-  const identity = useMemo(() => {
-    const events = passport?.events || [];
+  const events = passport?.events || [];
+  const hasData = events.length > 0;
 
-    const genreCounts = {};
+  // Konser yoksa: seçtiği türlerde yaklaşan birkaç konser
+  useEffect(() => {
+    if (loading || hasData) return;
+    const params = ['limit=4', 'upcoming=true'];
+    if (session.userCity) params.push(`city=${encodeURIComponent(session.userCity)}`);
+    if (session.favoriteGenres) params.push(`genres=${encodeURIComponent(session.favoriteGenres)}`);
+    API.get(`/events?${params.join('&')}`)
+      .then(res => setSuggestions(Array.isArray(res.data) ? res.data.slice(0, 4) : []))
+      .catch(() => {});
+  }, [loading, hasData]);
+
+  const summary = useMemo(() => {
+    const thisYear = events.filter(e => parseEventDate(e.eventDate).getFullYear() === year);
+    const list = thisYear.length ? thisYear : events;
+
     const artistCounts = {};
+    const artistEvent = {};
+    const genreCounts = {};
     const monthCounts = {};
-    events.forEach(e => {
-      if (e.genre) genreCounts[e.genre] = (genreCounts[e.genre] || 0) + 1;
-      if (e.artistName) artistCounts[e.artistName] = (artistCounts[e.artistName] || 0) + 1;
-      if (e.eventDate) {
-        const m = parseEventDate(e.eventDate).getMonth();
-        monthCounts[m] = (monthCounts[m] || 0) + 1;
+    list.forEach(e => {
+      if (e.artistName) {
+        artistCounts[e.artistName] = (artistCounts[e.artistName] || 0) + 1;
+        if (!artistEvent[e.artistName]) artistEvent[e.artistName] = e;
       }
+      if (e.genre) genreCounts[e.genre] = (genreCounts[e.genre] || 0) + 1;
+      const m = parseEventDate(e.eventDate).getMonth();
+      if (!isNaN(m)) monthCounts[m] = (monthCounts[m] || 0) + 1;
     });
 
-    // Konser yoksa profildeki favori türlerden kişilik çıkar (yüzde gösterilmez)
-    const fromPrefs = events.length === 0 && !!session.favoriteGenres;
-    if (fromPrefs) {
-      session.favoriteGenres.split(',').map(g => g.trim()).filter(Boolean)
-        .forEach(g => { genreCounts[g] = 1; });
-    }
-
-    const topArtist = Object.entries(artistCounts).sort((a, b) => b[1] - a[1])[0] || null;
-    const topGenres = Object.entries(genreCounts).sort((a, b) => b[1] - a[1]).slice(0, 3);
+    const topArtist = Object.entries(artistCounts).sort((a, b) => b[1] - a[1])[0];
     const genreTotal = Object.values(genreCounts).reduce((s, c) => s + c, 0) || 1;
-    const topMonth = Object.entries(monthCounts).sort((a, b) => b[1] - a[1])[0] || null;
-
-    const monthName = topMonth !== null && topMonth !== undefined && topMonth[0] !== undefined
-      ? new Date(2026, parseInt(topMonth[0]), 1).toLocaleDateString(lang === 'en' ? 'en-US' : 'tr-TR', { month: 'long' })
-      : null;
+    const genres = Object.entries(genreCounts).sort((a, b) => b[1] - a[1]).slice(0, 4)
+      .map(([genre, count]) => ({ genre, count, percent: Math.round(count * 100 / genreTotal) }));
+    const topMonth = Object.entries(monthCounts).sort((a, b) => b[1] - a[1])[0];
+    const sorted = [...list].sort((a, b) => parseEventDate(b.eventDate) - parseEventDate(a.eventDate));
+    const months = Array.from({ length: 12 }, (_, m) => monthCounts[m] || 0);
+    const collage = [];
+    sorted.forEach(e => { if (e.artistName && !collage.some(c => c.artistName === e.artistName)) collage.push(e); });
 
     return {
-      personality: pickPersonality(genreCounts),
-      fromPrefs,
-      topArtist,
-      topGenres: topGenres.map(([g, c]) => ({ genre: g, percent: Math.round(c * 100 / genreTotal) })),
-      topMonth: topMonth ? { name: monthName, count: topMonth[1] } : null,
+      isThisYear: thisYear.length > 0,
+      concerts: list.length,
+      // cityKey backend'den gelir: "Istanbul" ve "İstanbul" tek şehir
+      cities: new Set(list.map(e => e.cityKey || e.venueCity).filter(Boolean)).size,
+      artists: Object.keys(artistCounts).length,
+      verified: list.filter(e => e.verified).length,
+      topArtist: topArtist ? { name: topArtist[0], count: topArtist[1], event: artistEvent[topArtist[0]] } : null,
+      genres,
+      topMonth: topMonth
+        ? { name: new Date(year, Number(topMonth[0]), 1).toLocaleDateString(locale, { month: 'long' }), count: topMonth[1] }
+        : null,
+      recent: sorted.slice(0, 8),
+      months,
+      collage: collage.slice(0, 5),
+      topGenre: genres[0]?.genre || null,
     };
-  }, [passport, session.favoriteGenres, lang]);
+  }, [events, year, locale]);
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.centered, { backgroundColor: colors.background }]}>
+      <View style={[styles.container, styles.centered]}>
         <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
-  const p = passport || { totalConcerts: 0, verifiedConcerts: 0, uniqueArtists: 0, uniqueCities: 0, events: [] };
-  const hasData = p.totalConcerts > 0;
-  const year = new Date().getFullYear();
-
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={{ paddingBottom: 48 }}
-    >
-      {/* HERO — KİŞİLİK */}
-      <LinearGradient colors={identity.personality.gradient} style={styles.hero}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.heroBack}>
-          <Text style={styles.heroBackText}>‹</Text>
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 48 }} showsVerticalScrollIndicator={false}>
+      {/* ÜST: büyük sayı, sade arka plan */}
+      <LinearGradient
+        colors={hasData ? [...getGenreGradient(summary.topGenre), colors.background] : ['#E94560', '#7C3AED', colors.background]}
+        locations={[0, 0.55, 1]}
+        start={{ x: 0, y: 0 }} end={{ x: 0.4, y: 1 }}
+        style={styles.hero}
+      >
+        <View style={styles.heroRing1} />
+        <View style={styles.heroRing2} />
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.backBtn} hitSlop={12}>
+          <Ionicons name="chevron-back" size={26} color="#fff" />
         </TouchableOpacity>
-        <FadeIn delay={100}>
-          <Text style={styles.heroLabel}>{tu('wrapped_title', { year })}</Text>
-        </FadeIn>
-        <FadeIn delay={400}>
-          <Text style={styles.heroEmoji}>{identity.personality.emoji}</Text>
-        </FadeIn>
-        <FadeIn delay={700}>
-          <Text style={styles.heroPersonality}>{t(identity.personality.key)}</Text>
-        </FadeIn>
-        <FadeIn delay={1000}>
-          <Text style={styles.heroSub}>
-            {identity.fromPrefs
-              ? t('wrapped_personality_prefs', { genre: identity.personality.genre })
-              : identity.personality.percent > 0
-                ? t('wrapped_personality_sub', { percent: identity.personality.percent, genre: identity.personality.genre })
-                : t('wrapped_personality_new')}
-          </Text>
-        </FadeIn>
+        <Text style={styles.heroLabel}>
+          {summary.isThisYear || !hasData ? tu('wrapped_year_label', { year }) : tu('wrapped_all_time')}
+        </Text>
+        {hasData ? (
+          <>
+            <View style={styles.heroCountRow}>
+              <Text style={styles.heroCount}>{summary.concerts}</Text>
+              <Text style={styles.heroCountUnit}>{t('wrapped_unit_concerts')}</Text>
+            </View>
+            <View style={styles.heroStats}>
+              <HeroStat icon="location-outline" value={summary.cities} label={t('wrapped_stat_cities')} styles={styles} colors={colors} />
+              <HeroStat icon="mic-outline" value={summary.artists} label={t('wrapped_stat_artists')} styles={styles} colors={colors} />
+              <HeroStat icon="checkmark-circle-outline" value={summary.verified} label={t('wrapped_stat_verified')} styles={styles} colors={colors} />
+            </View>
+            {summary.collage.length > 1 && (
+              <View style={styles.collage}>
+                {summary.collage.map((e, i) => (
+                  <EventImage
+                    key={e.id}
+                    item={{ ...e, name: e.artistName, imageUrl: e.imageUrl }}
+                    style={[styles.collagePhoto, { marginLeft: i === 0 ? 0 : -14, zIndex: 10 - i }]}
+                    initialsSize={14}
+                  />
+                ))}
+                <Text style={styles.collageText} numberOfLines={1}>
+                  {summary.collage.map(e => e.artistName).slice(0, 2).join(', ')}
+                  {summary.artists > 2 ? ` +${summary.artists - 2}` : ''}
+                </Text>
+              </View>
+            )}
+          </>
+        ) : (
+          <>
+            <Text style={styles.heroEmptyTitle}>{t('wrapped_hero_empty')}</Text>
+            <Text style={styles.heroEmptySub}>{t('wrapped_empty_sub')}</Text>
+          </>
+        )}
       </LinearGradient>
 
       {hasData ? (
         <>
-          {/* İSTATİSTİK GRID */}
-          <FadeIn delay={1200}>
-            <View style={styles.statsGrid}>
-              {[
-                { num: p.totalConcerts,    labelKey: 'wrapped_stat_concerts', emoji: '🎫' },
-                { num: p.uniqueCities,     labelKey: 'wrapped_stat_cities',   emoji: '🗺️' },
-                { num: p.uniqueArtists,    labelKey: 'wrapped_stat_artists',  emoji: '🎤' },
-                { num: p.verifiedConcerts, labelKey: 'wrapped_stat_verified', emoji: '✅' },
-              ].map(s => (
-                <View key={s.labelKey} style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                  <Text style={styles.statEmoji}>{s.emoji}</Text>
-                  <Text style={[styles.statNum, { color: colors.text }]}>{s.num}</Text>
-                  <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{tu(s.labelKey)}</Text>
+          {/* EN ÇOK GÖRDÜĞÜN SANATÇI */}
+          {summary.topArtist && (
+            <TouchableOpacity
+              style={styles.card}
+              activeOpacity={summary.topArtist.event?.artistId ? 0.85 : 1}
+              onPress={() => summary.topArtist.event?.artistId && navigation.navigate('ArtistProfile', {
+                artistId: summary.topArtist.event.artistId, artistName: summary.topArtist.name,
+              })}
+            >
+              <Text style={styles.cardLabel}>{tu('wrapped_top_artist')}</Text>
+              <View style={styles.artistRow}>
+                <EventImage
+                  item={{ ...summary.topArtist.event, name: summary.topArtist.name, artistName: summary.topArtist.name }}
+                  style={styles.artistPhoto}
+                  initialsSize={22}
+                />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.artistName} numberOfLines={1}>{summary.topArtist.name}</Text>
+                  <Text style={styles.cardSub}>{t('wrapped_top_artist_sub', { count: summary.topArtist.count })}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+              </View>
+            </TouchableOpacity>
+          )}
+
+          {/* TÜRLER */}
+          {summary.genres.length > 0 && (
+            <View style={styles.card}>
+              <Text style={styles.cardLabel}>{tu('wrapped_genres')}</Text>
+              {summary.genres.map(g => (
+                <View key={g.genre} style={styles.genreRow}>
+                  <Text style={styles.genreName} numberOfLines={1}>{g.genre}</Text>
+                  <View style={styles.genreTrack}>
+                    <LinearGradient
+                      colors={getGenreGradient(g.genre)}
+                      start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                      style={[styles.genreFill, { width: `${Math.max(6, g.percent)}%` }]}
+                    />
+                  </View>
+                  <Text style={styles.genreCount}>{g.count}</Text>
                 </View>
               ))}
             </View>
-          </FadeIn>
-
-          {/* EN ÇOK GÖRÜLEN SANATÇI */}
-          {identity.topArtist && (
-            <FadeIn delay={1400}>
-              <View style={[styles.bigCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                <Text style={[styles.bigCardLabel, { color: colors.textSecondary }]}>{tu('wrapped_top_artist')}</Text>
-                <Text style={[styles.bigCardValue, { color: colors.text }]}>🌟 {identity.topArtist[0]}</Text>
-                <Text style={[styles.bigCardSub, { color: colors.textSecondary }]}>
-                  {t('wrapped_top_artist_sub', { count: identity.topArtist[1] })}
-                </Text>
-              </View>
-            </FadeIn>
-          )}
-
-          {/* TÜR DAĞILIMI */}
-          {identity.topGenres.length > 0 && (
-            <FadeIn delay={1600}>
-              <View style={[styles.bigCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                <Text style={[styles.bigCardLabel, { color: colors.textSecondary }]}>{tu('wrapped_genres')}</Text>
-                {identity.topGenres.map((g, i) => (
-                  <View key={g.genre} style={styles.genreRow}>
-                    <Text style={[styles.genreName, { color: colors.text }]}>{g.genre}</Text>
-                    <View style={[styles.genreBarTrack, { backgroundColor: colors.cardAlt }]}>
-                      <LinearGradient
-                        colors={identity.personality.gradient}
-                        start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                        style={[styles.genreBarFill, { width: `${Math.max(8, g.percent)}%` }]}
-                      />
-                    </View>
-                    <Text style={[styles.genrePercent, { color: colors.textSecondary }]}>%{g.percent}</Text>
-                  </View>
-                ))}
-              </View>
-            </FadeIn>
           )}
 
           {/* EN YOĞUN AY */}
-          {identity.topMonth && (
-            <FadeIn delay={1800}>
-              <View style={[styles.bigCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                <Text style={[styles.bigCardLabel, { color: colors.textSecondary }]}>{tu('wrapped_busy_month')}</Text>
-                <Text style={[styles.bigCardValue, { color: colors.text }]}>📅 {identity.topMonth.name}</Text>
-                <Text style={[styles.bigCardSub, { color: colors.textSecondary }]}>
-                  {t('wrapped_busy_month_sub', { count: identity.topMonth.count })}
-                </Text>
+          {summary.topMonth && summary.concerts > 1 && (
+            <View style={styles.card}>
+              <View style={styles.monthHead}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.cardLabel}>{tu('wrapped_busy_month')}</Text>
+                  <Text style={styles.monthName}>{summary.topMonth.name}</Text>
+                </View>
+                <Text style={styles.monthCount}>{t('wrapped_busy_month_sub', { count: summary.topMonth.count })}</Text>
               </View>
-            </FadeIn>
+              <View style={styles.monthChart}>
+                {summary.months.map((c, m) => {
+                  const max = Math.max(...summary.months, 1);
+                  const top = c === max && c > 0;
+                  return (
+                    <View key={m} style={styles.monthCol}>
+                      <View style={[styles.monthBar, { height: 6 + (c / max) * 54 }, top ? styles.monthBarTop : c > 0 ? styles.monthBarOn : null]} />
+                      <Text style={[styles.monthInitial, top && { color: colors.primary }]}>
+                        {new Date(year, m, 1).toLocaleDateString(locale, { month: 'narrow' })}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
           )}
 
-          {/* PASAPORTA GİT */}
-          <FadeIn delay={2000}>
-            <TouchableOpacity
-              onPress={() => navigation.navigate('ConcertPassport')}
-              activeOpacity={0.85}
-              style={styles.passportBtnWrap}
-            >
-              <LinearGradient
-                colors={identity.personality.gradient}
-                style={styles.passportBtn}
-                start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-              >
-                <Text style={styles.passportBtnText}>{t('wrapped_open_passport')}</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => navigation.navigate('GenreSelection', { editMode: true })}
-              activeOpacity={0.8}
-              style={[styles.prefsBtn, { borderColor: colors.border }]}
-            >
-              <Text style={[styles.prefsBtnText, { color: colors.textSecondary }]}>{t('wrapped_edit_prefs')}</Text>
-            </TouchableOpacity>
-          </FadeIn>
+          {/* GİTTİĞİN KONSERLER */}
+          <Text style={styles.sectionTitle}>{t('wrapped_recent')}</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.recentRow}>
+            {summary.recent.map(e => (
+              <EventCard
+                key={e.id}
+                item={e}
+                variant="tile"
+                style={styles.recentTile}
+                onPress={() => openEvent(navigation, e.id)}
+              />
+            ))}
+          </ScrollView>
+
+          <TouchableOpacity onPress={() => navigation.navigate('ConcertPassport')} activeOpacity={0.85} style={styles.primaryBtn}>
+            <Ionicons name="albums-outline" size={18} color="#fff" />
+            <Text style={styles.primaryBtnText}>{t('wrapped_open_passport')}</Text>
+          </TouchableOpacity>
         </>
       ) : (
-        /* BOŞ DURUM */
-        <FadeIn delay={1200}>
-          <View style={styles.emptyWrap}>
-            <Text style={styles.emptyEmoji}>🎫</Text>
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('wrapped_empty_title')}</Text>
-            <Text style={[styles.emptySub, { color: colors.textSecondary }]}>{t('wrapped_empty_sub')}</Text>
-            <TouchableOpacity
-              onPress={() => navigation.navigate('MainApp', { screen: 'Events' })}
-              activeOpacity={0.85}
-            >
-              <LinearGradient
-                colors={['#E94560', '#7C3AED']}
-                style={styles.passportBtn}
-                start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-              >
-                <Text style={styles.passportBtnText}>{t('wrapped_browse_events')}</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => navigation.navigate('GenreSelection', { editMode: true })}
-              activeOpacity={0.8}
-              style={[styles.prefsBtn, { borderColor: colors.border }]}
-            >
-              <Text style={[styles.prefsBtnText, { color: colors.textSecondary }]}>{t('wrapped_edit_prefs')}</Text>
-            </TouchableOpacity>
-          </View>
-        </FadeIn>
+        <>
+          {suggestions.length > 0 && (
+            <>
+              <Text style={styles.sectionTitle}>{t('wrapped_empty_title')}</Text>
+              <View style={{ paddingHorizontal: 16 }}>
+                {suggestions.map(e => (
+                  <EventCard key={e.id} item={e} variant="row" onPress={() => openEvent(navigation, e.id)} />
+                ))}
+              </View>
+            </>
+          )}
+          <TouchableOpacity
+            onPress={() => navigation.navigate('MainApp', { screen: 'Events' })}
+            activeOpacity={0.85}
+            style={styles.primaryBtn}
+          >
+            <Ionicons name="ticket-outline" size={18} color="#fff" />
+            <Text style={styles.primaryBtnText}>{t('wrapped_browse_events')}</Text>
+          </TouchableOpacity>
+        </>
       )}
+
+      <TouchableOpacity
+        onPress={() => navigation.navigate('GenreSelection', { editMode: true })}
+        activeOpacity={0.8}
+        style={styles.secondaryBtn}
+      >
+        <Ionicons name="options-outline" size={16} color={colors.textSecondary} />
+        <Text style={styles.secondaryBtnText}>{t('wrapped_edit_prefs')}</Text>
+      </TouchableOpacity>
     </ScrollView>
+  );
+}
+
+function HeroStat({ icon, value, label, styles, colors }) {
+  return (
+    <View style={styles.heroStat}>
+      <Ionicons name={icon} size={15} color="rgba(255,255,255,0.85)" />
+      <Text style={styles.heroStatValue}>{value}</Text>
+      <Text style={styles.heroStatLabel}>{label}</Text>
+    </View>
   );
 }
 
 function createStyles(colors) {
   return StyleSheet.create({
-    container: { flex: 1 },
+    container: { flex: 1, backgroundColor: colors.background },
     centered: { justifyContent: 'center', alignItems: 'center' },
 
-    hero: { paddingTop: 56, paddingBottom: 38, paddingHorizontal: 24, alignItems: 'center' },
-    heroBack: { alignSelf: 'flex-start' },
-    heroBackText: { color: '#fff', fontSize: 34, fontWeight: '600', lineHeight: 36 },
-    heroLabel: {
-      color: 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: '800',
-      letterSpacing: 2, marginBottom: 18, textAlign: 'center',
+    hero: { paddingTop: 52, paddingBottom: 26, paddingHorizontal: 20, overflow: 'hidden' },
+    heroRing1: {
+      position: 'absolute', right: -70, top: 20, width: 240, height: 240, borderRadius: 120,
+      borderWidth: 28, borderColor: 'rgba(255,255,255,0.07)',
     },
-    heroEmoji: { fontSize: 72, textAlign: 'center', marginBottom: 12 },
-    heroPersonality: { color: '#fff', fontSize: 30, fontWeight: '900', textAlign: 'center', letterSpacing: -0.5 },
-    heroSub: { color: 'rgba(255,255,255,0.85)', fontSize: 14, textAlign: 'center', marginTop: 10, lineHeight: 20 },
-
-    statsGrid: {
-      flexDirection: 'row', flexWrap: 'wrap', gap: 12,
-      paddingHorizontal: 16, marginTop: 18,
+    heroRing2: {
+      position: 'absolute', right: 10, top: 100, width: 80, height: 80, borderRadius: 40,
+      borderWidth: 10, borderColor: 'rgba(255,255,255,0.06)',
     },
-    statCard: {
-      flexBasis: '47%', flexGrow: 1,
-      borderRadius: 18, borderWidth: 1, padding: 16, alignItems: 'center', gap: 4,
+    backBtn: { alignSelf: 'flex-start', marginBottom: 14, marginLeft: -6 },
+    heroLabel: { color: 'rgba(255,255,255,0.85)', fontSize: 12, fontWeight: '900', letterSpacing: 1.6, marginBottom: 6 },
+    heroCountRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 10 },
+    heroCount: { color: '#fff', fontSize: 84, lineHeight: 88, fontWeight: '900', letterSpacing: -3 },
+    heroCountUnit: { color: '#fff', fontSize: 24, fontWeight: '900', marginBottom: 14 },
+    heroStats: { flexDirection: 'row', gap: 8, marginTop: 12 },
+    heroStat: {
+      flex: 1, flexDirection: 'row', alignItems: 'center', gap: 5,
+      paddingVertical: 10, paddingHorizontal: 10, borderRadius: 14,
+      backgroundColor: 'rgba(0,0,0,0.28)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)',
     },
-    statEmoji: { fontSize: 24 },
-    statNum: { fontSize: 28, fontWeight: '900' },
-    statLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 0.6 },
+    heroStatValue: { color: '#fff', fontSize: 16, fontWeight: '900' },
+    heroStatLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 12, fontWeight: '600', flexShrink: 1 },
+    heroEmptyTitle: { color: '#fff', fontSize: 26, lineHeight: 32, fontWeight: '900', marginTop: 4 },
+    heroEmptySub: { color: 'rgba(255,255,255,0.85)', fontSize: 14, lineHeight: 20, marginTop: 6 },
+    collage: { flexDirection: 'row', alignItems: 'center', marginTop: 16 },
+    collagePhoto: { width: 40, height: 40, borderRadius: 20, borderWidth: 2.5, borderColor: 'rgba(255,255,255,0.9)' },
+    collageText: { color: '#fff', fontSize: 13, fontWeight: '800', marginLeft: 10, flex: 1 },
 
-    bigCard: {
-      marginHorizontal: 16, marginTop: 14,
-      borderRadius: 18, borderWidth: 1, padding: 18, gap: 6,
+    card: {
+      marginHorizontal: 16, marginTop: 14, padding: 16,
+      borderRadius: 18, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card,
     },
-    bigCardLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 1.2, },
-    bigCardValue: { fontSize: 22, fontWeight: '900' },
-    bigCardSub: { fontSize: 13 },
+    cardLabel: { color: colors.textSecondary, fontSize: 11, fontWeight: '900', letterSpacing: 1.2, marginBottom: 10 },
+    cardSub: { color: colors.textSecondary, fontSize: 13, marginTop: 2 },
 
-    genreRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8 },
-    genreName: { width: 90, fontSize: 13, fontWeight: '700' },
-    genreBarTrack: { flex: 1, height: 10, borderRadius: 5, overflow: 'hidden' },
-    genreBarFill: { height: 10, borderRadius: 5 },
-    genrePercent: { width: 42, fontSize: 12, fontWeight: '700', textAlign: 'right' },
+    artistRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+    artistPhoto: { width: 60, height: 60, borderRadius: 30 },
+    artistName: { color: colors.text, fontSize: 20, fontWeight: '900' },
 
-    passportBtnWrap: { marginHorizontal: 16, marginTop: 20 },
-    passportBtn: { paddingVertical: 15, paddingHorizontal: 28, borderRadius: 16, alignItems: 'center' },
-    passportBtnText: { color: '#fff', fontSize: 15, fontWeight: '800' },
-    prefsBtn: {
-      marginTop: 10, paddingVertical: 13, paddingHorizontal: 24, borderRadius: 16,
-      alignItems: 'center', borderWidth: 1,
+    genreRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 6 },
+    genreName: { width: 92, color: colors.text, fontSize: 13.5, fontWeight: '700' },
+    genreTrack: { flex: 1, height: 8, borderRadius: 4, overflow: 'hidden', backgroundColor: colors.border },
+    genreFill: { height: 8, borderRadius: 4 },
+    genreCount: { width: 26, textAlign: 'right', color: colors.textSecondary, fontSize: 12.5, fontWeight: '800' },
+
+    monthHead: { flexDirection: 'row', alignItems: 'flex-start' },
+    monthChart: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 14, height: 80 },
+    monthCol: { flex: 1, alignItems: 'center', justifyContent: 'flex-end' },
+    monthBar: { width: 12, borderRadius: 6, backgroundColor: colors.border },
+    monthBarOn: { backgroundColor: colors.primary + '70' },
+    monthBarTop: { backgroundColor: colors.primary },
+    monthInitial: { color: colors.textSecondary, fontSize: 10.5, fontWeight: '800', marginTop: 6 },
+    monthName: { color: colors.text, fontSize: 18, fontWeight: '900', marginTop: -6, textTransform: 'capitalize' },
+    monthCount: { color: colors.textSecondary, fontSize: 13, fontWeight: '700' },
+
+    sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '900', marginTop: 24, marginBottom: 12, paddingHorizontal: 20 },
+    recentRow: { paddingHorizontal: 16, gap: 12 },
+    recentTile: { width: 156 },
+
+    primaryBtn: {
+      marginHorizontal: 16, marginTop: 20, paddingVertical: 15, borderRadius: 16,
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+      backgroundColor: colors.primary,
     },
-    prefsBtnText: { fontSize: 13, fontWeight: '700' },
-
-    emptyWrap: { alignItems: 'center', paddingHorizontal: 32, paddingTop: 40, gap: 12 },
-    emptyEmoji: { fontSize: 56 },
-    emptyTitle: { fontSize: 20, fontWeight: '900', textAlign: 'center' },
-    emptySub: { fontSize: 14, textAlign: 'center', lineHeight: 21, marginBottom: 10 },
+    primaryBtnText: { color: '#fff', fontSize: 15, fontWeight: '800' },
+    secondaryBtn: {
+      marginHorizontal: 16, marginTop: 10, paddingVertical: 13, borderRadius: 16,
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+      borderWidth: 1, borderColor: colors.border,
+    },
+    secondaryBtnText: { color: colors.textSecondary, fontSize: 13.5, fontWeight: '700' },
   });
 }

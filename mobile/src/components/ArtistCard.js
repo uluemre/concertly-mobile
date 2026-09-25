@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Animated, View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -7,19 +7,24 @@ export default function ArtistCard({ artist, selected, onToggle, index }) {
   const translateY = useRef(new Animated.Value(20)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(1)).current;
+  const [imageFailed, setImageFailed] = useState(false);
 
+  // Giriş animasyonu yalnızca ilk ekrandaki kartlarda sıralı. Eskiden gecikme
+  // index * 70 ms'ydi: listenin 50. sanatçısı, veri gelmiş olsa bile ~3,5 sn
+  // boş kalıyordu ve ekran "geç yükleniyor" hissi veriyordu.
+  const delay = Math.min(index, 8) * 40;
   useEffect(() => {
     Animated.parallel([
       Animated.timing(translateY, {
         toValue: 0,
-        delay: index * 70,
-        duration: 400,
+        delay,
+        duration: 280,
         useNativeDriver: true,
       }),
       Animated.timing(opacity, {
         toValue: 1,
-        delay: index * 70,
-        duration: 400,
+        delay,
+        duration: 280,
         useNativeDriver: true,
       }),
     ]).start();
@@ -43,8 +48,14 @@ export default function ArtistCard({ artist, selected, onToggle, index }) {
     }}>
       <TouchableOpacity activeOpacity={0.85} onPress={handlePress}>
         <View style={[styles.card, selected && styles.cardSelected]}>
-          {artist.imageUrl ? (
-            <Image source={{ uri: artist.imageUrl }} style={styles.image} />
+          {artist.imageUrl && !imageFailed ? (
+            <Image
+              source={{ uri: artist.imageUrl }}
+              style={styles.image}
+              cachePolicy="memory-disk"
+              transition={150}
+              onError={() => setImageFailed(true)}
+            />
           ) : (
             <LinearGradient
               colors={['#1A1A2E', '#2A2A3E']}

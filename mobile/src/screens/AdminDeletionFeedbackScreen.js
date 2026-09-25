@@ -6,6 +6,7 @@ import {
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
+import { goBackOrFallback } from '../navigation/navHelpers';
 
 // Backend'deki sebep kodu → çeviri anahtarı (SettingsScreen ile aynı kodlar).
 const REASON_KEYS = {
@@ -78,7 +79,7 @@ export default function AdminDeletionFeedbackScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation, 'Admin')} style={styles.backBtn}>
           <Text style={styles.backText}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('admin_nav_deletion_title')}</Text>

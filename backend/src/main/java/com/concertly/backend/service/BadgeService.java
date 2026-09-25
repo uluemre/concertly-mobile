@@ -15,18 +15,18 @@ public class BadgeService {
     private final BadgeRepository badgeRepository;
     private final UserBadgeRepository userBadgeRepository;
     private final UserRepository userRepository;
-    private final EventAttendanceRepository attendanceRepository;
+    private final ConcertAttendanceService concertAttendance;
     private final PostRepository postRepository;
 
     public BadgeService(BadgeRepository badgeRepository,
                         UserBadgeRepository userBadgeRepository,
                         UserRepository userRepository,
-                        EventAttendanceRepository attendanceRepository,
+                        ConcertAttendanceService concertAttendance,
                         PostRepository postRepository) {
         this.badgeRepository = badgeRepository;
         this.userBadgeRepository = userBadgeRepository;
         this.userRepository = userRepository;
-        this.attendanceRepository = attendanceRepository;
+        this.concertAttendance = concertAttendance;
         this.postRepository = postRepository;
     }
 
@@ -69,7 +69,8 @@ public class BadgeService {
 
     public List<BadgeResponse> getAllBadgesWithStatus(Long userId) {
         checkAndAwardBadges(userId);
-        int attendance = (int) attendanceRepository.countByUserIdAndStatus(userId, AttendanceStatus.GOING);
+        // Yalnızca katıldığı (tarihi geçmiş "Gidiyorum") konserler; gelecektekiler sayılmaz
+        int attendance = (int) concertAttendance.attendedCount(userId);
         int postCount  = (int) postRepository.countByUserId(userId);
 
         java.util.Map<String, java.time.LocalDateTime> earnedMap = new java.util.HashMap<>();
@@ -99,7 +100,9 @@ public class BadgeService {
         awardIfNotExists(userId, "yeni_uye");
 
         // Etkinlik rozeti
-        long attendanceCount = attendanceRepository.countByUserIdAndStatus(userId, AttendanceStatus.GOING);
+        // Yalnızca katıldığı konserler. Daha önce verilmiş rozetler geri ALINMAZ:
+        // bu metot yalnızca eksik rozeti ekler (awardIfNotExists), hiçbirini silmez.
+        long attendanceCount = concertAttendance.attendedCount(userId);
         if (attendanceCount >= 1)  awardIfNotExists(userId, "ilk_konser");
         if (attendanceCount >= 5)  awardIfNotExists(userId, "konser_kurdu");
         if (attendanceCount >= 10) awardIfNotExists(userId, "festival_sezonu");

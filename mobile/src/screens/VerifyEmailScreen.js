@@ -11,6 +11,7 @@ import API from '../services/api';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { goBackOrFallback } from '../navigation/navHelpers';
 
 const CODE_LENGTH = 6;
 const RESEND_SECONDS = 60;
@@ -79,7 +80,7 @@ export default function VerifyEmailScreen({ navigation, route }) {
     <LinearGradient colors={[colors.background, colors.card, colors.cardAlt]} style={styles.container}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.inner}>
 
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.back}>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation, 'Login')} style={styles.back}>
           <Text style={[styles.backText, { color: colors.primary }]}>{t('back')}</Text>
         </TouchableOpacity>
 

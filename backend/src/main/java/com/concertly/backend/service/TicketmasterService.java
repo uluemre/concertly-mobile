@@ -277,7 +277,7 @@ public class TicketmasterService {
                 return 0;
             }
 
-            Artist artist = artistRepository.findFirstByNameIgnoreCase(artistName).orElseGet(() -> {
+            Artist artist = artistRepository.findExisting(null, artistName).orElseGet(() -> {
                 Artist a = new Artist();
                 a.setName(artistName);
                 a.setGenre(genre);
@@ -858,9 +858,9 @@ public class TicketmasterService {
         // Burada Spotify çağrısı rate limit'i mahveder.
 
         // Find or create artist
-        Artist artist = artistRepository.findByExternalId(externalId)
-                .orElseGet(() -> artistRepository.findFirstByNameIgnoreCase(artistName)
-                        .orElseGet(Artist::new));
+        // Kimlik, sonra Türkçe harf duyarsız ad (N-09); aynı kimlikli eski kopyalarda hata vermez
+        Artist artist = artistRepository.findExisting(externalId, artistName)
+                .orElseGet(Artist::new);
 
         artist.setName(artistName);
         if (artist.getExternalId() == null)

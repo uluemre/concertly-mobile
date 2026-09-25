@@ -5,6 +5,7 @@ import {
   Animated, Dimensions, Alert
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import EventCard from '../components/EventCard';
 import API from '../services/api';
 import DeepLinkLoader from '../components/DeepLinkLoader';
 import { useTheme } from '../theme';
@@ -12,6 +13,8 @@ import { ProfileSkeletonPage } from '../components/SkeletonLoader';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { parseEventDate } from '../utils/time';
+import { goBackOrFallback, openEvent } from '../navigation/navHelpers';
+import { usePostUpdates } from '../services/postUpdates';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2;
@@ -34,9 +37,12 @@ function UserProfileContent({ route, navigation }) {
 
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
+  // PostDetail'de değişen beğeni / yorum sayıları geri dönünce burada da görünsün
+  usePostUpdates(setPosts);
   const [events, setEvents] = useState([]);
   const [followedArtists, setFollowedArtists] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const [following, setFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('posts');
@@ -79,9 +85,10 @@ function UserProfileContent({ route, navigation }) {
         }),
       ]).start();
     } catch (err) {
+      // Eskiden uyarı + goBack yapılıyordu; doğrudan açılan linkte geri gidilemediği
+      // için boş bir profil kalıyordu
       console.log('profile fetch error:', err.message);
-      Alert.alert(t('error'), t('userprofile_load_error'));
-      navigation.goBack();
+      setNotFound(true);
     } finally {
       setLoading(false);
     }
@@ -142,7 +149,7 @@ function UserProfileContent({ route, navigation }) {
               try {
                 await API.post(`/users/${userId}/block`);
                 Alert.alert('', t('mod_blocked_msg'));
-                navigation.goBack();
+                goBackOrFallback(navigation);
               } catch {
                 Alert.alert('', t('mod_error'));
               }
@@ -154,6 +161,7 @@ function UserProfileContent({ route, navigation }) {
     ]);
   };
 
+  if (notFound) return <DeepLinkLoader error onBack={() => navigation.navigate('MainApp')} />;
   if (loading) return <ProfileSkeletonPage />;
 
   return (
@@ -166,7 +174,7 @@ function UserProfileContent({ route, navigation }) {
         <View style={styles.heroBgCircle} />
 
         <View style={styles.topBar}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <TouchableOpacity style={styles.backButton} onPress={() => goBackOrFallback(navigation)}>
             <Text style={styles.backText}>{t('back')}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={handleModeration} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -352,7 +360,11 @@ function UserProfileContent({ route, navigation }) {
               <TouchableOpacity
                 key={item.id}
                 style={styles.postCard}
-                onPress={() => navigation.navigate('EventDetail', { event: { id: item.eventId, name: item.eventName } })}
+                // Karta dokunmak her zaman gönderinin kendisini açar. Genel gönderide
+                // eventId yok; eskiden EventDetail'e null id ile gidiliyordu (500 +
+                // "Invalid Date"). Yalnızca postId geçilir: nesne geçilirse web
+                // URL'sine "?post=[object Object]" olarak yazılıyor.
+                onPress={() => navigation.navigate('PostDetail', { postId: item.id })}
                 activeOpacity={0.85}
               >
                 {/* POST BAŞLIĞI */}
@@ -366,9 +378,18 @@ function UserProfileContent({ route, navigation }) {
                     </Text>
                   </LinearGradient>
                   <View style={styles.postHeaderInfo}>
-                    <Text style={styles.postEventName} numberOfLines={1}>
-                      🎵 {item.eventName || 'Etkinlik'}
-                    </Text>
+                    {/* Etkinlik satırı yalnızca konsere bağlı gönderide; ayrıca tıklanır */}
+                    {item.eventId ? (
+                      <TouchableOpacity
+                        onPress={() => openEvent(navigation, item.eventId)}
+                        hitSlop={{ top: 6, bottom: 6, left: 0, right: 0 }}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.postEventName} numberOfLines={1}>
+                          🎵 {item.eventName || 'Etkinlik'}
+                        </Text>
+                      </TouchableOpacity>
+                    ) : null}
                     <Text style={styles.postDate}>
                       {new Date(item.createdAt).toLocaleDateString('tr-TR', {
                         day: 'numeric', month: 'short', year: 'numeric',
@@ -396,46 +417,14 @@ function UserProfileContent({ route, navigation }) {
             </View>
           ) : (
             <View style={styles.eventGrid}>
-              {events.map((item, index) => (
-                <TouchableOpacity
+              {events.map((item) => (
+                <EventCard
                   key={item.id}
-                  style={styles.eventCard}
-                  onPress={() => navigation.navigate('EventDetail', { event: item })}
-                  activeOpacity={0.85}
-                >
-                  <LinearGradient
-                    colors={gradientSets[index % gradientSets.length]}
-                    style={styles.eventCardGradient}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                  >
-                    <Text style={styles.eventEmoji}>
-                      {eventEmojis[index % eventEmojis.length]}
-                    </Text>
-                    <View style={styles.eventCardBody}>
-                      <Text style={styles.eventName} numberOfLines={2}>{item.name}</Text>
-                      {/* Sanatçıya tıklayınca ArtistProfile'a git ✅ */}
-                      {item.artistName && (
-                        <TouchableOpacity
-                          onPress={() => {
-                            navigation.navigate('ArtistProfile', {
-                              artistId: item.artistId,
-                              artistName: item.artistName,
-                            });
-                          }}
-                          hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
-                        >
-                          <Text style={styles.eventArtist}>🎤 {item.artistName}</Text>
-                        </TouchableOpacity>
-                      )}
-                      <Text style={styles.eventDate}>
-                        📅 {parseEventDate(item.eventDate).toLocaleDateString('tr-TR', {
-                          day: 'numeric', month: 'short',
-                        })}
-                      </Text>
-                    </View>
-                  </LinearGradient>
-                </TouchableOpacity>
+                  item={item}
+                  variant="tile"
+                  style={styles.eventTile}
+                  onPress={() => openEvent(navigation, item)}
+                />
               ))}
             </View>
           )
@@ -558,6 +547,7 @@ function createStyles(colors) {
 
     // ETKİNLİK GRİD
     eventGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+    eventTile: { width: CARD_WIDTH, marginBottom: 0 },
     eventCard: { width: CARD_WIDTH, borderRadius: 16, overflow: 'hidden' },
     eventCardGradient: {
       padding: 14, minHeight: 150, justifyContent: 'space-between',
@@ -589,20 +579,31 @@ function createStyles(colors) {
  */
 export default function UserProfileScreen({ route, navigation }) {
   const { userId, username } = route.params || {};
-  const [resolvedId, setResolvedId] = useState(userId ? Number(userId) : null);
+  // Link yapılandırması (user/:userId) /u/<ad> ve /user/<ad> linklerinde kullanıcı
+  // ADINI da userId parametresine koyar. Eskiden Number("emre") → NaN olup
+  // doğrudan "İçerik bulunamadı" gösteriliyordu. Tamamen rakamsa id (eski linkler
+  // ve uygulama içi gezinme), değilse kullanıcı adı olarak çözülür.
+  const raw = userId !== undefined && userId !== null ? String(userId).trim() : '';
+  const isNumericId = /^\d+$/.test(raw);
+  const lookupName = username || (!isNumericId && raw ? raw : null);
+  const [resolvedId, setResolvedId] = useState(isNumericId ? Number(raw) : null);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
-    if (resolvedId || !username) return;
+    if (resolvedId || !lookupName) return;
     let cancelled = false;
-    API.get(`/users/by-username/${encodeURIComponent(username)}`)
-      .then((res) => !cancelled && setResolvedId(res.data?.id ?? null))
+    API.get(`/users/by-username/${encodeURIComponent(lookupName)}`)
+      .then((res) => {
+        if (cancelled) return;
+        if (res.data?.id) setResolvedId(res.data.id);
+        else setFailed(true);
+      })
       .catch(() => !cancelled && setFailed(true));
     return () => { cancelled = true; };
-  }, [username, resolvedId]);
+  }, [lookupName, resolvedId]);
 
   if (!resolvedId) {
-    return <DeepLinkLoader error={failed || !username} onBack={() => navigation.navigate('MainApp')} />;
+    return <DeepLinkLoader error={failed || !lookupName} onBack={() => navigation.navigate('MainApp')} />;
   }
   return (
     <UserProfileContent

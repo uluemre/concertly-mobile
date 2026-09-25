@@ -8,6 +8,7 @@ import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
+import { goBackOrFallback } from '../navigation/navHelpers';
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
@@ -100,7 +101,7 @@ export default function SetlistPredictionScreen({ navigation, route }) {
   // ── ORTAK PARÇALAR ──────────────────────────────────────────────────────
   const renderHeader = (subtitle) => (
     <LinearGradient colors={colors.screenGradient} style={styles.header}>
-      <TouchableOpacity onPress={() => navigation.goBack()}>
+      <TouchableOpacity onPress={() => goBackOrFallback(navigation)}>
         <Text style={[styles.backText, { color: colors.primary }]}>{t('back')}</Text>
       </TouchableOpacity>
       <Text style={[styles.headerTitle, { color: colors.text }]}>{t('setlist_title')}</Text>
@@ -152,7 +153,7 @@ export default function SetlistPredictionScreen({ navigation, route }) {
         <Text style={{ fontSize: 48, marginBottom: 12 }}>🎭</Text>
         <Text style={[styles.errorText, { color: colors.textSecondary }]}>{t('setlist_unsupported')}</Text>
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={() => goBackOrFallback(navigation)}
           style={[styles.retryBtn, { backgroundColor: colors.primary }]}
         >
           <Text style={styles.retryBtnText}>{t('back')}</Text>

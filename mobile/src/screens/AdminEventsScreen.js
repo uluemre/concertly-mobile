@@ -9,6 +9,7 @@ import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
 import { parseEventDate } from '../utils/time';
+import { goBackOrFallback } from '../navigation/navHelpers';
 
 const TABS = [
   { key: 'pending', labelKey: 'admin_tab_pending' },
@@ -250,7 +251,7 @@ export default function AdminEventsScreen({ navigation, route }) {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* HEADER */}
       <LinearGradient colors={colors.headerGradient} style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation, 'Admin')}>
           <Text style={[styles.backText, { color: colors.primary }]}>{t('back')}</Text>
         </TouchableOpacity>
         <View style={styles.headerRow}>

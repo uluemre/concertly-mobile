@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import API from '../services/api';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
+import { openEvent } from '../navigation/navHelpers';
 
 // react-native-maps has no web implementation.  Metro resolves this file only
 // for the web bundle, while iOS and Android keep using MapScreen.js.
@@ -36,7 +37,7 @@ export default function MapScreen({ navigation }) {
             <TouchableOpacity
               key={event.id}
               style={styles.card}
-              onPress={() => navigation.navigate('EventDetail', { event })}
+              onPress={() => openEvent(navigation, event)}
               accessibilityRole="button"
             >
               <Text style={styles.name}>{event.name}</Text>

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  TextInput, FlatList, ActivityIndicator, Alert
+  TextInput, FlatList, Alert
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CommonActions } from '@react-navigation/native';
@@ -10,6 +10,9 @@ import API from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import ArtistCard from '../components/ArtistCard';
+import { ArtistGridSkeleton } from '../components/SkeletonLoader';
+import { getRecommendedArtists } from '../services/artists';
+import { goBackOrFallback } from '../navigation/navHelpers';
 
 export default function ArtistSelectionScreen({ route, navigation }) {
   const { selectedGenres, selectedCity, editMode = false } = route.params;
@@ -27,9 +30,7 @@ export default function ArtistSelectionScreen({ route, navigation }) {
   useEffect(() => {
     (async () => {
       try {
-        const genresParam = selectedGenres.join(',');
-        const res = await API.get(`/artists/recommended?genres=${encodeURIComponent(genresParam)}`);
-        setArtists(res.data);
+        setArtists(await getRecommendedArtists(selectedGenres));
       } catch (err) {
         console.error('Artist fetch error:', err);
         Alert.alert(t('error'), t('artsel_load_error'));
@@ -101,7 +102,7 @@ export default function ArtistSelectionScreen({ route, navigation }) {
     <View style={styles.container}>
       <View style={styles.inner}>
         {editMode ? (
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.backBtn}>
             <Text style={styles.backText}>{t('back')}</Text>
           </TouchableOpacity>
         ) : (
@@ -112,7 +113,7 @@ export default function ArtistSelectionScreen({ route, navigation }) {
         )}
 
         <Text style={styles.title}>{t('artsel_title')}</Text>
-        <Text style={styles.subtitle}>{t('artsel_subtitle', { count: artists.length })}</Text>
+        <Text style={styles.subtitle}>{loading ? t('artsel_loading') : t('artsel_subtitle', { count: artists.length })}</Text>
 
         <View style={styles.searchBox}>
           <Text style={styles.searchIcon}>⌕</Text>
@@ -131,10 +132,7 @@ export default function ArtistSelectionScreen({ route, navigation }) {
         </View>
 
         {loading ? (
-          <View style={styles.emptyContainer}>
-            <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={styles.emptyText}>{t('artsel_loading')}</Text>
-          </View>
+          <ArtistGridSkeleton />
         ) : filteredArtists.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Text style={styles.emoji}>🎵</Text>
@@ -149,6 +147,9 @@ export default function ArtistSelectionScreen({ route, navigation }) {
             columnWrapperStyle={styles.artistRow}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 20 }}
+            initialNumToRender={12}
+            maxToRenderPerBatch={12}
+            windowSize={9}
             renderItem={({ item, index }) => (
               <ArtistCard
                 artist={item}

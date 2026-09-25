@@ -9,6 +9,7 @@ import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
 import { stopPlayer } from '../utils/audio';
+import { goBackOrFallback } from '../navigation/navHelpers';
 
 export default function DailySongScreen({ navigation }) {
   const { colors } = useTheme();
@@ -194,7 +195,7 @@ export default function DailySongScreen({ navigation }) {
     >
       {/* HEADER */}
       <LinearGradient colors={colors.screenGradient} style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation)}>
           <Text style={[styles.backText, { color: colors.primary }]}>{t('back')}</Text>
         </TouchableOpacity>
         <View style={styles.headerRow}>

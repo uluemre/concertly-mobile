@@ -10,6 +10,7 @@ import { ListSkeletonPage } from '../components/SkeletonLoader';
 import { useLanguage } from '../context/LanguageContext';
 import API, { getErrorMessage } from '../services/api';
 import { formatTimeAgo } from '../utils/time';
+import { goBackOrFallback } from '../navigation/navHelpers';
 
 const AVATAR_GRADIENTS = [
   ['#E94560', '#7C3AED'],
@@ -114,7 +115,7 @@ export default function ChatListScreen({ navigation }) {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <LinearGradient colors={colors.headerGradient} style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation)}>
           <Text style={[styles.backText, { color: colors.primary }]}>{t('back')}</Text>
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>{t('messages_title')}</Text>

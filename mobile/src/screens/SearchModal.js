@@ -13,6 +13,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { parseEventDate } from '../utils/time';
 import { GENRE_SHORTCUTS } from '../constants/genres';
+import { openEvent } from '../navigation/navHelpers';
 
 const RECENT_KEY = 'recentSearches';
 const RECENT_MAX = 8;
@@ -163,7 +164,7 @@ export default function SearchModal({ visible, onClose, navigation }) {
             onPress={() => {
                 rememberQuery(query);
                 onClose();
-                navigation.navigate('EventDetail', { event: item });
+                openEvent(navigation, item);
             }}
             activeOpacity={0.8}
         >

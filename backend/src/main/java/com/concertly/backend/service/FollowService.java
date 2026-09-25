@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -19,13 +20,16 @@ public class FollowService {
     private final FollowRepository followRepository;
     private final UserRepository   userRepository;
     private final NotificationService notificationService;
+    private final ModerationService moderationService;
 
     public FollowService(FollowRepository followRepository,
                          UserRepository userRepository,
-                         NotificationService notificationService) {
+                         NotificationService notificationService,
+                         ModerationService moderationService) {
         this.followRepository    = followRepository;
         this.userRepository      = userRepository;
         this.notificationService = notificationService;
+        this.moderationService   = moderationService;
     }
 
     // ✅ TAKİP ET
@@ -35,6 +39,8 @@ public class FollowService {
         if (followerId.equals(followingId)) {
             throw new IllegalArgumentException("Kendinizi takip edemezsiniz.");
         }
+        // Aralarında engel varsa (hangi yönde olursa olsun) takip edilemez
+        moderationService.requireCanInteract(followerId, followingId);
 
         User follower = userRepository.findById(followerId)
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -70,6 +76,7 @@ public class FollowService {
     // ✅ KULLANICI PROFİLİ — takipçi/takip sayısı ve mevcut kullanıcının takip durumu
     public UserSummaryResponse getUserProfile(Long targetUserId, Long currentUserId) {
 
+        moderationService.requireVisible(currentUserId, targetUserId);
         User target = userRepository.findById(targetUserId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Kullanıcı bulunamadı: " + targetUserId));
@@ -87,7 +94,10 @@ public class FollowService {
 
     // ✅ TAKİPÇİ LİSTESİ — beni takip edenler
     public List<UserSummaryResponse> getFollowers(Long userId, Long currentUserId) {
+        moderationService.requireVisible(currentUserId, userId);
+        Set<Long> hidden = moderationService.getHiddenUserIds(currentUserId);
         return followRepository.findAllByFollowingId(userId).stream()
+                .filter(f -> !hidden.contains(f.getFollower().getId()))
                 .map(f -> {
                     User follower = f.getFollower();
                     long fc  = followRepository.countByFollowingId(follower.getId());
@@ -101,7 +111,10 @@ public class FollowService {
 
     // ✅ TAKİP LİSTESİ — takip ettiklerim
     public List<UserSummaryResponse> getFollowing(Long userId, Long currentUserId) {
+        moderationService.requireVisible(currentUserId, userId);
+        Set<Long> hidden = moderationService.getHiddenUserIds(currentUserId);
         return followRepository.findAllByFollowerId(userId).stream()
+                .filter(f -> !hidden.contains(f.getFollowing().getId()))
                 .map(f -> {
                     User following = f.getFollowing();
                     long fc  = followRepository.countByFollowingId(following.getId());

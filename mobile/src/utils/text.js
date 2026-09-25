@@ -12,6 +12,18 @@ export function foldName(s) {
 }
 
 /**
+ * Arama için sadeleştirme: Türkçe harf ve büyük/küçük harf farkını yok sayar
+ * ("sebnem" ↔ "Şebnem", "istanbul" ↔ "İstanbul"). Noktalama korunur; backend'deki
+ * SearchText ile aynı kural.
+ */
+export function foldSearch(s) {
+  return String(s ?? '')
+    .replace(/[İIıŞşĞğÜüÖöÇç]/g, ch => TR_MAP[ch])
+    .replace(/[Ââ]/g, 'a').replace(/[Îî]/g, 'i').replace(/[Ûû]/g, 'u')
+    .toLowerCase();
+}
+
+/**
  * Etkinlik kartında sanatçı satırı gösterilmeli mi? Etkinlik adı zaten
  * sanatçının adıysa ("Sami Yusuf" / "🎤 Sami Yusuf") aynı şeyi iki kez yazmayalım.
  */

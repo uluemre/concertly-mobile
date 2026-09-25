@@ -75,6 +75,10 @@ public class ModerationService {
         b.setBlocker(blocker);
         b.setBlocked(blocked);
         blockRepository.save(b);
+
+        // Engel iki yöndeki takibi de kaldırır; engel kalkınca takip kendiliğinden geri gelmez
+        followRepository.findByFollowerIdAndFollowingId(blockerId, blockedId).ifPresent(followRepository::delete);
+        followRepository.findByFollowerIdAndFollowingId(blockedId, blockerId).ifPresent(followRepository::delete);
     }
 
     @Transactional
@@ -85,6 +89,30 @@ public class ModerationService {
 
     public boolean isBlocking(Long blockerId, Long blockedId) {
         return blockRepository.existsByBlockerIdAndBlockedId(blockerId, blockedId);
+    }
+
+    /** İki kullanıcı arasında herhangi bir yönde engel var mı? (kendisi / anonim → hayır) */
+    public boolean isBlockedEitherWay(Long userId, Long otherId) {
+        if (userId == null || otherId == null || userId.equals(otherId)) return false;
+        return blockRepository.existsByBlockerIdAndBlockedId(userId, otherId)
+                || blockRepository.existsByBlockerIdAndBlockedId(otherId, userId);
+    }
+
+    /**
+     * Profil ve kullanıcıya ait listeler: aralarında engel varsa kullanıcı yokmuş gibi
+     * 404 döner — engelin varlığı karşı tarafa sızdırılmaz.
+     */
+    public void requireVisible(Long viewerId, Long targetId) {
+        if (isBlockedEitherWay(viewerId, targetId)) {
+            throw new ResourceNotFoundException("Kullanıcı bulunamadı: " + targetId);
+        }
+    }
+
+    /** Takip, Konser Arkadaşı beğenisi gibi etkileşimler: engel varsa 403. */
+    public void requireCanInteract(Long actorId, Long targetId) {
+        if (isBlockedEitherWay(actorId, targetId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "BLOCKED");
+        }
     }
 
     public List<BlockedUserResponse> getBlockedUsers(Long blockerId) {

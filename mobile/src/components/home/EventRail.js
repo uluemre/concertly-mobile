@@ -1,8 +1,8 @@
 // Ana sayfa: başlık + yatay kaydırılan küçük etkinlik kartları ("Bu hafta sonu",
 // "Takip ettiğin sanatçılar"). Liste boşsa hiçbir şey çizmez.
 import React, { memo, useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import EventImage from '../EventImage';
 import { useTheme } from '../../theme';
 import { useLanguage } from '../../context/LanguageContext';
 import { parseEventDate } from '../../utils/time';
@@ -47,17 +47,13 @@ const RailCard = memo(function RailCard({ item, lang, styles, onPress }) {
   const d = parseEventDate(item.eventDate);
   const locale = lang === 'en' ? 'en-GB' : 'tr-TR';
   const when = `${d.toLocaleDateString(locale, { weekday: 'short', day: 'numeric' })} · ${d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}`;
-  const image = item.imageUrl || item.artistImageUrl;
   return (
     <TouchableOpacity activeOpacity={0.85} onPress={onPress} style={styles.card}>
-      <View style={styles.imageWrap}>
-        {image
-          ? <Image source={{ uri: image }} style={styles.image} />
-          : <LinearGradient colors={['#7C3AED', '#E94560']} style={styles.image} />}
+      <EventImage key={item.id} item={item} style={styles.imageWrap} initialsSize={24}>
         <View style={styles.dateChip}>
           <Text style={styles.dateText}>{when}</Text>
         </View>
-      </View>
+      </EventImage>
       <Text style={styles.name} numberOfLines={2}>{item.name}</Text>
       <Text style={styles.meta} numberOfLines={1}>
         {showArtistLine(item.artistName, item.name) ? item.artistName : (item.venueName || item.venueCity || '')}

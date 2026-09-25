@@ -8,6 +8,7 @@ import API from '../services/api';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import CityPicker from '../components/CityPicker';
+import { goBackOrFallback } from '../navigation/navHelpers';
 
 /**
  * Kullanıcı etkinlik önerisi.
@@ -72,7 +73,7 @@ export default function SuggestEventScreen({ navigation }) {
         description: form.description.trim() || null,
       });
       Alert.alert(t('suggest_success_title'), t('suggest_success_msg'), [
-        { text: t('confirm'), onPress: () => navigation.goBack() },
+        { text: t('confirm'), onPress: () => goBackOrFallback(navigation) },
       ]);
     } catch (err) {
       // 409 = aynı gün, aynı mekanda benzer isimli etkinlik zaten kayıtlı.
@@ -109,7 +110,7 @@ export default function SuggestEventScreen({ navigation }) {
     >
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         <LinearGradient colors={colors.headerGradient} style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <TouchableOpacity style={styles.backButton} onPress={() => goBackOrFallback(navigation)}>
             <Text style={styles.backText}>{t('back')}</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{t('suggest_title')}</Text>

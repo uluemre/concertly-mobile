@@ -7,6 +7,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
+import { goBackOrFallback } from '../navigation/navHelpers';
 
 const GAME_DEFS = [
   {
@@ -72,7 +73,7 @@ export default function GamesScreen({ navigation }) {
       contentContainerStyle={{ paddingBottom: 40 }}
     >
       <LinearGradient colors={colors.screenGradient} style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation)}>
           <Text style={[styles.backText, { color: colors.primary }]}>{t('back')}</Text>
         </TouchableOpacity>
         <View style={styles.headerRow}>

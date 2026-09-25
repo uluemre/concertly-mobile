@@ -9,6 +9,7 @@ import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import { buildShareUrl, shareWithLink } from '../services/shareLinks';
 import API, { getErrorMessage } from '../services/api';
+import { goBackOrFallback } from '../navigation/navHelpers';
 
 export default function CommunityManageScreen({ route, navigation }) {
   const { communityId } = route.params;
@@ -111,7 +112,7 @@ export default function CommunityManageScreen({ route, navigation }) {
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 48 }}>
       <LinearGradient colors={colors.headerGradient} style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.backButton}>
           <Text style={styles.backText}>{t('back')}</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('community_manage_title')}</Text>

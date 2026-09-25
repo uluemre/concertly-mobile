@@ -16,6 +16,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { stopPlayer } from '../utils/audio';
 import { parseEventDate } from '../utils/time';
 import { useCountdown, weatherLook, weatherAdviceKey, prepChecklist } from '../utils/concertDay';
+import { goBackOrFallback, openEvent } from '../navigation/navHelpers';
 
 const checklistKey = (eventId) => `concertPrep:${eventId}`;
 
@@ -63,7 +64,7 @@ export default function ConcertPrepScreen({ navigation, route }) {
       <View style={[styles.screen, styles.center]}>
         <Text style={styles.emptyEmoji}>🎫</Text>
         <Text style={styles.emptyText}>{t('cday_load_error')}</Text>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.emptyBtn}>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.emptyBtn}>
           <Text style={styles.emptyBtnText}>{t('back')}</Text>
         </TouchableOpacity>
       </View>
@@ -136,7 +137,7 @@ export default function ConcertPrepScreen({ navigation, route }) {
               <Extra emoji="🎯" label={t('cday_extra_bingo')} styles={styles}
                 onPress={() => navigation.navigate('ConcertBingo', { eventId: data.eventId, eventName: data.eventName })} />
               <Extra emoji="🎫" label={t('cday_extra_detail')} styles={styles}
-                onPress={() => navigation.navigate('EventDetail', { eventId: data.eventId })} />
+                onPress={() => openEvent(navigation, data.eventId)} />
             </View>
           </Section>
         </View>
@@ -167,7 +168,7 @@ function Hero({ data, receivedAt, t, lang, styles, navigation }) {
   return (
     <ImageBackground source={data.imageUrl ? { uri: data.imageUrl } : undefined} style={styles.hero}>
       <LinearGradient colors={['rgba(10,10,20,0.35)', 'rgba(26,10,46,0.85)', '#0A0A14']} style={styles.heroOverlay}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.back}>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.back}>
           <Text style={styles.backText}>‹</Text>
         </TouchableOpacity>
         <Text style={styles.heroKicker}>{headline}</Text>

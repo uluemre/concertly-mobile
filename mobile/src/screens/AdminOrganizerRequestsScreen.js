@@ -8,6 +8,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import API from '../services/api';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
+import { goBackOrFallback } from '../navigation/navHelpers';
 
 /**
  * Organizatör/mekan/menajer başvuruları (admin).
@@ -102,7 +103,7 @@ export default function AdminOrganizerRequestsScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <LinearGradient colors={colors.headerGradient} style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <TouchableOpacity style={styles.backButton} onPress={() => goBackOrFallback(navigation, 'Admin')}>
           <Text style={styles.backText}>{t('back')}</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('admin_organizer_title')}</Text>

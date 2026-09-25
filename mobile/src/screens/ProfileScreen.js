@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { DOWNLOAD_URL, buildShareUrl, shareWithLink } from '../services/shareLinks';
 import { LinearGradient } from 'expo-linear-gradient';
+import EventCard from '../components/EventCard';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import API, { uploadImage } from '../services/api';
@@ -17,6 +18,8 @@ import { useTheme } from '../theme';
 import { ProfileSkeletonPage } from '../components/SkeletonLoader';
 import BadgeGrid from '../components/profile/BadgeGrid';
 import { parseEventDate } from '../utils/time';
+import { openEvent } from '../navigation/navHelpers';
+import { usePostUpdates } from '../services/postUpdates';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2;
@@ -35,6 +38,8 @@ export default function ProfileScreen({ navigation }) {
   const { t, tu } = useLanguage();
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
+  // PostDetail'de değişen beğeni / yorum sayıları geri dönünce burada da görünsün
+  usePostUpdates(setPosts);
   const [events, setEvents] = useState([]);
   const [bookmarks, setBookmarks] = useState([]);
   const [followedArtists, setFollowedArtists] = useState([]);
@@ -392,9 +397,22 @@ export default function ProfileScreen({ navigation }) {
               </View>
             ) : (
               posts.map((item) => (
-                <View key={item.id} style={styles.postCard}>
+                // Kart gönderinin kendisini açar (başka kullanıcının profilindeki gibi)
+                <TouchableOpacity
+                  key={item.id}
+                  style={styles.postCard}
+                  onPress={() => navigation.navigate('PostDetail', { postId: item.id })}
+                  activeOpacity={0.85}
+                >
                   <View style={styles.postHeader}>
-                    <Text style={styles.postEventName}>{item.eventName || 'Etkinlik'}</Text>
+                    {item.eventId ? (
+                      // Konsere bağlı gönderide etkinlik adı ayrıca etkinliği açar
+                      <TouchableOpacity onPress={() => openEvent(navigation, item.eventId)} activeOpacity={0.7}>
+                        <Text style={styles.postEventName}>{item.eventName || 'Etkinlik'}</Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <Text style={styles.postEventName}>{item.eventName || 'Etkinlik'}</Text>
+                    )}
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                       <Text style={styles.postDate}>
                         {new Date(item.createdAt).toLocaleDateString('tr-TR')}
@@ -434,7 +452,7 @@ export default function ProfileScreen({ navigation }) {
                     <Text style={styles.postStat}>♥ {item.likeCount || 0}</Text>
                     <Text style={styles.postStat}>💬 {item.commentCount || 0}</Text>
                   </View>
-                </View>
+                </TouchableOpacity>
               ))
             )
           ) : activeTab === 'events' ? (
@@ -453,29 +471,14 @@ export default function ProfileScreen({ navigation }) {
               </View>
             ) : (
               <View style={styles.eventGrid}>
-                {events.map((item, index) => (
-                  <TouchableOpacity
+                {events.map((item) => (
+                  <EventCard
                     key={item.id}
-                    style={styles.eventCard}
-                    onPress={() => navigation.navigate('EventDetail', { event: item })}
-                    activeOpacity={0.85}
-                  >
-                    <LinearGradient
-                      colors={gradientSets[index % gradientSets.length]}
-                      style={styles.eventCardGradient}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                    >
-                      <Text style={styles.eventEmoji}>🎪</Text>
-                      <Text style={styles.eventName} numberOfLines={2}>{item.name}</Text>
-                      {item.artistName && (
-                        <Text style={styles.eventArtist} numberOfLines={1}>{item.artistName}</Text>
-                      )}
-                      <Text style={styles.eventDate}>
-                        {parseEventDate(item.eventDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      </Text>
-                    </LinearGradient>
-                  </TouchableOpacity>
+                    item={item}
+                    variant="tile"
+                    style={styles.eventTile}
+                    onPress={() => openEvent(navigation, item)}
+                  />
                 ))}
               </View>
             )
@@ -495,29 +498,14 @@ export default function ProfileScreen({ navigation }) {
               </View>
             ) : (
               <View style={styles.eventGrid}>
-                {bookmarks.map((item, index) => (
-                  <TouchableOpacity
+                {bookmarks.map((item) => (
+                  <EventCard
                     key={item.id}
-                    style={styles.eventCard}
-                    onPress={() => navigation.navigate('EventDetail', { event: item })}
-                    activeOpacity={0.85}
-                  >
-                    <LinearGradient
-                      colors={gradientSets[index % gradientSets.length]}
-                      style={styles.eventCardGradient}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                    >
-                      <Text style={styles.eventEmoji}>🔖</Text>
-                      <Text style={styles.eventName} numberOfLines={2}>{item.name}</Text>
-                      {item.artistName && (
-                        <Text style={styles.eventArtist} numberOfLines={1}>{item.artistName}</Text>
-                      )}
-                      <Text style={styles.eventDate}>
-                        {parseEventDate(item.eventDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      </Text>
-                    </LinearGradient>
-                  </TouchableOpacity>
+                    item={item}
+                    variant="tile"
+                    style={styles.eventTile}
+                    onPress={() => openEvent(navigation, item)}
+                  />
                 ))}
               </View>
             )
@@ -728,6 +716,7 @@ function createStyles(colors) {
       flexWrap: 'wrap',
       gap: 12,
     },
+    eventTile: { width: CARD_WIDTH, marginBottom: 0 },
     eventCard: {
       width: CARD_WIDTH,
       borderRadius: 16,

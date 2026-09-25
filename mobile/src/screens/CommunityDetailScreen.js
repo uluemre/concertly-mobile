@@ -9,6 +9,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import API, { getErrorMessage, uploadImage } from '../services/api';
+import { goBackOrFallback } from '../navigation/navHelpers';
+import DeepLinkLoader from '../components/DeepLinkLoader';
 
 function formatRelativeTime(isoString) {
   const now = Date.now();
@@ -54,6 +56,11 @@ export default function CommunityDetailScreen({ route, navigation }) {
   const joined = status === 'ACTIVE';
 
   const fetchData = useCallback(async () => {
+    // Geçersiz id (ör. /community/abc) için /communities/NaN isteği atma
+    if (!/^\d+$/.test(String(communityId ?? ''))) {
+      setLoading(false);
+      return;
+    }
     try {
       const commRes = await API.get(`/communities/${communityId}`);
       setCommunity(commRes.data);
@@ -67,7 +74,8 @@ export default function CommunityDetailScreen({ route, navigation }) {
         setPosts([]);
       }
     } catch (err) {
-      console.error('Community detail fetch error:', err);
+      // Bulunamayan topluluk beklenen bir durum: ekranda "İçerik bulunamadı" gösterilir
+      console.log('Community detail fetch error:', err?.message);
     } finally {
       setLoading(false);
     }
@@ -252,11 +260,8 @@ export default function CommunityDetailScreen({ route, navigation }) {
   }
 
   if (!community) {
-    return (
-      <View style={[styles.container, styles.loadingContainer]}>
-        <Text style={styles.errorText}>{t('communities_load_error')}</Text>
-      </View>
-    );
+    // Eskiden yalnızca "Topluluk yüklenemedi" yazıyordu; geri dönüş yolu yoktu
+    return <DeepLinkLoader error onBack={() => navigation.navigate('MainApp')} />;
   }
 
   return (
@@ -271,7 +276,7 @@ export default function CommunityDetailScreen({ route, navigation }) {
         colors={[community.gradientStart, community.gradientEnd]}
         style={styles.hero}
       >
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.backButton}>
           <Text style={styles.backText}>{t('back')}</Text>
         </TouchableOpacity>
 

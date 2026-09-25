@@ -68,13 +68,27 @@ public class ArtistService {
     }
 
     // ✅ SANATÇININ ETKİNLİKLERİ
+    // Ayni konserin kopyalari (Biletix + Biletinial...) listede tek kart olsun.
+    // Alan enjeksiyonu: kurucu ve onu kullanan testler degismesin; yoksa liste aynen doner.
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.concertly.backend.service.ingest.ConcertGrouping concertGrouping;
+
+    private List<Event> collapseCopies(List<Event> events) {
+        return concertGrouping == null ? events : concertGrouping.collapse(events);
+    }
+
     public List<EventResponse> getArtistEvents(Long artistId) {
         if (!artistRepository.existsById(artistId)) {
             throw new ResourceNotFoundException("Sanatçı bulunamadı: " + artistId);
         }
-        return eventRepository.findByArtistIdOrderByEventDateDesc(artistId)
+        // Yaklaşanlar önce (en yakın üstte), sonra geçmişler — ekran yaklaşanları süzüp
+        // bu sırayla gösteriyor. Eskiden liste tarihe göre azalan geliyordu: en uzak konser üstteydi.
+        return collapseCopies(eventRepository.findByArtistIdOrderByEventDateDesc(artistId)
                 .stream()
                 .filter(Event::listedPublicly)
+                .toList())
+                .stream()
+                .sorted(EventOrder.nearestFirst(LocalDateTime.now()))
                 .map(EventResponse::from)
                 .toList();
     }
@@ -142,17 +156,22 @@ public class ArtistService {
                 LocalDateTime.now(), org.springframework.data.domain.PageRequest.of(0, 1000))) {
             upcoming.put((Long) r[0], (Long) r[1]);
         }
-        return artistRepository.findByGenreIn(lowerGenres)
-                .stream()
+        List<Artist> artists = artistRepository.findByGenreIn(lowerGenres);
+        if (artists.isEmpty()) return List.of();
+        // Takipçi sayısı ve "takip ediyor mu" iki toplu sorguyla; eskiden sanatçı
+        // başına 2 sorgu atılıyordu (Pop+Rock ≈ 430 sanatçı → ~860 sorgu) ve
+        // kayıt sonrası sanatçı seçimi ekranı bu yüzden geç açılıyordu.
+        java.util.Map<Long, Long> followers = new java.util.HashMap<>();
+        for (Object[] r : artistFollowRepository.countByArtistIds(artists.stream().map(Artist::getId).toList())) {
+            followers.put((Long) r[0], (Long) r[1]);
+        }
+        Set<Long> followed = currentUserId == null ? Set.of()
+                : new java.util.HashSet<>(artistFollowRepository.findArtistIdsByUserId(currentUserId));
+        return artists.stream()
                 .sorted(Comparator.<Artist>comparingLong(a -> upcoming.getOrDefault(a.getId(), 0L)).reversed()
                         .thenComparing(a -> a.getImageUrl() == null || a.getImageUrl().isBlank())
                         .thenComparing(a -> a.getName() == null ? "" : a.getName(), String.CASE_INSENSITIVE_ORDER))
-                .map(a -> {
-                    long followerCount = artistFollowRepository.countByArtistId(a.getId());
-                    boolean isFollowed = currentUserId != null &&
-                            artistFollowRepository.findByUserIdAndArtistId(currentUserId, a.getId()).isPresent();
-                    return ArtistResponse.from(a, followerCount, isFollowed);
-                })
+                .map(a -> ArtistResponse.from(a, followers.getOrDefault(a.getId(), 0L), followed.contains(a.getId())))
                 .toList();
     }
 
@@ -255,6 +274,8 @@ public class ArtistService {
                 .filter(Event::listedPublicly)
                 .filter(e -> e.getEventDate().isBefore(LocalDateTime.now()))
                 .toList();
+        // En yeni önce; aynı tarihli kayıtlar id ile sabit sırada
+        pastEvents = collapseCopies(pastEvents).stream().sorted(EventOrder.NEWEST_FIRST).toList();
         if (pastEvents.isEmpty()) return List.of();
 
         // Tüm puan istatistiklerini tek sorguda çek: eventId -> [count, avg]

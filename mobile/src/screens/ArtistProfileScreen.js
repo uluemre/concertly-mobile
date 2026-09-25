@@ -6,6 +6,8 @@ import {
   TextInput, KeyboardAvoidingView, Platform, Linking,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import EventCard from '../components/EventCard';
+import DeepLinkLoader from '../components/DeepLinkLoader';
 import API from '../services/api';
 import { useTheme } from '../theme';
 import { ProfileSkeletonPage } from '../components/SkeletonLoader';
@@ -13,6 +15,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { buildShareUrl, shareWithLink } from '../services/shareLinks';
 import { formatTimeAgo, parseEventDate } from '../utils/time';
+import { goBackOrFallback, openEvent } from '../navigation/navHelpers';
 
 const GENRE_GRADIENTS = {
   'Rock':       ['#E94560', '#7C1AED'],
@@ -97,6 +100,7 @@ export default function ArtistProfileScreen({ route, navigation }) {
   const [posts, setPosts] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const [following, setFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('events');
@@ -113,6 +117,12 @@ export default function ArtistProfileScreen({ route, navigation }) {
   }, [artistId]);
 
   const fetchAll = async () => {
+    // Geçersiz id (ör. /artist/abc) için istek atmadan "bulunamadı" göster
+    if (!/^\d+$/.test(String(artistId ?? ''))) {
+      setNotFound(true);
+      setLoading(false);
+      return;
+    }
     // Parçalı yükleme: ana sanatçı verisi başarısızsa sayfayı açma; ikincil
     // çağrılar (etkinlik/post/yorum) başarısızsa sadece o sekme boş kalsın —
     // tek bir yavaş/hatalı çağrı koca sayfayı çökertmesin.
@@ -125,9 +135,10 @@ export default function ArtistProfileScreen({ route, navigation }) {
     ]);
 
     if (artistRes.status !== 'fulfilled') {
+      // Eskiden burada setLoading(false) çağrılmadığı için iskelet sonsuza kadar dönüyordu
       console.log('artist fetch error:', artistRes.reason?.message);
-      Alert.alert(t('error'), t('artist_load_error'));
-      navigation.goBack();
+      setNotFound(true);
+      setLoading(false);
       return;
     }
 
@@ -224,6 +235,7 @@ export default function ArtistProfileScreen({ route, navigation }) {
     shareWithLink(`🎤 ${artist.name}${genre}`, buildShareUrl('artist', artistId));
   };
 
+  if (notFound) return <DeepLinkLoader error onBack={() => navigation.navigate('MainApp')} />;
   if (loading) return <ProfileSkeletonPage hero />;
 
   return (
@@ -241,7 +253,7 @@ export default function ArtistProfileScreen({ route, navigation }) {
         <View style={styles.heroBgCircle} />
 
         <View style={styles.heroTopRow}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <TouchableOpacity style={styles.backButton} onPress={() => goBackOrFallback(navigation)}>
             <Text style={styles.backText}>{t('back')}</Text>
           </TouchableOpacity>
           {/* Sanatçı sayfası paylaşımı — linki alan kişi uygulamada açar */}
@@ -401,34 +413,14 @@ export default function ArtistProfileScreen({ route, navigation }) {
               </View>
             ) : (
               <View style={styles.eventGrid}>
-                {events.map((item, index) => (
-                  <TouchableOpacity
+                {events.map((item) => (
+                  <EventCard
                     key={item.id}
-                    style={styles.eventCard}
-                    onPress={() => navigation.navigate('EventDetail', { event: item })}
-                    activeOpacity={0.85}
-                  >
-                    <LinearGradient
-                      colors={gradientSets[index % gradientSets.length]}
-                      style={styles.eventCardGradient}
-                      start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-                    >
-                      <Text style={styles.eventEmoji}>{eventEmojis[index % eventEmojis.length]}</Text>
-                      <View style={styles.eventCardBody}>
-                        <Text style={styles.eventName} numberOfLines={2}>{item.name}</Text>
-                        <Text style={styles.eventDate}>
-                          📅 {parseEventDate(item.eventDate).toLocaleDateString('tr-TR', {
-                            day: 'numeric', month: 'short', year: 'numeric',
-                          })}
-                        </Text>
-                        {item.venueCity && <Text style={styles.eventCity}>📍 {item.venueCity}</Text>}
-                      </View>
-                      <View style={[
-                        styles.approvedDot,
-                        { backgroundColor: item.isApproved ? '#00D4AA' : '#F5A623' },
-                      ]} />
-                    </LinearGradient>
-                  </TouchableOpacity>
+                    item={item}
+                    variant="tile"
+                    style={styles.eventTile}
+                    onPress={() => openEvent(navigation, item)}
+                  />
                 ))}
               </View>
             )}
@@ -446,7 +438,7 @@ export default function ArtistProfileScreen({ route, navigation }) {
                   <TouchableOpacity
                     key={item.id}
                     style={[styles.pastCard, { backgroundColor: colors.card, borderColor: colors.border }]}
-                    onPress={() => navigation.navigate('EventDetail', { event: item })}
+                    onPress={() => openEvent(navigation, item)}
                     activeOpacity={0.85}
                   >
                     <View style={styles.pastCardLeft}>
@@ -687,6 +679,7 @@ function createStyles(colors) {
 
     // ETKİNLİK GRİD
     eventGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+    eventTile: { width: CARD_WIDTH, marginBottom: 0 },
     eventCard: { width: CARD_WIDTH, borderRadius: 18, overflow: 'hidden' },
     eventCardGradient: { padding: 14, minHeight: 160, justifyContent: 'space-between', position: 'relative' },
     eventEmoji: { fontSize: 32, marginBottom: 8 },

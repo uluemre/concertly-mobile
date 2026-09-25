@@ -12,14 +12,11 @@ import com.concertly.backend.dto.response.PostResponse;
 import com.concertly.backend.dto.response.PrivacySettingsResponse;
 import com.concertly.backend.dto.response.UserResponse;
 import com.concertly.backend.exception.ResourceNotFoundException;
-import com.concertly.backend.model.AttendanceStatus;
 import com.concertly.backend.model.Event;
-import com.concertly.backend.model.EventAttendance;
 import com.concertly.backend.model.Post;
 import com.concertly.backend.model.User;
 import com.concertly.backend.repository.BingoCardRepository;
 import com.concertly.backend.repository.CommentRepository;
-import com.concertly.backend.repository.EventAttendanceRepository;
 import com.concertly.backend.repository.EventVerificationRepository;
 import com.concertly.backend.repository.LikeRepository;
 import com.concertly.backend.repository.PostRepository;
@@ -41,27 +38,27 @@ public class UserService {
     private final PostRepository postRepository;
     private final LikeRepository likeRepository;
     private final CommentRepository commentRepository;
-    private final EventAttendanceRepository attendanceRepository;
     private final EventVerificationRepository verificationRepository;
     private final BingoCardRepository bingoCardRepository;
     private final BadgeService badgeService;
+    private final ConcertAttendanceService concertAttendance;
 
     public UserService(UserRepository userRepository,
             PostRepository postRepository,
             LikeRepository likeRepository,
             CommentRepository commentRepository,
-            EventAttendanceRepository attendanceRepository,
             EventVerificationRepository verificationRepository,
             BingoCardRepository bingoCardRepository,
-            BadgeService badgeService) {
+            BadgeService badgeService,
+            ConcertAttendanceService concertAttendance) {
         this.userRepository       = userRepository;
         this.postRepository       = postRepository;
         this.likeRepository       = likeRepository;
         this.commentRepository    = commentRepository;
-        this.attendanceRepository = attendanceRepository;
         this.verificationRepository = verificationRepository;
         this.bingoCardRepository  = bingoCardRepository;
         this.badgeService         = badgeService;
+        this.concertAttendance    = concertAttendance;
     }
 
     // 🔥 CORE METHOD — like/comment sayımlarını + izleyenin beğenilerini toplu çeker (N+1 yok)
@@ -175,17 +172,16 @@ public class UserService {
                 .toList(), currentUserId);
     }
 
-    // ✅ KULLANICININ ETKİNLİKLERİ
+    // ✅ KULLANICININ KONSERLERİ — katıldığı (geçmiş "Gidiyorum") konserler, en yeni önce.
+    // Profil sayısı ve Pasaport aynı tanımı kullanır (ConcertAttendanceService).
+    // Eskiden gönderi atılan etkinlikleri sayıyordu; ayrıca Post.event tembel
+    // yüklendiği için konsere bağlı gönderisi olan kullanıcılarda 500 veriyordu.
+    @Transactional(readOnly = true)
     public List<EventResponse> getUserEvents(Long userId) {
         if (!userRepository.existsById(userId)) {
             throw new ResourceNotFoundException("Kullanıcı bulunamadı: " + userId);
         }
-
-        return postRepository.findByUserIdOrderByCreatedAtDesc(userId)
-                .stream()
-                .map(Post::getEvent)
-                .filter(event -> event != null)
-                .distinct()
+        return concertAttendance.attended(userId).stream()
                 .map(EventResponse::from)
                 .toList();
     }
@@ -196,15 +192,8 @@ public class UserService {
             throw new ResourceNotFoundException("Kullanıcı bulunamadı: " + userId);
         }
 
-        LocalDateTime now = LocalDateTime.now();
-
-        // Geçmiş GOING etkinlikler
-        List<EventAttendance> goingAttendances = attendanceRepository
-                .findByUserIdAndStatus(userId, AttendanceStatus.GOING)
-                .stream()
-                .filter(a -> a.getEvent() != null && a.getEvent().getEventDate().isBefore(now))
-                .sorted((a, b) -> b.getEvent().getEventDate().compareTo(a.getEvent().getEventDate()))
-                .toList();
+        // Katıldığı konserler (geçmiş "Gidiyorum"), en yeni önce — profil ve rozetlerle aynı tanım
+        List<Event> attended = concertAttendance.attended(userId);
 
         // Doğrulanmış event id seti
         Set<Long> verifiedIds = verificationRepository.findByUserId(userId)
@@ -213,33 +202,30 @@ public class UserService {
                 .collect(Collectors.toSet());
 
         // İstatistikler
-        int totalConcerts    = goingAttendances.size();
-        int verifiedConcerts = (int) goingAttendances.stream()
-                .filter(a -> verifiedIds.contains(a.getEvent().getId()))
+        int totalConcerts    = attended.size();
+        int verifiedConcerts = (int) attended.stream()
+                .filter(e -> verifiedIds.contains(e.getId()))
                 .count();
 
-        Set<String> artistNames = goingAttendances.stream()
-                .map(a -> a.getEvent().getArtist() != null ? a.getEvent().getArtist().getName() : null)
+        Set<String> artistNames = attended.stream()
+                .map(e -> e.getArtist() != null ? e.getArtist().getName() : null)
                 .filter(name -> name != null)
                 .collect(Collectors.toSet());
 
-        Set<String> cities = goingAttendances.stream()
-                .map(a -> a.getEvent().getVenue() != null ? a.getEvent().getVenue().getCity() : null)
-                .filter(city -> city != null)
-                .collect(Collectors.toSet());
+        // "Istanbul" ve "İstanbul" tek şehir sayılır
+        int cityCount = ConcertAttendanceService.countCities(attended);
 
         // Yıl bazlı dağılım
-        Map<String, Long> byYear = goingAttendances.stream()
+        Map<String, Long> byYear = attended.stream()
                 .collect(Collectors.groupingBy(
-                        a -> String.valueOf(a.getEvent().getEventDate().getYear()),
+                        e -> String.valueOf(e.getEventDate().getYear()),
                         Collectors.counting()
                 ));
 
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
 
-        List<PassportEventDto> events = goingAttendances.stream()
-                .map(a -> {
-                    Event e = a.getEvent();
+        List<PassportEventDto> events = attended.stream()
+                .map(e -> {
                     String img = (e.getArtist() != null && e.getArtist().getImageUrl() != null)
                             ? e.getArtist().getImageUrl() : e.getImageUrl();
                     return new PassportEventDto(
@@ -265,11 +251,11 @@ public class UserService {
         // Top sanatçılar (en çok gidilen, max 5) — ID ve isim birlikte
         Map<Long, String> topArtistNames  = new java.util.HashMap<>();
         Map<Long, Long>   topArtistCounts = new java.util.HashMap<>();
-        goingAttendances.stream()
-                .filter(a -> a.getEvent().getArtist() != null && a.getEvent().getArtist().getName() != null)
-                .forEach(a -> {
-                    Long   id   = a.getEvent().getArtist().getId();
-                    String name = a.getEvent().getArtist().getName();
+        attended.stream()
+                .filter(e -> e.getArtist() != null && e.getArtist().getName() != null)
+                .forEach(e -> {
+                    Long   id   = e.getArtist().getId();
+                    String name = e.getArtist().getName();
                     topArtistNames.putIfAbsent(id, name);
                     topArtistCounts.merge(id, 1L, Long::sum);
                 });
@@ -280,9 +266,9 @@ public class UserService {
                 .toList();
 
         // Tür dağılımı (max 5)
-        List<TopGenreDto> topGenres = goingAttendances.stream()
-                .filter(a -> a.getEvent().getGenre() != null && !a.getEvent().getGenre().isBlank())
-                .collect(Collectors.groupingBy(a -> a.getEvent().getGenre(), Collectors.counting()))
+        List<TopGenreDto> topGenres = attended.stream()
+                .filter(e -> e.getGenre() != null && !e.getGenre().isBlank())
+                .collect(Collectors.groupingBy(Event::getGenre, Collectors.counting()))
                 .entrySet().stream()
                 .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
                 .limit(5)
@@ -293,7 +279,7 @@ public class UserService {
         List<BadgeResponse> badges = badgeService.getAllBadgesWithStatus(userId);
 
         return new PassportResponse(totalConcerts, verifiedConcerts,
-                artistNames.size(), cities.size(), byYear, events, bingoEventIds,
+                artistNames.size(), cityCount, byYear, events, bingoEventIds,
                 badges, topArtists, topGenres);
     }
 }

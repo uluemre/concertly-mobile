@@ -55,6 +55,8 @@ public class PassportResponse {
         private Long   artistId;
         private String artistName;
         private String venueCity;
+        /** Karşılaştırma anahtarı: "Istanbul" ve "İstanbul" aynıdır. */
+        private String cityKey;
         private String imageUrl;
         private String genre;
         private boolean verified;
@@ -71,6 +73,7 @@ public class PassportResponse {
             this.imageUrl   = imageUrl;
             this.genre      = genre;
             this.verified   = verified;
+            this.cityKey    = com.concertly.backend.service.ConcertAttendanceService.cityKey(venueCity);
         }
 
         public Long    getId()         { return id; }
@@ -79,6 +82,7 @@ public class PassportResponse {
         public Long    getArtistId()   { return artistId; }
         public String  getArtistName() { return artistName; }
         public String  getVenueCity()  { return venueCity; }
+        public String  getCityKey()    { return cityKey; }
         public String  getImageUrl()   { return imageUrl; }
         public String  getGenre()      { return genre; }
         public boolean isVerified()    { return verified; }
