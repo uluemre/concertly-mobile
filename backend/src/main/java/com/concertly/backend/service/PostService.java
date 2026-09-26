@@ -192,16 +192,51 @@ public class PostService {
         return toResponse(post, currentUserId);
     }
 
-    // ✅ TRENDING FEED (sayfalı)
+    /** Trend için puanlanan en yeni gönderi sayısı; sayfalar bu küme içinden verilir. */
+    static final int TRENDING_WINDOW = 500;
+
+    /**
+     * Trend puanı: etkileşim (beğeni + 2×yorum + 1) yaşla birlikte azalır — (gün + 1)^1.2.
+     * Yeni gönderi öne çıkabilir ama birkaç günlük, çok beğenilmiş gönderi hiç beğeni almamış
+     * yeni gönderinin önüne geçer. Eskiden trend yalnızca tarihe göre sıralıydı.
+     */
+    static double trendingScore(long likes, long comments, java.time.LocalDateTime createdAt,
+                                java.time.LocalDateTime now) {
+        double ageDays = createdAt == null ? 365
+                : Math.max(0, java.time.Duration.between(createdAt, now).toMinutes()) / 1440.0;
+        return (likes + 2.0 * comments + 1.0) / Math.pow(ageDays + 1.0, 1.2);
+    }
+
+    // ✅ TRENDING FEED (sayfalı) — trend puanına göre; eşit puanda en yeni, sonra büyük id
     @Transactional(readOnly = true)
     public List<PostResponse> getTrendingFeed(Long currentUserId, int page, int size) {
+        if (page < 0 || size <= 0) return List.of();
         Set<Long> hidden = moderationService.getHiddenUserIds(currentUserId);
-        List<Post> posts = postRepository.findByOrderByCreatedAtDesc(PageRequest.of(page, size))
+        List<Post> candidates = postRepository.findByOrderByCreatedAtDesc(PageRequest.of(0, TRENDING_WINDOW))
                 .stream()
                 .filter(p -> !p.getIsHidden())
                 .filter(p -> p.getUser() == null || !hidden.contains(p.getUser().getId()))
                 .toList();
-        return toResponses(posts, currentUserId);
+        if (candidates.isEmpty()) return List.of();
+
+        List<Long> ids = candidates.stream().map(Post::getId).toList();
+        Map<Long, Long> likes = toCountMap(likeRepository.countByPostIdIn(ids));
+        Map<Long, Long> comments = toCountMap(commentRepository.countByPostIdIn(ids));
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        Map<Long, Double> score = new HashMap<>();
+        for (Post p : candidates) {
+            score.put(p.getId(), trendingScore(likes.getOrDefault(p.getId(), 0L),
+                    comments.getOrDefault(p.getId(), 0L), p.getCreatedAt(), now));
+        }
+        List<Post> ranked = candidates.stream()
+                .sorted(java.util.Comparator.<Post>comparingDouble(p -> score.get(p.getId())).reversed()
+                        .thenComparing(Post::getCreatedAt, java.util.Comparator.nullsLast(java.util.Comparator.reverseOrder()))
+                        .thenComparing(Post::getId, java.util.Comparator.reverseOrder()))
+                .toList();
+
+        int from = (int) Math.min((long) page * size, ranked.size());
+        int to = Math.min(from + size, ranked.size());
+        return toResponses(ranked.subList(from, to), currentUserId);
     }
 
     // ✅ FOLLOWING FEED (sayfalı)

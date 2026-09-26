@@ -39,8 +39,8 @@ export default function FeedScreen({ navigation }) {
     return () => { isMounted.current = false; };
   }, []);
 
-  // Tek sayfa yükle (reset=baştan, değilse sıradaki sayfayı ekle). Sunucu createdAt'e
-  // göre sıralı döndürüyor; istemci sıralamasına gerek yok.
+  // Tek sayfa yükle (reset=baştan, değilse sıradaki sayfayı ekle). Sunucu sıralı döndürüyor
+  // (Trend: etkileşim + yaş puanı, Takip: en yeni önce); istemci sıralamasına gerek yok.
   const loadFeed = useCallback(async ({ reset, tab }) => {
     const activeT = tab || activeTab;
     const page = reset ? 0 : pageRef.current;
