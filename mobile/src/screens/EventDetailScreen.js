@@ -19,6 +19,7 @@ import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { getGenreGradient } from '../utils/gradients';
+import { detailImageCandidates } from '../utils/eventImage';
 import { formatTimeAgo, parseEventDate } from '../utils/time';
 import ConfettiOverlay from '../components/ConfettiOverlay';
 import { goBackOrFallback } from '../navigation/navHelpers';
@@ -94,8 +95,15 @@ function EventDetailContent({ route, navigation }) {
   const [bookmarked, setBookmarked] = useState(false);
   const [bookmarkLoading, setBookmarkLoading] = useState(false);
   const friendsSlideAnim = useRef(new Animated.Value(400)).current;
-  const [imageError, setImageError] = useState(false);
-  const [useFallbackImage, setUseFallbackImage] = useState(false);
+  // Kapak: sanatçı fotoğrafı → etkinlik görseli → yer tutucu (N-17). Yüklenemeyen atlanır.
+  const heroCandidates = useMemo(
+    () => detailImageCandidates(event),
+    [event.artistImageUrl, event.imageUrl]
+  );
+  const [imageIndex, setImageIndex] = useState(0);
+  const heroKey = heroCandidates.join('|');
+  useEffect(() => { setImageIndex(0); }, [heroKey]);
+  const heroUri = heroCandidates[imageIndex];
   const [imageLoading, setImageLoading] = useState(true);
 
   // ── Konser Arkadaşı ──
@@ -509,19 +517,16 @@ function EventDetailContent({ route, navigation }) {
     <>
     <ScrollView ref={scrollViewRef} style={styles.container}>
       {/* HERO */}
-      {(event.imageUrl || event.artistImageUrl) && !imageError ? (
+      {heroUri ? (
         <View>
           <Image
-            source={{ uri: useFallbackImage ? event.artistImageUrl : (event.imageUrl || event.artistImageUrl) }}
+            source={{ uri: heroUri }}
             style={styles.heroImage}
             contentFit="cover"
             placeholder={require('../../assets/icon.png')}
             onError={() => {
-              if (!useFallbackImage && event.artistImageUrl && event.artistImageUrl !== event.imageUrl) {
-                setUseFallbackImage(true);
-              } else {
-                setImageError(true);
-              }
+              // Sıradaki adaya geç; kalmadıysa renkli yer tutucu gösterilir
+              setImageIndex(i => i + 1);
               setImageLoading(false);
             }}
             onLoad={() => setImageLoading(false)}
@@ -1510,29 +1515,52 @@ function createStyles(colors) {
 }
 
 /**
+ * Ön izlemeyi (liste öğesi) taze /events/{id} cevabıyla birleştirir: taze değerler
+ * önceliklidir ama boş gelen alan ön izlemedekini silmez (ör. ticketLinks yalnızca
+ * listede var). Etkinliğin kendi görseli kapak için yedek aday olarak korunur —
+ * /events/{id} imageUrl alanına sanatçı fotoğrafını yazıyor.
+ */
+function mergeEvent(preview, fresh) {
+  if (!preview) return fresh;
+  const merged = { ...preview };
+  Object.entries(fresh || {}).forEach(([key, value]) => {
+    if (value !== null && value !== undefined) merged[key] = value;
+  });
+  if (preview.imageUrl) merged.imageUrl = preview.imageUrl;
+  return merged;
+}
+
+/**
  * Paylaşılan link ya da bildirim yalnızca `eventId` taşır; normal gezinme ise
- * etkinlik nesnesinin tamamını verir. Ekranın gövdesi nesneye göre yazıldığı
- * için id'yi burada çözüp içeriye tam nesne geçiyoruz.
+ * etkinlik nesnesini (ön izleme) verir. Ön izleme varsa sayfa hemen açılır ve
+ * eksik alanlar (açıklama, ülke…) arka planda /events/{id} ile tamamlanır (N-17);
+ * yoksa id ile çekilene kadar yükleniyor gösterilir.
  */
 export default function EventDetailScreen({ route, navigation }) {
   const { event: eventParam, eventId } = route.params || {};
   // Web'de yenilenen eski bir adresten `event` "[object Object]" metni olarak gelebilir:
   // yalnızca gerçek bir nesneyse ön izleme olarak kullan, değilse id ile çek.
   const event = eventParam && typeof eventParam === 'object' ? eventParam : null;
+  const id = eventId ?? event?.id;
   const [resolved, setResolved] = useState(event);
   const [failed, setFailed] = useState(false);
 
+  // Açılışta tek istek; ön izleme varken hata olursa ön izleme kalır, hata ekranı çıkmaz
   useEffect(() => {
-    if (resolved || !eventId) return;
+    if (id === undefined || id === null || id === '') return;
     let cancelled = false;
-    API.get(`/events/${eventId}`)
-      .then((res) => !cancelled && setResolved(res.data))
-      .catch(() => !cancelled && setFailed(true));
+    API.get(`/events/${id}`)
+      .then((res) => {
+        if (!cancelled && res?.data) setResolved(prev => mergeEvent(prev, res.data));
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true);
+      });
     return () => { cancelled = true; };
-  }, [eventId, resolved]);
+  }, [id]);
 
   if (!resolved) {
-    return <DeepLinkLoader error={failed || !eventId} onBack={() => navigation.navigate('MainApp')} />;
+    return <DeepLinkLoader error={failed || (id === undefined || id === null)} onBack={() => navigation.navigate('MainApp')} />;
   }
   return (
     <EventDetailContent

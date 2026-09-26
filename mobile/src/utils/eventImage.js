@@ -61,6 +61,20 @@ export function eventImageCandidates(item, genericImages) {
   return out;
 }
 
+/**
+ * Etkinlik detayının kapak görseli adayları: önce sanatçı fotoğrafı, sonra etkinlik
+ * görseli — backend /events/{id} ile aynı kural. Listeden (ham TM görseli) ya da linkten
+ * açılsa da aynı kapak görünür. Yer tutucular atlanır; hiçbiri kalmazsa ekran kendi
+ * renkli yer tutucusunu gösterir.
+ */
+export function detailImageCandidates(event) {
+  const out = [];
+  for (const url of [event?.artistImageUrl, event?.imageUrl]) {
+    if (!isPlaceholderImage(url) && !out.includes(url)) out.push(url);
+  }
+  return out;
+}
+
 /** Yer tutucudaki baş harfler: "Mor ve Ötesi" → "MÖ". */
 export function initialsOf(name) {
   const words = String(name || '').trim().split(/\s+/).filter(Boolean);
