@@ -14,6 +14,13 @@ public class SearchService {
     private final UserRepository userRepository;
     private final ArtistFollowRepository artistFollowRepository;
 
+    // Mekan araması (N-15). Alan enjeksiyonu: kurucu ve onu kullanan testler degismesin.
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private VenueRepository venueRepository;
+
+    /** Aramada gösterilen en fazla mekan sayısı. */
+    static final int MAX_VENUES = 10;
+
     public SearchService(EventRepository eventRepository,
             ArtistRepository artistRepository,
             UserRepository userRepository,
@@ -22,6 +29,31 @@ public class SearchService {
         this.artistRepository = artistRepository;
         this.userRepository = userRepository;
         this.artistFollowRepository = artistFollowRepository;
+    }
+
+    /**
+     * Adı aramayla eşleşen mekanlar: yaklaşan etkinliği olanlar önce (çok olan üstte),
+     * sonra ada göre. Sayı yalnızca sıralama için; kopya kayıtları da saydığından gösterilmez.
+     */
+    private List<VenueSummaryResponse> searchVenues(String query) {
+        if (venueRepository == null) return List.of();
+        List<com.concertly.backend.model.Venue> venues = venueRepository.search(query);
+        if (venues.isEmpty()) return List.of();
+        java.util.Map<Long, Long> upcoming = new java.util.HashMap<>();
+        for (Object[] row : eventRepository.countUpcomingListedByVenueIdIn(
+                venues.stream().map(com.concertly.backend.model.Venue::getId).toList(),
+                java.time.LocalDateTime.now())) {
+            upcoming.put((Long) row[0], (Long) row[1]);
+        }
+        return venues.stream()
+                .sorted(java.util.Comparator.<com.concertly.backend.model.Venue>comparingLong(
+                                v -> upcoming.getOrDefault(v.getId(), 0L)).reversed()
+                        .thenComparing(com.concertly.backend.model.Venue::getName,
+                                java.util.Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER))
+                        .thenComparing(com.concertly.backend.model.Venue::getId))
+                .limit(MAX_VENUES)
+                .map(VenueSummaryResponse::from)
+                .toList();
     }
 
     // Ayni konserin kopyalari (Biletix + Biletinial...) listede tek kart olsun.
@@ -67,6 +99,6 @@ public class SearchService {
                 .map(u -> new UserResponse(u.getId(), u.getUsername(), null, u.getCity()))
                 .toList();
 
-        return new SearchResponse(events, artists, users);
+        return new SearchResponse(events, artists, users, searchVenues(query));
     }
 }

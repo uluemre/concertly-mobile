@@ -154,7 +154,8 @@ export default function EventsScreen({ navigation, route }) {
       list = list.filter(e =>
         foldSearch(e.name).includes(q) ||
         foldSearch(e.artistName).includes(q) ||
-        foldSearch(e.venueCity).includes(q)
+        foldSearch(e.venueCity).includes(q) ||
+        foldSearch(e.venueName).includes(q)
       );
     }
 

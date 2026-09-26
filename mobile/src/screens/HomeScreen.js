@@ -138,7 +138,8 @@ export default function HomeScreen({ navigation }) {
       return !q ||
         foldSearch(e.name).includes(q) ||
         foldSearch(e.artistName).includes(q) ||
-        foldSearch(e.venueCity).includes(q);
+        foldSearch(e.venueCity).includes(q) ||
+        foldSearch(e.venueName).includes(q);
     });
     // Takip edilen sanatçıların etkinliklerini öne al (stabil sıralama)
     if (followedArtistIds.size > 0) {

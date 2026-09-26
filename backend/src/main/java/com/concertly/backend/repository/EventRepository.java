@@ -128,6 +128,12 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     @EntityGraph(attributePaths = {"artist", "venue", "createdBy"})
     List<Event> findByVenueIdOrderByEventDateAsc(Long venueId);
 
+    /** Mekan başına yaklaşan, listede görünen etkinlik sayısı (arama sonuçlarını sıralamak için). */
+    @Query("SELECT e.venue.id, COUNT(e) FROM Event e WHERE e.venue.id IN :venueIds AND e.eventDate >= :from"
+            + " AND e.isApproved = true AND e.delistedReason IS NULL GROUP BY e.venue.id")
+    List<Object[]> countUpcomingListedByVenueIdIn(@Param("venueIds") java.util.Collection<Long> venueIds,
+                                                  @Param("from") java.time.LocalDateTime from);
+
     @EntityGraph(attributePaths = {"artist", "venue", "createdBy"})
     List<Event> findByEventDateBetween(java.time.LocalDateTime start, java.time.LocalDateTime end);
 
@@ -145,6 +151,7 @@ public interface EventRepository extends JpaRepository<Event, Long> {
             + " WHERE " + SearchText.FOLD_OPEN + "e.name" + SearchText.FOLD_CLOSE + " LIKE :pattern ESCAPE '!'"
             + " OR " + SearchText.FOLD_OPEN + "e.artist.name" + SearchText.FOLD_CLOSE + " LIKE :pattern ESCAPE '!'"
             + " OR " + SearchText.FOLD_OPEN + "e.venue.city" + SearchText.FOLD_CLOSE + " LIKE :pattern ESCAPE '!'"
+            + " OR " + SearchText.FOLD_OPEN + "e.venue.name" + SearchText.FOLD_CLOSE + " LIKE :pattern ESCAPE '!'"
             + " ORDER BY e.eventDate DESC")
     List<Event> searchByPattern(@Param("pattern") String pattern);
 

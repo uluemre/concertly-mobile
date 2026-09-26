@@ -44,7 +44,7 @@ export default function SearchModal({ visible, onClose, navigation }) {
     const styles = useMemo(() => createStyles(colors), [colors]);
 
     const [query, setQuery] = useState('');
-    const [results, setResults] = useState({ events: [], artists: [], users: [] });
+    const [results, setResults] = useState({ events: [], artists: [], users: [], venues: [] });
     const [loading, setLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('events');
     const [searched, setSearched] = useState(false);
@@ -59,7 +59,7 @@ export default function SearchModal({ visible, onClose, navigation }) {
     React.useEffect(() => {
         if (visible) {
             setQuery('');
-            setResults({ events: [], artists: [], users: [] });
+            setResults({ events: [], artists: [], users: [], venues: [] });
             setSearched(false);
             setActiveTab('events');
             AsyncStorage.getItem(RECENT_KEY)
@@ -82,7 +82,7 @@ export default function SearchModal({ visible, onClose, navigation }) {
 
     const doSearch = useCallback(async (q) => {
         if (q.trim().length < 2) {
-            setResults({ events: [], artists: [], users: [] });
+            setResults({ events: [], artists: [], users: [], venues: [] });
             setSearched(false);
             return;
         }
@@ -153,8 +153,11 @@ export default function SearchModal({ visible, onClose, navigation }) {
         outputRange: ['0%', '33.33%', '66.66%'],
     });
 
+    // Adı aramayla eşleşen mekanlar (N-15) — Etkinlikler sekmesinin üstünde gösterilir
+    const venues = results.venues || [];
+
     const totalResults =
-        results.events.length + results.artists.length + results.users.length;
+        results.events.length + results.artists.length + results.users.length + venues.length;
 
     // ── Render fonksiyonları ──────────────────────────────────────────────────
 
@@ -249,6 +252,38 @@ export default function SearchModal({ visible, onClose, navigation }) {
         </TouchableOpacity>
     );
 
+    const renderVenues = () => (
+        <View style={styles.venueSection}>
+            <Text style={styles.venueSectionTitle}>📍 {t('search_venues')} ({venues.length})</Text>
+            {venues.map((v, index) => (
+                <TouchableOpacity
+                    key={`venue-${v.id}`}
+                    style={styles.resultCard}
+                    onPress={() => {
+                        rememberQuery(query);
+                        onClose();
+                        navigation.navigate('VenueProfile', { venueId: v.id, venueName: v.name });
+                    }}
+                    activeOpacity={0.8}
+                >
+                    <LinearGradient
+                        colors={gradientSets[(index + 2) % gradientSets.length]}
+                        style={styles.resultIcon}
+                    >
+                        <Text style={styles.resultIconEmoji}>📍</Text>
+                    </LinearGradient>
+                    <View style={styles.resultInfo}>
+                        <Text style={styles.resultTitle} numberOfLines={1}>{v.name}</Text>
+                        {!!v.city && <Text style={styles.resultSub} numberOfLines={1}>{v.city}</Text>}
+                    </View>
+                    <Text style={styles.chevron}>›</Text>
+                </TouchableOpacity>
+            ))}
+        </View>
+    );
+
+    const showVenues = activeTab === 'events' && venues.length > 0;
+
     const activeData =
         activeTab === 'events' ? results.events :
             activeTab === 'artists' ? results.artists :
@@ -290,7 +325,7 @@ export default function SearchModal({ visible, onClose, navigation }) {
                             {query.length > 0 && (
                                 <TouchableOpacity onPress={() => {
                                     setQuery('');
-                                    setResults({ events: [], artists: [], users: [] });
+                                    setResults({ events: [], artists: [], users: [], venues: [] });
                                     setSearched(false);
                                 }}>
                                     <Text style={styles.clearBtn}>✕</Text>
@@ -417,12 +452,13 @@ export default function SearchModal({ visible, onClose, navigation }) {
                             contentContainerStyle={styles.list}
                             keyboardShouldPersistTaps="handled"
                             showsVerticalScrollIndicator={false}
-                            ListEmptyComponent={
+                            ListHeaderComponent={showVenues ? renderVenues() : null}
+                            ListEmptyComponent={showVenues ? null : (
                                 <View style={styles.center}>
                                     <Text style={styles.hintEmoji}>📭</Text>
                                     <Text style={styles.hintText}>{t('search_category_empty')}</Text>
                                 </View>
-                            }
+                            )}
                         />
                     )}
                 </KeyboardAvoidingView>
@@ -536,6 +572,8 @@ function createStyles(colors) {
         discoverSection: { gap: 10 },
         discoverHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
         discoverTitle: { color: colors.text, fontSize: 16, fontWeight: '800' },
+        venueSection: { marginBottom: 8 },
+        venueSectionTitle: { color: colors.textSecondary, fontSize: 13, fontWeight: '800', marginBottom: 8 },
         discoverAction: { color: colors.primary, fontSize: 13, fontWeight: '700' },
         recentRow: {
             flexDirection: 'row', alignItems: 'center', gap: 10,
