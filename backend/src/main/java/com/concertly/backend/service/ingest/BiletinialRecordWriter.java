@@ -82,8 +82,14 @@ public class BiletinialRecordWriter {
         event.setTicketUrl(raw.ticketUrl());
         event.setImageUrl(raw.imageUrl());
         event.setGenre(artist != null ? artist.getGenre() : null);
-        // Bilet platformundan geldigi icin yayina hazir ve kaynagi dogrulanmis sayilir.
-        event.setIsApproved(true);
+        // Muzik disi (muzikal / tiyatro / stand-up...) YENI kayit listelenmez (N-16); mevcut
+        // kayitta karar degismez — admin onayladiysa sync geri almaz.
+        if (isNew && NonMusicFilter.isNonMusic(raw.concertName())) {
+            event.setDelistedReason(NonMusicFilter.REASON);
+        }
+        // Bilet platformundan geldigi icin yayina hazir ve kaynagi dogrulanmis sayilir;
+        // listeden bilerek kaldirilmis kayit (V5) sync ile geri acilmaz.
+        event.setIsApproved(event.getDelistedReason() == null);
         event.setIsVerified(true);
         event.setSource(EventSource.BILETINIAL);
         event.setSourceUrl(raw.ticketUrl());

@@ -4,6 +4,7 @@ import com.concertly.backend.config.ExternalHttp;
 import com.concertly.backend.config.LaunchCityConfig;
 import com.concertly.backend.model.*;
 import com.concertly.backend.service.ingest.EventSourceLinkService;
+import com.concertly.backend.service.ingest.NonMusicFilter;
 import com.concertly.backend.repository.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -633,6 +634,12 @@ public class TicketmasterService {
                 }
                 event.setDescription(description);
                 event.setEventDate(eventDate);
+                // Music segmentinde gelen müzikal / tiyatro / stand-up (N-16): yalnızca YENİ kayıtta
+                // işaretlenir — admin sonradan onaylarsa sync kararını geri almasın.
+                if (!existingEvent.isPresent() && NonMusicFilter.isNonMusic(name)) {
+                    event.setDelistedReason(NonMusicFilter.REASON);
+                    System.out.println("  🎭 Müzik dışı (ad), listelenmedi: " + name);
+                }
                 // Listeden bilerek kaldırılmış ya da birleştirilmiş bir kaydı sync geri açmasın
                 event.setIsApproved(event.getDelistedReason() == null && event.getMergedIntoEventId() == null);
                 event.setArtist(artist);
