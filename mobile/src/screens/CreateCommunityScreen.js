@@ -6,6 +6,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
+import { communityTypeLabel } from '../utils/communityType';
 import { useAuth } from '../context/AuthContext';
 import API, { getErrorMessage } from '../services/api';
 import CityPicker from '../components/CityPicker';
@@ -24,6 +25,9 @@ const THEMES = [
   { emoji: '🔥', start: '#EC4899', end: '#BE123C' },
   { emoji: '🌙', start: '#3B82F6', end: '#1D4ED8' },
 ];
+
+// Sunucu sınırıyla aynı: communities.description varchar(255) (A1)
+const DESCRIPTION_MAX = 255;
 
 const VISIBILITIES = [
   { value: 'PUBLIC',  labelKey: 'community_visibility_public',  descKey: 'community_visibility_public_desc',  icon: '🌍' },
@@ -67,7 +71,9 @@ export default function CreateCommunityScreen({ navigation }) {
       Alert.alert(t('success'), t('community_create_success'));
       navigation.replace('CommunityDetail', { communityId: res.data.id });
     } catch (err) {
-      Alert.alert(t('error'), getErrorMessage(err));
+      Alert.alert(t('error'), err?.response?.data?.message === 'COMMUNITY_DESCRIPTION_TOO_LONG'
+        ? t('community_create_desc_too_long', { max: DESCRIPTION_MAX })
+        : getErrorMessage(err));
     } finally {
       setSubmitting(false);
     }
@@ -107,7 +113,7 @@ export default function CreateCommunityScreen({ navigation }) {
           placeholder={t('community_create_desc_ph')}
           placeholderTextColor={colors.textSecondary}
           multiline
-          maxLength={300}
+          maxLength={DESCRIPTION_MAX}
         />
 
         {/* Tema (emoji + renk) */}
@@ -134,7 +140,7 @@ export default function CreateCommunityScreen({ navigation }) {
               onPress={() => setType(tp)}
               style={[styles.chip, type === tp && styles.chipActive]}
             >
-              <Text style={[styles.chipText, type === tp && styles.chipTextActive]}>{tp}</Text>
+              <Text style={[styles.chipText, type === tp && styles.chipTextActive]}>{communityTypeLabel(tp, t)}</Text>
             </TouchableOpacity>
           ))}
         </View>
