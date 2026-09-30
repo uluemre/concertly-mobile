@@ -140,7 +140,7 @@ public class CommunityController {
 
     @GetMapping("/{id}/members")
     public List<CommunityMemberResponse> members(@PathVariable Long id) {
-        return communityService.getMembers(id);
+        return communityService.getMembers(id, JwtUtil.getCurrentUserId());
     }
 
     @PostMapping("/{id}/members/{userId}/role")
@@ -198,12 +198,12 @@ public class CommunityController {
     @PostMapping("/{id}/posts/{postId}/like")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void likePost(@PathVariable Long id, @PathVariable Long postId) {
-        communityService.likeCommunityPost(JwtUtil.getCurrentUserId(), postId);
+        communityService.likeCommunityPost(JwtUtil.getCurrentUserId(), id, postId);
     }
 
     @DeleteMapping("/{id}/posts/{postId}/like")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void unlikePost(@PathVariable Long id, @PathVariable Long postId) {
-        communityService.unlikeCommunityPost(JwtUtil.getCurrentUserId(), postId);
+        communityService.unlikeCommunityPost(JwtUtil.getCurrentUserId(), id, postId);
     }
 }

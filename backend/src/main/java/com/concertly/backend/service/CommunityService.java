@@ -11,8 +11,10 @@ import com.concertly.backend.exception.AlreadyExistsException;
 import com.concertly.backend.exception.ResourceNotFoundException;
 import com.concertly.backend.model.*;
 import com.concertly.backend.repository.*;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
@@ -42,6 +44,9 @@ public class CommunityService {
     private static final String OWNER = "OWNER";
     private static final String MODERATOR = "MODERATOR";
     private static final String MEMBER = "MEMBER";
+
+    // communities.description varchar(255): daha uzunu DB hatasına (yanıltıcı 409) düşüyordu (A1)
+    static final int DESCRIPTION_MAX = 255;
 
     // Bir kullanıcının kurabileceği en fazla topluluk (spam koruması)
     private static final int MAX_OWNED_COMMUNITIES = 5;
@@ -140,15 +145,15 @@ public class CommunityService {
 
         if (q != null && !q.isBlank()) {
             communities = communityRepository.search(q.trim());
-        } else if (type != null && !type.isBlank()) {
-            communities = communityRepository.findByType(type.trim());
         } else {
             communities = communityRepository.findAll();
         }
 
-        if (type != null && !type.isBlank() && q != null && !q.isBlank()) {
+        // Tür filtresi hem tek başına hem aramayla aynı kuralı kullanır (A2):
+        // "Şehir"/"Sehir"/"city", "Diğer"/"Diger"/"other" vb. aynı tür sayılır.
+        if (type != null && !type.isBlank()) {
             communities = communities.stream()
-                    .filter(c -> type.trim().equalsIgnoreCase(c.getType()))
+                    .filter(c -> CommunityTypes.matches(type, c.getType()))
                     .toList();
         }
 
@@ -221,19 +226,22 @@ public class CommunityService {
     public CommunityResponse getCommunityById(Long communityId, Long currentUserId) {
         Community c = communityRepository.findById(communityId)
                 .orElseThrow(() -> new ResourceNotFoundException("Topluluk bulunamadi: " + communityId));
+        requireCommunityVisible(c, currentUserId);
+        return toResponse(c, currentUserId);
+    }
 
+    // Gizli topluluk üye olmayana yok gibi davranır; reddedilen yalnızca sahip/admin görür.
+    private void requireCommunityVisible(Community c, Long currentUserId) {
         boolean member = currentUserId != null &&
-                communityMemberRepository.findByUserIdAndCommunityId(currentUserId, communityId).isPresent();
+                communityMemberRepository.findByUserIdAndCommunityId(currentUserId, c.getId()).isPresent();
         boolean privileged = member || isAdmin(currentUserId) || isOwner(c, currentUserId);
 
-        // Gizli topluluk üye olmayana yok gibi davranır; reddedilen yalnızca sahip/admin görür.
         if (SECRET.equals(effectiveVisibility(c)) && !privileged) {
-            throw new ResourceNotFoundException("Topluluk bulunamadi: " + communityId);
+            throw new ResourceNotFoundException("Topluluk bulunamadi: " + c.getId());
         }
         if (REJECTED.equals(effectiveApproval(c)) && !(isAdmin(currentUserId) || isOwner(c, currentUserId))) {
-            throw new ResourceNotFoundException("Topluluk bulunamadi: " + communityId);
+            throw new ResourceNotFoundException("Topluluk bulunamadi: " + c.getId());
         }
-        return toResponse(c, currentUserId);
     }
 
     // ── Oluşturma / düzenleme / silme ─────────────────────────────────────────────
@@ -246,6 +254,7 @@ public class CommunityService {
         if (req.getName() == null || req.getName().isBlank()) {
             throw new IllegalArgumentException("Topluluk adi gerekli.");
         }
+        requireDescriptionLength(req.getDescription());
         if (communityRepository.countByOwnerId(userId) >= MAX_OWNED_COMMUNITIES) {
             throw new IllegalArgumentException("En fazla " + MAX_OWNED_COMMUNITIES + " topluluk kurabilirsiniz.");
         }
@@ -282,6 +291,7 @@ public class CommunityService {
         Community c = communityRepository.findById(communityId)
                 .orElseThrow(() -> new ResourceNotFoundException("Topluluk bulunamadi: " + communityId));
         requireManager(userId, c);
+        requireDescriptionLength(req.getDescription());
 
         if (req.getName() != null && !req.getName().isBlank()) c.setName(req.getName().trim());
         if (req.getType() != null) c.setType(req.getType().trim());
@@ -462,8 +472,11 @@ public class CommunityService {
         if (existing != null) {
             if (ACTIVE.equals(existing.getStatus())) throw new AlreadyExistsException("Bu kullanici zaten uye.");
             if (BANNED.equals(existing.getStatus())) throw new IllegalArgumentException("Bu kullanici engellenmis.");
-            // PENDING isteği varsa daveti onay gibi say → ACTIVE; INVITED ise tekrar bildir
+            // PENDING isteği varsa daveti onay gibi say → ACTIVE; INVITED ise tekrar bildir.
+            // Bu bir katılma isteği onayıdır: approveRequest ile aynı yetki gerekir, sıradan
+            // üye davet üzerinden yönetici onayını atlayamaz (D5).
             if (PENDING.equals(existing.getStatus())) {
+                requireManager(inviterId, c);
                 existing.setStatus(ACTIVE);
                 communityMemberRepository.save(existing);
                 notificationService.sendSystem(targetUserId, "community_request_approved", "community", communityId,
@@ -515,9 +528,13 @@ public class CommunityService {
 
     // ── Üye yönetimi ──────────────────────────────────────────────────────────────
 
-    public List<CommunityMemberResponse> getMembers(Long communityId) {
-        communityRepository.findById(communityId)
+    // Üye listesi topluluk ve gönderilerle aynı görünürlük kuralına tabidir (D4):
+    // PUBLIC herkese açık; PRIVATE/SECRET yalnızca aktif üye veya admin.
+    public List<CommunityMemberResponse> getMembers(Long communityId, Long currentUserId) {
+        Community c = communityRepository.findById(communityId)
                 .orElseThrow(() -> new ResourceNotFoundException("Topluluk bulunamadi: " + communityId));
+        requireCommunityVisible(c, currentUserId);
+        requireCanViewPosts(c, currentUserId);
         return communityMemberRepository.findByCommunityIdAndStatusOrderByJoinedAtDesc(communityId, ACTIVE)
                 .stream().map(CommunityMemberResponse::from).toList();
     }
@@ -676,6 +693,7 @@ public class CommunityService {
         Community c = communityRepository.findById(communityId)
                 .orElseThrow(() -> new ResourceNotFoundException("Topluluk bulunamadi: " + communityId));
         requireCanViewPosts(c, currentUserId);
+        requirePostInCommunity(communityId, postId); // D1: başka topluluğun gönderisi okunamaz
         return communityPostCommentRepository.findByCommunityPostIdOrderByCreatedAtAsc(postId)
                 .stream().map(CommunityPostCommentResponse::from).toList();
     }
@@ -689,12 +707,12 @@ public class CommunityService {
                 .orElseThrow(() -> new ResourceNotFoundException("Kullanici bulunamadi: " + userId));
         communityRepository.findById(communityId)
                 .orElseThrow(() -> new ResourceNotFoundException("Topluluk bulunamadi: " + communityId));
-        CommunityPost post = communityPostRepository.findById(postId)
-                .orElseThrow(() -> new ResourceNotFoundException("Post bulunamadi: " + postId));
 
         if (!communityMemberRepository.existsByUserIdAndCommunityIdAndStatus(userId, communityId, ACTIVE)) {
             throw new IllegalArgumentException("Sadece uyeler yorum yapabilir.");
         }
+        // D2: üyelik URL'deki topluluk için doğrulandı; gönderi de o topluluğa ait olmalı
+        CommunityPost post = requirePostInCommunity(communityId, postId);
 
         CommunityPostComment comment = new CommunityPostComment();
         comment.setContent(content.trim());
@@ -768,13 +786,16 @@ public class CommunityService {
     public List<PollOptionDto> votePoll(Long userId, Long communityId, Long postId, Long optionId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Kullanici bulunamadi: " + userId));
-        CommunityPost post = communityPostRepository.findById(postId)
-                .orElseThrow(() -> new ResourceNotFoundException("Post bulunamadi: " + postId));
-        CommunityPostPollOption option = communityPostPollOptionRepository.findById(optionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Secenek bulunamadi: " + optionId));
 
         if (!communityMemberRepository.existsByUserIdAndCommunityIdAndStatus(userId, communityId, ACTIVE)) {
             throw new IllegalArgumentException("Sadece uyeler oy verebilir.");
+        }
+        // D2: gönderi URL'deki topluluğa, seçenek de bu gönderinin anketine ait olmalı
+        CommunityPost post = requirePostInCommunity(communityId, postId);
+        CommunityPostPollOption option = communityPostPollOptionRepository.findById(optionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Secenek bulunamadi: " + optionId));
+        if (option.getCommunityPost() == null || !postId.equals(option.getCommunityPost().getId())) {
+            throw new ResourceNotFoundException("Secenek bulunamadi: " + optionId);
         }
 
         // Önceki oyu sil (oy değiştirme)
@@ -796,12 +817,13 @@ public class CommunityService {
                 .toList();
     }
 
+    // D3: beğeni, gönderiyi görme yetkisiyle aynı kurala tabidir (PUBLIC herkes,
+    // PRIVATE/SECRET yalnızca aktif üye/admin) ve gönderi URL'deki topluluğa ait olmalıdır.
     @Transactional
-    public void likeCommunityPost(Long userId, Long communityPostId) {
+    public void likeCommunityPost(Long userId, Long communityId, Long communityPostId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Kullanici bulunamadi: " + userId));
-        CommunityPost post = communityPostRepository.findById(communityPostId)
-                .orElseThrow(() -> new ResourceNotFoundException("Post bulunamadi: " + communityPostId));
+        CommunityPost post = requireInteractablePost(userId, communityId, communityPostId);
 
         if (communityPostLikeRepository.findByUserIdAndCommunityPostId(userId, communityPostId).isPresent()) {
             throw new AlreadyExistsException("Bu postu zaten begendiniz.");
@@ -814,9 +836,8 @@ public class CommunityService {
     }
 
     @Transactional
-    public void unlikeCommunityPost(Long userId, Long communityPostId) {
-        communityPostRepository.findById(communityPostId)
-                .orElseThrow(() -> new ResourceNotFoundException("Post bulunamadi: " + communityPostId));
+    public void unlikeCommunityPost(Long userId, Long communityId, Long communityPostId) {
+        requireInteractablePost(userId, communityId, communityPostId);
         CommunityPostLike like = communityPostLikeRepository
                 .findByUserIdAndCommunityPostId(userId, communityPostId)
                 .orElseThrow(() -> new ResourceNotFoundException("Bu post daha once begenilmemis."));
@@ -824,6 +845,36 @@ public class CommunityService {
     }
 
     // ── Yardımcılar ────────────────────────────────────────────────────────────────
+
+    /**
+     * Açıklama sınırı (A1). Postgres varchar karakter (kod noktası) sayar; emoji Java'da
+     * 2 birim tutsa da DB'de 1 karakterdir, bu yüzden kod noktası sayılır. Hata bir kod
+     * olarak döner, metni istemci dile göre gösterir.
+     */
+    private static void requireDescriptionLength(String description) {
+        if (description != null && description.codePointCount(0, description.length()) > DESCRIPTION_MAX) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "COMMUNITY_DESCRIPTION_TOO_LONG");
+        }
+    }
+
+    /** Gönderi URL'deki topluluğa ait değilse yok sayılır (404) — topluluklar arası erişim olmasın. */
+    private CommunityPost requirePostInCommunity(Long communityId, Long postId) {
+        CommunityPost post = communityPostRepository.findById(postId)
+                .orElseThrow(() -> new ResourceNotFoundException("Post bulunamadi: " + postId));
+        if (post.getCommunity() == null || !communityId.equals(post.getCommunity().getId())) {
+            throw new ResourceNotFoundException("Post bulunamadi: " + postId);
+        }
+        return post;
+    }
+
+    /** Topluluk görünür, gönderileri görülebilir ve gönderi bu topluluğa ait (D3). */
+    private CommunityPost requireInteractablePost(Long userId, Long communityId, Long postId) {
+        Community c = communityRepository.findById(communityId)
+                .orElseThrow(() -> new ResourceNotFoundException("Topluluk bulunamadi: " + communityId));
+        requireCommunityVisible(c, userId);
+        requireCanViewPosts(c, userId);
+        return requirePostInCommunity(communityId, postId);
+    }
 
     private void notifyManagers(Community c, Long requesterId, String type) {
         communityMemberRepository.findByCommunityIdAndStatusOrderByJoinedAtDesc(c.getId(), ACTIVE).stream()
