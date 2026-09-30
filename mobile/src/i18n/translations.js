@@ -728,6 +728,9 @@ export const translations = {
     map_details: 'Detayları Gör ›',
     map_away: 'uzakta',
     map_radius_all: 'Tümü',
+    map_web_note: 'Harita görünümü mobil uygulamada. Web’de mekânı “Haritada aç” ile görebilirsin.',
+    map_empty: 'Yaklaşan etkinlik bulunamadı',
+    map_open_osm: '📍 Haritada aç',
 
 
     // USER PROFILE (extra)
@@ -1974,6 +1977,9 @@ export const translations = {
     map_details: 'View Details ›',
     map_away: 'away',
     map_radius_all: 'All',
+    map_web_note: 'The map view is in the mobile app. On the web, use “Open in map” to see the venue.',
+    map_empty: 'No upcoming events found',
+    map_open_osm: '📍 Open in map',
 
 
     // USER PROFILE (extra)

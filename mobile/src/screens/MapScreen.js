@@ -83,7 +83,8 @@ export default function MapScreen({ navigation }) {
 
   const fetchEvents = async () => {
     try {
-      const res = await API.get('/events');
+      // Yalnızca yaklaşan etkinlikler (N-18) — eskiden filtresiz geldiği için geçmişler de pinleniyordu
+      const res = await API.get('/events', { params: { upcoming: true } });
       setAllEvents(res.data.filter(e => e.venueLatitude && e.venueLongitude));
     } catch (err) {
       console.log('Harita yükleme hatası:', err.message);
