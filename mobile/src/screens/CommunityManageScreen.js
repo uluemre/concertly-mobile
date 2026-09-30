@@ -27,6 +27,7 @@ export default function CommunityManageScreen({ route, navigation }) {
   const [notFound, setNotFound] = useState(false);
 
   const isOwner = community?.currentUserRole === 'OWNER';
+  const isModerator = community?.currentUserRole === 'MODERATOR';
 
   const fetchAll = useCallback(async () => {
     try {
@@ -96,6 +97,28 @@ export default function CommunityManageScreen({ route, navigation }) {
       t('community_invite_share_msg', { name: community.name, code: community.inviteCode }),
       buildShareUrl('community', communityId)
     );
+  };
+
+  // Moderatör topluluktan ayrılabilir (A4); sahip ayrılamaz, onun için "Sil" var.
+  // act() kullanılmaz: ayrıldıktan sonra topluluğu yeniden çekmek gizli toplulukta 404 verir.
+  const leaveCommunity = () => {
+    Alert.alert(t('community_leave'), t('community_leave_confirm'), [
+      { text: t('cancel'), style: 'cancel' },
+      { text: t('community_leave'), style: 'destructive',
+        onPress: async () => {
+          if (busy) return;
+          setBusy(true);
+          try {
+            await API.delete(`/communities/${communityId}/join`);
+            // Detaya dönülmez: gizli topluluktan ayrılan moderatör artık erişemeyebilir
+            navigation.navigate('Communities');
+          } catch (err) {
+            Alert.alert(t('error'), getErrorMessage(err));
+          } finally {
+            setBusy(false);
+          }
+        } },
+    ]);
   };
 
   const deleteCommunity = () => {
@@ -204,6 +227,11 @@ export default function CommunityManageScreen({ route, navigation }) {
       {isOwner && (
         <TouchableOpacity onPress={deleteCommunity} style={styles.deleteBtn} activeOpacity={0.85}>
           <Text style={styles.deleteText}>🗑 {t('community_manage_delete')}</Text>
+        </TouchableOpacity>
+      )}
+      {isModerator && (
+        <TouchableOpacity onPress={leaveCommunity} style={styles.deleteBtn} activeOpacity={0.85} disabled={busy}>
+          <Text style={styles.deleteText}>🚪 {t('community_leave')}</Text>
         </TouchableOpacity>
       )}
     </ScrollView>
