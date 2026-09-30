@@ -13,6 +13,7 @@ import { useLanguage } from '../context/LanguageContext';
 import PostCard from '../components/feed/PostCard';
 import AnimatedListItem from '../components/AnimatedListItem';
 import { usePostUpdates } from '../services/postUpdates';
+import { goBackOrFallback } from '../navigation/navHelpers';
 
 const PAGE_SIZE = 20;
 
@@ -34,6 +35,9 @@ export default function FeedScreen({ navigation }) {
   const autoSwitchedRef = useRef(false);
   const pageRef = useRef(0);
   const hasMoreRef = useRef(true);
+  // Sekme değişimi / yenileme yeni bir "nesil" başlatır; eski neslin geç dönen
+  // cevabı yeni sekmenin listesine yazılmaz (N-47)
+  const feedGen = useRef(0);
 
   useEffect(() => {
     return () => { isMounted.current = false; };
@@ -44,13 +48,14 @@ export default function FeedScreen({ navigation }) {
   const loadFeed = useCallback(async ({ reset, tab }) => {
     const activeT = tab || activeTab;
     const page = reset ? 0 : pageRef.current;
+    const gen = feedGen.current;
     try {
       const base = activeT === 'trending'
         ? '/posts/feed/trending'
         : `/posts/feed/following?userId=${session.userId}`;
       const sep = base.includes('?') ? '&' : '?';
       const res = await API.get(`${base}${sep}page=${page}&size=${PAGE_SIZE}`);
-      if (!isMounted.current) return { switched: false };
+      if (!isMounted.current || gen !== feedGen.current) return { switched: false, stale: true };
       const data = res.data || [];
 
       // 5.2: takip akışı ilk sayfada boşsa bir kez otomatik trending'e geç
@@ -65,7 +70,7 @@ export default function FeedScreen({ navigation }) {
       pageRef.current = page + 1;
       hasMoreRef.current = data.length === PAGE_SIZE;
     } catch (err) {
-      if (isMounted.current) setError(getErrorMessage(err));
+      if (isMounted.current && gen === feedGen.current) setError(getErrorMessage(err));
     }
     return { switched: false };
   }, [activeTab, session.userId]);
@@ -73,6 +78,7 @@ export default function FeedScreen({ navigation }) {
   // Sekme değişince baştan yükle
   useEffect(() => {
     let cancelled = false;
+    feedGen.current++;
     setLoading(true);
     pageRef.current = 0;
     hasMoreRef.current = true;
@@ -85,6 +91,7 @@ export default function FeedScreen({ navigation }) {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
+    feedGen.current++;
     pageRef.current = 0;
     hasMoreRef.current = true;
     await loadFeed({ reset: true });
@@ -139,6 +146,10 @@ export default function FeedScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <LinearGradient colors={colors.headerGradient} style={styles.header}>
+        {/* Akış yığına itilen bir ekran; geri dönüş yolu olmalı (N-29) */}
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.backButton}>
+          <Text style={styles.backText}>{t('back')}</Text>
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('feed_title')}</Text>
         <View style={styles.tabBar}>
           <Animated.View style={[styles.tabIndicator, { left: indicatorLeft }]} />
@@ -248,6 +259,8 @@ function createStyles(colors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
     header: { paddingTop: 60, paddingBottom: 16, paddingHorizontal: 20 },
+    backButton: { alignSelf: 'flex-start', marginBottom: 12 },
+    backText: { color: colors.textSecondary, fontSize: 15, fontWeight: '700' },
     headerTitle: {
       fontSize: 26, fontWeight: 'bold', color: colors.text,
       marginBottom: 16, letterSpacing: -0.5,

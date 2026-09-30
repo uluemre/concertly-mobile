@@ -246,12 +246,9 @@ public class PostService {
             throw new ResourceNotFoundException("Kullanıcı bulunamadı: " + userId);
         }
 
-        Set<Long> hidden = moderationService.getHiddenUserIds(userId);
-        List<Post> posts = postRepository.getFollowingFeed(userId, PageRequest.of(page, size))
-                .stream()
-                .filter(p -> !p.getIsHidden())
-                .filter(p -> p.getUser() == null || !hidden.contains(p.getUser().getId()))
-                .toList();
+        Set<Long> hidden = new java.util.HashSet<>(moderationService.getHiddenUserIds(userId));
+        hidden.add(-1L); // boş NOT IN listesi olmasın
+        List<Post> posts = postRepository.getFollowingFeed(userId, hidden, PageRequest.of(page, size));
         return toResponses(posts, userId);
     }
 

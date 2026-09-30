@@ -12,14 +12,19 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     // ✅ FOLLOWING FEED (sayfalı)
     // user + event to-one ilişkileri join-fetch ediliyor → post başına ekstra select (N+1) yok.
+    // Gizlenen gönderiler ve engelli kullanıcılar SORGUDA elenir (N-47): sayfa sonradan
+    // süzülünce 20'den kısa dönüyor, istemci akışın bittiğini sanıyordu.
+    // hiddenUserIds boş olmamalı (boş IN listesi) — servis -1 ile doldurur.
     @EntityGraph(attributePaths = {"user", "event"})
     @Query("""
                 SELECT p FROM Post p
                 JOIN Follow f ON p.user.id = f.following.id
                 WHERE f.follower.id = :userId
-                ORDER BY p.createdAt DESC
+                  AND (p.isHidden IS NULL OR p.isHidden = false)
+                  AND p.user.id NOT IN :hiddenUserIds
+                ORDER BY p.createdAt DESC, p.id DESC
             """)
-    List<Post> getFollowingFeed(Long userId, Pageable pageable);
+    List<Post> getFollowingFeed(Long userId, java.util.Collection<Long> hiddenUserIds, Pageable pageable);
 
     // ✅ TÜM POSTLAR — en yeni önce (sayfalı, trending feed için)
     @EntityGraph(attributePaths = {"user", "event"})

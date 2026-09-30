@@ -58,6 +58,7 @@ export default function SearchModal({ visible, onClose, navigation }) {
     // Modal açılınca yukarı kay
     React.useEffect(() => {
         if (visible) {
+            searchSeq.current++;
             setQuery('');
             setResults({ events: [], artists: [], users: [], venues: [] });
             setSearched(false);
@@ -80,10 +81,20 @@ export default function SearchModal({ visible, onClose, navigation }) {
         }
     }, [visible]);
 
+    // Yalnızca en son aramanın cevabı ekrana yazılır (N-52): yavaş dönen eski
+    // sorgu, yeni sorgunun sonucunun üstüne yazamaz
+    const searchSeq = useRef(0);
+    // Ekrandaki güncel metin: gecikmeli (debounce) çağrı, kutu temizlendikten
+    // sonra eski metinle sonuç getirmesin
+    const latestQuery = useRef('');
+    latestQuery.current = query;
+
     const doSearch = useCallback(async (q) => {
-        if (q.trim().length < 2) {
+        const seq = ++searchSeq.current;
+        if (q.trim().length < 2 || q.trim() !== latestQuery.current.trim()) {
             setResults({ events: [], artists: [], users: [], venues: [] });
             setSearched(false);
+            setLoading(false);
             return;
         }
         setLoading(true);
@@ -91,12 +102,14 @@ export default function SearchModal({ visible, onClose, navigation }) {
             const res = await API.get(
                 `/search?q=${encodeURIComponent(q)}&currentUserId=${session.userId}`
             );
+            if (seq !== searchSeq.current) return;
             setResults(res.data);
             setSearched(true);
         } catch (err) {
+            if (seq !== searchSeq.current) return;
             console.log('Arama hatası:', err.message);
         } finally {
-            setLoading(false);
+            if (seq === searchSeq.current) setLoading(false);
         }
     }, []);
 
@@ -128,6 +141,7 @@ export default function SearchModal({ visible, onClose, navigation }) {
 
     const runRecent = (q) => {
         setQuery(q);
+        latestQuery.current = q;
         doSearch(q);
     };
 
@@ -138,6 +152,7 @@ export default function SearchModal({ visible, onClose, navigation }) {
 
     const handleChangeText = (text) => {
         setQuery(text);
+        latestQuery.current = text;
         debouncedSearch(text);
     };
 
@@ -324,6 +339,8 @@ export default function SearchModal({ visible, onClose, navigation }) {
                             />
                             {query.length > 0 && (
                                 <TouchableOpacity onPress={() => {
+                                    searchSeq.current++;
+                                    setLoading(false);
                                     setQuery('');
                                     setResults({ events: [], artists: [], users: [], venues: [] });
                                     setSearched(false);
