@@ -10,4 +10,5 @@ public interface BuddySwipeRepository extends JpaRepository<BuddySwipe, Long> {
     Optional<BuddySwipe> findBySwiperIdAndTargetId(Long swiperId, Long targetId);
     List<BuddySwipe> findBySwiperId(Long swiperId);
     boolean existsBySwiperIdAndTargetIdAndLikedTrue(Long swiperId, Long targetId);
+    List<BuddySwipe> findByTargetIdAndLikedTrue(Long targetId);
 }

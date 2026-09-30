@@ -1,5 +1,6 @@
 package com.concertly.backend.controller;
 
+import com.concertly.backend.exception.ResourceNotFoundException;
 import com.concertly.backend.model.AttendanceStatus;
 import com.concertly.backend.model.BuddySwipe;
 import com.concertly.backend.model.EventAttendance;
@@ -40,12 +41,11 @@ public class BuddyMatchController {
     public List<Map<String, Object>> discover() {
         Long myId = JwtUtil.getCurrentUserId();
 
-        // Benim gideceğim yaklaşan etkinlikler
+        // Benim gideceğim yaklaşan etkinlikler (yalnızca benim kayıtlarım; N-32)
+        LocalDateTime now = LocalDateTime.now();
         List<EventAttendance> myAttendances = attendanceRepository
-                .findAll().stream()
-                .filter(ea -> ea.getUser().getId().equals(myId)
-                        && ea.getStatus() == AttendanceStatus.GOING
-                        && ea.getEvent().getEventDate().isAfter(LocalDateTime.now()))
+                .findByUserIdAndStatus(myId, AttendanceStatus.GOING).stream()
+                .filter(ea -> ea.getEvent().getEventDate() != null && ea.getEvent().getEventDate().isAfter(now))
                 .toList();
 
         if (myAttendances.isEmpty()) return List.of();
@@ -64,10 +64,8 @@ public class BuddyMatchController {
         // Aynı etkinliklere giden diğer kullanıcılar → kandidat listesi
         Map<Long, Map<String, Object>> candidates = new LinkedHashMap<>();
 
-        for (EventAttendance ea : attendanceRepository.findAll()) {
-            if (ea.getStatus() != AttendanceStatus.GOING) continue;
-            if (!myEventIds.contains(ea.getEvent().getId())) continue;
-            if (ea.getEvent().getEventDate().isBefore(LocalDateTime.now())) continue;
+        // Yalnızca benim etkinliklerimin katılımcıları çekilir (eskiden tüm tablo taranıyordu)
+        for (EventAttendance ea : attendanceRepository.findGoingForEvents(myEventIds, now)) {
 
             Long candidateId = ea.getUser().getId();
             if (alreadySwiped.contains(candidateId)) continue;
@@ -136,8 +134,25 @@ public class BuddyMatchController {
     @Transactional
     public Map<String, Object> swipe(@RequestBody Map<String, Object> body) {
         Long myId = JwtUtil.getCurrentUserId();
-        Long targetId = Long.valueOf(body.get("targetId").toString());
+        Object rawTarget = body == null ? null : body.get("targetId");
+        if (rawTarget == null || body.get("liked") == null) {
+            throw new IllegalArgumentException("targetId ve liked zorunlu.");
+        }
+        Long targetId;
+        try {
+            targetId = Long.valueOf(rawTarget.toString());
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Geçersiz targetId.");
+        }
         boolean liked = Boolean.parseBoolean(body.get("liked").toString());
+        // Hedef doğrulanır (N-32): kişi kendini beğenip kendisiyle eşleşemez,
+        // var olmayan kullanıcıya kayıt açılmaz
+        if (targetId.equals(myId)) {
+            throw new IllegalArgumentException("Kendinle eşleşemezsin.");
+        }
+        if (!userRepository.existsById(targetId)) {
+            throw new ResourceNotFoundException("Kullanıcı bulunamadı: " + targetId);
+        }
         // Aralarında engel olan kullanıcıyla eşleşme kurulamaz
         moderationService.requireCanInteract(myId, targetId);
 
@@ -179,9 +194,9 @@ public class BuddyMatchController {
         // Engel varken eşleşme listede görünmez (engel kalkınca geri gelir)
         Set<Long> hidden = moderationService.getHiddenUserIds(myId);
 
-        // Beni beğenenler
-        return swipeRepository.findAll().stream()
-                .filter(s -> s.getTargetId().equals(myId) && s.isLiked() && iLiked.contains(s.getSwiperId()))
+        // Beni beğenenler (yalnızca bana gelen beğeniler; eskiden tüm tablo taranıyordu)
+        return swipeRepository.findByTargetIdAndLikedTrue(myId).stream()
+                .filter(s -> iLiked.contains(s.getSwiperId()) && !s.getSwiperId().equals(myId))
                 .filter(s -> !hidden.contains(s.getSwiperId()))
                 .map(s -> {
                     Map<String, Object> match = new LinkedHashMap<>();

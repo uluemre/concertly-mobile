@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -17,6 +18,12 @@ public interface EventAttendanceRepository extends JpaRepository<EventAttendance
     long countByUserIdAndStatus(Long userId, AttendanceStatus status);
     List<EventAttendance> findByUserIdAndStatus(Long userId, AttendanceStatus status);
     List<EventAttendance> findByEventIdAndStatus(Long eventId, AttendanceStatus status);
+
+    /** Konser Arkadaşı (N-32): verilen yaklaşan etkinliklere "gidiyorum" diyenler — tüm tablo taranmaz. */
+    @Query("SELECT ea FROM EventAttendance ea JOIN FETCH ea.user JOIN FETCH ea.event e " +
+           "WHERE e.id IN :eventIds AND ea.status = 'GOING' AND e.eventDate > :now")
+    List<EventAttendance> findGoingForEvents(@Param("eventIds") Collection<Long> eventIds,
+                                             @Param("now") LocalDateTime now);
 
     @Query("SELECT ea FROM EventAttendance ea WHERE ea.event.id = :eventId AND ea.status = 'GOING' " +
            "AND ea.user.id IN (SELECT f.following.id FROM Follow f WHERE f.follower.id = :userId)")
