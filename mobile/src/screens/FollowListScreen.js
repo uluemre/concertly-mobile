@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity,
   StyleSheet, ActivityIndicator, Image, Alert,
@@ -6,6 +6,7 @@ import {
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useFocusEffect } from '@react-navigation/native';
 import API from '../services/api';
 import { goBackOrFallback } from '../navigation/navHelpers';
 
@@ -23,8 +24,14 @@ export default function FollowListScreen({ route, navigation }) {
 
   useEffect(() => {
     navigation.setOptions({ title });
-    fetchList();
   }, []);
+
+  // Ekrana her dönüşte yenilenir (N-27): profilde takipten çıkılan kişi burada
+  // hâlâ "Takip Ediliyor" görünüp ikinci basışta hata vermesin
+  useFocusEffect(useCallback(() => { fetchList(); }, [userId, type]));
+
+  // Aynı kişiye istek sürerken gelen ikinci basış yok sayılır
+  const pendingIds = useRef(new Set());
 
   const fetchList = async () => {
     try {
@@ -38,7 +45,8 @@ export default function FollowListScreen({ route, navigation }) {
   };
 
   const handleToggleFollow = async (targetUser) => {
-    if (targetUser.id === session.userId) return;
+    if (targetUser.id === session.userId || pendingIds.current.has(targetUser.id)) return;
+    pendingIds.current.add(targetUser.id);
     try {
       if (targetUser.isFollowedByCurrentUser) {
         await API.delete(`/users/${targetUser.id}/follow`);
@@ -54,6 +62,8 @@ export default function FollowListScreen({ route, navigation }) {
       );
     } catch (err) {
       Alert.alert(t('error'), t('follow_action_error'));
+    } finally {
+      pendingIds.current.delete(targetUser.id);
     }
   };
 

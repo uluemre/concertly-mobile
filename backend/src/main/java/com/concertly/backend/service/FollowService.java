@@ -1,7 +1,6 @@
 package com.concertly.backend.service;
 
 import com.concertly.backend.dto.response.UserSummaryResponse;
-import com.concertly.backend.exception.AlreadyExistsException;
 import com.concertly.backend.exception.ResourceNotFoundException;
 import com.concertly.backend.model.Follow;
 import com.concertly.backend.model.User;
@@ -50,8 +49,10 @@ public class FollowService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Kullanıcı bulunamadı: " + followingId));
 
+        // Zaten takip ediliyorsa işlem tamam sayılır (N-27): eski ekrandan gelen ikinci
+        // basış hata göstermez, ikinci bildirim de gitmez
         if (followRepository.findByFollowerIdAndFollowingId(followerId, followingId).isPresent()) {
-            throw new AlreadyExistsException("Bu kullanıcıyı zaten takip ediyorsunuz.");
+            return;
         }
 
         Follow follow = new Follow();
@@ -65,12 +66,9 @@ public class FollowService {
     @Transactional
     public void unfollow(Long followerId, Long followingId) {
 
-        Follow follow = followRepository
-                .findByFollowerIdAndFollowingId(followerId, followingId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Bu kullanıcıyı zaten takip etmiyorsunuz."));
-
-        followRepository.delete(follow);
+        // Zaten takip edilmiyorsa işlem tamam sayılır (N-27; eskiden 404 + hata uyarısı)
+        followRepository.findByFollowerIdAndFollowingId(followerId, followingId)
+                .ifPresent(followRepository::delete);
     }
 
     // ✅ KULLANICI PROFİLİ — takipçi/takip sayısı ve mevcut kullanıcının takip durumu
