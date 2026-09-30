@@ -22,6 +22,14 @@ public class RawConcertValidator {
 
     private static final int MAX_NAME_LENGTH = 300;
 
+    /**
+     * Veri hatasi sayilacak kadar ileri tarih mi (N-34: 2034 tarihli kayit).
+     * Ticketmaster aktarimi da ayni pencereyi kullanir.
+     */
+    public static boolean isBeyondHorizon(LocalDateTime date) {
+        return date != null && date.isAfter(LocalDateTime.now().plusYears(MAX_FUTURE_YEARS));
+    }
+
     /** @return null ise kayit gecerli, aksi halde reddetme gerekcesi */
     public String validate(RawConcertData raw) {
         if (raw == null) return "kayit yok";
@@ -33,7 +41,7 @@ public class RawConcertValidator {
         LocalDateTime date = raw.startsAt();
         LocalDateTime now = LocalDateTime.now();
         if (date.isBefore(now.minusDays(MAX_PAST_DAYS))) return "gecmis tarihli";
-        if (date.isAfter(now.plusYears(MAX_FUTURE_YEARS))) return "makul olmayan ileri tarih";
+        if (isBeyondHorizon(date)) return "makul olmayan ileri tarih";
 
         Double lat = raw.latitude();
         Double lon = raw.longitude();

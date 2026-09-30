@@ -61,7 +61,7 @@ public class DataSeeder implements CommandLineRunner {
         c1.setEmoji("🎸");
         c1.setGradientStart("#E94560");
         c1.setGradientEnd("#7C3AED");
-        c1.setDescription("Rock konserleri, mekan onerileri ve konser sonrasi yorumlar.");
+        c1.setDescription("Rock konserleri, mekân önerileri ve konser sonrası yorumlar.");
         c1.setNextEvent("Dorock XL bulusmasi");
         c1.setTags("Rock,Metal,Istanbul");
         c1.setLive(true);
@@ -71,11 +71,11 @@ public class DataSeeder implements CommandLineRunner {
         Community c2 = new Community();
         c2.setName("Festivalciler");
         c2.setType("Festival");
-        c2.setCity("Turkiye");
+        c2.setCity("Türkiye");
         c2.setEmoji("🎪");
         c2.setGradientStart("#F5A623");
         c2.setGradientEnd("#E94560");
-        c2.setDescription("Festival planlari, kamp tavsiyeleri ve line-up sohbetleri.");
+        c2.setDescription("Festival planları, kamp tavsiyeleri ve line-up sohbetleri.");
         c2.setNextEvent("Yaz festivali hazirliklari");
         c2.setTags("Festival,Kamp,Line-up");
         c2.setLive(true);
@@ -89,7 +89,7 @@ public class DataSeeder implements CommandLineRunner {
         c3.setEmoji("🎧");
         c3.setGradientStart("#00D4AA");
         c3.setGradientEnd("#0066FF");
-        c3.setDescription("DJ setleri, after party duyurulari ve elektronik muzik kulturleri.");
+        c3.setDescription("DJ setleri, after party duyuruları ve elektronik müzik kültürleri.");
         c3.setNextEvent("Gece setleri listesi");
         c3.setTags("DJ,Techno,House");
         c3.setLive(false);
@@ -103,7 +103,7 @@ public class DataSeeder implements CommandLineRunner {
         c4.setEmoji("📍");
         c4.setGradientStart("#7C3AED");
         c4.setGradientEnd("#E94560");
-        c4.setDescription("Ankara konserleri, bilet paylasimlari ve etkinlik oncesi bulusmalar.");
+        c4.setDescription("Ankara konserleri, bilet paylaşımları ve etkinlik öncesi buluşmalar.");
         c4.setNextEvent("Haftanin Ankara konserleri");
         c4.setTags("Ankara,Bulusma,Konser");
         c4.setLive(false);
@@ -113,11 +113,11 @@ public class DataSeeder implements CommandLineRunner {
         Community c5 = new Community();
         c5.setName("Caz Severler");
         c5.setType("Caz");
-        c5.setCity("Turkiye");
+        c5.setCity("Türkiye");
         c5.setEmoji("🎷");
         c5.setGradientStart("#16213E");
         c5.setGradientEnd("#F5A623");
-        c5.setDescription("Caz kulubu onerileri, konser notlari ve sakin performanslar.");
+        c5.setDescription("Caz kulübü önerileri, konser notları ve sakin performanslar.");
         c5.setNextEvent("Caz kulubu rotasi");
         c5.setTags("Caz,Akustik,Kulup");
         c5.setLive(false);

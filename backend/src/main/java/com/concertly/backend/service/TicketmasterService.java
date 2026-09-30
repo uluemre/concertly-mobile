@@ -5,6 +5,7 @@ import com.concertly.backend.config.LaunchCityConfig;
 import com.concertly.backend.model.*;
 import com.concertly.backend.service.ingest.EventSourceLinkService;
 import com.concertly.backend.service.ingest.NonMusicFilter;
+import com.concertly.backend.service.ingest.RawConcertValidator;
 import com.concertly.backend.repository.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -548,6 +549,12 @@ public class TicketmasterService {
                 if (eventDate.isBefore(LocalDateTime.now()))
                     continue;
 
+                // Birkaç yıldan ileri tarih veri hatasıdır (N-34; Biletinial ile aynı pencere)
+                if (RawConcertValidator.isBeyondHorizon(eventDate)) {
+                    System.out.println("  ⏭️ Makul olmayan ileri tarih, atlandı: " + name + " | " + eventDate.toLocalDate());
+                    continue;
+                }
+
                 // =========================
                 // IMAGE
                 // =========================
@@ -580,6 +587,16 @@ public class TicketmasterService {
 
                 Venue venue = extractOrCreateVenue(emb, fallbackCity);
 
+                // Mekânı belli olmayan etkinlik "Bilinmiyor" mekânıyla açılmaz (N-34);
+                // mevcut kayıtta bilinen mekân korunur
+                if (venue == null && !secondarySource) {
+                    venue = existingEvent.map(Event::getVenue).orElse(null);
+                    if (venue == null) {
+                        System.out.println("  ⏭️ Mekân bilgisi yok, atlandı: " + name);
+                        continue;
+                    }
+                }
+
                 // =========================
                 // DESCRIPTION
                 // =========================
@@ -594,13 +611,14 @@ public class TicketmasterService {
                     description = (String) e.get("description");
                 }
 
+                // Yeni kayıtlarda Türkçe karakterli şablon (N-37); mevcut açıklamalar değişmez
                 if (isBlank(description)) {
-                    description = name + " etkinligi — " +
+                    description = name + " etkinliği — " +
                             (artist.getName() != null
                                     ? artist.getName()
                                     : "")
                             +
-                            " performansi. Biletler satista!";
+                            " performansı. Biletler satışta!";
                 }
 
                 // PostgreSQL varchar(255)
@@ -787,8 +805,10 @@ public class TicketmasterService {
                 Map<String, Object> g = (Map<String, Object>) cls.get(key);
                 if (g != null) {
                     String name = (String) g.get("name");
-                    if (name != null && !name.isBlank()) {
-                        return mapTmGenre(name);
+                    // "Undefined" gibi anlamsız alt tür bir üst seviyeye bakmayı engellemesin (N-34)
+                    String mapped = name != null && !name.isBlank() ? mapTmGenre(name) : null;
+                    if (mapped != null) {
+                        return mapped;
                     }
                 }
             }
@@ -899,7 +919,12 @@ public class TicketmasterService {
                     venue.setExternalId(venueExternalId);
                 }
 
-                venue.setName((String) v.get("name"));
+                String venueName = (String) v.get("name");
+                if (isBlank(venueName)) {
+                    // Adsız mekân kaydı açılmaz (N-34); adı bilinen kayıtlı mekân aynen kullanılır
+                    return venue.getId() != null && !isBlank(venue.getName()) ? venue : null;
+                }
+                venue.setName(venueName);
 
                 if (v.get("city") != null) {
                     Map<String, Object> cityMap = (Map<String, Object>) v.get("city");
@@ -940,12 +965,9 @@ public class TicketmasterService {
             }
         }
 
-        venue.setName("Bilinmiyor");
-        // "TR" yazmak etkinliği şehir filtreli her sorgunun dışında bırakıyordu;
-        // sorguyu attığımız lansman şehrine düşüyoruz ki etkinlik kaybolmasın.
-        venue.setCity(!isBlank(fallbackCity) ? fallbackCity : "TR");
-        venue.setCountry("Türkiye");
-        return venueRepository.save(venue);
+        // Mekân bilgisi hiç yok: "Bilinmiyor" adlı sahte mekân açılmaz (N-34),
+        // çağıran taraf etkinliği atlar
+        return null;
     }
 
     public Map<String, Integer> enrichMissingData() {
