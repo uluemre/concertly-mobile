@@ -47,6 +47,7 @@ class EmailVerificationServiceTest {
         user.setEmail("emre@mail.com");
         user.setUsername("emre");
         when(userRepository.findByEmail("emre@mail.com")).thenReturn(Optional.of(user));
+        when(userRepository.findByEmailNormalized(any())).thenCallRealMethod(); // N-22: gerçek varsayılan metot
         when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
     }
 

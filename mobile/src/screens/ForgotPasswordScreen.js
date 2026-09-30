@@ -9,6 +9,7 @@ import API from '../services/api';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import { goBackOrFallback } from '../navigation/navHelpers';
+import { isValidEmail, normalizeEmail } from '../utils/email';
 
 export default function ForgotPasswordScreen({ navigation }) {
   const { colors } = useTheme();
@@ -24,12 +25,23 @@ export default function ForgotPasswordScreen({ navigation }) {
       Alert.alert(t('error'), t('forgot_email_required'));
       return;
     }
+    if (!isValidEmail(email)) {
+      Alert.alert(t('error'), t('email_invalid'));
+      return;
+    }
     setLoading(true);
     try {
-      await API.post('/auth/forgot-password', { email: email.trim() });
+      await API.post('/auth/forgot-password', { email: normalizeEmail(email) });
       setSent(true);
     } catch (err) {
-      Alert.alert(t('error'), t(err?.response?.status === 429 ? 'auth_too_many' : 'forgot_not_found'));
+      // Sunucu kayıtlı olsun olmasın aynı yanıtı verir; buraya düşen hata "hesap yok"
+      // değil, bağlantı ya da sunucu sorunudur (N-22)
+      const status = err?.response?.status;
+      Alert.alert(t('error'), t(
+        status === 429 ? 'auth_too_many'
+          : !err?.response ? 'verify_network_error'
+          : 'forgot_generic_error'
+      ));
     } finally {
       setLoading(false);
     }
@@ -75,7 +87,7 @@ export default function ForgotPasswordScreen({ navigation }) {
               <Text style={[styles.successSub, { color: colors.textSecondary }]}>{t('forgot_sent_sub')}</Text>
             </View>
             <TouchableOpacity
-              onPress={() => navigation.navigate('ResetPassword', { email })}
+              onPress={() => navigation.navigate('ResetPassword', { email: normalizeEmail(email) })}
               activeOpacity={0.85}
             >
               <LinearGradient colors={['#00897B', '#00D4AA']} style={styles.btn}>

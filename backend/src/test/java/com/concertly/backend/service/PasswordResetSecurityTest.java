@@ -53,6 +53,7 @@ class PasswordResetSecurityTest {
         user.setEmail("kurban@test.com");
         user.setPassword(encoder.encode("eskiSifre1"));
         when(userRepository.findByEmail("kurban@test.com")).thenReturn(Optional.of(user));
+        when(userRepository.findByEmailNormalized(any())).thenCallRealMethod(); // N-22: gerçek varsayılan metot
         when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
     }
 

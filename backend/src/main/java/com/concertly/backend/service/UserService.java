@@ -11,6 +11,7 @@ import com.concertly.backend.dto.request.PrivacySettingsRequest;
 import com.concertly.backend.dto.response.PostResponse;
 import com.concertly.backend.dto.response.PrivacySettingsResponse;
 import com.concertly.backend.dto.response.UserResponse;
+import com.concertly.backend.exception.AlreadyExistsException;
 import com.concertly.backend.exception.ResourceNotFoundException;
 import com.concertly.backend.model.Event;
 import com.concertly.backend.model.Post;
@@ -21,8 +22,11 @@ import com.concertly.backend.repository.EventVerificationRepository;
 import com.concertly.backend.repository.LikeRepository;
 import com.concertly.backend.repository.PostRepository;
 import com.concertly.backend.repository.UserRepository;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -42,6 +46,7 @@ public class UserService {
     private final BingoCardRepository bingoCardRepository;
     private final BadgeService badgeService;
     private final ConcertAttendanceService concertAttendance;
+    private final PasswordEncoder passwordEncoder;
 
     public UserService(UserRepository userRepository,
             PostRepository postRepository,
@@ -50,7 +55,8 @@ public class UserService {
             EventVerificationRepository verificationRepository,
             BingoCardRepository bingoCardRepository,
             BadgeService badgeService,
-            ConcertAttendanceService concertAttendance) {
+            ConcertAttendanceService concertAttendance,
+            PasswordEncoder passwordEncoder) {
         this.userRepository       = userRepository;
         this.postRepository       = postRepository;
         this.likeRepository       = likeRepository;
@@ -59,6 +65,7 @@ public class UserService {
         this.bingoCardRepository  = bingoCardRepository;
         this.badgeService         = badgeService;
         this.concertAttendance    = concertAttendance;
+        this.passwordEncoder      = passwordEncoder;
     }
 
     // 🔥 CORE METHOD — like/comment sayımlarını + izleyenin beğenilerini toplu çeker (N+1 yok)
@@ -136,6 +143,24 @@ public class UserService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Kullanıcı bulunamadı: " + id));
 
+        // Kullanıcı adı ve e-posta hesabın kimliği: değiştirmek için mevcut şifre
+        // gerekir (N-25) — açık kalmış bir oturumla hesap ele geçirilemesin.
+        // Kontrol her şeyden önce: şifre yanlışsa hiçbir alan değişmez.
+        boolean usernameChanging = request.getUsername() != null && !request.getUsername().isBlank()
+                && !request.getUsername().trim().equals(user.getUsername())
+                && !UsernameRules.normalize(request.getUsername()).equals(user.getUsername());
+        boolean emailChanging = request.getEmail() != null && !request.getEmail().isBlank()
+                && !request.getEmail().trim().equalsIgnoreCase(user.getEmail());
+        if (usernameChanging || emailChanging) {
+            String current = request.getCurrentPassword();
+            if (current == null || current.isEmpty()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "CURRENT_PASSWORD_REQUIRED");
+            }
+            if (!passwordEncoder.matches(current, user.getPassword())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "CURRENT_PASSWORD_WRONG");
+            }
+        }
+
         if (request.getBio() != null) {
             user.setBio(request.getBio());
         }
@@ -145,11 +170,28 @@ public class UserService {
         if (request.getCity() != null) {
             user.setCity(request.getCity());
         }
-        if (request.getUsername() != null && !request.getUsername().isEmpty()) {
-            user.setUsername(request.getUsername());
+        // Kural (N-21) yalnızca ad DEĞİŞİRKEN uygulanır: kurala uymayan eski adlı kullanıcı
+        // diğer ayarlarını kaydedebilsin (Ayarlar formu adı her seferinde gönderiyor)
+        if (usernameChanging) {
+            String username = UsernameRules.requireValid(request.getUsername());
+            // Sahibi başkaysa açık 409 (eskiden kısıt hatası genel mesaja düşüyordu)
+            boolean taken = userRepository.findByUsername(username)
+                    .filter(other -> !other.getId().equals(user.getId()))
+                    .isPresent();
+            if (taken) {
+                throw new AlreadyExistsException("Bu kullanıcı adı zaten kullanılıyor: " + username);
+            }
+            user.setUsername(username);
         }
-        if (request.getEmail() != null && !request.getEmail().isEmpty()) {
-            user.setEmail(request.getEmail());
+        // E-posta kuralı (N-22) de yalnızca adres DEĞİŞİRKEN uygulanır
+        if (emailChanging) {
+            String email = EmailRules.requireValid(request.getEmail());
+            boolean taken = userRepository.findAllByEmailIgnoreCase(email).stream()
+                    .anyMatch(other -> !other.getId().equals(user.getId()));
+            if (taken) {
+                throw new AlreadyExistsException("Bu email zaten kullanılıyor: " + email);
+            }
+            user.setEmail(email);
         }
         if (request.getPhone() != null && !request.getPhone().isEmpty()) {
             user.setPhone(request.getPhone());

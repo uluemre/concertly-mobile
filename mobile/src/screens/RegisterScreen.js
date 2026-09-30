@@ -9,6 +9,8 @@ import API from '../services/api';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { isValidUsername, normalizeUsername } from '../utils/username';
+import { isValidEmail, normalizeEmail } from '../utils/email';
 
 function createStyles(colors) {
   return StyleSheet.create({
@@ -19,6 +21,7 @@ function createStyles(colors) {
     title: { fontSize: 36, fontWeight: 'bold', color: colors.text, letterSpacing: 2 },
     subtitle: { fontSize: 14, color: colors.textSecondary, marginTop: 6 },
     form: { gap: 12 },
+    hint: { color: colors.textSecondary, fontSize: 12, marginTop: -4, marginLeft: 4 },
     input: {
       backgroundColor: colors.card,
       borderWidth: 1,
@@ -38,6 +41,10 @@ function createStyles(colors) {
   });
 }
 
+// Sunucudaki AuthService.register ile aynı şifre kuralı
+const PASSWORD_MIN = 6;
+const PASSWORD_MAX = 72;   // BCrypt 72 baytın ötesini yok sayar
+
 export default function RegisterScreen({ navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -46,17 +53,41 @@ export default function RegisterScreen({ navigation }) {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [passwordConfirm, setPasswordConfirm] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleRegister = async () => {
-    if (!username || !email || !password) {
+    if (!username || !email || !password || !passwordConfirm) {
       Alert.alert(t('error'), t('reg_fill_all'));
+      return;
+    }
+    // Kullanıcı adı kuralı sunucuyla aynı (N-21)
+    if (!isValidUsername(username)) {
+      Alert.alert(t('error'), t('username_rule'));
+      return;
+    }
+    // E-posta kuralı sunucuyla aynı (N-22)
+    if (!isValidEmail(email)) {
+      Alert.alert(t('error'), t('email_invalid'));
+      return;
+    }
+    // Şifre kuralı sunucuyla aynı (N-20): en az 6 karakter (yalnızca boşluk sayılmaz), en fazla 72
+    if (password.trim().length < PASSWORD_MIN) {
+      Alert.alert(t('error'), t('reset_password_too_short'));
+      return;
+    }
+    if (password.length > PASSWORD_MAX) {
+      Alert.alert(t('error'), t('reg_password_too_long'));
+      return;
+    }
+    if (password !== passwordConfirm) {
+      Alert.alert(t('error'), t('reset_passwords_mismatch'));
       return;
     }
     setLoading(true);
     try {
-      const cleanEmail = email.trim();
-      const res = await API.post('/auth/register', { username: username.trim(), email: cleanEmail, password });
+      const cleanEmail = normalizeEmail(email);
+      const res = await API.post('/auth/register', { username: normalizeUsername(username), email: cleanEmail, password });
       if (res.data?.emailVerificationRequired) {
         // Hesap, e-postaya giden kod girilene kadar açılmaz
         navigation.replace('VerifyEmail', { email: cleanEmail });
@@ -67,9 +98,10 @@ export default function RegisterScreen({ navigation }) {
       navigation.replace('GenreSelection');
     } catch (err) {
       const status = err?.response?.status;
-      Alert.alert(t('error'), t(status === 409 ? 'reg_already_exists'
-        : status === 400 ? 'reset_password_too_short'
-        : 'verify_network_error'));
+      // 400'ün tek sebebi kısa şifre değil: sunucunun gerekçesini göster
+      Alert.alert(t('error'), status === 409 ? t('reg_already_exists')
+        : status === 400 ? (err?.response?.data?.message || t('reset_password_too_short'))
+        : t('verify_network_error'));
     } finally {
       setLoading(false);
     }
@@ -93,10 +125,12 @@ export default function RegisterScreen({ navigation }) {
             value={username}
             onChangeText={setUsername}
             autoCapitalize="none"
+            autoCorrect={false}
           />
+          <Text style={styles.hint}>{t('username_rule')}</Text>
           <TextInput
             style={styles.input}
-            placeholder="Email"
+            placeholder={t('email')}
             placeholderTextColor={colors.textSecondary}
             value={email}
             onChangeText={setEmail}
@@ -111,6 +145,15 @@ export default function RegisterScreen({ navigation }) {
             onChangeText={setPassword}
             secureTextEntry
           />
+          <TextInput
+            style={styles.input}
+            placeholder={t('reg_password_confirm')}
+            placeholderTextColor={colors.textSecondary}
+            value={passwordConfirm}
+            onChangeText={setPasswordConfirm}
+            secureTextEntry
+          />
+          <Text style={styles.hint}>{t('reg_password_rule')}</Text>
 
           {loading ? (
             <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 16 }} />

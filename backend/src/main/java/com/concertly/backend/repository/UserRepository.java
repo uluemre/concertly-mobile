@@ -12,6 +12,23 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByEmail(String email);
 
+    List<User> findAllByEmailIgnoreCase(String email);
+
+    /**
+     * Kullanıcının yazdığı e-postayla hesabı bulur (N-22): baş/son boşluk yok sayılır,
+     * büyük/küçük harf fark etmez. Önce birebir eşleşme denenir (JWT'deki kayıtlı adres
+     * gibi); eski kayıtlarda yalnızca harf büyüklüğü farklı iki hesap varsa hangisinin
+     * kastedildiği belli olmadığından hiçbiri döndürülmez.
+     */
+    default Optional<User> findByEmailNormalized(String raw) {
+        if (raw == null || raw.isBlank()) return Optional.empty();
+        String email = raw.trim();
+        Optional<User> exact = findByEmail(email);
+        if (exact.isPresent()) return exact;
+        List<User> matches = findAllByEmailIgnoreCase(email);
+        return matches.size() == 1 ? Optional.of(matches.get(0)) : Optional.empty();
+    }
+
     Optional<User> findByUsername(String username);
 
     // 🔥 SEARCH — yalnızca herkese açık kullanıcı adı; e-posta ile kullanıcı bulunamaz (gizlilik)

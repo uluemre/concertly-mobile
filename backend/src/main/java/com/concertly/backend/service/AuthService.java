@@ -28,6 +28,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.security.SecureRandom;
+import java.util.List;
 
 @Service
 public class AuthService {
@@ -82,16 +83,29 @@ public class AuthService {
     // ✅ KAYIT — şifreyi hash'le, duplicate kontrolü yap
     public UserResponse register(RegisterRequest request) {
 
-        if (request.getPassword() == null || request.getPassword().length() < 6) {
+        // Yalnızca boşluktan oluşan şifre sayılmaz; BCrypt 72 baytın ötesini yok saydığından üst sınır var (N-20)
+        if (request.getPassword() == null || request.getPassword().trim().length() < 6) {
             throw new IllegalArgumentException("Şifre en az 6 karakter olmalı");
         }
+        if (request.getPassword().length() > 72) {
+            throw new IllegalArgumentException("Şifre en fazla 72 karakter olabilir");
+        }
+        // Kullanıcı adı kuralı (N-21): kırpılır, küçük harfe çevrilir, biçimi doğrulanır
+        request.setUsername(UsernameRules.requireValid(request.getUsername()));
+        // E-posta kuralı (N-22): kırpılır, küçük harfe çevrilir, biçimi doğrulanır
+        request.setEmail(EmailRules.requireValid(request.getEmail()));
 
         // Aynı e-postada 24 saattir doğrulanmamış bir kayıt varsa üzerine yazılabilir;
         // böylece başkasının adresiyle açılmış sahte kayıt adresi sonsuza kadar
         // kilitlemez. Daha yeni bekleyen kayıt korunur: sahibi giriş ekranından
         // kod ekranına döner. (Hemen üzerine yazmaya izin vermek, sahibi yeni
         // kodu girdiğinde hesabı başkasının belirlediği şifreyle açardı.)
-        User user = userRepository.findByEmail(request.getEmail()).orElse(null);
+        // Harf büyüklüğü farklı yazılmış eski kayıt da aynı adres sayılır
+        List<User> sameEmail = userRepository.findAllByEmailIgnoreCase(request.getEmail());
+        if (sameEmail.size() > 1) {
+            throw new AlreadyExistsException("Bu email zaten kullanılıyor: " + request.getEmail());
+        }
+        User user = sameEmail.isEmpty() ? null : sameEmail.get(0);
         boolean abandonedPending = user != null && user.isEmailVerificationPending()
                 && (user.getEmailVerificationSentAt() == null
                     || user.getEmailVerificationSentAt().isBefore(LocalDateTime.now().minusHours(24)));
@@ -134,11 +148,15 @@ public class AuthService {
         rateLimiter.check("login:ip:" + clientIp, LOGIN_PER_IP, WINDOW);
         rateLimiter.check("login:email:" + AuthRateLimiter.emailKey(request.getEmail()), LOGIN_PER_EMAIL, WINDOW);
 
+        // Baş/son boşluk giriş hatası sayılmasın (N-22); harf büyüklüğünü
+        // UserRepository.findByEmailNormalized yok sayar
+        String email = request.getEmail() == null ? null : request.getEmail().trim();
+
         try {
             // Spring Security ile doğrulama yap — hatalıysa exception fırlatır
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
-                            request.getEmail(),
+                            email,
                             request.getPassword()));
         } catch (DisabledException e) {
             // Şifre doğru ya da yanlış, yasaklı hesap açılmaz
@@ -147,9 +165,9 @@ public class AuthService {
             throw new BadCredentialsException("Email veya şifre hatalı.");
         }
 
-        User user = userRepository.findByEmail(request.getEmail())
+        User user = userRepository.findByEmailNormalized(email)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Kullanıcı bulunamadı: " + request.getEmail()));
+                        "Kullanıcı bulunamadı: " + email));
 
         // Şifre doğru ama e-posta doğrulanmamış → mobil kod ekranına yönlendirir
         if (user.isEmailVerificationPending()) {
@@ -286,7 +304,7 @@ public class AuthService {
         // Kullanıcı sayımına (enumeration) karşı: e-posta kayıtlı olsun olmasın
         // dışarıya aynı (boş) yanıt döner. Kod yalnızca kayıtlı kullanıcıya gider.
         if (email == null) return;
-        userRepository.findByEmail(email.trim()).ifPresent(user -> {
+        userRepository.findByEmailNormalized(email).ifPresent(user -> {
             String token = String.format("%06d", RANDOM.nextInt(1_000_000));
             // Düz kod saklanmaz; yalnızca özeti. Yeni kod deneme sayacını sıfırlar.
             user.setResetToken(passwordEncoder.encode(token));
@@ -295,7 +313,7 @@ public class AuthService {
             userRepository.save(user);
 
             // Kodu e-posta ile gönder (mail kapalıysa EmailService log'a yazar)
-            emailService.sendPasswordResetCode(email, token);
+            emailService.sendPasswordResetCode(user.getEmail(), token);
         });
     }
 
@@ -310,6 +328,10 @@ public class AuthService {
 
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
             throw new IllegalArgumentException("Mevcut şifre yanlış");
+        }
+        // Yeni şifre eskisiyle aynı olamaz (N-58)
+        if (passwordEncoder.matches(newPassword, user.getPassword())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "SAME_PASSWORD");
         }
 
         user.setPassword(passwordEncoder.encode(newPassword));
@@ -335,7 +357,7 @@ public class AuthService {
             throw new IllegalArgumentException("Yeni şifre en az 6 karakter olmalı");
         }
         // Kayıtlı olmayan e-posta da "kod geçersiz" gibi görünür (e-posta sızmasın)
-        User user = email == null ? null : userRepository.findByEmail(email.trim()).orElse(null);
+        User user = userRepository.findByEmailNormalized(email).orElse(null);
         if (user == null || user.getResetToken() == null || token == null || token.isBlank()) {
             throw resetInvalid();
         }
@@ -352,6 +374,11 @@ public class AuthService {
             user.setResetTokenAttempts(attempts + 1);
             userRepository.save(user);
             throw resetInvalid();
+        }
+        // Yeni şifre eskisiyle aynı olamaz (N-58). Kod doğrulandıktan sonra bakılır
+        // (kodsuz şifre tahmini yapılamasın); kod yakılmaz, kullanıcı başka şifre dener.
+        if (passwordEncoder.matches(newPassword, user.getPassword())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "SAME_PASSWORD");
         }
 
         user.setPassword(passwordEncoder.encode(newPassword));

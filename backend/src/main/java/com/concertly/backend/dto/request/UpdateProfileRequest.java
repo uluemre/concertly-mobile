@@ -8,6 +8,11 @@ public class UpdateProfileRequest {
     private String username;
     private String email;
     private String phone;
+    // Kullanıcı adı veya e-posta değişirken zorunlu (N-25)
+    private String currentPassword;
+
+    public String getCurrentPassword() { return currentPassword; }
+    public void setCurrentPassword(String currentPassword) { this.currentPassword = currentPassword; }
 
     public String getUsername() { return username; }
     public void setUsername(String username) { this.username = username; }

@@ -43,7 +43,8 @@ export default function ResetPasswordScreen({ navigation, route }) {
     } catch (err) {
       const reason = err?.response?.data?.message;
       Alert.alert(t('error'), t(
-        reason === 'CODE_ATTEMPTS_EXCEEDED' ? 'reset_too_many_attempts'
+        reason === 'SAME_PASSWORD' ? 'password_same_as_old'
+          : reason === 'CODE_ATTEMPTS_EXCEEDED' ? 'reset_too_many_attempts'
           : reason === 'CODE_EXPIRED' ? 'reset_code_expired'
           : reason === 'TOO_MANY_REQUESTS' ? 'auth_too_many'
           : 'reset_invalid_token'

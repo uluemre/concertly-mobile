@@ -73,6 +73,7 @@ class BannedUserTest {
     @Test
     void userDetailsAreDisabledOnlyForBannedAccounts() {
         UserDetailsServiceImpl uds = new UserDetailsServiceImpl(userRepository);
+        when(userRepository.findByEmailNormalized(any())).thenCallRealMethod(); // N-22: gerçek varsayılan metot
         when(userRepository.findByEmail("yasakli@test.com")).thenReturn(Optional.of(user(false)));
         assertFalse(uds.loadUserByUsername("yasakli@test.com").isEnabled());
 

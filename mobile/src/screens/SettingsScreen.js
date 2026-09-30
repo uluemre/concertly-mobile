@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   View, Text, StyleSheet, TextInput,
   TouchableOpacity, ScrollView, Alert,
@@ -12,6 +12,8 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { LAUNCH_CITIES } from '../constants/cities';
 import { goBackOrFallback } from '../navigation/navHelpers';
+import { isValidUsername, normalizeUsername } from '../utils/username';
+import { isValidEmail } from '../utils/email';
 
 // Hesap silme sebepleri — code backend'e (dil bağımsız) gönderilir, key UI metni.
 const DELETE_REASONS = [
@@ -42,6 +44,11 @@ export default function SettingsScreen({ navigation, route }) {
   const [notifSettings, setNotifSettings] = useState(null);
   const [privacy, setPrivacy] = useState(null);
 
+  // Yüklenen kullanıcı adı: kural yalnızca ad değiştirilirse uygulanır (N-21)
+  const loadedUsername = useRef('');
+  const loadedEmail = useRef('');
+  // Kullanıcı adı / e-posta değişirken istenir (N-25)
+  const [currentPassword, setCurrentPassword] = useState('');
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -98,6 +105,8 @@ export default function SettingsScreen({ navigation, route }) {
       // Backend'deki getUserProfile endpoint'i
       const res = await API.get(`/users/${session.userId}/profile`);
       const data = res.data;
+      loadedUsername.current = data.username || '';
+      loadedEmail.current = data.email || '';
       setFormData({
         username: data.username || '',
         email: data.email || '',
@@ -146,13 +155,41 @@ export default function SettingsScreen({ navigation, route }) {
     }
   };
 
+  // Sunucuyla aynı ölçüt: yalnızca büyük/küçük harf ya da boşluk farkı değişiklik sayılmaz
+  const usernameInput = (formData.username || '').trim();
+  const emailInput = (formData.email || '').trim();
+  const identityChanging =
+    (!!usernameInput && usernameInput !== loadedUsername.current
+      && normalizeUsername(usernameInput) !== loadedUsername.current)
+    || (!!emailInput && emailInput.toLowerCase() !== loadedEmail.current.trim().toLowerCase());
+
   const handleSave = async () => {
+    const newUsername = usernameInput;
+    if (newUsername && newUsername !== loadedUsername.current && !isValidUsername(newUsername)) {
+      Alert.alert(t('error'), t('username_rule'));
+      return;
+    }
+    const newEmail = (formData.email || '').trim();
+    if (newEmail && newEmail.toLowerCase() !== loadedEmail.current.trim().toLowerCase() && !isValidEmail(newEmail)) {
+      Alert.alert(t('error'), t('email_invalid'));
+      return;
+    }
+    if (identityChanging && !currentPassword) {
+      Alert.alert(t('error'), t('settings_current_password_hint'));
+      return;
+    }
     setSaving(true);
     try {
-      await API.put(`/users/${session.userId}/profile`, formData);
-      if (formData.city) {
-        await updateSession({ userCity: formData.city });
-      }
+      const payload = identityChanging ? { ...formData, currentPassword } : formData;
+      const res = await API.put(`/users/${session.userId}/profile`, payload);
+      // Oturumdaki ad da güncellenir: profil, pasaport vb. eski adı göstermesin (N-25)
+      const patch = {};
+      if (formData.city) patch.userCity = formData.city;
+      if (res.data?.username && res.data.username !== session.username) patch.username = res.data.username;
+      if (Object.keys(patch).length) await updateSession(patch);
+      if (res.data?.username) loadedUsername.current = res.data.username;
+      if (res.data?.email) loadedEmail.current = res.data.email;
+      setCurrentPassword('');
       Alert.alert(t('settings_save_success'), t('settings_save_success_msg'), [
         { text: t('confirm'), onPress: () => goBackOrFallback(navigation) }
       ]);
@@ -160,7 +197,14 @@ export default function SettingsScreen({ navigation, route }) {
       const status = err?.response?.status;
       const msg = err?.response?.data?.message || err?.response?.data?.error || err?.message || 'Bilinmeyen hata';
       console.log('Ayar kayıt hatası:', status, msg);
-      Alert.alert(t('error'), t('settings_save_error'));
+      // Sunucunun nedeni gizlenmez (N-25): şifre yanlış/eksik, ad ya da e-posta dolu
+      Alert.alert(t('error'), t(
+        msg === 'CURRENT_PASSWORD_WRONG' ? 'settings_current_password_wrong'
+          : msg === 'CURRENT_PASSWORD_REQUIRED' ? 'settings_current_password_hint'
+          : status === 409 && /e-?mail/i.test(msg) ? 'settings_email_taken'
+          : status === 409 ? 'settings_username_taken'
+          : 'settings_save_error'
+      ));
     } finally {
       setSaving(false);
     }
@@ -305,6 +349,23 @@ export default function SettingsScreen({ navigation, route }) {
             placeholderTextColor={colors.textSecondary}
           />
         </View>
+
+        {identityChanging && (
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>{t('settings_current_password')}</Text>
+            <TextInput
+              style={styles.input}
+              value={currentPassword}
+              onChangeText={setCurrentPassword}
+              placeholder={t('settings_current_password')}
+              secureTextEntry
+              autoCapitalize="none"
+              autoCorrect={false}
+              placeholderTextColor={colors.textSecondary}
+            />
+            <Text style={[styles.label, { marginTop: 6, fontWeight: '400' }]}>{t('settings_current_password_hint')}</Text>
+          </View>
+        )}
 
         <View style={styles.inputGroup}>
           <Text style={styles.label}>{t('settings_phone_label')}</Text>

@@ -76,7 +76,7 @@ public class EmailVerificationService {
      */
     public void resend(String email) {
         if (email == null || email.isBlank()) return;
-        userRepository.findByEmail(email.trim()).ifPresent(user -> {
+        userRepository.findByEmailNormalized(email).ifPresent(user -> {
             if (!user.isEmailVerificationPending()) return;
             LocalDateTime sentAt = user.getEmailVerificationSentAt();
             if (sentAt != null && sentAt.plusSeconds(resendSeconds).isAfter(LocalDateTime.now())) return;
@@ -87,7 +87,7 @@ public class EmailVerificationService {
     /** Kod doğruysa hesabı doğrulanmış yapar ve kullanıcıyı döner. */
     public User verify(String email, String code) {
         if (email == null || code == null || code.isBlank()) throw invalid();
-        User user = userRepository.findByEmail(email.trim()).orElseThrow(EmailVerificationService::invalid);
+        User user = userRepository.findByEmailNormalized(email).orElseThrow(EmailVerificationService::invalid);
         if (!user.isEmailVerificationPending() || user.getEmailVerificationCodeHash() == null) throw invalid();
 
         int attempts = user.getEmailVerificationAttempts() == null ? 0 : user.getEmailVerificationAttempts();

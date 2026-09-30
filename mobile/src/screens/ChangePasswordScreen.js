@@ -33,6 +33,11 @@ export default function ChangePasswordScreen({ navigation }) {
       Alert.alert(t('error'), t('change_pw_mismatch'));
       return;
     }
+    // Yeni şifre eskisiyle aynı olamaz (N-58)
+    if (newPassword === currentPassword) {
+      Alert.alert(t('error'), t('password_same_as_old'));
+      return;
+    }
     setSaving(true);
     try {
       await API.put('/auth/change-password', { currentPassword, newPassword });
@@ -40,7 +45,9 @@ export default function ChangePasswordScreen({ navigation }) {
         { text: t('confirm'), onPress: () => goBackOrFallback(navigation) },
       ]);
     } catch (err) {
-      Alert.alert(t('error'), getErrorMessage(err, t('change_pw_error')));
+      Alert.alert(t('error'), err?.response?.data?.message === 'SAME_PASSWORD'
+        ? t('password_same_as_old')
+        : getErrorMessage(err, t('change_pw_error')));
     } finally {
       setSaving(false);
     }
