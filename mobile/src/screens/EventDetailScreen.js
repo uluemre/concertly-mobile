@@ -663,7 +663,7 @@ function EventDetailContent({ route, navigation }) {
         {!isExpired && (
           <View style={[styles.buddyCard, { backgroundColor: colors.card, borderColor: isBuddy ? colors.primary : colors.border }]}>
             <View style={styles.buddyCardHeader}>
-              <View>
+              <View style={styles.buddyHeaderText}>
                 <Text style={[styles.buddyTitle, { color: colors.text }]}>{t('detail_buddy_title')}</Text>
                 <Text style={[styles.buddySub, { color: colors.textSecondary }]}>
                   {buddies.length > 0
@@ -1280,7 +1280,9 @@ function createStyles(colors) {
     buddyCard: {
       borderRadius: 16, borderWidth: 1.5, padding: 16, marginBottom: 12,
     },
-    buddyCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    buddyCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
+    // Metin daralır, "+ Katıl" kart dışına taşmaz (N-36)
+    buddyHeaderText: { flex: 1, flexShrink: 1 },
     buddyMatchLink: { marginTop: 12, paddingVertical: 11, borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', alignItems: 'center' },
     buddyMatchLinkText: { fontSize: 13, fontWeight: '800' },
     buddyTitle: { fontSize: 15, fontWeight: '800', marginBottom: 3 },

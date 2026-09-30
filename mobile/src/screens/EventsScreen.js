@@ -221,7 +221,7 @@ export default function EventsScreen({ navigation, route }) {
           </TouchableOpacity>
         )}
         <View style={styles.headerRow}>
-          <View>
+          <View style={styles.headerTitleWrap}>
             <Text style={styles.headerTitle}>{t('events_header_title')}</Text>
             <Text style={styles.headerSub}>{t('events_count', { count: filtered.length })}</Text>
           </View>
@@ -464,7 +464,9 @@ function createStyles(colors) {
     header: { paddingTop: 56, paddingBottom: 14, paddingHorizontal: 20 },
     pickerBack: { marginBottom: 10 },
     pickerBackText: { color: colors.primary, fontSize: 15, fontWeight: '700' },
-    headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+    // Dar ekranda (320 px) düğmeler alt satıra iner, taşmaz (N-36)
+    headerRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', rowGap: 10, columnGap: 8, marginBottom: 12 },
+    headerTitleWrap: { flexShrink: 1 },
     headerTitle: { fontSize: 22, fontWeight: 'bold', color: colors.text },
     headerSub: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
 
@@ -479,7 +481,7 @@ function createStyles(colors) {
     searchIcon: { fontSize: 17 },
     searchInput: { flex: 1, fontSize: 14 },
 
-    toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 },
+    toggleRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginTop: 12 },
     // Sabit yükseklik + iki eksende ortalama: yazı ve ikon hapın tam ortasında,
     // sağdaki görünüm düğmeleriyle aynı hizada.
     togglePill: {

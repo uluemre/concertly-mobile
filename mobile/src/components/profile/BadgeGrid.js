@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../theme';
+import { useLanguage } from '../../context/LanguageContext';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2;
@@ -9,6 +10,15 @@ const CARD_WIDTH = (width - 48) / 2;
 export default function BadgeGrid({ badges }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { t } = useLanguage();
+
+  // Kilitli rozette "katıldın!" değil hedef yazılır (N-38); bilinmeyen rozet
+  // kodunda sunucunun açıklaması kalır
+  const lockedText = (item) => {
+    const key = `badge_goal_${item.code}`;
+    const goal = t(key);
+    return goal !== key ? goal : item.description;
+  };
 
   return (
     <View style={styles.grid}>
@@ -28,7 +38,7 @@ export default function BadgeGrid({ badges }) {
             {item.name}
           </Text>
           <Text style={[styles.desc, !item.earned && styles.textLocked]} numberOfLines={2}>
-            {item.description}
+            {item.earned ? item.description : lockedText(item)}
           </Text>
           {item.earned ? (
             <Text style={styles.date}>
