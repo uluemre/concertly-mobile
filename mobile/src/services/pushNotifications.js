@@ -4,6 +4,7 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import API from './api';
+import { communityRoute } from '../utils/communityNotifications';
 
 /**
  * Expo push bildirimleri.
@@ -132,7 +133,8 @@ export function routeForNotification(data) {
     case 'event':
       return entityId ? { screen: 'EventDetail', params: { eventId: entityId } } : null;
     case 'community':
-      return entityId ? { screen: 'CommunityDetail', params: { communityId: entityId } } : null;
+      // Uygulama içi bildirimle aynı kural (A3): katılma isteği → yönetim ekranı
+      return communityRoute(data.type, entityId);
     case 'user':
       // Mesaj bildirimi sohbeti açar, takip bildirimi profili.
       if (data.type === 'message' && data.actorId) {

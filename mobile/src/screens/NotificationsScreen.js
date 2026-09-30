@@ -11,6 +11,9 @@ import { ListSkeletonPage } from '../components/SkeletonLoader';
 import API, { getErrorMessage } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import {
+  isCommunityNotification, COMMUNITY_ACTOR_TYPES, communityNameFromMessage, communityRoute,
+} from '../utils/communityNotifications';
 import { parseEventDate } from '../utils/time';
 import { openEvent } from '../navigation/navHelpers';
 
@@ -29,6 +32,14 @@ export default function NotificationsScreen({ navigation }) {
     event_reminder: { icon: '🎫', text: t('notif_event_reminder') },
     daily_song:     { icon: '📅', text: t('notif_daily_song') },
     badge:          { icon: '🏅', text: t('notif_default') },
+    // Topluluk bildirimleri (A3)
+    community_invite:           { icon: '👥', text: t('notif_community_invite') },
+    community_join_request:     { icon: '🙋', text: t('notif_community_join_request') },
+    community_request_approved: { icon: '✅', text: t('notif_community_request_approved') },
+    community_approved:         { icon: '✅', text: t('notif_community_approved') },
+    community_rejected:         { icon: '⚠️', text: t('notif_community_rejected') },
+    community_ownership:        { icon: '👑', text: t('notif_community_ownership') },
+    community_comment:          { icon: '💬', text: t('notif_community_comment') },
   }), [t]);
 
   // Rozet bildirimi (N-38): mesaj alanı rozet kodunu taşır, ad dile göre çevrilir
@@ -108,6 +119,10 @@ export default function NotificationsScreen({ navigation }) {
   // Bir grup için aktör etiketi + metin (1'den fazlaysa grup metni)
   const getLine = (g) => {
     const cfg = TYPE_CONFIG[g.type] || { icon: '🔔', text: t('notif_default') };
+    // Sistem topluluk bildirimleri tam cümledir; aktör adı yazılmaz (A3)
+    if (isCommunityNotification(g.type) && !COMMUNITY_ACTOR_TYPES.includes(g.type)) {
+      return { actor: '', text: cfg.text, icon: cfg.icon };
+    }
     if (g.type === 'badge') {
       // Tam cümle; başına aktör adı yazılmaz
       return { actor: '', text: t('notif_badge', { badge: badgeName(g.rep.message) }), icon: cfg.icon };
@@ -167,6 +182,12 @@ export default function NotificationsScreen({ navigation }) {
     }
     if (item.type === 'daily_song') {
       navigation.navigate('DailySong');
+      return;
+    }
+    // Topluluk bildirimleri → topluluk detayı; katılma isteği → yönetim ekranı (A3)
+    if (isCommunityNotification(item.type)) {
+      const route = communityRoute(item.type, item.entityId);
+      if (route) navigation.navigate(route.screen, route.params);
       return;
     }
     // Rozet bildirimi → Profil > Rozetler (N-38)
@@ -231,8 +252,12 @@ export default function NotificationsScreen({ navigation }) {
             {line.actor ? <Text style={styles.actor}>{line.actor}</Text> : null}
             {line.actor ? ' ' : ''}{line.text}
           </Text>
-          {g.count === 1 && rep.message && g.type !== 'badge' ? (
+          {g.count === 1 && rep.message && g.type !== 'badge' && !isCommunityNotification(g.type) ? (
             <Text style={styles.message} numberOfLines={1}>{rep.message}</Text>
+          ) : null}
+          {/* Topluluk bildiriminde ham Türkçe sunucu cümlesi yerine yalnızca topluluk adı */}
+          {isCommunityNotification(g.type) && communityNameFromMessage(rep.message) ? (
+            <Text style={styles.message} numberOfLines={1}>👥 {communityNameFromMessage(rep.message)}</Text>
           ) : null}
           <Text style={styles.time}>{timeAgo(rep.createdAt)}</Text>
         </View>

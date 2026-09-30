@@ -10,6 +10,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { buildShareUrl, shareWithLink } from '../services/shareLinks';
 import API, { getErrorMessage } from '../services/api';
 import { goBackOrFallback } from '../navigation/navHelpers';
+import DeepLinkLoader from '../components/DeepLinkLoader';
 
 export default function CommunityManageScreen({ route, navigation }) {
   const { communityId } = route.params;
@@ -22,6 +23,8 @@ export default function CommunityManageScreen({ route, navigation }) {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  // Bildirimden silinmiş topluluğa gelinirse "bulunamadı" gösterilir (A3)
+  const [notFound, setNotFound] = useState(false);
 
   const isOwner = community?.currentUserRole === 'OWNER';
 
@@ -32,15 +35,24 @@ export default function CommunityManageScreen({ route, navigation }) {
         API.get(`/communities/${communityId}/requests`).catch(() => ({ data: [] })),
         API.get(`/communities/${communityId}/members`),
       ]);
+      // Artık yönetici değilse (ör. yetkisi alınmış) yönetim yerine topluluk detayı açılır
+      if (!c.data?.canManage) {
+        navigation.replace('CommunityDetail', { communityId });
+        return;
+      }
       setCommunity(c.data);
       setRequests(reqs.data);
       setMembers(mem.data);
     } catch (err) {
+      if (err?.response?.status === 404) {
+        setNotFound(true);
+        return;
+      }
       Alert.alert(t('error'), getErrorMessage(err));
     } finally {
       setLoading(false);
     }
-  }, [communityId, t]);
+  }, [communityId, t, navigation]);
 
   useFocusEffect(useCallback(() => { fetchAll(); }, [fetchAll]));
 
@@ -100,6 +112,10 @@ export default function CommunityManageScreen({ route, navigation }) {
         } },
     ]);
   };
+
+  if (notFound) {
+    return <DeepLinkLoader error onBack={() => goBackOrFallback(navigation)} />;
+  }
 
   if (loading) {
     return (
