@@ -14,7 +14,20 @@ import { ArtistGridSkeleton } from '../components/SkeletonLoader';
 import { getRecommendedArtists } from '../services/artists';
 import { goBackOrFallback } from '../navigation/navHelpers';
 
+/**
+ * Seçilen türler URL'ye yazılmıyor (N-19); sayfa yenilenince ya da adres doğrudan
+ * açılınca tür listesi olmadığından ekran tür seçimine döner.
+ */
 export default function ArtistSelectionScreen({ route, navigation }) {
+  const hasGenres = Array.isArray(route.params?.selectedGenres);
+  useEffect(() => {
+    if (!hasGenres) navigation.replace('GenreSelection');
+  }, [hasGenres, navigation]);
+  if (!hasGenres) return null;
+  return <ArtistSelectionContent route={route} navigation={navigation} />;
+}
+
+function ArtistSelectionContent({ route, navigation }) {
   const { selectedGenres, selectedCity, editMode = false } = route.params;
   const { colors } = useTheme();
   const { updateSession } = useAuth();

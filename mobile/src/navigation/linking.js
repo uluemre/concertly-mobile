@@ -14,6 +14,25 @@ import { SHARE_BASE_URL } from '../services/shareLinks';
  * burada uzun uygulama yollarına çevrilip tek bir eşleme tablosu kullanılıyor.
  */
 
+/**
+ * Kök navigatördeki ekran adları. Config'te yolu olmayan ekranlar uygulama içinde
+ * adlarıyla adres alır (/FeedTab, /Login…); yenilemede bunlar eskisi gibi başlangıç
+ * ekranına gider. Bu listede OLMAYAN, hiçbir desene uymayan yol "bulunamadı"
+ * gösterir (N-19). AppNavigator'a ekran eklenince buraya da eklenmeli.
+ */
+const APP_SCREEN_NAMES = new Set([
+  'Onboarding', 'GenreSelection', 'ArtistSelection', 'Login', 'Register', 'VerifyEmail', 'MainApp',
+  'EventDetail', 'CreatePost', 'EventsPicker', 'FeedTab', 'UserProfile', 'Communities', 'CommunityDetail',
+  'CreateCommunity', 'CommunityManage', 'ArtistProfile', 'Welcome', 'Settings', 'Map', 'FollowList',
+  'Admin', 'AdminEvents', 'AdminUsers', 'AdminPosts', 'AdminDeletionFeedback', 'AdminCommunities',
+  'SpotifyRecommendations', 'VenueProfile', 'PostDetail', 'ConcertBuddyMatch', 'ConcertPassport',
+  'ChatList', 'Chat', 'SongQuiz', 'DailySong', 'BlindRank', 'SetlistPrediction', 'Games', 'Wrapped',
+  'ConcertBingo', 'ConcertPrep', 'ForgotPassword', 'ResetPassword', 'ChangePassword', 'BlockedUsers',
+  'SuggestEvent', 'AdminReports', 'AdminOrganizerRequests', 'Legal', 'NotFound',
+  // MainApp sekmeleri
+  'Home', 'Events', 'Explore', 'Notifications', 'Profile',
+]);
+
 const SHORT_PATHS = {
   e: 'event',
   a: 'artist',
@@ -34,10 +53,25 @@ export const linking = {
       PostDetail: { path: 'post/:postId', parse: { postId: Number } },
       CommunityDetail: { path: 'community/:communityId', parse: { communityId: Number } },
       Communities: 'communities',
+      // Yenilenince / doğrudan açılınca ana sayfaya düşmesinler (N-19)
+      VenueProfile: { path: 'venue/:venueId', parse: { venueId: Number }, stringify: { venueName: () => undefined } },
+      Map: 'map',
+      Settings: 'settings',
+      ChatList: 'messages',
+      // userId sayı olmalı: pasaport kendi hesabını session.userId ile karşılaştırır
+      ConcertPassport: { path: 'passport', parse: { userId: Number } },
+      GenreSelection: { path: 'onboarding/genres', parse: { editMode: (v) => v === 'true' } },
+      // Seçilen türler URL'ye yazılmaz; yenilemede ekran tür seçimine döner
+      ArtistSelection: {
+        path: 'onboarding/artists',
+        stringify: { selectedGenres: () => undefined, selectedCity: () => undefined, editMode: () => undefined },
+      },
+      NotFound: 'not-found',
       MainApp: {
         screens: {
           Home: 'home',
           Events: 'events',
+          Explore: 'menu',
           Notifications: 'notifications',
           Profile: 'profile',
         },
@@ -51,7 +85,17 @@ export const linking = {
       /^\/?(e|a|u|p|c)\//,
       (_, short) => `/${SHORT_PATHS[short]}/`
     );
-    return defaultGetStateFromPath(normalized, options);
+    const state = defaultGetStateFromPath(normalized, options);
+    if (state) return state;
+
+    // Eşleşme yok: kök adres ve uygulamanın kendi ekran adları başlangıç ekranına
+    // (eski davranış); gerçekten bilinmeyen yol "bulunamadı" ekranına gider.
+    const clean = normalized.split(/[?#]/)[0].replace(/^\/+/, '');
+    if (!clean) return undefined;
+    let first = clean.split('/')[0];
+    try { first = decodeURIComponent(first); } catch {}
+    if (APP_SCREEN_NAMES.has(first)) return undefined;
+    return { routes: [{ name: 'NotFound' }] };
   },
 };
 

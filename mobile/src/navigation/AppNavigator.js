@@ -1,13 +1,14 @@
 // AppNavigator.js
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Text, View, ActivityIndicator, Animated, AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
-import API, { setSessionExpiredHandler } from '../services/api';
+import API, { setSessionExpiredHandler, hasApiSession } from '../services/api';
+import { PUBLIC_SCREENS, setPendingRoute } from './pendingRoute';
 import SlideTabBar from './SlideTabBar';
 import { useAuth } from '../context/AuthContext';
 import linking from './linking';
@@ -89,6 +90,7 @@ import ConcertPrepScreen from '../screens/ConcertPrepScreen';
 import ChangePasswordScreen from '../screens/ChangePasswordScreen';
 import BlockedUsersScreen from '../screens/BlockedUsersScreen';
 import LegalScreen from '../screens/LegalScreen';
+import NotFoundScreen from '../screens/NotFoundScreen';
 
 import { useTheme } from '../theme';
 import { Ionicons } from '@expo/vector-icons';
@@ -222,12 +224,55 @@ export default function AppNavigator() {
   const [onbChecked, setOnbChecked] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
+  const userIdRef = useRef(session.userId);
+  userIdRef.current = session.userId;
   useEffect(() => {
     setSessionExpiredHandler(async () => {
+      // Kalınan ekran aynı kullanıcı tekrar girince geri açılır (N-23)
+      setPendingRoute(navigationRef.current?.getCurrentRoute(), userIdRef.current);
       await logout();
       navigationRef.current?.reset({ index: 0, routes: [{ name: 'Login' }] });
     });
   }, [logout]);
+
+  // Oturum yokken giriş gerektiren bir ekrana (link, adres çubuğu, geri tuşu)
+  // gelinirse hedef saklanır ve Login açılır; girişten sonra oraya dönülür (N-23).
+  // Herkese açık ekranlar (etkinlik detayı, giriş/kayıt, yasal metinler) açık kalır.
+  const authTokenRef = useRef(session.authToken);
+  authTokenRef.current = session.authToken;
+  const guardRoute = useCallback(() => {
+    if (authTokenRef.current || hasApiSession()) return;
+    const nav = navigationRef.current;
+    const route = nav?.getCurrentRoute();
+    if (!route || PUBLIC_SCREENS.has(route.name)) return;
+    setPendingRoute(route);
+    nav.reset({ index: 0, routes: [{ name: 'Login' }] });
+  }, []);
+  // Oturum kapanınca (çıkış, hesap silme) giriş gerektiren ekranda kalınmaz.
+  // Bilinçli çıkış olduğu için hedef saklanmaz.
+  useEffect(() => {
+    if (session.authToken) return;
+    const nav = navigationRef.current;
+    const route = nav?.getCurrentRoute();
+    if (route && !PUBLIC_SCREENS.has(route.name)) {
+      nav.reset({ index: 0, routes: [{ name: 'Login' }] });
+    }
+  }, [session.authToken]);
+
+  // Aynı kontrol link çözülürken de yapılır: giriş gerektiren ekran oturumsuz hiç
+  // açılmaz (açılsaydı istekleri 401 alıp hata uyarısı gösterirdi).
+  const guardedLinking = useMemo(() => ({
+    ...linking,
+    getStateFromPath: (path, options) => {
+      const state = linking.getStateFromPath(path, options);
+      if (!state || authTokenRef.current || hasApiSession()) return state;
+      let route = state.routes[state.index ?? state.routes.length - 1];
+      while (route?.state) route = route.state.routes[route.state.index ?? route.state.routes.length - 1];
+      if (!route || PUBLIC_SCREENS.has(route.name)) return state;
+      setPendingRoute(route);
+      return { routes: [{ name: 'Login' }] };
+    },
+  }), []);
 
   useEffect(() => {
     AsyncStorage.getItem('onboardingDone')
@@ -257,7 +302,7 @@ export default function AppNavigator() {
   }
 
   return (
-    <NavigationContainer ref={navigationRef} linking={linking}>
+    <NavigationContainer ref={navigationRef} linking={guardedLinking} onReady={guardRoute} onStateChange={guardRoute}>
       <Stack.Navigator
         initialRouteName={initialRoute}
         screenOptions={{ headerShown: false }}
@@ -406,6 +451,8 @@ export default function AppNavigator() {
         <Stack.Screen name="AdminReports" component={AdminReportsScreen} />
         <Stack.Screen name="AdminOrganizerRequests" component={AdminOrganizerRequestsScreen} />
         <Stack.Screen name="Legal" component={LegalScreen} />
+        {/* Bilinmeyen web adresi (N-19) */}
+        <Stack.Screen name="NotFound" component={NotFoundScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

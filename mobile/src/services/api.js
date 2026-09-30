@@ -77,6 +77,11 @@ export function setApiRefreshToken(token) {
   _refreshToken = token;
 }
 
+/** Cihazda oturum var mı (N-23: oturumsuz 401 "oturum bitti" sayılmaz). */
+export function hasApiSession() {
+  return !!(_authToken || _refreshToken);
+}
+
 /**
  * Çıkışta refresh token'ı sunucuda geçersiz kılar; yoksa çıkıştan sonra da
  * eski token ile yeni oturum alınabiliyordu. Hata yutulur: çıkış her durumda
@@ -151,7 +156,9 @@ API.interceptors.response.use(
     // ilgisi yoktur: refresh/oturum-sonu akışına sokulmaz, hata olduğu gibi ekrana
     // döner. (Eskiden yanlış şifre logout + Login'e reset tetikliyor, form
     // temizleniyor ve kullanıcı gerçek hata mesajını göremiyordu.)
-    if (status === 401 && !isCredentialEndpoint(originalRequest?.url)) {
+    // Hiç oturum yoksa (giriş yapmadan açılan herkese açık sayfa) 401 yalnızca o
+    // isteğin hatasıdır: oturum-sonu akışı kullanıcıyı Login'e atmaz (N-23).
+    if (status === 401 && !isCredentialEndpoint(originalRequest?.url) && hasApiSession()) {
       if (_refreshToken && !originalRequest._retry) {
         // Refresh token var → yenilenmeyi dene
         if (_isRefreshing) {

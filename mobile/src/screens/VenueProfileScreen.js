@@ -12,6 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { parseEventDate } from '../utils/time';
 import { goBackOrFallback, openEvent } from '../navigation/navHelpers';
+import DeepLinkLoader from '../components/DeepLinkLoader';
 
 const { width } = Dimensions.get('window');
 const DAY_SIZE = Math.floor((width - 32) / 7);
@@ -28,7 +29,16 @@ function StarRating({ value, onChange, size = 28 }) {
   );
 }
 
+/** Adres /venue/<id> ile açılabildiği için (N-19) id yoksa ya da geçersizse çökmeden "bulunamadı". */
 export default function VenueProfileScreen({ route, navigation }) {
+  const venueId = route.params?.venueId;
+  if (venueId === undefined || venueId === null || !Number.isFinite(Number(venueId))) {
+    return <DeepLinkLoader error onBack={() => navigation.navigate('MainApp')} />;
+  }
+  return <VenueProfileContent route={route} navigation={navigation} />;
+}
+
+function VenueProfileContent({ route, navigation }) {
   const { venueId, venueName } = route.params;
   const { colors } = useTheme();
   const { session } = useAuth();
@@ -46,6 +56,8 @@ export default function VenueProfileScreen({ route, navigation }) {
   const now = new Date();
   const [calYear, setCalYear]   = useState(now.getFullYear());
   const [calMonth, setCalMonth] = useState(now.getMonth());
+  // Birden çok etkinliği olan gün seçilince altta o günün listesi açılır (N-33)
+  const [selectedDay, setSelectedDay] = useState(null);
 
   const [reviewModal, setReviewModal] = useState(false);
   const [myRating, setMyRating]       = useState(0);
@@ -101,10 +113,12 @@ export default function VenueProfileScreen({ route, navigation }) {
   }, [calYear, calMonth]);
 
   const prevMonth = () => {
+    setSelectedDay(null);
     if (calMonth === 0) { setCalMonth(11); setCalYear(y => y - 1); }
     else setCalMonth(m => m - 1);
   };
   const nextMonth = () => {
+    setSelectedDay(null);
     if (calMonth === 11) { setCalMonth(0); setCalYear(y => y + 1); }
     else setCalMonth(m => m + 1);
   };
@@ -244,7 +258,10 @@ export default function VenueProfileScreen({ route, navigation }) {
                   key={idx}
                   style={[styles.calCell, { width: DAY_SIZE, height: DAY_SIZE + 12 }]}
                   disabled={!firstEvent}
-                  onPress={() => firstEvent && openEvent(navigation, firstEvent)}
+                  onPress={() => {
+                    if (dayEvents.length > 1) setSelectedDay(selectedDay === day ? null : day);
+                    else if (firstEvent) openEvent(navigation, firstEvent);
+                  }}
                   activeOpacity={0.75}
                 >
                   {firstEvent?.imageUrl ? (
@@ -270,6 +287,29 @@ export default function VenueProfileScreen({ route, navigation }) {
               );
             })}
           </View>
+
+          {selectedDay && (eventsByDay[selectedDay] || []).length > 1 && (
+            <View style={styles.dayList}>
+              <Text style={[styles.dayListTitle, { color: colors.textSecondary }]}>
+                {selectedDay} {MONTHS[calMonth]}
+              </Text>
+              {eventsByDay[selectedDay].map(e => {
+                const d = parseEventDate(e.eventDate);
+                const time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+                return (
+                  <TouchableOpacity
+                    key={e.id}
+                    style={[styles.dayListRow, { backgroundColor: colors.card, borderColor: colors.border }]}
+                    onPress={() => openEvent(navigation, e)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[styles.dayListName, { color: colors.text }]} numberOfLines={1}>{e.name}</Text>
+                    <Text style={[styles.dayListTime, { color: colors.textSecondary }]}>{time}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
 
           {Object.keys(eventsByDay).length === 0 && (
             <Text style={[styles.noEventsText, { color: colors.textSecondary }]}>{t('venue_no_events_month')}</Text>
@@ -406,6 +446,14 @@ function createStyles(colors) {
     },
     calMoreText: { fontSize: 8, color: '#fff', fontWeight: '800' },
     noEventsText: { textAlign: 'center', paddingVertical: 20, fontSize: 13 },
+    dayList: { marginTop: 12, gap: 8 },
+    dayListTitle: { fontSize: 13, fontWeight: '700' },
+    dayListRow: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      borderWidth: 1, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14, gap: 12,
+    },
+    dayListName: { flex: 1, fontSize: 14, fontWeight: '700' },
+    dayListTime: { fontSize: 13, fontWeight: '600' },
 
     // PUAN BUTONU
     rateBtn: { padding: 16, borderRadius: 16, alignItems: 'center' },

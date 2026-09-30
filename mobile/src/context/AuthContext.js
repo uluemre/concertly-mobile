@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useState } fr
 import * as Storage from '../services/secureStorage';
 import { unregisterPushToken } from '../services/pushNotifications';
 import { setApiToken, setApiRefreshToken, setTokenRefreshedHandler, revokeRefreshToken } from '../services/api';
+import { clearPendingRoute } from '../navigation/pendingRoute';
 
 const AuthContext = createContext(null);
 
@@ -78,6 +79,13 @@ export function AuthProvider({ children }) {
       isAdmin: data.isAdmin === true,
       onboardingCompleted: data.onboardingCompleted || false,
     };
+    // API istemcisi yeni oturumu hemen görsün (efekt bir render sonra çalışır);
+    // girişten hemen sonraki yönlendirme oturumsuz sanılmasın (N-23)
+    setApiToken(newSession.authToken);
+    setApiRefreshToken(newSession.refreshToken);
+    // Saklı hedef yalnızca Login ekranında (girişten önce) alınır; kayıt ya da
+    // e-posta doğrulamasıyla açılan oturuma eski hedef taşınmaz
+    clearPendingRoute();
     setSession(newSession);
     await Storage.multiSet([
       ['authToken', newSession.authToken],

@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import API from '../services/api';
+import { takePendingRoute } from '../navigation/pendingRoute';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -59,24 +60,29 @@ export default function LoginScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
-    if (!email || !password) {
+    // Baş/son boşluk (klavye önerisi, yapıştırma) giriş hatası sayılmasın (N-22)
+    const cleanEmail = email.trim();
+    if (!cleanEmail || !password) {
       Alert.alert(t('error'), t('login_empty_error'));
       return;
     }
     setLoading(true);
     try {
-      const res = await API.post('/auth/login', { email, password });
+      const res = await API.post('/auth/login', { email: cleanEmail, password });
+      const pending = takePendingRoute(res.data.userId);
       await login(res.data);
       if (res.data.isAdmin) {
         navigation.replace('Admin');
       } else {
         navigation.replace('MainApp');
+        // Oturumsuz açılan link ya da oturum bitince kalınan ekran (N-23)
+        if (pending) navigation.navigate(pending.name, pending.params);
       }
     } catch (err) {
       // Şifre doğru ama e-posta henüz doğrulanmamış → yeni kod gönder, kod ekranına geç
       if (err?.response?.status === 403 && err?.response?.data?.message === 'EMAIL_NOT_VERIFIED') {
-        API.post('/auth/resend-verification', { email: email.trim() }).catch(() => {});
-        navigation.navigate('VerifyEmail', { email: email.trim() });
+        API.post('/auth/resend-verification', { email: cleanEmail }).catch(() => {});
+        navigation.navigate('VerifyEmail', { email: cleanEmail });
         return;
       }
       const status = err?.response?.status;

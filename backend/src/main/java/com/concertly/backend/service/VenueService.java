@@ -38,8 +38,10 @@ public class VenueService {
 
         Double avgRating = reviewRepository.avgRatingByVenueId(venueId);
         long reviewCount = reviewRepository.countByVenueId(venueId);
-        long totalEvents = eventRepository.findByVenueIdOrderByEventDateAsc(venueId).stream()
-                .filter(com.concertly.backend.model.Event::listedPublicly).count();
+        // Sayı, listedeki kartlarla aynı olsun (N-33): aynı konserin kaynak kopyaları tek sayılır
+        long totalEvents = collapseCopies(eventRepository.findByVenueIdOrderByEventDateAsc(venueId).stream()
+                .filter(com.concertly.backend.model.Event::listedPublicly)
+                .toList()).size();
 
         Integer myRating = null;
         if (currentUserId != null) {
