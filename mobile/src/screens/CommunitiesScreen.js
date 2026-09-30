@@ -9,6 +9,7 @@ import { useTheme } from '../theme';
 import { ListSkeletonPage } from '../components/SkeletonLoader';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { communityTypeLabel } from '../utils/communityType';
 import API, { getErrorMessage } from '../services/api';
 import { goBackOrFallback } from '../navigation/navHelpers';
 
@@ -20,6 +21,9 @@ const FILTERS = [
   { key: 'Elektronik', labelKey: 'community_filter_electronic', apiValue: 'Elektronik', emoji: '🎧' },
   { key: 'Şehir',      labelKey: 'community_filter_city',       apiValue: 'Şehir',      emoji: '📍' },
   { key: 'Caz',        labelKey: 'community_filter_jazz',       apiValue: 'Caz',        emoji: '🎷' },
+  { key: 'Pop',        labelKey: 'community_filter_pop',        apiValue: 'Pop',        emoji: '🎤' },
+  { key: 'Rap',        labelKey: 'community_filter_rap',        apiValue: 'Rap',        emoji: '🎯' },
+  { key: 'Diğer',      labelKey: 'community_filter_other',      apiValue: 'Diğer',      emoji: '🎵' },
 ];
 
 export default function CommunitiesScreen({ navigation }) {
@@ -280,7 +284,7 @@ export default function CommunitiesScreen({ navigation }) {
                       {visIcon ? `${visIcon} ` : ''}{community.name}
                     </Text>
                     <Text style={styles.cardMeta} numberOfLines={1}>
-                      {community.city ? `${community.city} · ` : ''}{community.type}
+                      {community.city ? `${community.city} · ` : ''}{communityTypeLabel(community.type, t)}
                     </Text>
                     <View style={styles.tagRow}>
                       {pending ? (

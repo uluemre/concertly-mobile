@@ -8,6 +8,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
+import { communityTypeLabel } from '../utils/communityType';
 import API, { getErrorMessage, uploadImage } from '../services/api';
 import { goBackOrFallback } from '../navigation/navHelpers';
 import DeepLinkLoader from '../components/DeepLinkLoader';
@@ -282,7 +283,7 @@ export default function CommunityDetailScreen({ route, navigation }) {
                 </Text>
               </View>
               {!!community.type && (
-                <View style={styles.heroChip}><Text style={styles.heroChipText}>🎵 {community.type}</Text></View>
+                <View style={styles.heroChip}><Text style={styles.heroChipText}>🎵 {communityTypeLabel(community.type, t)}</Text></View>
               )}
               {!!community.city && (
                 <View style={styles.heroChip}><Text style={styles.heroChipText}>📍 {community.city}</Text></View>

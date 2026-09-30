@@ -7,6 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
+import { communityTypeLabel } from '../utils/communityType';
 import API, { getErrorMessage } from '../services/api';
 import { goBackOrFallback } from '../navigation/navHelpers';
 
@@ -81,7 +82,7 @@ export default function AdminCommunitiesScreen({ navigation }) {
             <View style={{ flex: 1 }}>
               <Text style={styles.name} numberOfLines={1}>{c.name}</Text>
               <Text style={styles.meta}>
-                {c.city ? `${c.city} · ` : ''}{c.type} · {c.visibility}
+                {c.city ? `${c.city} · ` : ''}{communityTypeLabel(c.type, t)} · {c.visibility}
               </Text>
               <Text style={styles.by}>
                 {c.ownerUsername ? t('admin_communities_by', { user: c.ownerUsername }) : ''} · {waitingLabel(c.createdAt, t)}
