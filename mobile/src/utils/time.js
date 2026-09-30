@@ -23,19 +23,51 @@ export function parseEventDate(value) {
   return new Date(value);
 }
 
-export function formatTimeAgo(dateStr) {
-  if (!dateStr) return '';
-  const diff = (Date.now() - parseEventDate(dateStr).getTime()) / 1000;
-  if (diff < 60) return 'az önce';
-  if (diff < 3600) return `${Math.floor(diff / 60)}dk`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}sa`;
-  return parseEventDate(dateStr).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+// Uygulama diline göre tarih yerel ayarı (N-35). Dil verilmezse Türkçe:
+// dili iletmeyen eski çağrılar bugünkü gibi çalışır.
+export function dateLocale(lang = 'tr') {
+  return lang === 'en' ? 'en-GB' : 'tr-TR';
 }
 
-export function formatDateShort(dateStr) {
+// Göreli zaman kısaltmaları (N-35)
+const RELATIVE_UNITS = {
+  tr: { now: 'az önce', justNow: 'şimdi', min: 'dk', hour: 'sa', day: 'g', week: 'h' },
+  en: { now: 'now', justNow: 'now', min: 'm', hour: 'h', day: 'd', week: 'w' },
+};
+
+function relativeUnits(lang) {
+  return RELATIVE_UNITS[lang === 'en' ? 'en' : 'tr'];
+}
+
+export function formatTimeAgo(dateStr, lang = 'tr') {
+  if (!dateStr) return '';
+  const u = relativeUnits(lang);
+  const diff = (Date.now() - parseEventDate(dateStr).getTime()) / 1000;
+  if (diff < 60) return u.now;
+  if (diff < 3600) return `${Math.floor(diff / 60)}${u.min}`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}${u.hour}`;
+  return parseEventDate(dateStr).toLocaleDateString(dateLocale(lang), { day: 'numeric', month: 'short' });
+}
+
+// Topluluk gönderileri için gün/hafta da kısaltılan göreli zaman ("3g", "2h" / "3d", "2w")
+export function formatRelativeShort(dateStr, lang = 'tr') {
+  if (!dateStr) return '';
+  const u = relativeUnits(lang);
+  const diffMin = Math.floor((Date.now() - parseEventDate(dateStr).getTime()) / 60000);
+  if (diffMin < 1) return u.justNow; // topluluk ekranı eskiden beri "şimdi" der
+  if (diffMin < 60) return `${diffMin}${u.min}`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}${u.hour}`;
+  const diffDay = Math.floor(diffHr / 24);
+  if (diffDay < 7) return `${diffDay}${u.day}`;
+  return `${Math.floor(diffDay / 7)}${u.week}`;
+}
+
+export function formatDateShort(dateStr, lang = 'tr') {
   const d = parseEventDate(dateStr);
+  const locale = dateLocale(lang);
   return {
-    day: d.toLocaleDateString('tr-TR', { day: 'numeric' }),
-    month: d.toLocaleDateString('tr-TR', { month: 'short' }),
+    day: d.toLocaleDateString(locale, { day: 'numeric' }),
+    month: d.toLocaleDateString(locale, { month: 'short' }),
   };
 }

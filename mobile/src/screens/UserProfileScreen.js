@@ -12,7 +12,7 @@ import { useTheme } from '../theme';
 import { ProfileSkeletonPage } from '../components/SkeletonLoader';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
-import { parseEventDate } from '../utils/time';
+import { parseEventDate, dateLocale } from '../utils/time';
 import { goBackOrFallback, openEvent } from '../navigation/navHelpers';
 import { usePostUpdates } from '../services/postUpdates';
 
@@ -32,7 +32,7 @@ function UserProfileContent({ route, navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { session } = useAuth();
-  const { t, tu } = useLanguage();
+  const { t, tu, lang } = useLanguage();
   const { userId } = route.params;
 
   const [profile, setProfile] = useState(null);
@@ -391,7 +391,7 @@ function UserProfileContent({ route, navigation }) {
                       </TouchableOpacity>
                     ) : null}
                     <Text style={styles.postDate}>
-                      {new Date(item.createdAt).toLocaleDateString('tr-TR', {
+                      {new Date(item.createdAt).toLocaleDateString(dateLocale(lang), {
                         day: 'numeric', month: 'short', year: 'numeric',
                       })}
                     </Text>

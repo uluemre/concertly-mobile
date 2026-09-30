@@ -11,7 +11,7 @@ import API from '../services/api';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
-import { parseEventDate } from '../utils/time';
+import { parseEventDate, dateLocale } from '../utils/time';
 import { GENRE_SHORTCUTS } from '../constants/genres';
 import { openEvent } from '../navigation/navHelpers';
 
@@ -40,7 +40,7 @@ function useDebounce(fn, delay) {
 export default function SearchModal({ visible, onClose, navigation }) {
     const { colors } = useTheme();
     const { session } = useAuth();
-    const { t } = useLanguage();
+    const { t, lang } = useLanguage();
     const styles = useMemo(() => createStyles(colors), [colors]);
 
     const [query, setQuery] = useState('');
@@ -199,7 +199,7 @@ export default function SearchModal({ visible, onClose, navigation }) {
                     {item.venueCity ? `  📍 ${item.venueCity}` : ''}
                 </Text>
                 <Text style={styles.resultDate}>
-                    📅 {parseEventDate(item.eventDate).toLocaleDateString('tr-TR', {
+                    📅 {parseEventDate(item.eventDate).toLocaleDateString(dateLocale(lang), {
                         day: 'numeric', month: 'short', year: 'numeric',
                     })}
                 </Text>

@@ -20,7 +20,7 @@ import { goBackOrFallback } from '../navigation/navHelpers';
  */
 export default function AdminReportsScreen({ navigation }) {
   const { colors } = useTheme();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [reports, setReports] = useState([]);
@@ -88,7 +88,7 @@ export default function AdminReportsScreen({ navigation }) {
         <View style={styles.typeBadge}>
           <Text style={styles.typeBadgeText}>{item.targetType}</Text>
         </View>
-        <Text style={styles.time}>{formatTimeAgo(item.createdAt)}</Text>
+        <Text style={styles.time}>{formatTimeAgo(item.createdAt, lang)}</Text>
       </View>
 
       {item.reason ? <Text style={styles.reason}>{item.reason}</Text> : null}

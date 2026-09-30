@@ -21,7 +21,7 @@ const AVATAR_GRADIENTS = [
 
 export default function ChatListScreen({ navigation }) {
   const { colors } = useTheme();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [conversations, setConversations] = useState([]);
@@ -88,7 +88,7 @@ export default function ChatListScreen({ navigation }) {
         <View style={styles.rowTop}>
           <Text style={[styles.username, { color: colors.text }]}>@{item.username}</Text>
           <Text style={[styles.time, { color: colors.textSecondary }]}>
-            {formatTimeAgo(item.lastMessageAt)}
+            {formatTimeAgo(item.lastMessageAt, lang)}
           </Text>
         </View>
         <View style={styles.rowBottom}>

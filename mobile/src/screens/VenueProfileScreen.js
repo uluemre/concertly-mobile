@@ -10,7 +10,7 @@ import { useTheme } from '../theme';
 import { ProfileSkeletonPage } from '../components/SkeletonLoader';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
-import { parseEventDate } from '../utils/time';
+import { parseEventDate, dateLocale } from '../utils/time';
 import { goBackOrFallback, openEvent } from '../navigation/navHelpers';
 import DeepLinkLoader from '../components/DeepLinkLoader';
 
@@ -42,7 +42,7 @@ function VenueProfileContent({ route, navigation }) {
   const { venueId, venueName } = route.params;
   const { colors } = useTheme();
   const { session } = useAuth();
-  const { t, tu } = useLanguage();
+  const { t, tu, lang } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const MONTHS = t('venue_months').split(',');
@@ -354,7 +354,7 @@ function VenueProfileContent({ route, navigation }) {
                   </View>
                   <View style={{ alignItems: 'flex-end', gap: 4 }}>
                     <Text style={[styles.reviewDate, { color: colors.textSecondary }]}>
-                      {new Date(r.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
+                      {new Date(r.createdAt).toLocaleDateString(dateLocale(lang), { day: 'numeric', month: 'short' })}
                     </Text>
                     {r.userId === session.userId && (
                       <TouchableOpacity onPress={() => handleDeleteReview(r.id)}>

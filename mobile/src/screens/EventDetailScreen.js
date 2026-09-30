@@ -20,7 +20,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { getGenreGradient } from '../utils/gradients';
 import { detailImageCandidates } from '../utils/eventImage';
-import { formatTimeAgo, parseEventDate } from '../utils/time';
+import { formatTimeAgo, parseEventDate, dateLocale } from '../utils/time';
 import ConfettiOverlay from '../components/ConfettiOverlay';
 import { goBackOrFallback } from '../navigation/navHelpers';
 
@@ -791,12 +791,12 @@ function EventDetailContent({ route, navigation }) {
         <View style={styles.infoCard}>
           <Text style={styles.sectionTitle}>{t('detail_date_time')}</Text>
           <Text style={styles.infoValue}>
-            {parseEventDate(event.eventDate).toLocaleDateString('tr-TR', {
+            {parseEventDate(event.eventDate).toLocaleDateString(dateLocale(lang), {
               weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
             })}
           </Text>
           <Text style={styles.infoValueSub}>
-            🕐 {parseEventDate(event.eventDate).toLocaleTimeString('tr-TR', {
+            🕐 {parseEventDate(event.eventDate).toLocaleTimeString(dateLocale(lang), {
               hour: '2-digit', minute: '2-digit',
             })}
           </Text>
@@ -1048,7 +1048,7 @@ function EventDetailContent({ route, navigation }) {
                             </View>
                           )}
                         </View>
-                        <Text style={[styles.reviewTime, { color: colors.textSecondary }]}>{formatTimeAgo(r.createdAt)}</Text>
+                        <Text style={[styles.reviewTime, { color: colors.textSecondary }]}>{formatTimeAgo(r.createdAt, lang)}</Text>
                       </View>
                     </View>
                     <Text style={styles.reviewStars}>{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</Text>

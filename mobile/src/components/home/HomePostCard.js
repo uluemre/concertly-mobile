@@ -2,12 +2,14 @@ import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '../../theme';
 import { formatTimeAgo } from '../../utils/time';
+import { useLanguage } from '../../context/LanguageContext';
 import { openEvent } from '../../navigation/navHelpers';
 
 const ACCENT_COLORS = ['#E94560', '#7C3AED', '#F5A623', '#00D4AA', '#FF6B6B', '#4ECDC4'];
 
 export default React.memo(function HomePostCard({ item, index, navigation }) {
   const { colors } = useTheme();
+  const { lang } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const accent = ACCENT_COLORS[index % ACCENT_COLORS.length];
 
@@ -33,7 +35,7 @@ export default React.memo(function HomePostCard({ item, index, navigation }) {
               <Text style={styles.event} numberOfLines={1}>🎵 {item.eventName}</Text>
             )}
           </View>
-          <Text style={styles.time}>{formatTimeAgo(item.createdAt)}</Text>
+          <Text style={styles.time}>{formatTimeAgo(item.createdAt, lang)}</Text>
         </View>
         <Text style={styles.content} numberOfLines={3}>{item.content}</Text>
         <View style={styles.footer}>

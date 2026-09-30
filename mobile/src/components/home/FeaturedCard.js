@@ -28,7 +28,7 @@ export default React.memo(function FeaturedCard({ item, index, cardWidth, cardHe
   }, []);
 
   const accent = ACCENT_COLORS[index % ACCENT_COLORS.length];
-  const { day, month } = formatDateShort(item.eventDate);
+  const { day, month } = formatDateShort(item.eventDate, lang);
 
   return (
     <Animated.View style={[styles.outer, { opacity, transform: [{ scale }] }]}>

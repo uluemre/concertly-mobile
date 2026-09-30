@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../theme';
 import { useLanguage } from '../../context/LanguageContext';
+import { dateLocale } from '../../utils/time';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2;
@@ -10,7 +11,7 @@ const CARD_WIDTH = (width - 48) / 2;
 export default function BadgeGrid({ badges }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
 
   // Kilitli rozette "katıldın!" değil hedef yazılır (N-38); bilinmeyen rozet
   // kodunda sunucunun açıklaması kalır
@@ -42,7 +43,7 @@ export default function BadgeGrid({ badges }) {
           </Text>
           {item.earned ? (
             <Text style={styles.date}>
-              {new Date(item.earnedAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
+              {new Date(item.earnedAt).toLocaleDateString(dateLocale(lang), { day: 'numeric', month: 'short' })}
             </Text>
           ) : item.required > 0 && (
             <View style={styles.progressWrap}>

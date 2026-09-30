@@ -17,7 +17,7 @@ import API, { uploadImage } from '../services/api';
 import { useTheme } from '../theme';
 import { ProfileSkeletonPage } from '../components/SkeletonLoader';
 import BadgeGrid from '../components/profile/BadgeGrid';
-import { parseEventDate } from '../utils/time';
+import { parseEventDate, dateLocale } from '../utils/time';
 import { openEvent } from '../navigation/navHelpers';
 import { usePostUpdates } from '../services/postUpdates';
 
@@ -35,7 +35,7 @@ export default function ProfileScreen({ navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { session, logout } = useAuth();
-  const { t, tu } = useLanguage();
+  const { t, tu, lang } = useLanguage();
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
   // PostDetail'de değişen beğeni / yorum sayıları geri dönünce burada da görünsün
@@ -415,7 +415,7 @@ export default function ProfileScreen({ navigation }) {
                     )}
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                       <Text style={styles.postDate}>
-                        {new Date(item.createdAt).toLocaleDateString('tr-TR')}
+                        {new Date(item.createdAt).toLocaleDateString(dateLocale(lang))}
                       </Text>
                       <TouchableOpacity
                         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}

@@ -18,7 +18,7 @@ const POST_TYPE_CONFIG = {
 
 export default function AdminPostsScreen({ navigation }) {
   const { colors } = useTheme();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [posts, setPosts] = useState([]);
@@ -94,7 +94,7 @@ export default function AdminPostsScreen({ navigation }) {
               </Text>
             )}
             <Text style={[styles.postTime, { color: colors.textSecondary }]}>
-              {formatTimeAgo(item.createdAt)}
+              {formatTimeAgo(item.createdAt, lang)}
             </Text>
           </View>
         </View>

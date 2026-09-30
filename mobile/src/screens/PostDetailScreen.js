@@ -26,7 +26,7 @@ function PostDetailContent({ route, navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { session } = useAuth();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
 
   const [post, setPost] = useState(initialPost);
   const [comments, setComments] = useState([]);
@@ -154,7 +154,7 @@ function PostDetailContent({ route, navigation }) {
           <TouchableOpacity onPress={() => goToUser(item.userId)} activeOpacity={0.8}>
             <Text style={styles.commentUsername}>@{item.username}</Text>
           </TouchableOpacity>
-          <Text style={styles.commentTime}>{formatTimeAgo(item.createdAt)}</Text>
+          <Text style={styles.commentTime}>{formatTimeAgo(item.createdAt, lang)}</Text>
         </View>
         <Text style={styles.commentText}>{item.content}</Text>
         {item.userId === session.userId && (
@@ -189,7 +189,7 @@ function PostDetailContent({ route, navigation }) {
         </LinearGradient>
         <View>
           <Text style={styles.postUsername}>@{post.username}</Text>
-          <Text style={styles.postTime}>{formatTimeAgo(post.createdAt)}</Text>
+          <Text style={styles.postTime}>{formatTimeAgo(post.createdAt, lang)}</Text>
         </View>
       </TouchableOpacity>
 

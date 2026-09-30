@@ -26,7 +26,7 @@ export default React.memo(function PostCard({
   item, index, currentUserId, navigation, onDelete, onEdit,
 }) {
   const { colors } = useTheme();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const scaleAnim = useRef(new Animated.Value(1)).current;
@@ -264,7 +264,7 @@ export default React.memo(function PostCard({
           </View>
         </TouchableOpacity>
         <View style={styles.headerRight}>
-          <Text style={styles.postTime}>{formatTimeAgo(item.createdAt)}</Text>
+          <Text style={styles.postTime}>{formatTimeAgo(item.createdAt, lang)}</Text>
           <TouchableOpacity onPress={handleOptions} style={styles.optionsBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Text style={styles.optionsIcon}>⋯</Text>
           </TouchableOpacity>

@@ -9,7 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import API from '../services/api';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
-import { parseEventDate } from '../utils/time';
+import { parseEventDate, dateLocale } from '../utils/time';
 import { openEvent } from '../navigation/navHelpers';
 
 const { width, height } = Dimensions.get('window');
@@ -58,7 +58,7 @@ function formatDistance(km) {
 export default function MapScreen({ navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const mapRef = useRef(null);
 
   const RADIUS_OPTIONS = useMemo(() => [
@@ -248,7 +248,7 @@ export default function MapScreen({ navigation }) {
                 <Text style={styles.bottomCardSub}>🎤 {selectedEvent.artistName}</Text>
               )}
               <Text style={styles.bottomCardSub}>
-                📅 {parseEventDate(selectedEvent.eventDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                📅 {parseEventDate(selectedEvent.eventDate).toLocaleDateString(dateLocale(lang), { day: 'numeric', month: 'long', year: 'numeric' })}
               </Text>
               {selectedEvent.venueName && (
                 <Text style={styles.bottomCardSub}>🏟️ {selectedEvent.venueName}</Text>

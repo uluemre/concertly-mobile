@@ -14,7 +14,7 @@ import { ProfileSkeletonPage } from '../components/SkeletonLoader';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { buildShareUrl, shareWithLink } from '../services/shareLinks';
-import { formatTimeAgo, parseEventDate } from '../utils/time';
+import { formatTimeAgo, parseEventDate, dateLocale } from '../utils/time';
 import { goBackOrFallback, openEvent } from '../navigation/navHelpers';
 
 const GENRE_GRADIENTS = {
@@ -90,7 +90,7 @@ const eventEmojis = ['🎸', '🎤', '🥁', '🎹', '🎺', '🎻', '🎪', '�
 export default function ArtistProfileScreen({ route, navigation }) {
   const { colors } = useTheme();
   const { session } = useAuth();
-  const { t, tu } = useLanguage();
+  const { t, tu, lang } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { artistId, artistName } = route.params;
 
@@ -443,7 +443,7 @@ export default function ArtistProfileScreen({ route, navigation }) {
                   >
                     <View style={styles.pastCardLeft}>
                       <Text style={[styles.pastCardDate, { color: colors.textSecondary }]}>
-                        {parseEventDate(item.eventDate).toLocaleDateString('tr-TR', {
+                        {parseEventDate(item.eventDate).toLocaleDateString(dateLocale(lang), {
                           day: 'numeric', month: 'short', year: 'numeric',
                         })}
                       </Text>
@@ -501,7 +501,7 @@ export default function ArtistProfileScreen({ route, navigation }) {
                     <Text style={styles.postEvent}>🎵 {item.eventName}</Text>
                   </View>
                   <Text style={styles.postDate}>
-                    {new Date(item.createdAt).toLocaleDateString('tr-TR', {
+                    {new Date(item.createdAt).toLocaleDateString(dateLocale(lang), {
                       day: 'numeric', month: 'short',
                     })}
                   </Text>
@@ -583,7 +583,7 @@ export default function ArtistProfileScreen({ route, navigation }) {
                       <StarDisplay value={r.rating} />
                     </View>
                     <Text style={[styles.reviewDate, { color: colors.textSecondary }]}>
-                      {formatTimeAgo(r.createdAt)}
+                      {formatTimeAgo(r.createdAt, lang)}
                     </Text>
                   </View>
                   {r.comment ? (

@@ -6,9 +6,11 @@ import {
 import API from '../../services/api';
 import { useTheme } from '../../theme';
 import { formatTimeAgo } from '../../utils/time';
+import { useLanguage } from '../../context/LanguageContext';
 
 export default function CommentModal({ visible, postId, currentUserId, onClose }) {
   const { colors } = useTheme();
+  const { lang } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -84,7 +86,7 @@ export default function CommentModal({ visible, postId, currentUserId, onClose }
                 <View style={styles.commentBody}>
                   <Text style={styles.commentUsername}>@{item.username}</Text>
                   <Text style={styles.commentContent}>{item.content}</Text>
-                  <Text style={styles.commentTime}>{formatTimeAgo(item.createdAt)}</Text>
+                  <Text style={styles.commentTime}>{formatTimeAgo(item.createdAt, lang)}</Text>
                 </View>
               </View>
             )}

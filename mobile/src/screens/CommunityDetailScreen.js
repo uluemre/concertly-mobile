@@ -11,25 +11,12 @@ import { useLanguage } from '../context/LanguageContext';
 import API, { getErrorMessage, uploadImage } from '../services/api';
 import { goBackOrFallback } from '../navigation/navHelpers';
 import DeepLinkLoader from '../components/DeepLinkLoader';
-
-function formatRelativeTime(isoString) {
-  const now = Date.now();
-  const then = new Date(isoString).getTime();
-  const diffMin = Math.floor((now - then) / 60000);
-
-  if (diffMin < 1) return 'şimdi';
-  if (diffMin < 60) return diffMin + 'dk';
-  const diffHr = Math.floor(diffMin / 60);
-  if (diffHr < 24) return diffHr + 'sa';
-  const diffDay = Math.floor(diffHr / 24);
-  if (diffDay < 7) return diffDay + 'g';
-  return Math.floor(diffDay / 7) + 'h';
-}
+import { formatRelativeShort } from '../utils/time';
 
 export default function CommunityDetailScreen({ route, navigation }) {
   const { communityId } = route.params;
   const { colors } = useTheme();
-  const { t, tu } = useLanguage();
+  const { t, tu, lang } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [community, setCommunity] = useState(null);
@@ -485,7 +472,7 @@ export default function CommunityDetailScreen({ route, navigation }) {
                         gradient={[community.gradientStart, community.gradientEnd]} />
                 <View style={styles.postHeaderText}>
                   <Text style={styles.username}>@{post.username}</Text>
-                  <Text style={styles.postTime}>{formatRelativeTime(post.createdAt)}</Text>
+                  <Text style={styles.postTime}>{formatRelativeShort(post.createdAt, lang)}</Text>
                 </View>
               </View>
               {!!post.content && <Text style={styles.postContent}>{post.content}</Text>}
