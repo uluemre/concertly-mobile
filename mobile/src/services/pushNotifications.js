@@ -141,6 +141,9 @@ export function routeForNotification(data) {
       return entityId ? { screen: 'UserProfile', params: { userId: entityId } } : null;
     case 'daily_song':
       return { screen: 'DailySong', params: {} };
+    case 'badge':
+      // Rozet bildirimi → Profil sekmesinde Rozetler (N-38)
+      return { screen: 'MainApp', params: { screen: 'Profile', params: { tab: 'badges' } } };
     default:
       // Bildirimler bir sekme; kök yığından iç içe rota ile açılır.
       return { screen: 'MainApp', params: { screen: 'Notifications' } };

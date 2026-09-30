@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
   ActivityIndicator, ScrollView, Modal, TextInput,
@@ -31,7 +31,7 @@ const gradientSets = [
   ['#7C3AED', '#F5A623'],
 ];
 
-export default function ProfileScreen({ navigation }) {
+export default function ProfileScreen({ navigation, route }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { session, logout } = useAuth();
@@ -47,6 +47,14 @@ export default function ProfileScreen({ navigation }) {
   const [gameStats, setGameStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('posts');
+  // Rozet bildiriminden gelince Rozetler sekmesi açılır (N-38); parametre
+  // temizlenir ki kullanıcı sekme değiştirince tekrar zorlanmasın
+  const requestedTab = route?.params?.tab;
+  useEffect(() => {
+    if (!requestedTab) return;
+    setActiveTab(requestedTab);
+    navigation.setParams({ tab: undefined });
+  }, [requestedTab]);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [editingPost, setEditingPost] = useState(null);
   const [editText, setEditText] = useState('');

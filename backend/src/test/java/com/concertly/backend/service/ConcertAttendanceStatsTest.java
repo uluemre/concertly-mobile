@@ -110,6 +110,7 @@ class ConcertAttendanceStatsTest {
         Badge b = new Badge();
         b.setCode(code);
         b.setName(code);
+        ReflectionTestUtils.setField(b, "id", (long) code.hashCode());
         return b;
     }
 
@@ -128,14 +129,15 @@ class ConcertAttendanceStatsTest {
                 event(LocalDateTime.now().plusDays(3), "Ankara"),
                 event(LocalDateTime.now().plusDays(4), "Ankara"),
                 event(LocalDateTime.now().plusDays(5), "Ankara"));
-        BadgeService service = new BadgeService(badges, userBadges, users, stats, mock(PostRepository.class));
+        BadgeService service = new BadgeService(badges, userBadges, users, stats, mock(PostRepository.class),
+                mock(NotificationService.class));
 
         List<BadgeResponse> result = service.getAllBadgesWithStatus(7L);
 
         BadgeResponse ilk = result.stream().filter(b -> "ilk_konser".equals(b.getCode())).findFirst().orElseThrow();
         assertEquals(0, ilk.getProgress(), "gelecekteki konser katılım sayılmaz");
         assertFalse(ilk.isEarned());
-        verify(userBadges, never()).save(argThat(ub -> "ilk_konser".equals(ub.getBadge().getCode())));
+        verify(userBadges, never()).insertIfAbsent(anyLong(), eq((long) "ilk_konser".hashCode()), any());
     }
 
     @Test
@@ -151,7 +153,8 @@ class ConcertAttendanceStatsTest {
 
         // Eski kuralla (gelecek dahil) kazanılmış ama şu an yalnızca 1 geçmiş konser var
         ConcertAttendanceService stats = serviceWith(event(LocalDateTime.now().minusDays(1), "Ankara"));
-        BadgeService service = new BadgeService(badges, userBadges, mock(UserRepository.class), stats, mock(PostRepository.class));
+        BadgeService service = new BadgeService(badges, userBadges, mock(UserRepository.class), stats, mock(PostRepository.class),
+                mock(NotificationService.class));
 
         BadgeResponse r = service.getAllBadgesWithStatus(7L).get(0);
 

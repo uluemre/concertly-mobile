@@ -28,7 +28,15 @@ export default function NotificationsScreen({ navigation }) {
     new_event:      { icon: '🎤', text: t('notif_new_event') },
     event_reminder: { icon: '🎫', text: t('notif_event_reminder') },
     daily_song:     { icon: '📅', text: t('notif_daily_song') },
+    badge:          { icon: '🏅', text: t('notif_default') },
   }), [t]);
+
+  // Rozet bildirimi (N-38): mesaj alanı rozet kodunu taşır, ad dile göre çevrilir
+  const badgeName = (code) => {
+    const key = `badge_name_${code}`;
+    const name = t(key);
+    return name !== key ? name : (code || '');
+  };
 
   const timeAgo = (dateStr) => {
     const diff = (Date.now() - new Date(dateStr)) / 1000;
@@ -100,6 +108,10 @@ export default function NotificationsScreen({ navigation }) {
   // Bir grup için aktör etiketi + metin (1'den fazlaysa grup metni)
   const getLine = (g) => {
     const cfg = TYPE_CONFIG[g.type] || { icon: '🔔', text: t('notif_default') };
+    if (g.type === 'badge') {
+      // Tam cümle; başına aktör adı yazılmaz
+      return { actor: '', text: t('notif_badge', { badge: badgeName(g.rep.message) }), icon: cfg.icon };
+    }
     const others = g.actors.length - 1;
     if ((g.type === 'like' || g.type === 'comment' || g.type === 'follow') && others > 0) {
       const key = g.type === 'like' ? 'notif_like_group'
@@ -157,6 +169,11 @@ export default function NotificationsScreen({ navigation }) {
       navigation.navigate('DailySong');
       return;
     }
+    // Rozet bildirimi → Profil > Rozetler (N-38)
+    if (item.type === 'badge') {
+      navigation.navigate('Profile', { tab: 'badges' });
+      return;
+    }
     // Etkinlik bildirimleri (turne duyurusu, hatırlatma) → etkinlik detayına git
     if (item.entityType === 'event' && item.entityId) {
       // Yalnızca id: sayfa etkinliği kendisi çeker, silinmişse "bulunamadı" gösterir
@@ -211,10 +228,10 @@ export default function NotificationsScreen({ navigation }) {
 
         <View style={styles.body}>
           <Text style={styles.message} numberOfLines={2}>
-            <Text style={styles.actor}>{line.actor}</Text>
-            {' '}{line.text}
+            {line.actor ? <Text style={styles.actor}>{line.actor}</Text> : null}
+            {line.actor ? ' ' : ''}{line.text}
           </Text>
-          {g.count === 1 && rep.message ? (
+          {g.count === 1 && rep.message && g.type !== 'badge' ? (
             <Text style={styles.message} numberOfLines={1}>{rep.message}</Text>
           ) : null}
           <Text style={styles.time}>{timeAgo(rep.createdAt)}</Text>

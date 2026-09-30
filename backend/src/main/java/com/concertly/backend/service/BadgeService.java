@@ -6,7 +6,9 @@ import com.concertly.backend.repository.*;
 import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -17,17 +19,23 @@ public class BadgeService {
     private final UserRepository userRepository;
     private final ConcertAttendanceService concertAttendance;
     private final PostRepository postRepository;
+    private final NotificationService notificationService;
+
+    /** Kazanıldığında bildirim gitmeyen rozetler: "Yeni Üye" herkese kayıtta verilir. */
+    static final Set<String> SILENT_BADGES = Set.of("yeni_uye");
 
     public BadgeService(BadgeRepository badgeRepository,
                         UserBadgeRepository userBadgeRepository,
                         UserRepository userRepository,
                         ConcertAttendanceService concertAttendance,
-                        PostRepository postRepository) {
+                        PostRepository postRepository,
+                        NotificationService notificationService) {
         this.badgeRepository = badgeRepository;
         this.userBadgeRepository = userBadgeRepository;
         this.userRepository = userRepository;
         this.concertAttendance = concertAttendance;
         this.postRepository = postRepository;
+        this.notificationService = notificationService;
     }
 
     @PostConstruct
@@ -118,12 +126,18 @@ public class BadgeService {
     private void awardIfNotExists(Long userId, String badgeCode) {
         if (userBadgeRepository.existsByUserIdAndBadgeCode(userId, badgeCode)) return;
         badgeRepository.findByCode(badgeCode).ifPresent(badge -> {
-            User user = userRepository.findById(userId).orElse(null);
-            if (user == null) return;
-            UserBadge ub = new UserBadge();
-            ub.setUser(user);
-            ub.setBadge(badge);
-            userBadgeRepository.save(ub);
+            if (userRepository.findById(userId).isEmpty()) return;
+            // Eşzamanlı kontrolde ikinci ekleme sessizce 0 döner; eskiden kısıt
+            // hatası gönderi/katılım isteğini bozabiliyordu (N-38)
+            int inserted = userBadgeRepository.insertIfAbsent(userId, badge.getId(), LocalDateTime.now());
+            if (inserted == 0) return;
+            // Yalnızca GERÇEKTEN yeni kazanılan rozet bildirilir; eski rozetler için
+            // geriye dönük bildirim yok. sendSystem aynı (kullanıcı, rozet) için
+            // ikinci bildirimi zaten açmaz. Mesaj alanı rozet kodunu taşır: metin
+            // push'ta sunucuda, uygulamada istemcide dile göre üretilir.
+            if (!SILENT_BADGES.contains(badgeCode)) {
+                notificationService.sendSystem(userId, "badge", "badge", badge.getId(), badgeCode);
+            }
         });
     }
 }

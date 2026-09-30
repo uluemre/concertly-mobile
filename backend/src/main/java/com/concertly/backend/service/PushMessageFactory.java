@@ -57,9 +57,30 @@ public class PushMessageFactory {
                     en ? "Community approved ✅" : "Topluluk onaylandı ✅", extra };
             case "community_rejected" -> new String[] {
                     en ? "Community rejected" : "Topluluk reddedildi", extra };
+            case "badge" -> new String[] {
+                    en ? "New badge! 🏅" : "Yeni rozet! 🏅",
+                    en ? "You earned the \"" + badgeName(extra, true) + "\" badge."
+                       : "\"" + badgeName(extra, false) + "\" rozetini kazandın!" };
             case "community_ownership" -> new String[] {
                     en ? "Community ownership" : "Topluluk sahipliği", extra };
             default -> new String[] { "Concertly", extra };
         };
+    }
+
+    /** Rozet kodu → görünen ad (N-38). Veritabanındaki ad yalnızca Türkçe olduğundan burada tutulur. */
+    private static final java.util.Map<String, String[]> BADGE_NAMES = java.util.Map.of(
+            "ilk_konser",      new String[] { "İlk Konser",        "First Concert" },
+            "konser_kurdu",    new String[] { "Konser Kurdu",      "Concert Buff" },
+            "festival_sezonu", new String[] { "Festival Sezonu",   "Festival Season" },
+            "efsane_seyirci",  new String[] { "Efsane Seyirci",    "Legendary Fan" },
+            "ilk_paylasim",    new String[] { "Hikaye Anlatıcısı", "Storyteller" },
+            "sosyal_kelebek",  new String[] { "Sosyal Kelebek",    "Social Butterfly" },
+            "icerik_ustasi",   new String[] { "İçerik Ustası",     "Content Master" },
+            "yeni_uye",        new String[] { "Yeni Üye",          "New Member" });
+
+    static String badgeName(String code, boolean en) {
+        String[] names = code == null ? null : BADGE_NAMES.get(code);
+        if (names == null) return code == null ? "" : code;
+        return en ? names[1] : names[0];
     }
 }
