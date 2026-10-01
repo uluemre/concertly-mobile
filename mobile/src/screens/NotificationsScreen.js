@@ -25,6 +25,8 @@ export default function NotificationsScreen({ navigation }) {
 
   const TYPE_CONFIG = useMemo(() => ({
     follow:         { icon: '👤', text: t('notif_follow') },
+    follow_request:  { icon: '🙋', text: t('notif_follow_request') },
+    follow_accepted: { icon: '✅', text: t('notif_follow_accepted') },
     like:           { icon: '❤️', text: t('notif_like') },
     comment:        { icon: '💬', text: t('notif_comment') },
     message:        { icon: '✉️', text: t('notif_message') },
@@ -172,6 +174,15 @@ export default function NotificationsScreen({ navigation }) {
       return;
     }
     const item = g.rep;
+    // Takip isteği → istekler ekranı; kabul → kabul eden kişinin profili (push ile aynı kural)
+    if (item.type === 'follow_request') {
+      navigation.navigate('FollowRequests');
+      return;
+    }
+    if (item.type === 'follow_accepted' && item.actorId) {
+      navigation.navigate('UserProfile', { userId: item.actorId });
+      return;
+    }
     if (item.type === 'message' && item.actorId) {
       navigation.navigate('Chat', {
         userId: item.actorId,

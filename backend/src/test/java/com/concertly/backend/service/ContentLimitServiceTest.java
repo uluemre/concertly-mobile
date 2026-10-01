@@ -2,6 +2,8 @@ package com.concertly.backend.service;
 
 import com.concertly.backend.model.User;
 import com.concertly.backend.repository.CommentRepository;
+import com.concertly.backend.repository.CommunityPostCommentRepository;
+import com.concertly.backend.repository.CommunityPostRepository;
 import com.concertly.backend.repository.MessageRepository;
 import com.concertly.backend.repository.PostRepository;
 import com.concertly.backend.repository.UserRepository;
@@ -32,10 +34,12 @@ class ContentLimitServiceTest {
     @Mock private PostRepository postRepository;
     @Mock private CommentRepository commentRepository;
     @Mock private MessageRepository messageRepository;
+    @Mock private CommunityPostRepository communityPostRepository;
+    @Mock private CommunityPostCommentRepository communityPostCommentRepository;
 
     private ContentLimitService service(long newAccountHours) {
         return new ContentLimitService(userRepository, postRepository, commentRepository,
-                messageRepository, newAccountHours, 10, 50, 50);
+                messageRepository, communityPostRepository, communityPostCommentRepository, newAccountHours, 10, 50, 50);
     }
 
     private void userCreated(LocalDateTime createdAt) {
@@ -87,5 +91,38 @@ class ContentLimitServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(u));
 
         assertDoesNotThrow(() -> service(48).checkComment(1L));
+    }
+
+    /** Topluluk gönderileri de günlük tavana sayılmalı. */
+    @Test
+    void communityPostsCountTowardPostCap() {
+        userCreated(LocalDateTime.now().minusHours(2));
+        when(postRepository.countByUserIdAndCreatedAtAfter(eq(1L), any())).thenReturn(4L);
+        when(communityPostRepository.countByUserIdAndCreatedAtAfter(eq(1L), any())).thenReturn(6L);
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> service(48).checkPost(1L));
+        assertEquals(HttpStatus.TOO_MANY_REQUESTS, ex.getStatusCode());
+    }
+
+    /** Topluluk yorumları da günlük tavana sayılmalı. */
+    @Test
+    void communityCommentsCountTowardCommentCap() {
+        userCreated(LocalDateTime.now().minusHours(2));
+        when(commentRepository.countByUserIdAndCreatedAtAfter(eq(1L), any())).thenReturn(30L);
+        when(communityPostCommentRepository.countByUserIdAndCreatedAtAfter(eq(1L), any())).thenReturn(20L);
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> service(48).checkComment(1L));
+        assertEquals(HttpStatus.TOO_MANY_REQUESTS, ex.getStatusCode());
+    }
+
+    @Test
+    void communityCountsUnderCapAreAllowed() {
+        userCreated(LocalDateTime.now().minusHours(2));
+        when(postRepository.countByUserIdAndCreatedAtAfter(eq(1L), any())).thenReturn(4L);
+        when(communityPostRepository.countByUserIdAndCreatedAtAfter(eq(1L), any())).thenReturn(5L);
+
+        assertDoesNotThrow(() -> service(48).checkPost(1L));
     }
 }

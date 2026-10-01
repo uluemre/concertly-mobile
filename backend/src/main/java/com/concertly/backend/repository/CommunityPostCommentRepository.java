@@ -14,10 +14,18 @@ public interface CommunityPostCommentRepository extends JpaRepository<CommunityP
 
     long countByCommunityPostId(Long communityPostId);
 
+    long countByUserIdAndCreatedAtAfter(Long userId, java.time.LocalDateTime since);
+
     // Toplu yorum sayımı — (communityPostId, count)
     @Query("SELECT c.communityPost.id, COUNT(c) FROM CommunityPostComment c " +
            "WHERE c.communityPost.id IN :ids GROUP BY c.communityPost.id")
     List<Object[]> countByCommunityPostIdIn(@Param("ids") Collection<Long> ids);
+
+    // B11: gizli yorumlar hariç sayım (yönetici olmayanlar için)
+    @Query("SELECT c.communityPost.id, COUNT(c) FROM CommunityPostComment c " +
+           "WHERE c.communityPost.id IN :ids AND (c.isHidden IS NULL OR c.isHidden = false) " +
+           "GROUP BY c.communityPost.id")
+    List<Object[]> countVisibleByCommunityPostIdIn(@Param("ids") Collection<Long> ids);
 
     void deleteByCommunityPostIdIn(Collection<Long> communityPostIds);
 }

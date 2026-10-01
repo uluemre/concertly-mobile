@@ -5,6 +5,7 @@ import com.concertly.backend.model.Community;
 import com.concertly.backend.model.CommunityMember;
 import com.concertly.backend.model.User;
 import com.concertly.backend.repository.*;
+import com.concertly.backend.security.AuthRateLimiter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -55,7 +56,8 @@ class CommunityDescriptionLimitTest {
         service = new CommunityService(communities, members, mock(CommunityPostRepository.class),
                 mock(CommunityPostLikeRepository.class), mock(CommunityPostCommentRepository.class),
                 mock(CommunityPostPollOptionRepository.class), mock(CommunityPostPollVoteRepository.class),
-                users, mock(NotificationService.class));
+                users, mock(NotificationService.class), mock(NotificationRepository.class),
+                mock(ModerationService.class), mock(ContentLimitService.class), new AuthRateLimiter());
     }
 
     private static CreateCommunityRequest request(String description) {

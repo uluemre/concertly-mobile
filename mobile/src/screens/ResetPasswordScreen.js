@@ -1,37 +1,52 @@
-import React, { useState, useMemo } from 'react';
-import {
-  Text, TextInput, TouchableOpacity,
-  StyleSheet, Alert, ActivityIndicator,
-  KeyboardAvoidingView, Platform,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import React, { useRef, useState } from 'react';
+import { Text, StyleSheet, Alert } from 'react-native';
 import API from '../services/api';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import { goBackOrFallback } from '../navigation/navHelpers';
+import AuthLayout from '../components/auth/AuthLayout';
+import AuthInput from '../components/auth/AuthInput';
+import AuthButton from '../components/auth/AuthButton';
 
 export default function ResetPasswordScreen({ navigation, route }) {
   const { email } = route.params ?? {};
   const { colors } = useTheme();
   const { t } = useLanguage();
-  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [token, setToken] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [loading, setLoading] = useState(false);
+  // Yalnız sunum: Alert mesajı ayrıca ilgili alanın altında da gösterilir
+  const [errors, setErrors] = useState({});
+  const passwordRef = useRef(null);
+  const confirmRef = useRef(null);
+
+  const fail = (field, key) => {
+    const message = t(key);
+    setErrors({ [field]: message });
+    Alert.alert(t('error'), message);
+  };
 
   const handleReset = async () => {
+    if (loading) return;
+    setErrors({});
     if (!token.trim() || !newPassword || !confirm) {
-      Alert.alert(t('error'), t('reset_fields_required'));
+      const message = t('reset_fields_required');
+      setErrors({
+        token: !token.trim() ? message : undefined,
+        newPassword: !newPassword ? message : undefined,
+        confirm: !confirm ? message : undefined,
+      });
+      Alert.alert(t('error'), message);
       return;
     }
     if (newPassword !== confirm) {
-      Alert.alert(t('error'), t('reset_passwords_mismatch'));
+      fail('confirm', 'reset_passwords_mismatch');
       return;
     }
     if (newPassword.length < 6) {
-      Alert.alert(t('error'), t('reset_password_too_short'));
+      fail('newPassword', 'reset_password_too_short');
       return;
     }
     setLoading(true);
@@ -42,83 +57,90 @@ export default function ResetPasswordScreen({ navigation, route }) {
       ]);
     } catch (err) {
       const reason = err?.response?.data?.message;
-      Alert.alert(t('error'), t(
-        reason === 'SAME_PASSWORD' ? 'password_same_as_old'
-          : reason === 'CODE_ATTEMPTS_EXCEEDED' ? 'reset_too_many_attempts'
-          : reason === 'CODE_EXPIRED' ? 'reset_code_expired'
-          : reason === 'TOO_MANY_REQUESTS' ? 'auth_too_many'
-          : 'reset_invalid_token'
-      ));
+      const key = reason === 'SAME_PASSWORD' ? 'password_same_as_old'
+        : reason === 'CODE_ATTEMPTS_EXCEEDED' ? 'reset_too_many_attempts'
+        : reason === 'CODE_EXPIRED' ? 'reset_code_expired'
+        : reason === 'TOO_MANY_REQUESTS' ? 'auth_too_many'
+        : 'reset_invalid_token';
+      setErrors(reason === 'SAME_PASSWORD' ? { newPassword: t(key) } : { token: t(key) });
+      Alert.alert(t('error'), t(key));
     } finally {
       setLoading(false);
     }
   };
 
+  const clearError = (field) => setErrors(e => (e[field] ? { ...e, [field]: undefined } : e));
+
   return (
-    <LinearGradient colors={colors.screenGradient} style={styles.container}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.inner}>
-
-        <TouchableOpacity onPress={() => goBackOrFallback(navigation, 'Login')} style={styles.back}>
-          <Text style={[styles.backText, { color: colors.primary }]}>{t('back')}</Text>
-        </TouchableOpacity>
-
-        <Text style={[styles.title, { color: colors.text }]}>🔐 {t('reset_title')}</Text>
-        <Text style={[styles.sub, { color: colors.textSecondary }]}>
-          {t('reset_subtitle')} <Text style={{ color: colors.primary }}>{email}</Text>
+    <AuthLayout
+      icon="shield-checkmark-outline"
+      title={t('reset_title')}
+      subtitle={(
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+          {t('reset_subtitle')}{' '}
+          <Text style={{ color: colors.primary, fontWeight: '700' }}>{email}</Text>
         </Text>
+      )}
+      onBack={() => goBackOrFallback(navigation, 'Login')}
+      backLabel={t('back')}
+    >
+      <AuthInput
+        label={t('reset_code_placeholder')}
+        icon="keypad-outline"
+        placeholder={t('reset_code_placeholder')}
+        value={token}
+        onChangeText={(v) => { setToken(v); clearError('token'); }}
+        keyboardType="number-pad"
+        maxLength={6}
+        textContentType="oneTimeCode"
+        autoComplete="one-time-code"
+        returnKeyType="next"
+        onSubmitEditing={() => passwordRef.current?.focus()}
+        blurOnSubmit={false}
+        error={errors.token}
+      />
+      <AuthInput
+        ref={passwordRef}
+        label={t('reset_new_password')}
+        icon="lock-closed-outline"
+        placeholder={t('reset_new_password')}
+        value={newPassword}
+        onChangeText={(v) => { setNewPassword(v); clearError('newPassword'); }}
+        secure
+        autoCapitalize="none"
+        autoCorrect={false}
+        textContentType="newPassword"
+        autoComplete="password-new"
+        returnKeyType="next"
+        onSubmitEditing={() => confirmRef.current?.focus()}
+        blurOnSubmit={false}
+        // Register ile aynı kural metni (aynı anahtar); hata varken yerini hata alır
+        hint={t('reg_password_rule')}
+        error={errors.newPassword}
+      />
+      <AuthInput
+        ref={confirmRef}
+        label={t('reset_confirm_password')}
+        icon="lock-closed-outline"
+        placeholder={t('reset_confirm_password')}
+        value={confirm}
+        onChangeText={(v) => { setConfirm(v); clearError('confirm'); }}
+        secure
+        autoCapitalize="none"
+        autoCorrect={false}
+        textContentType="newPassword"
+        autoComplete="password-new"
+        returnKeyType="go"
+        onSubmitEditing={handleReset}
+        error={errors.confirm}
+      />
 
-        <TextInput
-          style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
-          placeholder={t('reset_code_placeholder')}
-          placeholderTextColor={colors.textSecondary}
-          value={token}
-          onChangeText={setToken}
-          keyboardType="number-pad"
-          maxLength={6}
-        />
-        <TextInput
-          style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
-          placeholder={t('reset_new_password')}
-          placeholderTextColor={colors.textSecondary}
-          value={newPassword}
-          onChangeText={setNewPassword}
-          secureTextEntry
-        />
-        <TextInput
-          style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
-          placeholder={t('reset_confirm_password')}
-          placeholderTextColor={colors.textSecondary}
-          value={confirm}
-          onChangeText={setConfirm}
-          secureTextEntry
-        />
-
-        <TouchableOpacity onPress={handleReset} disabled={loading} activeOpacity={0.85}>
-          <LinearGradient colors={['#7C3AED', '#E94560']} style={styles.btn}>
-            {loading
-              ? <ActivityIndicator color="#fff" />
-              : <Text style={styles.btnText}>{t('reset_btn')}</Text>
-            }
-          </LinearGradient>
-        </TouchableOpacity>
-      </KeyboardAvoidingView>
-    </LinearGradient>
+      <AuthButton title={t('reset_btn')} onPress={handleReset} loading={loading} style={styles.submit} />
+    </AuthLayout>
   );
 }
 
-function createStyles(colors) {
-  return StyleSheet.create({
-    container: { flex: 1 },
-    inner: { flex: 1, padding: 24, justifyContent: 'center' },
-    back: { position: 'absolute', top: 56, left: 24 },
-    backText: { fontSize: 16, fontWeight: '700' },
-    title: { fontSize: 28, fontWeight: '900', marginBottom: 8, marginTop: 60 },
-    sub: { fontSize: 14, lineHeight: 20, marginBottom: 32 },
-    input: {
-      borderRadius: 16, padding: 16, fontSize: 16,
-      borderWidth: 1, marginBottom: 14,
-    },
-    btn: { borderRadius: 16, padding: 18, alignItems: 'center', marginTop: 8 },
-    btnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
-  });
-}
+const styles = StyleSheet.create({
+  subtitle: { fontSize: 14, lineHeight: 20, textAlign: 'center' },
+  submit: { marginTop: 6 },
+});

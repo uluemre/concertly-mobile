@@ -7,6 +7,7 @@ import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
 import { goBackOrFallback } from '../navigation/navHelpers';
+import { dateLocale } from '../utils/time';
 
 // Backend'deki sebep kodu → çeviri anahtarı (SettingsScreen ile aynı kodlar).
 const REASON_KEYS = {
@@ -20,7 +21,7 @@ const REASON_KEYS = {
 
 export default function AdminDeletionFeedbackScreen({ navigation }) {
   const { colors } = useTheme();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [items, setItems] = useState([]);
@@ -54,7 +55,7 @@ export default function AdminDeletionFeedbackScreen({ navigation }) {
     if (!iso) return '';
     try {
       const d = new Date(iso);
-      return d.toLocaleDateString() + ' ' + d.toLocaleTimeString().slice(0, 5);
+      return d.toLocaleDateString(dateLocale(lang)) + ' ' + d.toLocaleTimeString(dateLocale(lang), { hour: '2-digit', minute: '2-digit' });
     } catch { return ''; }
   };
 

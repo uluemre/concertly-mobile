@@ -235,7 +235,7 @@ public class EventSuggestionService {
                     Venue venue = new Venue();
                     venue.setName(request.getVenueName().trim());
                     venue.setCity(request.getVenueCity().trim());
-                    venue.setCountry("Turkiye");
+                    venue.setCountry("Türkiye");
                     venue.setAddress(request.getVenueAddress());
                     venue.setLatitude(request.getVenueLatitude());
                     venue.setLongitude(request.getVenueLongitude());

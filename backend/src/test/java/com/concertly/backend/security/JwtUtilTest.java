@@ -65,6 +65,14 @@ class JwtUtilTest {
     }
 
     @Test
+    void purposeTokenIsNotAValidAccessToken() {
+        String token = jwtUtil.generatePurposeToken(42L, "spotify-link", ONE_HOUR_MS);
+
+        assertFalse(jwtUtil.isTokenValid(token));
+        assertEquals(42L, jwtUtil.parsePurposeToken(token, "spotify-link"));
+    }
+
+    @Test
     void getCurrentUserIdParsesAuthenticatedPrincipal() {
         var auth = new UsernamePasswordAuthenticationToken("42:user@example.com", null, List.of());
         SecurityContextHolder.getContext().setAuthentication(auth);

@@ -151,7 +151,8 @@ public interface EventRepository extends JpaRepository<Event, Long> {
             + " WHERE " + SearchText.FOLD_OPEN + "e.name" + SearchText.FOLD_CLOSE + " LIKE :pattern ESCAPE '!'"
             + " OR " + SearchText.FOLD_OPEN + "e.artist.name" + SearchText.FOLD_CLOSE + " LIKE :pattern ESCAPE '!'"
             + " OR " + SearchText.FOLD_OPEN + "e.venue.city" + SearchText.FOLD_CLOSE + " LIKE :pattern ESCAPE '!'"
-            + " OR " + SearchText.FOLD_OPEN + "e.venue.name" + SearchText.FOLD_CLOSE + " LIKE :pattern ESCAPE '!'"
+            // BUG-01: mekan adı burada aranmaz; mekanlar aramada ayrı "Mekanlar" bölümünde
+            // döner. Yalnızca mekan adı eşleştiği için etkinlik sonucu üretilmez.
             + " ORDER BY e.eventDate DESC")
     List<Event> searchByPattern(@Param("pattern") String pattern);
 

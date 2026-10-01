@@ -9,6 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
 import { goBackOrFallback } from '../navigation/navHelpers';
+import { apiErrorMessage } from '../utils/communityErrors';
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
@@ -91,8 +92,8 @@ export default function SetlistPredictionScreen({ navigation, route }) {
       await API.post(`/setlist/${eventId}/confirm`, { titles: selected });
       setState(prev => ({ ...prev, myConfirmation: selected }));
       openBoard();
-    } catch {
-      Alert.alert(t('error'), t('setlist_save_error'));
+    } catch (err) {
+      Alert.alert(t('error'), apiErrorMessage(err, t, 'setlist_save_error'));
     } finally {
       setSaving(false);
     }
@@ -242,9 +243,12 @@ export default function SetlistPredictionScreen({ navigation, route }) {
             </TouchableOpacity>
           </View>
 
-          {renderCandidates()}
+          {state.canConfirm === true ? renderCandidates() : (
+            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t('setlist_confirm_attendees_only')}</Text>
+          )}
         </ScrollView>
 
+        {state.canConfirm === true && (
         <View style={[styles.bottomBar, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
           <Text style={[styles.selectedCount, { color: colors.text }]}>
             {t('setlist_selected', { count: selected.length })}
@@ -270,6 +274,7 @@ export default function SetlistPredictionScreen({ navigation, route }) {
             </LinearGradient>
           </TouchableOpacity>
         </View>
+        )}
       </View>
     );
   }

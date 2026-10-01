@@ -27,6 +27,12 @@ public class CommunityResponse {
     private String visibility;       // PUBLIC | PRIVATE | SECRET
     private String approvalStatus;   // PENDING | APPROVED | REJECTED
     private LocalDateTime createdAt;
+    // B5: incelemenin başladığı an (NULL ise createdAt); istemci "24 saat sonra listelenir" metni için
+    private LocalDateTime reviewRequestedAt;
+
+    // Sahibi silinip devralan olmayan topluluk: yeni katılım kapalı
+    @JsonProperty("archived")
+    private boolean archived;
 
     private Long ownerId;
     private String ownerUsername;
@@ -70,6 +76,8 @@ public class CommunityResponse {
         dto.visibility = community.getVisibility() != null ? community.getVisibility() : "PUBLIC";
         dto.approvalStatus = community.getApprovalStatus() != null ? community.getApprovalStatus() : "APPROVED";
         dto.createdAt = community.getCreatedAt();
+        dto.reviewRequestedAt = community.getReviewStart();
+        dto.archived = community.isArchived();
 
         if (community.getOwner() != null) {
             dto.ownerId = community.getOwner().getId();
@@ -111,7 +119,10 @@ public class CommunityResponse {
     public long getPostCount() { return postCount; }
     public String getVisibility() { return visibility; }
     public String getApprovalStatus() { return approvalStatus; }
+    public void setApprovalStatus(String approvalStatus) { this.approvalStatus = approvalStatus; }
     public LocalDateTime getCreatedAt() { return createdAt; }
+    public LocalDateTime getReviewRequestedAt() { return reviewRequestedAt; }
+    public boolean isArchived() { return archived; }
     public Long getOwnerId() { return ownerId; }
     public String getOwnerUsername() { return ownerUsername; }
     public String getOwnerProfileImageUrl() { return ownerProfileImageUrl; }

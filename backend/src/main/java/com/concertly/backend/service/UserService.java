@@ -19,6 +19,7 @@ import com.concertly.backend.model.User;
 import com.concertly.backend.repository.BingoCardRepository;
 import com.concertly.backend.repository.CommentRepository;
 import com.concertly.backend.repository.EventVerificationRepository;
+import com.concertly.backend.repository.FollowRepository;
 import com.concertly.backend.repository.LikeRepository;
 import com.concertly.backend.repository.PostRepository;
 import com.concertly.backend.repository.UserRepository;
@@ -47,6 +48,20 @@ public class UserService {
     private final BadgeService badgeService;
     private final ConcertAttendanceService concertAttendance;
     private final PasswordEncoder passwordEncoder;
+    private final FollowRepository followRepository;
+
+    // Özel → açık geçişte bayatlayan follow_request bildirimlerini silmek için (kurucu testleri değişmesin).
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.concertly.backend.repository.NotificationRepository notificationRepository;
+
+    // N-25: e-posta değişince yeni adrese doğrulama kodu (kurucu testleri değişmesin).
+    @org.springframework.beans.factory.annotation.Autowired
+    private EmailVerificationService emailVerificationService;
+
+    /** E-posta değişikliği kodu: yalnızca mevcut kullanıcı için; refresh token'lara dokunmaz (N-25). */
+    public void verifyEmailChange(Long userId, String code) {
+        emailVerificationService.verifyForUser(userId, code);
+    }
 
     public UserService(UserRepository userRepository,
             PostRepository postRepository,
@@ -56,7 +71,8 @@ public class UserService {
             BingoCardRepository bingoCardRepository,
             BadgeService badgeService,
             ConcertAttendanceService concertAttendance,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder,
+            FollowRepository followRepository) {
         this.userRepository       = userRepository;
         this.postRepository       = postRepository;
         this.likeRepository       = likeRepository;
@@ -66,6 +82,7 @@ public class UserService {
         this.badgeService         = badgeService;
         this.concertAttendance    = concertAttendance;
         this.passwordEncoder      = passwordEncoder;
+        this.followRepository     = followRepository;
     }
 
     // 🔥 CORE METHOD — like/comment sayımlarını + izleyenin beğenilerini toplu çeker (N+1 yok)
@@ -111,7 +128,7 @@ public class UserService {
      * uygulamada açıldığında ekranın hangi id'yi yükleyeceğini bulmak için.
      */
     public UserResponse getUserByUsername(String username) {
-        User user = userRepository.findByUsername(username)
+        User user = userRepository.findByUsernameNormalized(username)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Kullanıcı bulunamadı: " + username));
         return new UserResponse(user.getId(), user.getUsername(), null);
@@ -130,7 +147,15 @@ public class UserService {
                 .orElseThrow(() -> new ResourceNotFoundException("Kullanıcı bulunamadı: " + userId));
         if (request != null) {
             if (request.getMessagePrivacy() != null) user.setMessagePrivacy(request.getMessagePrivacy());
-            if (request.getPrivateAccount() != null) user.setPrivateAccount(request.getPrivateAccount());
+            if (request.getPrivateAccount() != null) {
+                user.setPrivateAccount(request.getPrivateAccount());
+                // Özel → açık: bekleyen takip istekleri otomatik kabul edilir (SEC-05).
+                // Açık → özel: mevcut takipçiler korunur.
+                if (!request.getPrivateAccount()) {
+                    followRepository.acceptAllPending(userId);
+                    notificationRepository.deleteByRecipientIdAndType(userId, "follow_request");
+                }
+            }
             userRepository.save(user);
         }
         return PrivacySettingsResponse.from(user);
@@ -175,9 +200,8 @@ public class UserService {
         if (usernameChanging) {
             String username = UsernameRules.requireValid(request.getUsername());
             // Sahibi başkaysa açık 409 (eskiden kısıt hatası genel mesaja düşüyordu)
-            boolean taken = userRepository.findByUsername(username)
-                    .filter(other -> !other.getId().equals(user.getId()))
-                    .isPresent();
+            boolean taken = userRepository.findAllByUsernameIgnoreCase(username).stream()
+                    .anyMatch(other -> !other.getId().equals(user.getId()));
             if (taken) {
                 throw new AlreadyExistsException("Bu kullanıcı adı zaten kullanılıyor: " + username);
             }
@@ -199,7 +223,14 @@ public class UserService {
 
         user.setUpdatedAt(LocalDateTime.now());
         User saved = userRepository.save(user);
-        return new UserResponse(saved.getId(), saved.getUsername(), saved.getEmail(), saved.getCity());
+        UserResponse response = new UserResponse(saved.getId(), saved.getUsername(), saved.getEmail(), saved.getCity());
+        // Doğrulama açıkken yeni adres doğrulanmış sayılmaz: emailVerified=false + yeni adrese kod.
+        // Oturumlar (refresh token'lar) iptal edilmez; kod /auth/verify-email ile girilir.
+        if (emailChanging && emailVerificationService.isEnabled()) {
+            emailVerificationService.start(saved);
+            response.setEmailVerificationRequired(true);
+        }
+        return response;
     }
 
     // ✅ KULLANICININ POSTLARI

@@ -18,26 +18,29 @@ public class SearchService {
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private VenueRepository venueRepository;
 
+    // Özel hesap gizliliği (SEC-05): zorunlu; yoksa filtre sessizce atlanmasın (fail-open yok).
+    private final PrivacyService privacyService;
+
     /** Aramada gösterilen en fazla mekan sayısı. */
     static final int MAX_VENUES = 10;
 
     public SearchService(EventRepository eventRepository,
             ArtistRepository artistRepository,
             UserRepository userRepository,
-            ArtistFollowRepository artistFollowRepository) {
+            ArtistFollowRepository artistFollowRepository,
+            PrivacyService privacyService) {
         this.eventRepository = eventRepository;
         this.artistRepository = artistRepository;
         this.userRepository = userRepository;
         this.artistFollowRepository = artistFollowRepository;
+        this.privacyService = privacyService;
     }
 
     /**
      * Adı aramayla eşleşen mekanlar: yaklaşan etkinliği olanlar önce (çok olan üstte),
      * sonra ada göre. Sayı yalnızca sıralama için; kopya kayıtları da saydığından gösterilmez.
      */
-    private List<VenueSummaryResponse> searchVenues(String query) {
-        if (venueRepository == null) return List.of();
-        List<com.concertly.backend.model.Venue> venues = venueRepository.search(query);
+    private List<VenueSummaryResponse> searchVenues(List<com.concertly.backend.model.Venue> venues) {
         if (venues.isEmpty()) return List.of();
         java.util.Map<Long, Long> upcoming = new java.util.HashMap<>();
         for (Object[] row : eventRepository.countUpcomingListedByVenueIdIn(
@@ -83,8 +86,21 @@ public class SearchService {
                 .map(EventResponse::from)
                 .toList();
 
+        List<com.concertly.backend.model.Venue> venues =
+                venueRepository == null ? List.of() : venueRepository.search(query);
+
+        // BUG-01: kaynaktan sanatçı adı yerine mekan adı gelmiş kayıtlar ("Oran Açıkhava")
+        // sanatçı sekmesinde mekan olarak görünüyordu. Adı, aramayla eşleşen bir mekanın
+        // adıyla aynı olan (Türkçe harf/boşluk/büyük-küçük harf duyarsız) kayıt sanatçı sayılmaz.
+        java.util.Set<String> venueKeys = venues.stream()
+                .map(v -> com.concertly.backend.repository.SearchText.nameKey(v.getName()))
+                .filter(k -> !k.isEmpty())
+                .collect(java.util.stream.Collectors.toSet());
+
         List<ArtistResponse> artists = artistRepository.search(query)
                 .stream()
+                .filter(a -> !venueKeys.contains(
+                        com.concertly.backend.repository.SearchText.nameKey(a.getName())))
                 .map(a -> {
                     long followerCount = artistFollowRepository.countByArtistId(a.getId());
                     boolean isFollowed = currentUserId != null &&
@@ -94,11 +110,15 @@ public class SearchService {
                 .toList();
 
         // E-posta dönülmez (gizlilik) — arama sonucunda alt satır olarak şehir gösterilir
-        List<UserResponse> users = userRepository.search(query)
+        // Özel (SEC-05) ve izleyicinin göremediği hesapların şehri gizlenir (toplu sorgu, N+1 yok).
+        List<com.concertly.backend.model.User> found = userRepository.search(query);
+        java.util.Set<Long> restricted = privacyService.restrictedOwnerIds(currentUserId, found);
+        List<UserResponse> users = found
                 .stream()
-                .map(u -> new UserResponse(u.getId(), u.getUsername(), null, u.getCity()))
+                .map(u -> new UserResponse(u.getId(), u.getUsername(), null,
+                        restricted.contains(u.getId()) ? null : u.getCity()))
                 .toList();
 
-        return new SearchResponse(events, artists, users, searchVenues(query));
+        return new SearchResponse(events, artists, users, searchVenues(venues));
     }
 }

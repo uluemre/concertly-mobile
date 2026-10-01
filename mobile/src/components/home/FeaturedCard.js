@@ -4,7 +4,7 @@ import EventImage from '../EventImage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../theme';
 import { useLanguage, upperLocale } from '../../context/LanguageContext';
-import { showArtistLine } from '../../utils/text';
+import { showArtistLine, displayGenre } from '../../utils/text';
 import { formatDateShort } from '../../utils/time';
 
 const ACCENT_COLORS = ['#E94560', '#7C3AED', '#F5A623', '#00D4AA', '#FF6B6B', '#4ECDC4'];
@@ -45,7 +45,7 @@ export default React.memo(function FeaturedCard({ item, index, cardWidth, cardHe
           </View>
           {item.genre && (
             <View style={styles.genreTag}>
-              <Text style={styles.genreTagText}>{item.genre}</Text>
+              <Text style={styles.genreTagText}>{displayGenre(item.genre, t)}</Text>
             </View>
           )}
           {followed && (
@@ -64,11 +64,13 @@ export default React.memo(function FeaturedCard({ item, index, cardWidth, cardHe
                   <Text style={styles.pillText}>📍 {item.venueCity}</Text>
                 </View>
               )}
-              <View style={[styles.pill, { borderColor: accent + '60', backgroundColor: accent + '18' }]}>
-                <Text style={[styles.pillText, { color: accent }]}>
-                  {item.isApproved ? '✓ Onaylı' : '⏳ Bekliyor'}
-                </Text>
-              </View>
+              {item.isVerified && (
+                <View style={[styles.pill, { borderColor: accent + '60', backgroundColor: accent + '18' }]}>
+                  <Text style={[styles.pillText, { color: accent }]}>
+                    {t('event_verified_source')}
+                  </Text>
+                </View>
+              )}
             </View>
           </View>
           <View style={[styles.accentLine, { backgroundColor: accent }]} />

@@ -19,18 +19,24 @@ public interface CommunityRepository extends JpaRepository<Community, Long> {
             """)
     List<Community> findByTypeIn(@Param("types") List<String> types);
 
-    @Query("""
-                SELECT c FROM Community c
-                WHERE LOWER(c.name) LIKE LOWER(CONCAT('%', :q, '%'))
-                OR LOWER(c.city) LIKE LOWER(CONCAT('%', :q, '%'))
-                OR LOWER(c.tags) LIKE LOWER(CONCAT('%', :q, '%'))
-                ORDER BY c.createdAt DESC
-            """)
-    List<Community> search(@Param("q") String q);
+    // Türkçe harf / büyük-küçük harf duyarsız, % ve _ joker değil (SearchText; NEW-02)
+    default List<Community> search(String q) {
+        return searchByPattern(SearchText.containsPattern(q));
+    }
+
+    @Query("SELECT c FROM Community c"
+            + " WHERE " + SearchText.FOLD_OPEN + "c.name" + SearchText.FOLD_CLOSE + " LIKE :pattern ESCAPE '!'"
+            + " OR " + SearchText.FOLD_OPEN + "c.city" + SearchText.FOLD_CLOSE + " LIKE :pattern ESCAPE '!'"
+            + " OR " + SearchText.FOLD_OPEN + "c.tags" + SearchText.FOLD_CLOSE + " LIKE :pattern ESCAPE '!'"
+            + " ORDER BY c.createdAt DESC")
+    List<Community> searchByPattern(@Param("pattern") String pattern);
 
     Optional<Community> findByInviteCode(String inviteCode);
 
     long countByOwnerId(Long ownerId);
+
+    // Hesap silinirken sahiplik devri için: kullanıcının sahip olduğu tüm topluluklar
+    List<Community> findByOwnerId(Long ownerId);
 
     // Admin inceleme kuyruğu — en eski bekleyen en üstte (SLA takibi için)
     List<Community> findByApprovalStatusOrderByCreatedAtAsc(String approvalStatus);

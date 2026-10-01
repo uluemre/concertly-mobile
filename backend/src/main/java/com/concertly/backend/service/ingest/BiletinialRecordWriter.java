@@ -133,7 +133,7 @@ public class BiletinialRecordWriter {
             venue = new Venue();
             venue.setName(name.trim());
             venue.setCity(city);
-            venue.setCountry("Turkiye");
+            venue.setCountry("Türkiye");
         }
         // Var olan mekanin eksik alanlarini tamamla, DOLU olani ezme:
         // Ticketmaster ayni mekani daha zengin doldurmus olabilir.

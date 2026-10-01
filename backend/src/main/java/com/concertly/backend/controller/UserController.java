@@ -15,6 +15,7 @@ import com.concertly.backend.service.AccountDeletionService;
 import com.concertly.backend.service.ArtistService;
 import com.concertly.backend.service.AuthService;
 import com.concertly.backend.service.ModerationService;
+import com.concertly.backend.service.PrivacyService;
 import com.concertly.backend.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
@@ -31,20 +32,29 @@ public class UserController {
     private final ArtistService artistService;
     private final AccountDeletionService accountDeletionService;
     private final ModerationService moderationService;
+    private final PrivacyService privacyService;
 
     public UserController(UserService userService, AuthService authService,
                           ArtistService artistService, AccountDeletionService accountDeletionService,
-                          ModerationService moderationService) {
+                          ModerationService moderationService, PrivacyService privacyService) {
         this.userService = userService;
         this.authService = authService;
         this.artistService = artistService;
         this.accountDeletionService = accountDeletionService;
         this.moderationService = moderationService;
+        this.privacyService = privacyService;
     }
 
     /** Aralarında engel olan kullanıcıya bu kişi "bulunamadı" (404) görünür. */
     private void requireVisible(Long targetId) {
         moderationService.requireVisible(JwtUtil.getCurrentUserId(), targetId);
+    }
+
+    /** Engel kontrolü + özel hesap: içerik uçları yetkisiz izleyiciye 403 PRIVATE_ACCOUNT döner (SEC-05). */
+    private void requireContentAccess(Long targetId) {
+        Long viewerId = JwtUtil.getCurrentUserId();
+        moderationService.requireVisible(viewerId, targetId);
+        privacyService.requireCanViewContent(viewerId, targetId);
     }
 
     // ✅ HESABI SİL (yalnızca giriş yapan kullanıcı kendi hesabını siler)
@@ -58,6 +68,14 @@ public class UserController {
         }
         String details = request.getDetails() != null ? request.getDetails().trim() : null;
         accountDeletionService.deleteAccount(JwtUtil.getCurrentUserId(), reason, details);
+    }
+
+    // POST /api/users/me/verify-email  Body: { "code": "123456" }
+    // E-posta değişikliği kodu: yalnızca JWT'deki kullanıcı; oturumlara (refresh token) dokunmaz.
+    @PostMapping("/me/verify-email")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void verifyMyEmail(@RequestBody java.util.Map<String, String> body) {
+        userService.verifyEmailChange(JwtUtil.getCurrentUserId(), body == null ? null : body.get("code"));
     }
 
     @GetMapping
@@ -106,27 +124,27 @@ public class UserController {
     // ✅ KULLANICININ POSTLARİNI GETİR
     @GetMapping("/{id}/posts")
     public List<PostResponse> getUserPosts(@PathVariable Long id) {
-        requireVisible(id);
+        requireContentAccess(id);
         return userService.getUserPosts(id, JwtUtil.getCurrentUserId());
     }
 
     // ✅ KULLANICININ GİTTİĞİ ETKİNLİKLER
     @GetMapping("/{id}/events")
     public List<EventResponse> getUserEvents(@PathVariable Long id) {
-        requireVisible(id);
+        requireContentAccess(id);
         return userService.getUserEvents(id);
     }
 
     @GetMapping("/{id}/followed-artists")
     public List<ArtistResponse> getFollowedArtists(@PathVariable Long id) {
-        requireVisible(id);
+        requireContentAccess(id);
         return artistService.getFollowedArtists(id);
     }
 
     // ✅ KONSER PASAPORTU
     @GetMapping("/{id}/passport")
     public PassportResponse getPassport(@PathVariable Long id) {
-        requireVisible(id);
+        requireContentAccess(id);
         return userService.getUserPassport(id);
     }
 

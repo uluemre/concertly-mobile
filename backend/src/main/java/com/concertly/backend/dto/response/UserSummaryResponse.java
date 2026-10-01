@@ -19,6 +19,11 @@ public class UserSummaryResponse {
     @JsonProperty("isFollowedByCurrentUser")
     private boolean isFollowedByCurrentUser;
 
+    // SEC-05 özel hesap: hesap özel mi + izleyicinin takip durumu (NONE | PENDING | ACCEPTED)
+    @JsonProperty("isPrivate")
+    private boolean isPrivate;
+    private String followStatus = "NONE";
+
     // E-posta/telefon varsayılan olarak DÖNÜLMEZ — bu DTO takipçi listeleri ve
     // herkese açık (permitAll) profil ucunda kullanılıyor; kişisel iletişim
     // bilgisi yalnızca kullanıcı KENDİ profilini çekerken eklenir (aşağıdaki overload).
@@ -36,7 +41,21 @@ public class UserSummaryResponse {
         dto.followerCount = followerCount;
         dto.followingCount = followingCount;
         dto.isFollowedByCurrentUser = isFollowedByCurrentUser;
+        dto.isPrivate = Boolean.TRUE.equals(user.getPrivateAccount());
         return dto;
+    }
+
+    /** Takip durumu: isFollowedByCurrentUser yalnızca ACCEPTED için true olur. */
+    public UserSummaryResponse withFollowStatus(String followStatus) {
+        this.followStatus = followStatus == null ? "NONE" : followStatus;
+        return this;
+    }
+
+    /** Özel hesap + yetkisiz izleyici: yalnızca başlık alanları kalır (şehir, türler gizlenir). */
+    public UserSummaryResponse restrictToHeader() {
+        this.city = null;
+        this.favoriteGenres = null;
+        return this;
     }
 
     public static UserSummaryResponse from(User user,
@@ -56,6 +75,8 @@ public class UserSummaryResponse {
     public String getEmail() { return email; }
     public String getPhone() { return phone; }
     public String getFavoriteGenres() { return favoriteGenres; }
+    public boolean getIsPrivate() { return isPrivate; }
+    public String getFollowStatus() { return followStatus; }
 
     public Long getId() {
         return id;

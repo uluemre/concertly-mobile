@@ -79,6 +79,9 @@ public class SecurityConfig {
                         // permitAll kuralından ÖNCE gelmeli.
                         .requestMatchers(HttpMethod.GET, "/api/events/suggestions/me").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/events/**").permitAll()
+                        // Spotify OAuth dönüşü tarayıcıdan gelir, Bearer taşımaz; kullanıcı imzalı
+                        // state ile doğrulanır (SpotifyUserService.verifyState).
+                        .requestMatchers(HttpMethod.GET, "/api/spotify/callback").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/posts/feed/trending").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/users/*/profile").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/posts/*/comments").permitAll()

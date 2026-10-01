@@ -26,7 +26,8 @@ public interface EventAttendanceRepository extends JpaRepository<EventAttendance
                                              @Param("now") LocalDateTime now);
 
     @Query("SELECT ea FROM EventAttendance ea WHERE ea.event.id = :eventId AND ea.status = 'GOING' " +
-           "AND ea.user.id IN (SELECT f.following.id FROM Follow f WHERE f.follower.id = :userId)")
+           "AND ea.user.id IN (SELECT f.following.id FROM Follow f WHERE f.follower.id = :userId " +
+           "AND (f.status IS NULL OR f.status = 'ACCEPTED'))")
     List<EventAttendance> findFriendsAttending(@Param("userId") Long userId, @Param("eventId") Long eventId);
 
     /** Kullanıcının "gidiyorum" dediği, henüz bitmemiş konserler — en yakını önce. */

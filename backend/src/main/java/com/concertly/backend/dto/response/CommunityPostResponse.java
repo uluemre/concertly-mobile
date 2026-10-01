@@ -28,6 +28,10 @@ public class CommunityPostResponse {
     @JsonProperty("isLikedByCurrentUser")
     private boolean isLikedByCurrentUser;
 
+    // B11: yalnızca yöneticilere gizli gönderi döner (true); diğerleri için hiç listelenmez
+    @JsonProperty("isHidden")
+    private boolean isHidden;
+
     public static CommunityPostResponse from(CommunityPost post,
                                               long likeCount,
                                               boolean isLikedByCurrentUser) {
@@ -47,6 +51,7 @@ public class CommunityPostResponse {
         dto.isLikedByCurrentUser = isLikedByCurrentUser;
         dto.postType = post.getPostType();
         dto.imageUrl = post.getImageUrl();
+        dto.isHidden = Boolean.TRUE.equals(post.getIsHidden());
 
         if (post.getUser() != null) {
             dto.userId = post.getUser().getId();
@@ -77,4 +82,5 @@ public class CommunityPostResponse {
     public Long getCommunityId() { return communityId; }
     public String getCommunityName() { return communityName; }
     public boolean isLikedByCurrentUser() { return isLikedByCurrentUser; }
+    public boolean isHidden() { return isHidden; }
 }

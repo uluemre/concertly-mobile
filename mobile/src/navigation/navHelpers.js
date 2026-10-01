@@ -14,6 +14,23 @@ export function openEvent(navigation, eventOrId) {
 }
 
 /**
+ * Topluluk silindikten / topluluktan ayrıldıktan sonra Topluluklar listesine döner.
+ * Listesi yığında varsa oraya kadar geri çıkar (v7'de navigate yeni kopya iterdi);
+ * yoksa (linkten gelindiyse) yığın sıfırlanır, böylece "Geri" eski topluluğa dönmez.
+ */
+export function backToCommunities(navigation) {
+  const routes = navigation.getState?.()?.routes || [];
+  if (routes.some(r => r.name === 'Communities') && navigation.popTo) {
+    navigation.popTo('Communities');
+    return;
+  }
+  navigation.dispatch(CommonActions.reset({
+    index: 1,
+    routes: [{ name: 'MainApp' }, { name: 'Communities' }],
+  }));
+}
+
+/**
  * Geri gidilecek ekran varsa geri döner; yoksa (sayfa linkten / yenilemeyle
  * doğrudan açılmışsa) kullanıcı çıkışsız kalmasın diye `fallback` ekranına gider.
  * Sıfırlama kök navigator'da yapılır: sekme içindeki ekranlardan da çalışır.

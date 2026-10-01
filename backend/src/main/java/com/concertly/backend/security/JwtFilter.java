@@ -7,7 +7,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -18,9 +18,9 @@ import java.io.IOException;
 public class JwtFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
-    private final UserDetailsService userDetailsService;
+    private final UserDetailsServiceImpl userDetailsService;
 
-    public JwtFilter(JwtUtil jwtUtil, UserDetailsService userDetailsService) {
+    public JwtFilter(JwtUtil jwtUtil, UserDetailsServiceImpl userDetailsService) {
         this.jwtUtil            = jwtUtil;
         this.userDetailsService = userDetailsService;
     }
@@ -47,11 +47,19 @@ public class JwtFilter extends OncePerRequestFilter {
             return;
         }
 
-        final String email = jwtUtil.extractEmail(token);
+        // Kullanıcı token'daki id ile eşlenir (e-posta sonradan başkasına geçmiş olabilir)
+        final Long userId = jwtUtil.extractUserId(token);
 
         // Zaten authenticate edilmişse tekrar işlem yapma
-        if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+        if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            UserDetails userDetails;
+            try {
+                userDetails = userDetailsService.loadUserById(userId);
+            } catch (UsernameNotFoundException e) {
+                // Kullanıcı yok: kimliksiz devam et (→ 401), 500 verme
+                filterChain.doFilter(request, response);
+                return;
+            }
 
             if (!userDetails.isEnabled()) {
                 // Yasaklı hesap: erişim token'ı süresi dolmamış olsa bile kabul edilmez (→ 401)

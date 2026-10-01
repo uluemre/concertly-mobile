@@ -27,7 +27,18 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         User user = userRepository.findByEmailNormalized(email)
                 .orElseThrow(() -> new UsernameNotFoundException(
                         "Kullanıcı bulunamadı: " + email));
+        return toUserDetails(user);
+    }
 
+    /** Erişim token'ı kimliği: e-posta değişse de id sabittir (eski e-postayı devralan hesapla karışmaz). */
+    @Transactional
+    public UserDetails loadUserById(Long id) throws UsernameNotFoundException {
+        User user = (id == null ? java.util.Optional.<User>empty() : userRepository.findById(id))
+                .orElseThrow(() -> new UsernameNotFoundException("Kullanıcı bulunamadı: " + id));
+        return toUserDetails(user);
+    }
+
+    private UserDetails toUserDetails(User user) {
         List<SimpleGrantedAuthority> authorities = user.getRoles() == null
                 ? List.of()
                 : user.getRoles().stream()

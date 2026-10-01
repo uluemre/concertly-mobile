@@ -52,7 +52,11 @@ export default function SearchModal({ visible, onClose, navigation }) {
     const [popular, setPopular] = useState([]);
 
     const inputRef = useRef(null);
-    const tabAnim = useRef(new Animated.Value(0)).current;
+    // Sekme göstergesi: her sekmenin ölçülen konum/genişliğine kayar (yatay kaydırılabilir sekmeler)
+    const tabScrollRef = useRef(null);
+    const tabLayouts = useRef({});
+    const indicatorX = useRef(new Animated.Value(0)).current;
+    const indicatorW = useRef(new Animated.Value(0)).current;
     const slideAnim = useRef(new Animated.Value(height)).current;
 
     // Modal açılınca yukarı kay
@@ -156,19 +160,39 @@ export default function SearchModal({ visible, onClose, navigation }) {
         debouncedSearch(text);
     };
 
-    const switchTab = (tab, index) => {
+    const moveIndicator = useCallback((tab, animate) => {
+        const l = tabLayouts.current[tab];
+        if (!l) return;
+        if (animate) {
+            Animated.parallel([
+                Animated.spring(indicatorX, { toValue: l.x, tension: 70, friction: 10, useNativeDriver: false }),
+                Animated.spring(indicatorW, { toValue: l.width, tension: 70, friction: 10, useNativeDriver: false }),
+            ]).start();
+        } else {
+            indicatorX.setValue(l.x);
+            indicatorW.setValue(l.width);
+        }
+        // Seçili sekme dar ekranda görünür kalsın
+        tabScrollRef.current?.scrollTo({ x: Math.max(0, l.x - 24), animated: animate });
+    }, [indicatorX, indicatorW]);
+
+    const switchTab = (tab) => {
         setActiveTab(tab);
-        Animated.spring(tabAnim, {
-            toValue: index, tension: 70, friction: 10, useNativeDriver: false,
-        }).start();
+        moveIndicator(tab, true);
     };
 
-    const tabIndicatorLeft = tabAnim.interpolate({
-        inputRange: [0, 1, 2],
-        outputRange: ['0%', '33.33%', '66.66%'],
-    });
+    // Modal yeniden açılınca sekme 'events'e döner; gösterge de onu izler
+    React.useEffect(() => { moveIndicator(activeTab, false); }, [activeTab, moveIndicator]);
 
-    // Adı aramayla eşleşen mekanlar (N-15) — Etkinlikler sekmesinin üstünde gösterilir
+    const onTabLayout = (tab) => (e) => {
+        const { x, width } = e.nativeEvent.layout;
+        tabLayouts.current[tab] = { x, width };
+        // Sayılar değişince genişlik değişir; seçili sekmenin göstergesi güncel kalsın
+        if (tab === activeTab) moveIndicator(tab, false);
+    };
+
+    // Adı aramayla eşleşen mekanlar (N-15). BUG-01: Etkinlikler sekmesine karışmasın diye
+    // kendi "Mekanlar" sekmesinde gösterilir.
     const venues = results.venues || [];
 
     const totalResults =
@@ -267,46 +291,40 @@ export default function SearchModal({ visible, onClose, navigation }) {
         </TouchableOpacity>
     );
 
-    const renderVenues = () => (
-        <View style={styles.venueSection}>
-            <Text style={styles.venueSectionTitle}>📍 {t('search_venues')} ({venues.length})</Text>
-            {venues.map((v, index) => (
-                <TouchableOpacity
-                    key={`venue-${v.id}`}
-                    style={styles.resultCard}
-                    onPress={() => {
-                        rememberQuery(query);
-                        onClose();
-                        navigation.navigate('VenueProfile', { venueId: v.id, venueName: v.name });
-                    }}
-                    activeOpacity={0.8}
-                >
-                    <LinearGradient
-                        colors={gradientSets[(index + 2) % gradientSets.length]}
-                        style={styles.resultIcon}
-                    >
-                        <Text style={styles.resultIconEmoji}>📍</Text>
-                    </LinearGradient>
-                    <View style={styles.resultInfo}>
-                        <Text style={styles.resultTitle} numberOfLines={1}>{v.name}</Text>
-                        {!!v.city && <Text style={styles.resultSub} numberOfLines={1}>{v.city}</Text>}
-                    </View>
-                    <Text style={styles.chevron}>›</Text>
-                </TouchableOpacity>
-            ))}
-        </View>
+    const renderVenue = ({ item: v, index }) => (
+        <TouchableOpacity
+            style={styles.resultCard}
+            onPress={() => {
+                rememberQuery(query);
+                onClose();
+                navigation.navigate('VenueProfile', { venueId: v.id, venueName: v.name });
+            }}
+            activeOpacity={0.8}
+        >
+            <LinearGradient
+                colors={gradientSets[(index + 2) % gradientSets.length]}
+                style={styles.resultIcon}
+            >
+                <Text style={styles.resultIconEmoji}>📍</Text>
+            </LinearGradient>
+            <View style={styles.resultInfo}>
+                <Text style={styles.resultTitle} numberOfLines={1}>{v.name}</Text>
+                {!!v.city && <Text style={styles.resultSub} numberOfLines={1}>{v.city}</Text>}
+            </View>
+            <Text style={styles.chevron}>›</Text>
+        </TouchableOpacity>
     );
-
-    const showVenues = activeTab === 'events' && venues.length > 0;
 
     const activeData =
         activeTab === 'events' ? results.events :
             activeTab === 'artists' ? results.artists :
-                results.users;
+                activeTab === 'venues' ? venues :
+                    results.users;
 
     const renderItem = activeTab === 'events' ? renderEvent :
         activeTab === 'artists' ? renderArtist :
-            renderUser;
+            activeTab === 'venues' ? renderVenue :
+                renderUser;
 
     return (
         <Modal
@@ -332,6 +350,7 @@ export default function SearchModal({ visible, onClose, navigation }) {
                                 placeholder={t('search_modal_placeholder')}
                                 placeholderTextColor={colors.textSecondary}
                                 value={query}
+                                maxLength={100}
                                 onChangeText={handleChangeText}
                                 autoCapitalize="none"
                                 returnKeyType="search"
@@ -357,17 +376,28 @@ export default function SearchModal({ visible, onClose, navigation }) {
                     {/* SEKMELER */}
                     {searched && (
                         <View style={styles.tabBarWrapper}>
-                            <View style={styles.tabBar}>
-                                <Animated.View style={[styles.tabIndicator, { left: tabIndicatorLeft }]} />
+                            <ScrollView
+                                ref={tabScrollRef}
+                                horizontal
+                                showsHorizontalScrollIndicator={false}
+                                style={styles.tabBar}
+                                contentContainerStyle={styles.tabBarContent}
+                                keyboardShouldPersistTaps="handled"
+                            >
+                                <Animated.View style={[styles.tabIndicator, { left: indicatorX, width: indicatorW }]} />
                                 {[
                                     { key: 'events', label: `🎪 ${t('search_events')} (${results.events.length})`, index: 0 },
                                     { key: 'artists', label: `🎤 ${t('search_artists')} (${results.artists.length})`, index: 1 },
                                     { key: 'users', label: `👤 ${t('search_users')} (${results.users.length})`, index: 2 },
+                                    { key: 'venues', label: `📍 ${t('search_venues')} (${venues.length})`, index: 3 },
                                 ].map(tab => (
                                     <TouchableOpacity
                                         key={tab.key}
                                         style={styles.tabBtn}
-                                        onPress={() => switchTab(tab.key, tab.index)}
+                                        onPress={() => switchTab(tab.key)}
+                                        onLayout={onTabLayout(tab.key)}
+                                        accessibilityRole="tab"
+                                        accessibilityState={{ selected: activeTab === tab.key }}
                                     >
                                         <Text style={[
                                             styles.tabText,
@@ -377,7 +407,7 @@ export default function SearchModal({ visible, onClose, navigation }) {
                                         </Text>
                                     </TouchableOpacity>
                                 ))}
-                            </View>
+                            </ScrollView>
                         </View>
                     )}
 
@@ -469,8 +499,7 @@ export default function SearchModal({ visible, onClose, navigation }) {
                             contentContainerStyle={styles.list}
                             keyboardShouldPersistTaps="handled"
                             showsVerticalScrollIndicator={false}
-                            ListHeaderComponent={showVenues ? renderVenues() : null}
-                            ListEmptyComponent={showVenues ? null : (
+                            ListEmptyComponent={(
                                 <View style={styles.center}>
                                     <Text style={styles.hintEmoji}>📭</Text>
                                     <Text style={styles.hintText}>{t('search_category_empty')}</Text>
@@ -528,22 +557,23 @@ function createStyles(colors) {
             borderBottomColor: colors.border,
         },
         tabBar: {
-            flexDirection: 'row',
+            flexGrow: 0,
             backgroundColor: colors.cardAlt,
             borderRadius: 12,
+        },
+        tabBarContent: {
+            flexDirection: 'row',
             padding: 4,
             position: 'relative',
-            overflow: 'hidden',
         },
         tabIndicator: {
             position: 'absolute',
             top: 4, bottom: 4,
-            width: '33.33%',
             backgroundColor: colors.primary,
             borderRadius: 8,
         },
-        tabBtn: { flex: 1, paddingVertical: 9, alignItems: 'center', zIndex: 1 },
-        tabText: { fontSize: 11, fontWeight: '600', color: colors.textSecondary },
+        tabBtn: { paddingVertical: 9, paddingHorizontal: 14, alignItems: 'center', zIndex: 1 },
+        tabText: { fontSize: 12, fontWeight: '600', color: colors.textSecondary },
         tabTextActive: { color: colors.text },
 
         // LİSTE
@@ -589,8 +619,6 @@ function createStyles(colors) {
         discoverSection: { gap: 10 },
         discoverHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
         discoverTitle: { color: colors.text, fontSize: 16, fontWeight: '800' },
-        venueSection: { marginBottom: 8 },
-        venueSectionTitle: { color: colors.textSecondary, fontSize: 13, fontWeight: '800', marginBottom: 8 },
         discoverAction: { color: colors.primary, fontSize: 13, fontWeight: '700' },
         recentRow: {
             flexDirection: 'row', alignItems: 'center', gap: 10,

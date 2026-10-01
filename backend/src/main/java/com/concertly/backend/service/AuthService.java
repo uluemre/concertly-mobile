@@ -114,8 +114,11 @@ public class AuthService {
                     "Bu email zaten kullanılıyor: " + request.getEmail());
         }
 
-        User usernameOwner = userRepository.findByUsername(request.getUsername()).orElse(null);
-        if (usernameOwner != null && (user == null || !usernameOwner.getId().equals(user.getId()))) {
+        // Harf büyüklüğü farklı kullanıcı adı da aynı ad sayılır (N-55)
+        final User sameEmailUser = user;
+        boolean usernameTaken = userRepository.findAllByUsernameIgnoreCase(request.getUsername()).stream()
+                .anyMatch(other -> sameEmailUser == null || !other.getId().equals(sameEmailUser.getId()));
+        if (usernameTaken) {
             throw new AlreadyExistsException(
                     "Bu kullanıcı adı zaten kullanılıyor: " + request.getUsername());
         }

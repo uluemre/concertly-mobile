@@ -51,11 +51,13 @@ import CommunitiesScreen from '../screens/CommunitiesScreen';
 import CommunityDetailScreen from '../screens/CommunityDetailScreen';
 import CreateCommunityScreen from '../screens/CreateCommunityScreen';
 import CommunityManageScreen from '../screens/CommunityManageScreen';
+import TransferOwnershipScreen from '../screens/TransferOwnershipScreen';
 import ArtistProfileScreen from '../screens/ArtistProfileScreen';
 import WelcomeScreen from '../screens/WelcomeScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import MapScreen from '../screens/MapScreen';
 import FollowListScreen from '../screens/FollowListScreen';
+import FollowRequestsScreen from '../screens/FollowRequestsScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
 import GenreSelectionScreen from '../screens/GenreSelectionScreen';
@@ -393,6 +395,11 @@ export default function AppNavigator() {
         />
 
         <Stack.Screen
+          name="TransferOwnership"
+          component={TransferOwnershipScreen}
+        />
+
+        <Stack.Screen
           name="ArtistProfile"
           component={ArtistProfileScreen}
         />
@@ -415,6 +422,11 @@ export default function AppNavigator() {
         <Stack.Screen
           name="FollowList"
           component={FollowListScreen}
+        />
+
+        <Stack.Screen
+          name="FollowRequests"
+          component={FollowRequestsScreen}
         />
 
         {/* ADMIN */}

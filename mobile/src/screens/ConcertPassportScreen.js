@@ -9,8 +9,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { foldName, displayGenre } from '../utils/text';
 import { buildShareUrl, shareWithLink } from '../services/shareLinks';
 import API from '../services/api';
+import { isPrivateAccountError } from '../utils/communityErrors';
 import EventImage from '../components/EventImage';
 import { parseEventDate } from '../utils/time';
 import { genreAccent } from '../utils/gradients';
@@ -19,7 +21,8 @@ import { goBackOrFallback, openEvent } from '../navigation/navHelpers';
 // Gerçek pasaport damgaları gibi: her şehrin kendi mürekkep rengi, her damga biraz farklı açıda
 const INKS = ['#00D4AA', '#F5A623', '#60A5FA', '#F472B6', '#A78BFA', '#34D399'];
 function inkFor(city) {
-  const s = String(city || '').toLocaleLowerCase('tr-TR');
+  // "Istanbul" ve "İSTANBUL" aynı renk: Türkçe harf / büyük-küçük farkı yok sayılır (N-53)
+  const s = foldName(city);
   let h = 0;
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
   return INKS[h % INKS.length];
@@ -66,6 +69,7 @@ export default function ConcertPassportScreen({ navigation, route }) {
 
   const [passport, setPassport] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [locked, setLocked] = useState(false);
   const [goal, setGoal] = useState(10);
   const goalAnim = useRef(new Animated.Value(0)).current;
   const year = new Date().getFullYear();
@@ -73,8 +77,11 @@ export default function ConcertPassportScreen({ navigation, route }) {
   useEffect(() => {
     AsyncStorage.getItem(GOAL_STORAGE_KEY).then(v => { if (v) setGoal(Number(v)); }).catch(() => {});
     API.get(`/users/${targetUserId}/passport`)
-      .then(res => setPassport(res.data))
-      .catch(err => console.log('passport error:', err.message))
+      .then(res => { setPassport(res.data); setLocked(false); })
+      .catch(err => {
+        console.log('passport error:', err.message);
+        if (isPrivateAccountError(err)) setLocked(true);
+      })
       .finally(() => setLoading(false));
   }, [targetUserId]);
 
@@ -96,7 +103,7 @@ export default function ConcertPassportScreen({ navigation, route }) {
     if (!passport) return;
     const top = passport.topArtists?.[0]?.name;
     const msg = t('passport_share_message', {
-      year, concerts: passport.totalConcerts, artists: passport.uniqueArtists, cities: passport.uniqueCities,
+      concerts: passport.totalConcerts, artists: passport.uniqueArtists, cities: passport.uniqueCities,
     }) + (top ? '\n' + t('passport_share_top', { artist: top }) : '');
     shareWithLink(msg, session.username ? buildShareUrl('user', session.username) : null);
   };
@@ -114,6 +121,28 @@ export default function ConcertPassportScreen({ navigation, route }) {
   if (loading) return (
     <View style={[styles.container, styles.centered]}>
       <ActivityIndicator size="large" color={colors.primary} />
+    </View>
+  );
+
+  // Gizli hesabın pasaportu: kilit mesajı
+  if (locked) return (
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.iconBtn} hitSlop={10}>
+          <Ionicons name="chevron-back" size={22} color={colors.text} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>{t('profile_passport')}</Text>
+        <View style={styles.iconBtn} />
+      </View>
+      <View style={[styles.centered, { flex: 1 }]}>
+        <Text style={{ fontSize: 40, marginBottom: 10 }}>🔒</Text>
+        <Text style={{ fontSize: 16, fontWeight: '700', color: colors.text, marginBottom: 6 }}>
+          {t('private_account_locked_title')}
+        </Text>
+        <Text style={{ fontSize: 14, color: colors.textSecondary, textAlign: 'center', paddingHorizontal: 32 }}>
+          {t('private_account_locked_msg')}
+        </Text>
+      </View>
     </View>
   );
 
@@ -243,7 +272,7 @@ export default function ConcertPassportScreen({ navigation, route }) {
                     <Text style={styles.stubMeta} numberOfLines={1}>
                       {[ev.artistName !== ev.name ? ev.artistName : null, ev.venueCity].filter(Boolean).join(' · ')}
                     </Text>
-                    {ev.genre ? <Text style={styles.stubGenre} numberOfLines={1}>{ev.genre}</Text> : null}
+                    {ev.genre ? <Text style={styles.stubGenre} numberOfLines={1}>{displayGenre(ev.genre, t)}</Text> : null}
                   </View>
                   {ev.verified ? (
                     <View style={[styles.stamp, { borderColor: inkFor(ev.venueCity) + 'CC', transform: [{ rotate: `${(ev.id % 5) * 4 - 12}deg` }] }]}>
@@ -304,7 +333,7 @@ export default function ConcertPassportScreen({ navigation, route }) {
                 const c = genreAccent(g.genre);
                 return (
                   <View key={g.genre} style={[styles.genreChip, { backgroundColor: c + '22', borderColor: c + '66' }]}>
-                    <Text style={[styles.genreChipText, { color: c }]}>{g.genre}</Text>
+                    <Text style={[styles.genreChipText, { color: c }]}>{displayGenre(g.genre, t)}</Text>
                     <View style={[styles.genreChipBadge, { backgroundColor: c }]}>
                       <Text style={styles.genreChipCount}>{g.count}</Text>
                     </View>

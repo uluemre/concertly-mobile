@@ -10,9 +10,12 @@ import { useTheme } from '../theme';
 import { ProfileSkeletonPage } from '../components/SkeletonLoader';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { displayCountry } from '../utils/text';
 import { parseEventDate, dateLocale } from '../utils/time';
 import { goBackOrFallback, openEvent } from '../navigation/navHelpers';
 import DeepLinkLoader from '../components/DeepLinkLoader';
+import MapView, { Marker } from 'react-native-maps';
+import { venueCoords, openMapsAt, openMapsSearch } from '../utils/maps';
 
 const { width } = Dimensions.get('window');
 const DAY_SIZE = Math.floor((width - 32) / 7);
@@ -149,6 +152,9 @@ function VenueProfileContent({ route, navigation }) {
     ]);
   };
 
+  const coords = venueCoords(venue);
+  const mapQuery = [venue?.name, venue?.address, venue?.city].filter(Boolean).join(', ');
+
   if (loading) return <ProfileSkeletonPage hero />;
 
   return (
@@ -202,10 +208,47 @@ function VenueProfileContent({ route, navigation }) {
           </TouchableOpacity>
           <View style={styles.headerInfo}>
             <Text style={styles.venueName}>{venue?.name}</Text>
-            <Text style={styles.venueLocation}>📍 {[venue?.city, venue?.country].filter(Boolean).join(', ')}</Text>
+            <Text style={styles.venueLocation}>📍 {[venue?.city, displayCountry(venue?.country)].filter(Boolean).join(', ')}</Text>
             {venue?.address ? <Text style={styles.venueAddress}>{venue.address}</Text> : null}
           </View>
         </View>
+
+        {/* HARİTA (BUG-02): koordinat varsa EventDetail'deki gibi satır içi harita,
+            yoksa ad + adres ile haritada arama bağlantısı */}
+        {coords ? (
+          <TouchableOpacity
+            style={styles.mapWrapper}
+            onPress={() => openMapsAt(coords.latitude, coords.longitude, venue?.name)}
+            activeOpacity={0.9}
+            accessibilityRole="button"
+            accessibilityLabel={t('detail_open_map')}
+          >
+            <MapView
+              style={styles.map}
+              initialRegion={{ ...coords, latitudeDelta: 0.005, longitudeDelta: 0.005 }}
+              scrollEnabled={false}
+              zoomEnabled={false}
+              pitchEnabled={false}
+              rotateEnabled={false}
+              pointerEvents="none"
+            >
+              <Marker coordinate={coords} title={venue?.name} />
+            </MapView>
+            <View style={styles.mapOverlay}>
+              <View style={styles.mapOverlayBadge}>
+                <Text style={styles.mapOverlayText}>{t('detail_open_map')}</Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+        ) : mapQuery ? (
+          <TouchableOpacity
+            style={styles.mapLinkBtn}
+            onPress={() => openMapsSearch(mapQuery)}
+            accessibilityRole="button"
+          >
+            <Text style={styles.mapLinkText}>📍 {t('detail_open_map')}</Text>
+          </TouchableOpacity>
+        ) : null}
 
         {/* STATS */}
         <View style={styles.statsRow}>
@@ -396,6 +439,26 @@ function createStyles(colors) {
     venueName: { fontSize: 22, fontWeight: '900', color: '#fff', marginBottom: 4 },
     venueLocation: { fontSize: 13, color: 'rgba(255,255,255,0.85)', marginBottom: 2 },
     venueAddress: { fontSize: 12, color: 'rgba(255,255,255,0.65)' },
+
+    // HARİTA
+    mapWrapper: {
+      marginHorizontal: 16, marginTop: 16, borderRadius: 14, overflow: 'hidden',
+      height: 180, borderWidth: 1, borderColor: colors.border,
+    },
+    map: { width: '100%', height: '100%' },
+    mapOverlay: {
+      position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+      justifyContent: 'flex-end', alignItems: 'flex-end', padding: 10,
+    },
+    mapOverlayBadge: {
+      backgroundColor: 'rgba(0,0,0,0.65)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
+    },
+    mapOverlayText: { color: '#fff', fontSize: 12, fontWeight: '600' },
+    mapLinkBtn: {
+      marginHorizontal: 16, marginTop: 16, paddingVertical: 12, borderRadius: 12,
+      alignItems: 'center', borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card,
+    },
+    mapLinkText: { color: colors.text, fontSize: 14, fontWeight: '600' },
 
     // STATS
     statsRow: {

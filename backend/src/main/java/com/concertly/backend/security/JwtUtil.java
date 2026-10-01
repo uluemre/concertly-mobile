@@ -33,16 +33,55 @@ public class JwtUtil {
                 .compact();
     }
 
+    /**
+     * Tek amaçlı, kısa ömürlü imzalı belirteç (ör. Spotify OAuth state). Erişim belirteciyle
+     * karıştırılamaz: konu "id:email" biçiminde değil ve "purpose" talebi zorunlu.
+     */
+    public String generatePurposeToken(Long userId, String purpose, long ttlMs) {
+        return Jwts.builder()
+                .subject(String.valueOf(userId))
+                .claim("purpose", purpose)
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + ttlMs))
+                .signWith(secretKey)
+                .compact();
+    }
+
+    /** İmza, süre ve amaç geçerliyse kullanıcı id'sini, değilse null döner. */
+    public Long parsePurposeToken(String token, String purpose) {
+        if (token == null || token.isBlank()) return null;
+        try {
+            Claims claims = parseClaims(token);
+            if (!purpose.equals(claims.get("purpose", String.class))) return null;
+            return Long.parseLong(claims.getSubject());
+        } catch (JwtException | IllegalArgumentException e) {
+            return null;
+        }
+    }
+
     public String extractEmail(String token) {
         String subject = parseClaims(token).getSubject();
         int colonIndex = subject.indexOf(':');
         return colonIndex > 0 ? subject.substring(colonIndex + 1) : subject;
     }
 
+    /** Konudaki "id:email" önekinden kullanıcı id'sini döner; yoksa/sayısal değilse null. */
+    public Long extractUserId(String token) {
+        String subject = parseClaims(token).getSubject();
+        if (subject == null) return null;
+        int colonIndex = subject.indexOf(':');
+        if (colonIndex <= 0) return null;
+        try {
+            return Long.parseLong(subject.substring(0, colonIndex));
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
     public boolean isTokenValid(String token) {
         try {
-            parseClaims(token);
-            return true;
+            // Amaç (purpose) talebi taşıyan belirteçler erişim belirteci değildir
+            return parseClaims(token).get("purpose") == null;
         } catch (JwtException | IllegalArgumentException e) {
             return false;
         }

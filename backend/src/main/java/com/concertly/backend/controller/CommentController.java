@@ -31,7 +31,7 @@ public class CommentController {
 
     @GetMapping
     public List<CommentResponse> getComments(@PathVariable Long postId) {
-        return commentService.getCommentsByPost(postId);
+        return commentService.getCommentsByPost(postId, JwtUtil.getCurrentUserId());
     }
 
     @DeleteMapping("/{commentId}")

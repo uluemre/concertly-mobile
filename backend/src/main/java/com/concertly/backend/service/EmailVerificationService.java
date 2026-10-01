@@ -88,6 +88,17 @@ public class EmailVerificationService {
     public User verify(String email, String code) {
         if (email == null || code == null || code.isBlank()) throw invalid();
         User user = userRepository.findByEmailNormalized(email).orElseThrow(EmailVerificationService::invalid);
+        return verifyUser(user, code);
+    }
+
+    /** Oturumlu kullanıcı için doğrulama (e-posta değişikliği); token üretmez/silmez. */
+    public User verifyForUser(Long userId, String code) {
+        if (userId == null || code == null || code.isBlank()) throw invalid();
+        User user = userRepository.findById(userId).orElseThrow(EmailVerificationService::invalid);
+        return verifyUser(user, code);
+    }
+
+    private User verifyUser(User user, String code) {
         if (!user.isEmailVerificationPending() || user.getEmailVerificationCodeHash() == null) throw invalid();
 
         int attempts = user.getEmailVerificationAttempts() == null ? 0 : user.getEmailVerificationAttempts();

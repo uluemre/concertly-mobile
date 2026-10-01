@@ -43,6 +43,8 @@ export default function SettingsScreen({ navigation, route }) {
   // Bildirim ve gizlilik tercihleri sunucuda tutulur (cihaz değişse de korunsun).
   const [notifSettings, setNotifSettings] = useState(null);
   const [privacy, setPrivacy] = useState(null);
+  const [privateSaving, setPrivateSaving] = useState(false);
+  const [pendingRequestCount, setPendingRequestCount] = useState(0);
 
   // Yüklenen kullanıcı adı: kural yalnızca ad değiştirilirse uygulanır (N-21)
   const loadedUsername = useRef('');
@@ -62,6 +64,16 @@ export default function SettingsScreen({ navigation, route }) {
     fetchSpotifyStatus();
     fetchPreferences();
   }, []);
+
+  // Takip istekleri ekranından dönünce bekleyen sayısı güncellensin
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      API.get('/users/me/follow-requests')
+        .then((res) => { if (Array.isArray(res.data)) setPendingRequestCount(res.data.length); })
+        .catch(() => {});
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   const fetchSpotifyStatus = async () => {
     try {
@@ -122,12 +134,33 @@ export default function SettingsScreen({ navigation, route }) {
   };
 
   const fetchPreferences = async () => {
+    // Takip istekleri sayısı odak dinleyicisinde çekilir (çift istek olmasın)
     const [notifRes, privacyRes] = await Promise.allSettled([
       API.get('/notifications/settings'),
       API.get('/users/me/privacy'),
     ]);
     if (notifRes.status === 'fulfilled') setNotifSettings(notifRes.value.data);
     if (privacyRes.status === 'fulfilled') setPrivacy(privacyRes.value.data);
+  };
+
+  // Özel hesap: iyimser anahtar, çift dokunuşa karşı kilit, hata olursa geri alınır.
+  const togglePrivateAccount = async (value) => {
+    if (privateSaving) return;
+    setPrivateSaving(true);
+    const previous = privacy;
+    setPrivacy((prev) => ({ ...prev, privateAccount: value }));
+    try {
+      const body = { privateAccount: value };
+      if (previous?.messagePrivacy) body.messagePrivacy = previous.messagePrivacy;
+      const res = await API.put('/users/me/privacy', body);
+      setPrivacy(res.data);
+      if (!value) setPendingRequestCount(0); // sunucu bekleyenleri otomatik kabul eder
+    } catch {
+      setPrivacy(previous);
+      Alert.alert(t('error'), t('settings_pref_save_error'));
+    } finally {
+      setPrivateSaving(false);
+    }
   };
 
   /** İyimser güncelleme: anahtar hemen döner, istek başarısızsa geri alınır. */
@@ -190,6 +223,10 @@ export default function SettingsScreen({ navigation, route }) {
       if (res.data?.username) loadedUsername.current = res.data.username;
       if (res.data?.email) loadedEmail.current = res.data.email;
       setCurrentPassword('');
+      if (res.data?.emailVerificationRequired === true && res.data?.email) {
+        navigation.navigate('VerifyEmail', { email: res.data.email, justSent: true, changeEmail: true });
+        return;
+      }
       Alert.alert(t('settings_save_success'), t('settings_save_success_msg'), [
         { text: t('confirm'), onPress: () => goBackOrFallback(navigation) }
       ]);
@@ -454,6 +491,35 @@ export default function SettingsScreen({ navigation, route }) {
         {/* ── GİZLİLİK & GÜVENLİK ─────────────────────────────────────── */}
         <Text style={styles.sectionTitle}>{tu('settings_privacy_section')}</Text>
         <View style={styles.prefCard}>
+          <View style={styles.prefRow}>
+            <View style={styles.prefTextWrap}>
+              <Text style={styles.prefTitle}>{t('settings_private_title')}</Text>
+              <Text style={styles.prefDesc}>{t('settings_private_desc')}</Text>
+            </View>
+            <Switch
+              value={!!privacy?.privateAccount}
+              onValueChange={togglePrivateAccount}
+              disabled={!privacy || privateSaving}
+              trackColor={{ false: colors.border, true: colors.primary }}
+              thumbColor="#fff"
+            />
+          </View>
+
+          {(privacy?.privateAccount || pendingRequestCount > 0) ? (
+            <TouchableOpacity
+              style={styles.prefLinkRow}
+              onPress={() => navigation.navigate('FollowRequests')}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.prefLinkText}>
+                {t('follow_requests_title')}{pendingRequestCount > 0 ? ` (${pendingRequestCount})` : ''}
+              </Text>
+              <Text style={styles.prefLinkArrow}>›</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
+
+        <View style={[styles.prefCard, { marginTop: 12 }]}>
           <Text style={styles.prefTitle}>{t('settings_dm_title')}</Text>
           <Text style={[styles.prefDesc, { marginBottom: 12 }]}>{t('settings_dm_desc')}</Text>
           <View style={styles.choiceRow}>
@@ -487,6 +553,15 @@ export default function SettingsScreen({ navigation, route }) {
             <Text style={styles.prefLinkArrow}>›</Text>
           </TouchableOpacity>
         </View>
+
+        <TouchableOpacity
+          style={[styles.privacyRow, { marginTop: 12 }]}
+          onPress={() => navigation.navigate('ChangePassword')}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.privacyRowText}>🔒  {t('settings_change_password')}</Text>
+          <Text style={styles.chevron}>›</Text>
+        </TouchableOpacity>
 
         <Text style={styles.sectionTitle}>{tu('settings_spotify')}</Text>
         <View style={styles.spotifyCard}>
@@ -547,24 +622,6 @@ export default function SettingsScreen({ navigation, route }) {
             </TouchableOpacity>
           )}
         </View>
-
-        <Text style={styles.sectionTitle}>{tu('settings_privacy_section')}</Text>
-        <TouchableOpacity
-          style={[styles.privacyRow, { marginBottom: 12 }]}
-          onPress={() => navigation.navigate('ChangePassword')}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.privacyRowText}>🔒  {t('settings_change_password')}</Text>
-          <Text style={styles.chevron}>›</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.privacyRow}
-          onPress={() => navigation.navigate('BlockedUsers')}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.privacyRowText}>🚫  {t('settings_blocked_users')}</Text>
-          <Text style={styles.chevron}>›</Text>
-        </TouchableOpacity>
 
         <Text style={styles.sectionTitle}>{tu('settings_legal_section')}</Text>
         <TouchableOpacity

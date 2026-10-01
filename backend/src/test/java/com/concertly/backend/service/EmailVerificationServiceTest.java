@@ -126,6 +126,54 @@ class EmailVerificationServiceTest {
         assertEquals("CODE_INVALID", reason(e));
     }
 
+    // ── N-25: oturumlu doğrulama (verifyForUser) ──
+
+    @Test
+    void verifyForUserVerifiesCurrentUserOnly() {
+        String code = startAndCaptureCode();
+        when(userRepository.findById(7L)).thenReturn(Optional.of(user));
+        User result = service.verifyForUser(7L, code);
+        assertEquals(Boolean.TRUE, result.getEmailVerified());
+        assertNull(result.getEmailVerificationCodeHash());
+    }
+
+    @Test
+    void verifyForUserRejectsWrongExpiredAndExceeded() {
+        String code = startAndCaptureCode();
+        when(userRepository.findById(7L)).thenReturn(Optional.of(user));
+        assertEquals("CODE_INVALID", reason(assertThrows(ResponseStatusException.class,
+                () -> service.verifyForUser(7L, "000000x"))));
+        assertEquals(1, user.getEmailVerificationAttempts());
+        assertEquals("CODE_INVALID", reason(assertThrows(ResponseStatusException.class,
+                () -> service.verifyForUser(7L, " "))));
+
+        user.setEmailVerificationExpiry(LocalDateTime.now().minusMinutes(1));
+        assertEquals("CODE_EXPIRED", reason(assertThrows(ResponseStatusException.class,
+                () -> service.verifyForUser(7L, code))));
+
+        user.setEmailVerificationExpiry(LocalDateTime.now().plusMinutes(5));
+        user.setEmailVerificationAttempts(5);
+        assertEquals("CODE_ATTEMPTS_EXCEEDED", reason(assertThrows(ResponseStatusException.class,
+                () -> service.verifyForUser(7L, code))));
+    }
+
+    @Test
+    void verifyForUserUnknownUserOrNotPendingIsInvalid() {
+        when(userRepository.findById(99L)).thenReturn(Optional.empty());
+        assertEquals("CODE_INVALID", reason(assertThrows(ResponseStatusException.class,
+                () -> service.verifyForUser(99L, "123456"))));
+        when(userRepository.findById(7L)).thenReturn(Optional.of(user)); // doğrulama beklemiyor
+        assertEquals("CODE_INVALID", reason(assertThrows(ResponseStatusException.class,
+                () -> service.verifyForUser(7L, "123456"))));
+    }
+
+    @Test
+    void verifyForUserNeverTouchesSessions() {
+        // Servisin RefreshToken bağımlılığı yok: diğer cihaz oturumları iptal edilemez
+        assertTrue(java.util.Arrays.stream(EmailVerificationService.class.getDeclaredFields())
+                .noneMatch(f -> f.getType().getSimpleName().contains("RefreshToken")));
+    }
+
     @Test
     void resendRespectsCooldown() {
         startAndCaptureCode();

@@ -10,6 +10,7 @@ import com.concertly.backend.repository.EventAttendanceRepository;
 import com.concertly.backend.repository.UserRepository;
 import com.concertly.backend.security.JwtUtil;
 import com.concertly.backend.service.ModerationService;
+import com.concertly.backend.service.PrivacyService;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -75,9 +76,11 @@ public class BuddyMatchController {
                 Map<String, Object> card = new LinkedHashMap<>();
                 card.put("userId", u.getId());
                 card.put("username", u.getUsername());
-                card.put("city", u.getCity() != null ? u.getCity() : "");
-                card.put("bio", u.getBio() != null ? u.getBio() : "");
-                card.put("favoriteGenres", u.getFavoriteGenres() != null ? u.getFavoriteGenres() : "");
+                // SEC-05: özel hesapta yalnızca başlık alanları (bio/şehir/türler boş; uyum puanı 0 kalır)
+                boolean isPrivate = PrivacyService.isPrivate(u);
+                card.put("city", !isPrivate && u.getCity() != null ? u.getCity() : "");
+                card.put("bio", !isPrivate && u.getBio() != null ? u.getBio() : "");
+                card.put("favoriteGenres", !isPrivate && u.getFavoriteGenres() != null ? u.getFavoriteGenres() : "");
                 card.put("profileImageUrl", u.getProfileImageUrl() != null ? u.getProfileImageUrl() : "");
                 card.put("sharedEvents", new ArrayList<>());
                 return card;

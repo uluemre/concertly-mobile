@@ -12,6 +12,22 @@ export function foldName(s) {
 }
 
 /**
+ * Tür adını gösterim için çevirir: veri tabanındaki "Diger" / "Diğer" → t('genre_other').
+ * Yalnızca görüntüleme içindir; filtre / sorgu değerleri değişmez.
+ */
+export function displayGenre(genre, t) {
+  if (!genre) return genre;
+  return foldName(genre) === 'diger' ? t('genre_other') : genre;
+}
+
+/** Ülke adını gösterim için düzeltir: Turkey / Turkiye / Türkiye → "Türkiye". */
+export function displayCountry(country) {
+  if (!country) return country;
+  const f = foldName(country);
+  return f === 'turkey' || f === 'turkiye' ? 'Türkiye' : country;
+}
+
+/**
  * Arama için sadeleştirme: Türkçe harf ve büyük/küçük harf farkını yok sayar
  * ("sebnem" ↔ "Şebnem", "istanbul" ↔ "İstanbul"). Noktalama korunur; backend'deki
  * SearchText ile aynı kural.

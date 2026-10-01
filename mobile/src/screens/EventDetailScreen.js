@@ -18,6 +18,7 @@ import { resolveTicketLinks, ticketSiteHost } from '../services/concerts';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { displayGenre, displayCountry } from '../utils/text';
 import { getGenreGradient } from '../utils/gradients';
 import { detailImageCandidates } from '../utils/eventImage';
 import { formatTimeAgo, parseEventDate, dateLocale } from '../utils/time';
@@ -492,21 +493,21 @@ function EventDetailContent({ route, navigation }) {
   // Hero üstü aksiyonlar — sol: geri, sağ: bilet / takvim / kaydet (ikon butonlar)
   const heroActions = (
     <View style={styles.heroTopActions}>
-      <TouchableOpacity style={styles.backButton} onPress={() => goBackOrFallback(navigation)}>
+      <TouchableOpacity style={styles.backButton} onPress={() => goBackOrFallback(navigation)} accessibilityRole="button" accessibilityLabel={t('back')}>
         <Text style={styles.backText}>{t('back')}</Text>
       </TouchableOpacity>
       <View style={styles.heroIconRow}>
         {/* Paylaş — link uygulamayı açar, yüklü değilse indirme sayfasına gider */}
-        <TouchableOpacity style={styles.iconBtn} onPress={shareEvent} activeOpacity={0.8}>
+        <TouchableOpacity style={styles.iconBtn} onPress={shareEvent} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={t('share')}>
           <Ionicons name="share-social-outline" size={20} color="#fff" />
         </TouchableOpacity>
         {/* Bilet, içeride belirgin CTA olarak gösteriliyor — hero ikonu kaldırıldı */}
         {!isExpired && (
-          <TouchableOpacity style={styles.iconBtn} onPress={addToCalendar} activeOpacity={0.8}>
+          <TouchableOpacity style={styles.iconBtn} onPress={addToCalendar} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={t('a11y_add_calendar')}>
             <Ionicons name="calendar-outline" size={20} color="#fff" />
           </TouchableOpacity>
         )}
-        <TouchableOpacity style={styles.bookmarkButton} onPress={handleBookmark} activeOpacity={0.8}>
+        <TouchableOpacity style={styles.bookmarkButton} onPress={handleBookmark} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={t('a11y_bookmark')} accessibilityState={{ selected: !!bookmarked }}>
           <Ionicons name={bookmarked ? 'bookmark' : 'bookmark-outline'} size={20} color={bookmarked ? '#F5A623' : '#fff'} />
         </TouchableOpacity>
       </View>
@@ -546,7 +547,7 @@ function EventDetailContent({ route, navigation }) {
             <Text style={heroTitleStyle} numberOfLines={2} ellipsizeMode="tail">{event.name}</Text>
             {event.genre && (
               <View style={styles.genreBadge}>
-                <Text style={styles.genreText}>🎵 {event.genre}</Text>
+                <Text style={styles.genreText}>🎵 {displayGenre(event.genre, t)}</Text>
               </View>
             )}
             {verifiedBadge}
@@ -566,7 +567,7 @@ function EventDetailContent({ route, navigation }) {
           <Text style={heroTitleStyle} numberOfLines={2} ellipsizeMode="tail">{event.name}</Text>
           {event.genre && (
             <View style={styles.genreBadge}>
-              <Text style={styles.genreText}>🎵 {event.genre}</Text>
+              <Text style={styles.genreText}>🎵 {displayGenre(event.genre, t)}</Text>
             </View>
           )}
           {verifiedBadge}
@@ -836,7 +837,7 @@ function EventDetailContent({ route, navigation }) {
             </TouchableOpacity>
             {event.venueCity && event.venueCountry && (
               <Text style={styles.infoValueSub}>
-                {event.venueCity}, {event.venueCountry}
+                {event.venueCity}, {displayCountry(event.venueCountry)}
               </Text>
             )}
             {event.venueAddress && (
@@ -971,7 +972,8 @@ function EventDetailContent({ route, navigation }) {
 
             {/* Puan ver — yalnızca katılanlar (Gidiyorum / doğrulanmış) */}
             {!(attendance === 'GOING' || isVerified) ? (
-              <View style={[styles.reviewLockedCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              // Geçmiş etkinlikte "Gidiyorum işaretle" yönlendirmesi anlamsız (buton pasif): ipucu gizli (N-60)
+              isExpired ? null : <View style={[styles.reviewLockedCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
                 <Text style={styles.reviewLockedEmoji}>🎟️</Text>
                 <Text style={[styles.reviewLockedText, { color: colors.textSecondary }]}>
                   {t('review_need_attendance')}

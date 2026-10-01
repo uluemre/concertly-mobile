@@ -1,31 +1,35 @@
-import React, { useState, useMemo } from 'react';
-import {
-  View, Text, TextInput, TouchableOpacity,
-  StyleSheet, Alert, ActivityIndicator,
-  KeyboardAvoidingView, Platform,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, Alert } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import API from '../services/api';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import { goBackOrFallback } from '../navigation/navHelpers';
 import { isValidEmail, normalizeEmail } from '../utils/email';
+import AuthLayout from '../components/auth/AuthLayout';
+import AuthInput from '../components/auth/AuthInput';
+import AuthButton from '../components/auth/AuthButton';
 
 export default function ForgotPasswordScreen({ navigation }) {
   const { colors } = useTheme();
   const { t } = useLanguage();
-  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  // Yalnız sunum: Alert mesajı ayrıca alanın altında da gösterilir
+  const [error, setError] = useState(null);
 
   const handleSend = async () => {
+    if (loading) return;
+    setError(null);
     if (!email.trim()) {
+      setError(t('forgot_email_required'));
       Alert.alert(t('error'), t('forgot_email_required'));
       return;
     }
     if (!isValidEmail(email)) {
+      setError(t('email_invalid'));
       Alert.alert(t('error'), t('email_invalid'));
       return;
     }
@@ -48,76 +52,55 @@ export default function ForgotPasswordScreen({ navigation }) {
   };
 
   return (
-    <LinearGradient colors={colors.screenGradient} style={styles.container}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.inner}>
-
-        <TouchableOpacity onPress={() => goBackOrFallback(navigation, 'Login')} style={styles.back}>
-          <Text style={[styles.backText, { color: colors.primary }]}>{t('back')}</Text>
-        </TouchableOpacity>
-
-        <Text style={[styles.title, { color: colors.text }]}>🔑 {t('forgot_title')}</Text>
-        <Text style={[styles.sub, { color: colors.textSecondary }]}>{t('forgot_subtitle')}</Text>
-
-        {!sent ? (
-          <>
-            <TextInput
-              style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
-              placeholder={t('forgot_email_placeholder')}
-              placeholderTextColor={colors.textSecondary}
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            <TouchableOpacity onPress={handleSend} disabled={loading} activeOpacity={0.85}>
-              <LinearGradient colors={['#7C3AED', '#E94560']} style={styles.btn}>
-                {loading
-                  ? <ActivityIndicator color="#fff" />
-                  : <Text style={styles.btnText}>{t('forgot_send_btn')}</Text>
-                }
-              </LinearGradient>
-            </TouchableOpacity>
-          </>
-        ) : (
-          <>
-            <View style={styles.successBox}>
-              <Text style={styles.successEmoji}>📬</Text>
-              <Text style={[styles.successTitle, { color: colors.text }]}>{t('forgot_sent_title')}</Text>
-              <Text style={[styles.successSub, { color: colors.textSecondary }]}>{t('forgot_sent_sub')}</Text>
-            </View>
-            <TouchableOpacity
-              onPress={() => navigation.navigate('ResetPassword', { email: normalizeEmail(email) })}
-              activeOpacity={0.85}
-            >
-              <LinearGradient colors={['#00897B', '#00D4AA']} style={styles.btn}>
-                <Text style={styles.btnText}>{t('forgot_enter_code_btn')}</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </>
-        )}
-      </KeyboardAvoidingView>
-    </LinearGradient>
+    <AuthLayout
+      icon={sent ? 'mail-open-outline' : 'key-outline'}
+      title={sent ? t('forgot_sent_title') : t('forgot_title')}
+      subtitle={sent ? t('forgot_sent_sub') : t('forgot_subtitle')}
+      onBack={() => goBackOrFallback(navigation, 'Login')}
+      backLabel={t('back')}
+    >
+      {!sent ? (
+        <>
+          <AuthInput
+            label={t('email')}
+            icon="mail-outline"
+            placeholder={t('forgot_email_placeholder')}
+            value={email}
+            onChangeText={(v) => { setEmail(v); if (error) setError(null); }}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            textContentType="emailAddress"
+            autoComplete="email"
+            returnKeyType="send"
+            onSubmitEditing={handleSend}
+            error={error}
+          />
+          <AuthButton title={t('forgot_send_btn')} onPress={handleSend} loading={loading} style={styles.submit} />
+        </>
+      ) : (
+        <>
+          <View style={[styles.sentTo, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Ionicons name="checkmark-circle" size={20} color={colors.accent || colors.primary} />
+            <Text style={[styles.sentToText, { color: colors.text }]} numberOfLines={1}>
+              {normalizeEmail(email)}
+            </Text>
+          </View>
+          <AuthButton
+            title={t('forgot_enter_code_btn')}
+            onPress={() => navigation.navigate('ResetPassword', { email: normalizeEmail(email) })}
+          />
+        </>
+      )}
+    </AuthLayout>
   );
 }
 
-function createStyles(colors) {
-  return StyleSheet.create({
-    container: { flex: 1 },
-    inner: { flex: 1, padding: 24, justifyContent: 'center' },
-    back: { position: 'absolute', top: 56, left: 24 },
-    backText: { fontSize: 16, fontWeight: '700' },
-    title: { fontSize: 28, fontWeight: '900', marginBottom: 8, marginTop: 60 },
-    sub: { fontSize: 14, lineHeight: 20, marginBottom: 32 },
-    input: {
-      borderRadius: 16, padding: 16, fontSize: 16,
-      borderWidth: 1, marginBottom: 16,
-    },
-    btn: { borderRadius: 16, padding: 18, alignItems: 'center', marginTop: 4 },
-    btnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
-    successBox: { alignItems: 'center', paddingVertical: 32, gap: 12 },
-    successEmoji: { fontSize: 56 },
-    successTitle: { fontSize: 20, fontWeight: '800' },
-    successSub: { fontSize: 14, textAlign: 'center', lineHeight: 20 },
-  });
-}
+const styles = StyleSheet.create({
+  submit: { marginTop: 6 },
+  sentTo: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    borderWidth: 1, borderRadius: 14, paddingHorizontal: 14, minHeight: 52, marginBottom: 16,
+  },
+  sentToText: { flex: 1, fontSize: 15, fontWeight: '600' },
+});

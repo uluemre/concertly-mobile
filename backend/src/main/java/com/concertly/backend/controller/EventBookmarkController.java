@@ -3,6 +3,7 @@ package com.concertly.backend.controller;
 import com.concertly.backend.dto.response.EventResponse;
 import com.concertly.backend.security.JwtUtil;
 import com.concertly.backend.service.EventBookmarkService;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -30,6 +31,8 @@ public class EventBookmarkController {
     @GetMapping("/events/{eventId}/bookmark")
     public Map<String, Boolean> status(@PathVariable Long eventId) {
         Long userId = JwtUtil.getCurrentUserId();
+        // Giriş yapmamış izleyici için güvenli değer (GET /api/events/** herkese açık)
+        if (userId == null) return Map.of("bookmarked", false);
         boolean bookmarked = bookmarkService.isBookmarked(userId, eventId);
         return Map.of("bookmarked", bookmarked);
     }
@@ -37,6 +40,10 @@ public class EventBookmarkController {
     // Kullanıcının tüm kaydedilen etkinlikleri
     @GetMapping("/users/{userId}/bookmarks")
     public List<EventResponse> getUserBookmarks(@PathVariable Long userId) {
+        // Kaydedilenler özeldir: yalnızca sahibi görebilir (SEC-02)
+        if (userId == null || !userId.equals(JwtUtil.getCurrentUserId())) {
+            throw new AccessDeniedException("Bu işlemi yalnızca kendi hesabın için yapabilirsin.");
+        }
         return bookmarkService.getUserBookmarks(userId);
     }
 }

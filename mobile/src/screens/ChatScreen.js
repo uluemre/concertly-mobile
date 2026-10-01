@@ -8,6 +8,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { apiErrorMessage } from '../utils/communityErrors';
 import API from '../services/api';
 import { goBackOrFallback } from '../navigation/navHelpers';
 
@@ -66,9 +67,9 @@ export default function ChatScreen({ navigation, route }) {
     try {
       const res = await API.post('/messages', { receiverId: userId, content });
       setMessages(prev => [...prev, res.data]);
-    } catch {
+    } catch (err) {
       setText(content); // geri koy, kullanıcı tekrar denesin
-      Alert.alert(t('error'), t('chat_send_error'));
+      Alert.alert(t('error'), apiErrorMessage(err, t, 'chat_send_error'));
     } finally {
       setSending(false);
     }
@@ -148,7 +149,7 @@ export default function ChatScreen({ navigation, route }) {
     >
       {/* HEADER */}
       <LinearGradient colors={colors.headerGradient} style={styles.header}>
-        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel={t('back')}>
           <Text style={[styles.backText, { color: colors.primary }]}>‹</Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -172,7 +173,7 @@ export default function ChatScreen({ navigation, route }) {
             )}
           </View>
         </TouchableOpacity>
-        <TouchableOpacity onPress={handleModeration} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+        <TouchableOpacity onPress={handleModeration} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel={t('mod_options_title')}>
           <Text style={[styles.moreText, { color: colors.text }]}>⋯</Text>
         </TouchableOpacity>
       </LinearGradient>

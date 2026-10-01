@@ -16,6 +16,7 @@ public enum PushCategory {
         if (type == null) return SOCIAL;
         if (type.startsWith("community")) return COMMUNITIES;
         return switch (type) {
+            case "follow", "follow_request", "follow_accepted" -> SOCIAL;
             case "message" -> MESSAGES;
             case "event_reminder", "new_event" -> EVENTS;
             case "daily_song" -> GAMES;

@@ -44,7 +44,7 @@ class UsernameRulesTest {
         return new UserService(users, mock(PostRepository.class), mock(LikeRepository.class),
                 mock(CommentRepository.class), mock(EventVerificationRepository.class),
                 mock(BingoCardRepository.class), mock(BadgeService.class), mock(ConcertAttendanceService.class),
-                ENCODER);
+                ENCODER, mock(com.concertly.backend.repository.FollowRepository.class));
     }
 
     private static User legacyUser() {

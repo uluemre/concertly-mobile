@@ -33,6 +33,8 @@ public class ArtistService {
     private final CommentRepository      commentRepository;
     private final SpotifyService         spotifyService;
     private final EventReviewRepository  eventReviewRepository;
+    private final ModerationService      moderationService;
+    private final PrivacyService         privacyService;
 
     public ArtistService(ArtistRepository artistRepository,
                          ArtistFollowRepository artistFollowRepository,
@@ -42,7 +44,9 @@ public class ArtistService {
                          LikeRepository likeRepository,
                          CommentRepository commentRepository,
                          SpotifyService spotifyService,
-                         EventReviewRepository eventReviewRepository) {
+                         EventReviewRepository eventReviewRepository,
+                         ModerationService moderationService,
+                         PrivacyService privacyService) {
         this.artistRepository       = artistRepository;
         this.artistFollowRepository = artistFollowRepository;
         this.userRepository         = userRepository;
@@ -52,6 +56,8 @@ public class ArtistService {
         this.commentRepository      = commentRepository;
         this.spotifyService         = spotifyService;
         this.eventReviewRepository  = eventReviewRepository;
+        this.moderationService      = moderationService;
+        this.privacyService         = privacyService;
     }
 
     // ✅ SANATÇI PROFİLİ
@@ -98,8 +104,16 @@ public class ArtistService {
         if (!artistRepository.existsById(artistId)) {
             throw new ResourceNotFoundException("Sanatçı bulunamadı: " + artistId);
         }
-        List<Post> posts = postRepository.findByEventArtistIdOrderByCreatedAtDesc(artistId).stream()
+        // Engelli kullanıcıların ve özel hesapların (yetkisiz izleyiciye) gönderileri elenir (SEC-05)
+        Set<Long> blocked = moderationService.getHiddenUserIds(currentUserId);
+        List<Post> visible = postRepository.findByEventArtistIdOrderByCreatedAtDesc(artistId).stream()
                 .filter(p -> !p.getIsHidden())
+                .filter(p -> p.getUser() == null || !blocked.contains(p.getUser().getId()))
+                .toList();
+        Set<Long> restricted = privacyService.restrictedOwnerIds(currentUserId,
+                visible.stream().map(Post::getUser).filter(java.util.Objects::nonNull).distinct().toList());
+        List<Post> posts = visible.stream()
+                .filter(p -> p.getUser() == null || !restricted.contains(p.getUser().getId()))
                 .toList();
         if (posts.isEmpty()) return List.of();
 

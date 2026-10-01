@@ -16,6 +16,9 @@ public class CommunityPost {
 
     private String content;
 
+    // B11: topluluk yöneticisi/admin gizleyince yönetici olmayanlara listelenmez; kayıt silinmez.
+    private Boolean isHidden = false;
+
     private String postType = "TEXT"; // TEXT, IMAGE, POLL
     private String imageUrl;
 
@@ -55,4 +58,7 @@ public class CommunityPost {
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
 
     public List<CommunityPostPollOption> getPollOptions() { return pollOptions; }
+
+    public Boolean getIsHidden() { return isHidden != null && isHidden; }
+    public void setIsHidden(Boolean isHidden) { this.isHidden = isHidden; }
 }

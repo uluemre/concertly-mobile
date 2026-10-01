@@ -2,6 +2,8 @@ package com.concertly.backend.service;
 
 import com.concertly.backend.model.User;
 import com.concertly.backend.repository.CommentRepository;
+import com.concertly.backend.repository.CommunityPostCommentRepository;
+import com.concertly.backend.repository.CommunityPostRepository;
 import com.concertly.backend.repository.MessageRepository;
 import com.concertly.backend.repository.PostRepository;
 import com.concertly.backend.repository.UserRepository;
@@ -29,6 +31,8 @@ public class ContentLimitService {
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
     private final MessageRepository messageRepository;
+    private final CommunityPostRepository communityPostRepository;
+    private final CommunityPostCommentRepository communityPostCommentRepository;
 
     private final long newAccountHours;
     private final long maxPosts;
@@ -39,6 +43,8 @@ public class ContentLimitService {
             PostRepository postRepository,
             CommentRepository commentRepository,
             MessageRepository messageRepository,
+            CommunityPostRepository communityPostRepository,
+            CommunityPostCommentRepository communityPostCommentRepository,
             @Value("${app.moderation.new-account-hours:48}") long newAccountHours,
             @Value("${app.moderation.new-account-max-posts-per-day:10}") long maxPosts,
             @Value("${app.moderation.new-account-max-comments-per-day:50}") long maxComments,
@@ -47,6 +53,8 @@ public class ContentLimitService {
         this.postRepository = postRepository;
         this.commentRepository = commentRepository;
         this.messageRepository = messageRepository;
+        this.communityPostRepository = communityPostRepository;
+        this.communityPostCommentRepository = communityPostCommentRepository;
         this.newAccountHours = newAccountHours;
         this.maxPosts = maxPosts;
         this.maxComments = maxComments;
@@ -55,14 +63,20 @@ public class ContentLimitService {
 
     public void checkPost(Long userId) {
         if (!isNewAccount(userId)) return;
-        if (postRepository.countByUserIdAndCreatedAtAfter(userId, since()) >= maxPosts) {
+        LocalDateTime since = since();
+        long count = postRepository.countByUserIdAndCreatedAtAfter(userId, since)
+                + communityPostRepository.countByUserIdAndCreatedAtAfter(userId, since);
+        if (count >= maxPosts) {
             throw tooMany("POST_LIMIT");
         }
     }
 
     public void checkComment(Long userId) {
         if (!isNewAccount(userId)) return;
-        if (commentRepository.countByUserIdAndCreatedAtAfter(userId, since()) >= maxComments) {
+        LocalDateTime since = since();
+        long count = commentRepository.countByUserIdAndCreatedAtAfter(userId, since)
+                + communityPostCommentRepository.countByUserIdAndCreatedAtAfter(userId, since);
+        if (count >= maxComments) {
             throw tooMany("COMMENT_LIMIT");
         }
     }

@@ -1,13 +1,18 @@
 package com.concertly.backend.service;
 
 import com.concertly.backend.exception.ResourceNotFoundException;
+import com.concertly.backend.model.AttendanceStatus;
 import com.concertly.backend.model.Event;
+import com.concertly.backend.model.EventAttendance;
 import com.concertly.backend.model.SetlistSubmission;
+import com.concertly.backend.repository.EventAttendanceRepository;
 import com.concertly.backend.repository.EventRepository;
 import com.concertly.backend.repository.SetlistSubmissionRepository;
 import com.concertly.backend.repository.UserRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -26,15 +31,18 @@ public class SetlistService {
     private final SetlistSubmissionRepository submissionRepository;
     private final EventRepository eventRepository;
     private final UserRepository userRepository;
+    private final EventAttendanceRepository attendanceRepository;
 
     public SetlistService(DeezerService deezerService,
                           SetlistSubmissionRepository submissionRepository,
                           EventRepository eventRepository,
-                          UserRepository userRepository) {
+                          UserRepository userRepository,
+                          EventAttendanceRepository attendanceRepository) {
         this.deezerService = deezerService;
         this.submissionRepository = submissionRepository;
         this.eventRepository = eventRepository;
         this.userRepository = userRepository;
+        this.attendanceRepository = attendanceRepository;
     }
 
     // ── Durum + aday şarkılar ───────────────────────────────────────────────
@@ -47,6 +55,8 @@ public class SetlistService {
         result.put("eventName", event.getName());
         result.put("artistName", event.getArtist().getName());
         result.put("eventPassed", passed);
+        // SEC-07: gerçek setlisti yalnızca konsere katılmış kullanıcı bildirebilir
+        result.put("canConfirm", passed && attended(eventId, userId));
         result.put("minPrediction", MIN_PREDICTION);
         result.put("maxPrediction", MAX_PREDICTION);
         result.put("candidates", candidatesFor(event));
@@ -87,6 +97,9 @@ public class SetlistService {
         Event event = requireEventWithArtist(eventId);
         if (event.getEventDate() == null || event.getEventDate().isAfter(LocalDateTime.now())) {
             throw new IllegalArgumentException("Konser bitmeden setlist bildirilemez");
+        }
+        if (!attended(eventId, userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "SETLIST_NOT_ATTENDED");
         }
         List<String> cleaned = cleanTitles(titles);
         if (cleaned.isEmpty()) {
@@ -177,6 +190,15 @@ public class SetlistService {
                 });
         submission.setTitles(String.join(SEPARATOR, titles));
         submissionRepository.save(submission);
+    }
+
+    /** "Katıldı" = bu etkinlik için GOING (veya WENT) kaydı var; INTERESTED sayılmaz. */
+    private boolean attended(Long eventId, Long userId) {
+        if (userId == null) return false;
+        return attendanceRepository.findByUserIdAndEventId(userId, eventId)
+                .map(EventAttendance::getStatus)
+                .filter(st -> st == AttendanceStatus.GOING || st == AttendanceStatus.WENT)
+                .isPresent();
     }
 
     private Event requireEventWithArtist(Long eventId) {

@@ -26,7 +26,8 @@ class RecommendedArtistsQueryTest {
         EventRepository events = mock(EventRepository.class);
         ArtistService service = new ArtistService(artists, follows, mock(UserRepository.class), events,
                 mock(PostRepository.class), mock(LikeRepository.class), mock(CommentRepository.class),
-                mock(SpotifyService.class), mock(EventReviewRepository.class));
+                mock(SpotifyService.class), mock(EventReviewRepository.class),
+                mock(ModerationService.class), mock(PrivacyService.class));
 
         List<Artist> list = new ArrayList<>();
         for (long i = 1; i <= 300; i++) {

@@ -34,6 +34,7 @@ public class PostService {
     private final BadgeService badgeService;
     private final ModerationService moderationService;
     private final ContentLimitService contentLimitService;
+    private final PrivacyService privacyService;
 
     public PostService(PostRepository postRepository,
                        UserRepository userRepository,
@@ -45,7 +46,8 @@ public class PostService {
                        PollVoteRepository pollVoteRepository,
                        BadgeService badgeService,
                        ModerationService moderationService,
-                       ContentLimitService contentLimitService) {
+                       ContentLimitService contentLimitService,
+                       PrivacyService privacyService) {
         this.postRepository      = postRepository;
         this.userRepository      = userRepository;
         this.eventRepository     = eventRepository;
@@ -57,6 +59,7 @@ public class PostService {
         this.badgeService         = badgeService;
         this.moderationService    = moderationService;
         this.contentLimitService = contentLimitService;
+        this.privacyService      = privacyService;
     }
 
     private PostResponse toResponse(Post post, Long currentUserId) {
@@ -181,15 +184,27 @@ public class PostService {
     public PostResponse getPost(Long postId, Long currentUserId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new ResourceNotFoundException("Post bulunamadı: " + postId));
-        boolean isOwner = post.getUser() != null && post.getUser().getId().equals(currentUserId);
+        requireViewable(post, currentUserId);
+        return toResponse(post, currentUserId);
+    }
+
+    /**
+     * Tek gönderiye erişen her uç (okuma, beğeni, anket oyu) aynı kuralı kullanır: gizlenen gönderi
+     * yalnızca sahibine, engelli taraflar ve özel hesabın yetkisiz izleyicileri için ise gönderi
+     * hiç yokmuş gibi 404 (SEC-05; varlığı sızdırılmaz).
+     */
+    private void requireViewable(Post post, Long viewerId) {
+        boolean isOwner = post.getUser() != null && post.getUser().getId().equals(viewerId);
         if (post.getIsHidden() && !isOwner) {
-            throw new ResourceNotFoundException("Post bulunamadı: " + postId);
+            throw new ResourceNotFoundException("Post bulunamadı: " + post.getId());
         }
         if (post.getUser() != null
-                && moderationService.getHiddenUserIds(currentUserId).contains(post.getUser().getId())) {
-            throw new ResourceNotFoundException("Post bulunamadı: " + postId);
+                && moderationService.getHiddenUserIds(viewerId).contains(post.getUser().getId())) {
+            throw new ResourceNotFoundException("Post bulunamadı: " + post.getId());
         }
-        return toResponse(post, currentUserId);
+        if (post.getUser() != null && !privacyService.canViewContent(viewerId, post.getUser())) {
+            throw new ResourceNotFoundException("Post bulunamadı: " + post.getId());
+        }
     }
 
     /** Trend için puanlanan en yeni gönderi sayısı; sayfalar bu küme içinden verilir. */
@@ -212,7 +227,14 @@ public class PostService {
     public List<PostResponse> getTrendingFeed(Long currentUserId, int page, int size) {
         if (page < 0 || size <= 0) return List.of();
         Set<Long> hidden = moderationService.getHiddenUserIds(currentUserId);
-        List<Post> candidates = postRepository.findByOrderByCreatedAtDesc(PageRequest.of(0, TRENDING_WINDOW))
+        // Özel hesapların gönderileri (izleyici kabul edilmiş takipçi/kendisi/admin değilse) sorguda elenir;
+        // aday penceresi (TRENDING_WINDOW) yalnızca görünebilir gönderilerle dolar, sayfalar kısalmaz.
+        PageRequest window = PageRequest.of(0, TRENDING_WINDOW);
+        List<Post> windowPosts = privacyService.isAdmin(currentUserId)
+                ? postRepository.findByOrderByCreatedAtDesc(window)
+                : postRepository.findVisibleToViewerOrderByCreatedAtDesc(
+                        currentUserId == null ? -1L : currentUserId, window);
+        List<Post> candidates = windowPosts
                 .stream()
                 .filter(p -> !p.getIsHidden())
                 .filter(p -> p.getUser() == null || !hidden.contains(p.getUser().getId()))
@@ -259,6 +281,10 @@ public class PostService {
             .orElseThrow(() -> new ResourceNotFoundException("Kullanıcı bulunamadı: " + userId));
         PollOption option = pollOptionRepository.findById(optionId)
             .orElseThrow(() -> new ResourceNotFoundException("Seçenek bulunamadı: " + optionId));
+        // Gizli / engelli / özel hesabın göremediği gönderiye oy verilemez (SEC-05)
+        Post votedPost = postRepository.findById(postId)
+            .orElseThrow(() -> new ResourceNotFoundException("Post bulunamadı: " + postId));
+        requireViewable(votedPost, userId);
 
         // Önceki oyu sil
         pollVoteRepository.findByUserIdAndPostId(userId, postId).ifPresent(pollVoteRepository::delete);
@@ -291,6 +317,7 @@ public class PostService {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Post bulunamadı: " + postId));
+        requireViewable(post, userId); // reddedilirse bildirim de gitmez
 
         if (likeRepository.findByUserIdAndPostId(userId, postId).isPresent()) {
             throw new AlreadyExistsException("Bu postu zaten beğendiniz.");
@@ -334,9 +361,10 @@ public class PostService {
 
     // ✅ UNLIKE
     public void unlikePost(Long userId, Long postId) {
-        postRepository.findById(postId)
+        Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Post bulunamadı: " + postId));
+        requireViewable(post, userId);
 
         Like like = likeRepository.findByUserIdAndPostId(userId, postId)
                 .orElseThrow(() -> new ResourceNotFoundException(

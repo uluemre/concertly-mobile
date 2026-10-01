@@ -3,11 +3,15 @@ package com.concertly.backend.service;
 import com.concertly.backend.dto.response.ReportResponse;
 import com.concertly.backend.exception.ResourceNotFoundException;
 import com.concertly.backend.model.Comment;
+import com.concertly.backend.model.CommunityPost;
+import com.concertly.backend.model.CommunityPostComment;
 import com.concertly.backend.model.Message;
 import com.concertly.backend.model.Post;
 import com.concertly.backend.model.Report;
 import com.concertly.backend.model.User;
 import com.concertly.backend.repository.CommentRepository;
+import com.concertly.backend.repository.CommunityPostCommentRepository;
+import com.concertly.backend.repository.CommunityPostRepository;
 import com.concertly.backend.repository.MessageRepository;
 import com.concertly.backend.repository.PostRepository;
 import com.concertly.backend.repository.ReportRepository;
@@ -39,12 +43,18 @@ public class AdminModerationService {
     private final CommentRepository commentRepository;
     private final MessageRepository messageRepository;
     private final UserRepository userRepository;
+    private final CommunityPostRepository communityPostRepository;
+    private final CommunityPostCommentRepository communityPostCommentRepository;
 
     public AdminModerationService(ReportRepository reportRepository,
             PostRepository postRepository,
             CommentRepository commentRepository,
             MessageRepository messageRepository,
-            UserRepository userRepository) {
+            UserRepository userRepository,
+            CommunityPostRepository communityPostRepository,
+            CommunityPostCommentRepository communityPostCommentRepository) {
+        this.communityPostRepository = communityPostRepository;
+        this.communityPostCommentRepository = communityPostCommentRepository;
         this.reportRepository = reportRepository;
         this.postRepository = postRepository;
         this.commentRepository = commentRepository;
@@ -75,6 +85,18 @@ public class AdminModerationService {
             case "COMMENT" -> {
                 Comment c = commentRepository.findById(id).orElse(null);
                 if (c == null) return ReportResponse.from(r, "(yorum silinmiş)", false, null, null);
+                return ReportResponse.from(r, preview(c.getContent()), c.getIsHidden(),
+                        owner(c.getUser()), username(c.getUser()));
+            }
+            case "COMMUNITY_POST" -> {
+                CommunityPost p = communityPostRepository.findById(id).orElse(null);
+                if (p == null) return ReportResponse.from(r, "(topluluk gönderisi silinmiş)", false, null, null);
+                return ReportResponse.from(r, preview(p.getContent()), p.getIsHidden(),
+                        owner(p.getUser()), username(p.getUser()));
+            }
+            case "COMMUNITY_COMMENT" -> {
+                CommunityPostComment c = communityPostCommentRepository.findById(id).orElse(null);
+                if (c == null) return ReportResponse.from(r, "(topluluk yorumu silinmiş)", false, null, null);
                 return ReportResponse.from(r, preview(c.getContent()), c.getIsHidden(),
                         owner(c.getUser()), username(c.getUser()));
             }
@@ -125,8 +147,20 @@ public class AdminModerationService {
                 c.setIsHidden(hidden);
                 commentRepository.save(c);
             }
+            case "COMMUNITY_POST" -> {
+                CommunityPost p = communityPostRepository.findById(targetId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Topluluk gönderisi bulunamadı: " + targetId));
+                p.setIsHidden(hidden);
+                communityPostRepository.save(p);
+            }
+            case "COMMUNITY_COMMENT" -> {
+                CommunityPostComment c = communityPostCommentRepository.findById(targetId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Topluluk yorumu bulunamadı: " + targetId));
+                c.setIsHidden(hidden);
+                communityPostCommentRepository.save(c);
+            }
             default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Gizleme yalnızca POST ve COMMENT için geçerli.");
+                    "Gizleme yalnızca POST, COMMENT, COMMUNITY_POST ve COMMUNITY_COMMENT için geçerli.");
         }
     }
 

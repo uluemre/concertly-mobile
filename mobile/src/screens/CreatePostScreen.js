@@ -9,6 +9,7 @@ import * as ImagePicker from 'expo-image-picker';
 import API, { uploadImage } from '../services/api';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
+import { apiErrorMessage } from '../utils/communityErrors';
 import { goBackOrFallback } from '../navigation/navHelpers';
 
 export default function CreatePostScreen({ route, navigation }) {
@@ -99,7 +100,7 @@ export default function CreatePostScreen({ route, navigation }) {
         { text: t('confirm'), onPress: () => goBackOrFallback(navigation) }
       ]);
     } catch (err) {
-      Alert.alert(t('error'), t('post_error_msg'));
+      Alert.alert(t('error'), apiErrorMessage(err, t, 'post_error_msg'));
       console.log(err.message);
     } finally {
       setLoading(false);

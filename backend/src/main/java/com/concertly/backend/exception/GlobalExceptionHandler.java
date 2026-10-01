@@ -8,10 +8,27 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    // 404 — olmayan API yolu / statik dosya (N-49). Catch-all'a düşüp 500 dönmesin.
+    @ExceptionHandler({ NoResourceFoundException.class, NoHandlerFoundException.class })
+    public ResponseEntity<ApiError> handleNoResource(Exception ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiError(404, "Kaynak bulunamadı."));
+    }
+
+    // 405 — yol var, HTTP yöntemi desteklenmiyor
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ApiError> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex) {
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(new ApiError(405, "Yöntem desteklenmiyor."));
+    }
 
     // 401 — hatalı email veya şifre
     @ExceptionHandler(BadCredentialsException.class)
@@ -90,13 +107,12 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(status).body(new ApiError(status, msg));
     }
 
-    // 500 — beklenmedik hatalar
+    // 500 — beklenmedik hatalar. İç hata mesajı istemciye sızdırılmaz; ayrıntı yalnızca günlükte.
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleGeneral(Exception ex) {
-        ex.printStackTrace();
-        String msg = ex.getMessage() != null ? ex.getMessage() : ex.getClass().getSimpleName();
+        log.error("Beklenmeyen hata", ex);
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new ApiError(500, "Sunucu hatası: " + msg));
+                .body(new ApiError(500, "Sunucu hatası. Lütfen daha sonra tekrar deneyin."));
     }
 }

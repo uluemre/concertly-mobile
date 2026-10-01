@@ -20,6 +20,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
                 SELECT p FROM Post p
                 JOIN Follow f ON p.user.id = f.following.id
                 WHERE f.follower.id = :userId
+                  AND (f.status IS NULL OR f.status = 'ACCEPTED')
                   AND (p.isHidden IS NULL OR p.isHidden = false)
                   AND p.user.id NOT IN :hiddenUserIds
                 ORDER BY p.createdAt DESC, p.id DESC
@@ -29,6 +30,22 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     // ✅ TÜM POSTLAR — en yeni önce (sayfalı, trending feed için)
     @EntityGraph(attributePaths = {"user", "event"})
     List<Post> findByOrderByCreatedAtDesc(Pageable pageable);
+
+    // ✅ TREND ADAYLARI (SEC-05) — özel hesapların gönderileri SORGUDA elenir: yalnızca kendisi
+    // ya da izleyicinin KABUL EDİLMİŞ olarak takip ettiği özel hesaplar kalır. Süzgeç Java'da
+    // yapılsaydı 500'lük aday penceresi özel gönderilerle dolup sayfalar kısalırdı.
+    // viewerId anonim için -1 verilir (hiç eşleşmez). Admin için findByOrderByCreatedAtDesc kullanılır.
+    @EntityGraph(attributePaths = {"user", "event"})
+    @Query("""
+                SELECT p FROM Post p
+                WHERE (p.user.privateAccount IS NULL OR p.user.privateAccount = false
+                       OR p.user.id = :viewerId
+                       OR EXISTS (SELECT f.id FROM Follow f
+                                  WHERE f.follower.id = :viewerId AND f.following.id = p.user.id
+                                    AND (f.status IS NULL OR f.status = 'ACCEPTED')))
+                ORDER BY p.createdAt DESC
+            """)
+    List<Post> findVisibleToViewerOrderByCreatedAtDesc(Long viewerId, Pageable pageable);
 
     // ✅ USER POSTS
     @EntityGraph(attributePaths = {"user", "event"})

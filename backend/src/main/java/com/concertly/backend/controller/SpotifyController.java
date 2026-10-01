@@ -29,15 +29,15 @@ public class SpotifyController {
 
     @GetMapping("/callback")
     public ResponseEntity<String> handleCallback(
-            @RequestParam String code,
-            @RequestParam String state) {
+            @RequestParam(required = false) String code,
+            @RequestParam(required = false) String state) {
 
-        Long userId;
-        try { userId = Long.parseLong(state); }
-        catch (NumberFormatException e) {
+        // state, auth-url'de üretilen imzalı kısa ömürlü belirteçtir; ham userId kabul edilmez
+        Long userId = spotifyUserService.verifyState(state);
+        if (userId == null || code == null || code.isBlank()) {
             return ResponseEntity.badRequest()
                     .contentType(MediaType.TEXT_HTML)
-                    .body(htmlPage("Hata", "Geçersiz kullanıcı.", false));
+                    .body(htmlPage("Hata", "Bağlantı geçersiz veya süresi dolmuş. Uygulamadan tekrar dene.", false));
         }
 
         boolean success = spotifyUserService.handleCallback(code, userId);
@@ -67,7 +67,7 @@ public class SpotifyController {
     }
 
     // Yol/parametredeki userId yalnızca giriş yapan kullanıcının kendisi olabilir
-    // (callback hariç — o tarayıcıdan gelir ve state ile kullanıcıyı taşır).
+    // (callback hariç — o tarayıcıdan gelir ve imzalı state ile kullanıcıyı taşır).
     private void assertSelf(Long userId) {
         if (userId == null || !userId.equals(JwtUtil.getCurrentUserId())) {
             throw new AccessDeniedException("Bu işlemi yalnızca kendi hesabın için yapabilirsin.");

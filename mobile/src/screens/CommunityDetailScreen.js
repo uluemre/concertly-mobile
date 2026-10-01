@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
   TouchableOpacity, TextInput, ActivityIndicator, Image, Alert
@@ -6,11 +6,13 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { useFocusEffect } from '@react-navigation/native';
+import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import { communityTypeLabel } from '../utils/communityType';
 import API, { getErrorMessage, uploadImage } from '../services/api';
 import { goBackOrFallback } from '../navigation/navHelpers';
+import { communityErrorMessage } from '../utils/communityErrors';
 import DeepLinkLoader from '../components/DeepLinkLoader';
 import { formatRelativeShort } from '../utils/time';
 
@@ -19,14 +21,23 @@ export default function CommunityDetailScreen({ route, navigation }) {
   const { colors } = useTheme();
   const { t, tu, lang } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { session } = useAuth();
+  const modInFlight = useRef(new Set());
 
   const [community, setCommunity] = useState(null);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [postsLocked, setPostsLocked] = useState(false);
+  const [lockedByReview, setLockedByReview] = useState(false);
   const [draft, setDraft] = useState('');
   const [publishing, setPublishing] = useState(false);
   const [acting, setActing] = useState(false);
+  // Yükleme hatası (ağ/5xx): yalnızca 404/geçersiz id "bulunamadı" sayılır (C6)
+  const [fetchError, setFetchError] = useState(null);
+  // Uçuştaki beğeni / oy istekleri (gönderi başına, B3)
+  const likeInFlight = useRef(new Set());
+  const voteInFlight = useRef(new Set());
+  const locale = lang === 'en' ? 'en-GB' : 'tr-TR';
 
   // Paylaşım kutusu: tip + foto + anket
   const [composerType, setComposerType] = useState('TEXT'); // TEXT | IMAGE | POLL
@@ -52,18 +63,29 @@ export default function CommunityDetailScreen({ route, navigation }) {
     try {
       const commRes = await API.get(`/communities/${communityId}`);
       setCommunity(commRes.data);
+      setFetchError(null);
       try {
         const postsRes = await API.get(`/communities/${communityId}/posts`);
         setPosts(postsRes.data);
         setPostsLocked(false);
-      } catch {
-        // Public dışı topluluklarda üye olmayan gönderileri göremez
+        setLockedByReview(false);
+      } catch (postsErr) {
+        // Public dışı topluluklarda üye olmayan gönderileri göremez;
+        // incelemedeki toplulukta dışarıdan okuma 403 COMMUNITY_PENDING_REVIEW verir
+        setLockedByReview(postsErr?.response?.data?.message === 'COMMUNITY_PENDING_REVIEW');
         setPostsLocked(true);
         setPosts([]);
       }
     } catch (err) {
-      // Bulunamayan topluluk beklenen bir durum: ekranda "İçerik bulunamadı" gösterilir
-      console.log('Community detail fetch error:', err?.message);
+      const status = err?.response?.status;
+      if (status === 404 || status === 400) {
+        // Bulunamayan topluluk beklenen bir durum: "İçerik bulunamadı" gösterilir
+        setCommunity(null);
+        setFetchError(null);
+      } else {
+        // Ağ / sunucu hatası: içerik zaten yüklüyse olduğu gibi kalır, yoksa yeniden dene ekranı
+        setFetchError(getErrorMessage(err));
+      }
     } finally {
       setLoading(false);
     }
@@ -76,12 +98,33 @@ export default function CommunityDetailScreen({ route, navigation }) {
   );
 
   // Görünürlük + üyelik durumuna göre ana buton davranışı
-  const handleJoinPress = async () => {
+  const handleJoinPress = () => {
     if (acting) return;
+    if (community?.archived && !joined) return;
+    if (joined) {
+      // Ayrılmadan önce onay (C7)
+      Alert.alert(t('community_leave'), t(community?.currentUserRole === 'MODERATOR' ? 'community_leave_confirm' : 'community_leave_confirm_member'), [
+        { text: t('cancel'), style: 'cancel' },
+        { text: t('community_leave'), style: 'destructive', onPress: performJoinAction },
+      ]);
+      return;
+    }
+    performJoinAction();
+  };
+
+  const performJoinAction = async () => {
+    if (acting) return;
+    // Arşivlenmiş toplulukta yeni katılım / davet kabulü kapalı (üyelik API çağrısı yok)
+    if (community?.archived && !joined) return;
     setActing(true);
     try {
       if (joined) {
         await API.delete(`/communities/${communityId}/join`);
+        // Gizli topluluktan ayrılan artık erişemez: yeniden çekmek 404 verir
+        if (community?.visibility === 'SECRET') {
+          goBackOrFallback(navigation);
+          return;
+        }
         await fetchData();
       } else if (status === 'INVITED') {
         const res = await API.post(`/communities/${communityId}/invite/accept`);
@@ -97,7 +140,7 @@ export default function CommunityDetailScreen({ route, navigation }) {
         }
       }
     } catch (err) {
-      Alert.alert(t('error'), getErrorMessage(err));
+      Alert.alert(t('error'), communityErrorMessage(err, t));
     } finally {
       setActing(false);
     }
@@ -168,22 +211,28 @@ export default function CommunityDetailScreen({ route, navigation }) {
       resetComposer();
       setCommunity(prev => prev ? { ...prev, postCount: prev.postCount + 1 } : prev);
     } catch (err) {
-      Alert.alert(t('error'), getErrorMessage(err));
+      Alert.alert(t('error'), communityErrorMessage(err, t));
     } finally {
       setPublishing(false);
     }
   };
 
   const votePoll = async (post, optionId) => {
+    if (voteInFlight.current.has(post.id)) return;
+    voteInFlight.current.add(post.id);
     try {
       const res = await API.post(`/communities/${communityId}/posts/${post.id}/poll/vote`, null, { params: { optionId } });
       setPosts(prev => prev.map(p => p.id === post.id ? { ...p, pollOptions: res.data } : p));
     } catch (err) {
-      Alert.alert(t('error'), getErrorMessage(err));
+      Alert.alert(t('error'), communityErrorMessage(err, t));
+    } finally {
+      voteInFlight.current.delete(post.id);
     }
   };
 
   const toggleLike = async (post) => {
+    if (likeInFlight.current.has(post.id)) return;
+    likeInFlight.current.add(post.id);
     try {
       if (post.isLikedByCurrentUser) {
         await API.delete(`/communities/${communityId}/posts/${post.id}/like`);
@@ -200,7 +249,9 @@ export default function CommunityDetailScreen({ route, navigation }) {
           : p
       ));
     } catch (err) {
-      console.error('Like toggle error:', err);
+      Alert.alert(t('error'), communityErrorMessage(err, t));
+    } finally {
+      likeInFlight.current.delete(post.id);
     }
   };
 
@@ -213,7 +264,7 @@ export default function CommunityDetailScreen({ route, navigation }) {
         const res = await API.get(`/communities/${communityId}/posts/${post.id}/comments`);
         setCommentsByPost(prev => ({ ...prev, [post.id]: res.data }));
       } catch (err) {
-        Alert.alert(t('error'), getErrorMessage(err));
+        Alert.alert(t('error'), communityErrorMessage(err, t));
       } finally {
         setLoadingComments(false);
       }
@@ -233,16 +284,102 @@ export default function CommunityDetailScreen({ route, navigation }) {
       setDraftFor(post.id, '');
       setPosts(prev => prev.map(p => p.id === post.id ? { ...p, commentCount: (p.commentCount || 0) + 1 } : p));
     } catch (err) {
-      Alert.alert(t('error'), getErrorMessage(err));
+      Alert.alert(t('error'), communityErrorMessage(err, t));
     } finally {
       setSendingComment(false);
     }
   };
 
+  // Gönderi / yorum ⋯ menüsü: şikâyet (yazar değilse) + gizle/göster (yönetici) — B11
+  const isOwnContent = (item) => !!session?.userId && String(item.userId) === String(session.userId);
+
+  const submitReport = async (targetType, targetId, reason) => {
+    const key = `r:${targetType}:${targetId}`;
+    if (modInFlight.current.has(key)) return;
+    modInFlight.current.add(key);
+    try {
+      await API.post('/reports', { targetType, targetId, reason });
+      Alert.alert(t('mod_reported_title'), t('mod_reported_msg'));
+    } catch (err) {
+      Alert.alert(t('error'), communityErrorMessage(err, t, 'mod_error'));
+    } finally {
+      modInFlight.current.delete(key);
+    }
+  };
+
+  const askReportReason = (targetType, targetId) => {
+    Alert.alert(t('mod_reason_title'), null, [
+      { text: t('mod_reason_spam'), onPress: () => submitReport(targetType, targetId, 'SPAM') },
+      { text: t('mod_reason_harassment'), onPress: () => submitReport(targetType, targetId, 'HARASSMENT') },
+      { text: t('mod_reason_inappropriate'), onPress: () => submitReport(targetType, targetId, 'INAPPROPRIATE') },
+      { text: t('mod_cancel'), style: 'cancel' },
+    ]);
+  };
+
+  const toggleHide = async (post, comment) => {
+    const target = comment || post;
+    const key = comment ? `hc:${comment.id}` : `hp:${post.id}`;
+    if (modInFlight.current.has(key)) return;
+    modInFlight.current.add(key);
+    const base = `/communities/${communityId}/posts/${post.id}${comment ? `/comments/${comment.id}` : ''}/hide`;
+    try {
+      if (target.isHidden) await API.delete(base); else await API.post(base);
+      const next = !target.isHidden;
+      if (comment) {
+        setCommentsByPost(prev => ({
+          ...prev,
+          [post.id]: (prev[post.id] || []).map(c => c.id === comment.id ? { ...c, isHidden: next } : c),
+        }));
+      } else {
+        setPosts(prev => prev.map(p => p.id === post.id ? { ...p, isHidden: next } : p));
+      }
+    } catch (err) {
+      Alert.alert(t('error'), communityErrorMessage(err, t));
+    } finally {
+      modInFlight.current.delete(key);
+    }
+  };
+
+  const openItemMenu = (post, comment) => {
+    const target = comment || post;
+    const buttons = [];
+    if (!isOwnContent(target)) {
+      buttons.push({ text: t('community_item_report'), onPress: () => askReportReason(comment ? 'COMMUNITY_COMMENT' : 'COMMUNITY_POST', target.id) });
+    }
+    if (community?.canManage) {
+      buttons.push({ text: t(target.isHidden ? 'community_item_unhide' : 'community_item_hide'), onPress: () => toggleHide(post, comment) });
+    }
+    if (buttons.length === 0) return;
+    buttons.push({ text: t('mod_cancel'), style: 'cancel' });
+    Alert.alert('', null, buttons);
+  };
+
+  const canOpenMenu = (item) => !isOwnContent(item) || !!community?.canManage;
+
   if (loading) {
     return (
       <View style={[styles.container, styles.loadingContainer]}>
         <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (!community && fetchError) {
+    return (
+      <View style={[styles.container, styles.loadingContainer, { paddingHorizontal: 40 }]}>
+        <Text style={{ fontSize: 46, marginBottom: 12 }}>📡</Text>
+        <Text style={{ color: colors.text, fontSize: 16, fontWeight: '800', marginBottom: 6 }}>{t('load_failed')}</Text>
+        <Text style={{ color: colors.textSecondary, fontSize: 14, textAlign: 'center', lineHeight: 20, marginBottom: 18 }}>{fetchError}</Text>
+        <TouchableOpacity
+          onPress={() => { setLoading(true); fetchData(); }}
+          activeOpacity={0.85}
+          style={{ backgroundColor: colors.primary, paddingHorizontal: 28, paddingVertical: 12, borderRadius: 14 }}
+        >
+          <Text style={{ color: '#fff', fontSize: 14, fontWeight: '800' }}>{t('retry')}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={{ marginTop: 16 }}>
+          <Text style={{ color: colors.textSecondary, fontSize: 14, fontWeight: '700' }}>{t('back')}</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -282,6 +419,12 @@ export default function CommunityDetailScreen({ route, navigation }) {
                     : `🌍 ${t('community_visibility_public')}`}
                 </Text>
               </View>
+              {community.archived ? (
+                <View style={styles.heroChip}><Text style={styles.heroChipText}>📦 {t('community_archived_badge')}</Text></View>
+              ) : null}
+              {community.approvalStatus === 'PENDING' ? (
+                <View style={styles.heroChip}><Text style={styles.heroChipText}>{t('community_pending_badge')}</Text></View>
+              ) : null}
               {!!community.type && (
                 <View style={styles.heroChip}><Text style={styles.heroChipText}>🎵 {communityTypeLabel(community.type, t)}</Text></View>
               )}
@@ -298,7 +441,7 @@ export default function CommunityDetailScreen({ route, navigation }) {
 
         <View style={styles.heroStats}>
           <Text style={styles.heroStatItem}>
-            <Text style={styles.heroStatNumber}>{community.memberCount.toLocaleString('tr-TR')}</Text>
+            <Text style={styles.heroStatNumber}>{community.memberCount.toLocaleString(locale)}</Text>
             <Text style={styles.heroStatLabel}>  {t('communities_stat_members')}</Text>
           </Text>
           <Text style={styles.heroStatSep}>•</Text>
@@ -318,6 +461,10 @@ export default function CommunityDetailScreen({ route, navigation }) {
               {community.pendingRequestCount > 0 ? ` (${community.pendingRequestCount})` : ''}
             </Text>
           </TouchableOpacity>
+        ) : community.archived && !joined ? (
+          <Text style={styles.heroArchivedInfo}>{t('community_archived_info')}</Text>
+        ) : community.approvalStatus === 'PENDING' && !joined && status !== 'PENDING' ? (
+          <Text style={styles.heroArchivedInfo}>{t('community_pending_join_info')}</Text>
         ) : (
           <TouchableOpacity
             onPress={handleJoinPress}
@@ -389,7 +536,7 @@ export default function CommunityDetailScreen({ route, navigation }) {
             {composerType === 'IMAGE' && imageUri && (
               <View style={styles.imagePreviewWrap}>
                 <Image source={{ uri: imageUri }} style={styles.imagePreview} />
-                <TouchableOpacity onPress={() => { setImageUri(null); setComposerType('TEXT'); }} style={styles.imageRemove}>
+                <TouchableOpacity onPress={() => { setImageUri(null); setComposerType('TEXT'); }} style={styles.imageRemove} accessibilityRole="button" accessibilityLabel={t('delete')}>
                   <Text style={styles.imageRemoveText}>✕</Text>
                 </TouchableOpacity>
               </View>
@@ -409,7 +556,7 @@ export default function CommunityDetailScreen({ route, navigation }) {
                       maxLength={60}
                     />
                     {pollOpts.length > 2 && (
-                      <TouchableOpacity onPress={() => removePollOpt(i)} style={styles.pollOptRemove}>
+                      <TouchableOpacity onPress={() => removePollOpt(i)} style={styles.pollOptRemove} accessibilityRole="button" accessibilityLabel={t('delete')}>
                         <Text style={styles.pollOptRemoveText}>✕</Text>
                       </TouchableOpacity>
                     )}
@@ -460,21 +607,29 @@ export default function CommunityDetailScreen({ route, navigation }) {
         {postsLocked && (
           <View style={styles.lockedCard}>
             <Text style={styles.lockedEmoji}>🔒</Text>
-            <Text style={styles.lockedText}>{t('community_posts_locked')}</Text>
+            <Text style={styles.lockedText}>{t(lockedByReview ? 'community_posts_locked_review' : 'community_posts_locked')}</Text>
           </View>
         )}
         {!postsLocked && posts.map(post => {
           const open = expanded === post.id;
           const comments = commentsByPost[post.id] || [];
           return (
-            <View key={post.id} style={styles.postCard}>
+            <View key={post.id} style={[styles.postCard, post.isHidden && styles.hiddenItem]}>
               <View style={styles.postHeader}>
                 <Avatar uri={post.userProfileImageUrl} name={post.username} styles={styles}
                         gradient={[community.gradientStart, community.gradientEnd]} />
                 <View style={styles.postHeaderText}>
                   <Text style={styles.username}>@{post.username}</Text>
-                  <Text style={styles.postTime}>{formatRelativeShort(post.createdAt, lang)}</Text>
+                  <Text style={styles.postTime}>
+                    {formatRelativeShort(post.createdAt, lang)}
+                    {post.isHidden ? ` · ${t('community_item_hidden')}` : ''}
+                  </Text>
                 </View>
+                {canOpenMenu(post) && (
+                  <TouchableOpacity onPress={() => openItemMenu(post)} style={styles.menuBtn} hitSlop={8} accessibilityRole="button">
+                    <Text style={styles.menuBtnText}>⋯</Text>
+                  </TouchableOpacity>
+                )}
               </View>
               {!!post.content && <Text style={styles.postContent}>{post.content}</Text>}
 
@@ -511,13 +666,20 @@ export default function CommunityDetailScreen({ route, navigation }) {
                   ) : (
                     <>
                       {comments.map(c => (
-                        <View key={c.id} style={styles.commentRow}>
+                        <View key={c.id} style={[styles.commentRow, c.isHidden && styles.hiddenItem]}>
                           <Avatar uri={c.userProfileImageUrl} name={c.username} styles={styles} small
                                   gradient={[community.gradientStart, community.gradientEnd]} />
                           <View style={styles.commentBubble}>
-                            <Text style={styles.commentUser}>@{c.username}</Text>
+                            <Text style={styles.commentUser}>
+                              @{c.username}{c.isHidden ? ` · ${t('community_item_hidden')}` : ''}
+                            </Text>
                             <Text style={styles.commentText}>{c.content}</Text>
                           </View>
+                          {canOpenMenu(c) && (
+                            <TouchableOpacity onPress={() => openItemMenu(post, c)} style={styles.menuBtn} hitSlop={8} accessibilityRole="button">
+                              <Text style={styles.menuBtnText}>⋯</Text>
+                            </TouchableOpacity>
+                          )}
                         </View>
                       ))}
                       {comments.length === 0 && (
@@ -534,6 +696,7 @@ export default function CommunityDetailScreen({ route, navigation }) {
                         placeholder={t('communities_reply_ph')}
                         placeholderTextColor={colors.textSecondary}
                         style={styles.commentInput}
+                        maxLength={300}
                         multiline
                       />
                       <TouchableOpacity
@@ -661,6 +824,7 @@ function createStyles(colors) {
     heroJoinButtonActive: { backgroundColor: 'rgba(255,255,255,0.18)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)' },
     heroJoinText: { color: '#1a1a1a', fontSize: 15, fontWeight: '900' },
     heroJoinTextActive: { color: '#fff', fontSize: 15, fontWeight: '900' },
+    heroArchivedInfo: { color: '#fff', fontSize: 13, fontWeight: '700', textAlign: 'center', marginTop: 12, opacity: 0.9 },
     section: { paddingHorizontal: 16, marginTop: 18 },
     sectionTitle: { color: colors.text, fontSize: 16, fontWeight: '800', marginBottom: 10 },
 
@@ -811,6 +975,9 @@ function createStyles(colors) {
     },
     avatarText: { color: colors.primary, fontSize: 14, fontWeight: '900' },
     postHeaderText: { flex: 1 },
+    hiddenItem: { opacity: 0.5 },
+    menuBtn: { paddingHorizontal: 8, paddingVertical: 2 },
+    menuBtnText: { color: colors.textSecondary, fontSize: 20, fontWeight: '900' },
     username: { color: colors.text, fontSize: 14, fontWeight: '800' },
     postTime: { color: colors.textSecondary, fontSize: 11, marginTop: 2 },
     postContent: { color: colors.text, fontSize: 14.5, lineHeight: 21 },

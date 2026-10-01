@@ -32,6 +32,25 @@ public class FollowController {
         followService.unfollow(followerId, id);
     }
 
+    // ── Takip istekleri (özel hesap) — sahibi her zaman JWT'deki kullanıcıdır ──
+
+    @GetMapping("/me/follow-requests")
+    public List<UserSummaryResponse> getFollowRequests() {
+        return followService.getFollowRequests(JwtUtil.getCurrentUserId());
+    }
+
+    @PostMapping("/me/follow-requests/{requesterId}/accept")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void acceptFollowRequest(@PathVariable Long requesterId) {
+        followService.acceptRequest(JwtUtil.getCurrentUserId(), requesterId);
+    }
+
+    @DeleteMapping("/me/follow-requests/{requesterId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void rejectFollowRequest(@PathVariable Long requesterId) {
+        followService.rejectRequest(JwtUtil.getCurrentUserId(), requesterId);
+    }
+
     @GetMapping("/{id}/profile")
     public UserSummaryResponse getProfile(@PathVariable Long id) {
         Long currentUserId = JwtUtil.getCurrentUserId();

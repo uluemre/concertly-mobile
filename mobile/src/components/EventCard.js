@@ -6,7 +6,7 @@ import EventImage from './EventImage';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import { parseEventDate } from '../utils/time';
-import { showArtistLine } from '../utils/text';
+import { showArtistLine, displayGenre } from '../utils/text';
 import { ticketSiteHost } from '../services/concerts';
 
 /**
@@ -33,7 +33,9 @@ function EventCard({ item, variant = 'row', onPress, genericImages, style, dimme
   const time = valid ? d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' }) : '';
   const place = [item.venueName, item.venueCity].filter(Boolean).join(' · ');
   const links = Array.isArray(item.ticketLinks) ? item.ticketLinks : [];
-  const ticketText = links.length > 1
+  // Geçmiş etkinlikte bilet rozeti anlamsız (N-51)
+  const isPastEvent = valid && d < new Date();
+  const ticketText = isPastEvent ? null : links.length > 1
     ? t('detail_ticket_on_sites', { count: links.length })
     : links.length === 1 ? (links[0].label || ticketSiteHost(links[0].url)) : null;
   const artistLine = showArtistLine(item.artistName, item.name) ? item.artistName : null;
@@ -49,7 +51,7 @@ function EventCard({ item, variant = 'row', onPress, genericImages, style, dimme
     <View style={styles.footerRow}>
       {item.genre ? (
         <View style={styles.genrePill}>
-          <Text style={styles.genrePillText} numberOfLines={1}>{item.genre}</Text>
+          <Text style={styles.genrePillText} numberOfLines={1}>{displayGenre(item.genre, t)}</Text>
         </View>
       ) : null}
       {item.isVerified ? <Ionicons name="checkmark-circle" size={15} color={colors.accent || '#00D4AA'} /> : null}
@@ -93,7 +95,7 @@ function EventCard({ item, variant = 'row', onPress, genericImages, style, dimme
               {item.isVerified ? <Ionicons name="checkmark-circle" size={15} color={colors.accent || '#00D4AA'} /> : null}
               {item.genre ? (
                 <View style={styles.posterGenre}>
-                  <Text style={styles.posterGenreText} numberOfLines={1}>{item.genre}</Text>
+                  <Text style={styles.posterGenreText} numberOfLines={1}>{displayGenre(item.genre, t)}</Text>
                 </View>
               ) : null}
             </View>

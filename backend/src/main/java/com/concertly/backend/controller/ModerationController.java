@@ -3,6 +3,7 @@ package com.concertly.backend.controller;
 import com.concertly.backend.dto.request.ReportRequest;
 import com.concertly.backend.dto.response.BlockedUserResponse;
 import com.concertly.backend.security.JwtUtil;
+import com.concertly.backend.service.CommunityService;
 import com.concertly.backend.service.ModerationService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -15,9 +16,11 @@ import java.util.Map;
 public class ModerationController {
 
     private final ModerationService moderationService;
+    private final CommunityService communityService;
 
-    public ModerationController(ModerationService moderationService) {
+    public ModerationController(ModerationService moderationService, CommunityService communityService) {
         this.moderationService = moderationService;
+        this.communityService = communityService;
     }
 
     // POST /api/reports  { targetType, targetId, reason }
@@ -25,7 +28,13 @@ public class ModerationController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void report(@RequestBody ReportRequest request) {
         Long reporterId = JwtUtil.getCurrentUserId();
-        moderationService.report(reporterId, request.getTargetType(), request.getTargetId(), request.getReason());
+        // B11: COMMUNITY_POST / COMMUNITY_COMMENT — hedef var ve şikayet eden görebiliyor olmalı
+        // (ModerationService, CommunityService'e bağımlı olduğundan döngüyü önlemek için doğrulama burada)
+        // Tür bir kez trim+büyük harf yapılır; doğrulama ve kayıt aynı değeri kullanır
+        String targetType = request.getTargetType() == null ? null
+                : request.getTargetType().trim().toUpperCase(java.util.Locale.ROOT);
+        communityService.requireCanReportCommunityContent(reporterId, targetType, request.getTargetId());
+        moderationService.report(reporterId, targetType, request.getTargetId(), request.getReason());
     }
 
     // POST /api/users/{id}/block

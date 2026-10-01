@@ -62,7 +62,7 @@ public class EventService {
             venue = new Venue();
             venue.setName(request.getVenueName() != null ? request.getVenueName() : "Bilinmeyen Mekan");
             venue.setCity(request.getVenueCity() != null ? request.getVenueCity() : "Ankara");
-            venue.setCountry(request.getVenueCountry() != null ? request.getVenueCountry() : "Turkiye");
+            venue.setCountry(request.getVenueCountry() != null ? request.getVenueCountry() : "Türkiye");
             venue.setAddress(request.getVenueAddress());
             venue.setLatitude(request.getVenueLatitude());
             venue.setLongitude(request.getVenueLongitude());

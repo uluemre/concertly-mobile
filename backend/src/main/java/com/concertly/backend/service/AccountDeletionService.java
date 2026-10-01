@@ -2,11 +2,25 @@ package com.concertly.backend.service;
 
 import com.concertly.backend.exception.ResourceNotFoundException;
 import com.concertly.backend.model.AccountDeletionFeedback;
+import com.concertly.backend.model.Community;
+import com.concertly.backend.model.CommunityMember;
 import com.concertly.backend.model.User;
+import com.concertly.backend.repository.CommunityMemberRepository;
+import com.concertly.backend.repository.CommunityRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.PageRequest;
+import java.time.LocalDateTime;
+import java.util.List;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
  * Kullanıcının hesabını ve ona bağlı TÜM verisini kalıcı olarak siler
@@ -20,8 +34,90 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class AccountDeletionService {
 
+    private static final Logger log = LoggerFactory.getLogger(AccountDeletionService.class);
+
     @PersistenceContext
     private EntityManager em;
+
+    private final CommunityRepository communityRepository;
+    private final CommunityMemberRepository communityMemberRepository;
+    private final NotificationService notificationService;
+    private final PlatformTransactionManager transactionManager;
+
+    public AccountDeletionService(CommunityRepository communityRepository,
+                                  CommunityMemberRepository communityMemberRepository,
+                                  NotificationService notificationService,
+                                  PlatformTransactionManager transactionManager) {
+        this.communityRepository = communityRepository;
+        this.communityMemberRepository = communityMemberRepository;
+        this.notificationService = notificationService;
+        this.transactionManager = transactionManager;
+    }
+
+    /**
+     * Silinen kullanıcının sahip olduğu her topluluk için halef seçer ve devreder.
+     * Sıra: ACTIVE MODERATOR (en erken joinedAt, eşitlikte en küçük üyelik id), yoksa ACTIVE MEMBER
+     * (aynı sıralama). Silinen kullanıcı, PENDING/INVITED/BANNED ve diğer tüm ACTIVE olmayan
+     * statüler aday değildir; NULL rol MEMBER sayılır. Aday yoksa topluluk arşivlenir
+     * (archivedAt=şimdi; owner'ı çağıran null yapar). Çağıranın transaction'ı içinde çalışır.
+     */
+    void transferOwnedCommunities(Long uid) {
+        for (Community c : communityRepository.findByOwnerId(uid)) {
+            CommunityMember successor = pickSuccessor(c.getId(), uid);
+            if (successor == null) {
+                // Aday yok: topluluk silinmez, ARŞİVLENİR (içerik/üyelikler kalır, yeni katılım kapanır).
+                // Owner'ı çağıran, aşağıdaki toplu UPDATE ile null yapar.
+                c.setArchivedAt(LocalDateTime.now());
+                communityRepository.save(c);
+                log.info("Topluluk {} sahibi (kullanıcı {}) silinirken devralacak aktif üye yok; topluluk arşivlendi", c.getId(), uid);
+                continue;
+            }
+            successor.setRole("OWNER");
+            communityMemberRepository.save(successor);
+            c.setOwner(successor.getUser());
+            communityRepository.save(c);
+            log.info("Topluluk {} sahipliği kullanıcı {} -> {} devredildi", c.getId(), uid, successor.getUser().getId());
+            notifyNewOwner(successor.getUser().getId(), c.getId(), c.getName());
+        }
+    }
+
+    /**
+     * Bildirim silme transaction'ı İÇİNDE gönderilmez (sendSystem içindeki bir DB hatası tx'i
+     * rollback-only yapıp tüm silmeyi UnexpectedRollbackException ile bozabilir). Aktif bir
+     * transaction synchronization varsa commit sonrasına ertelenir; rollback olursa gönderilmez.
+     * Synchronization yoksa (düz birim test) hemen gönderilir.
+     */
+    private void notifyNewOwner(Long newOwnerId, Long communityId, String name) {
+        Runnable send = () -> notificationService.sendSystem(newOwnerId, "community_ownership", "community", communityId,
+                "\"" + name + "\" toplulugunun sahipligi size devredildi.");
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    try {
+                        // afterCommit'te eski (commit edilmiş) tx'e katılınır, yazılan satır kaybolur:
+                        // bu yüzden yeni bir transaction açılır.
+                        TransactionTemplate tt = new TransactionTemplate(transactionManager);
+                        tt.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+                        tt.executeWithoutResult(status -> send.run());
+                    } catch (RuntimeException e) {
+                        log.warn("Devir bildirimi gönderilemedi (topluluk {}): {}", communityId, e.getMessage());
+                    }
+                }
+            });
+        } else {
+            send.run();
+        }
+    }
+
+    CommunityMember pickSuccessor(Long communityId, Long excludeUserId) {
+        for (String role : new String[]{"MODERATOR", "MEMBER"}) {
+            List<CommunityMember> found = communityMemberRepository.findSuccessorCandidates(
+                    communityId, excludeUserId, role, PageRequest.of(0, 1));
+            if (found != null && !found.isEmpty()) return found.get(0);
+        }
+        return null;
+    }
 
     private int del(String jpql, Long uid) {
         return em.createQuery(jpql).setParameter("uid", uid).executeUpdate();
@@ -67,7 +163,10 @@ public class AccountDeletionService {
         del("DELETE FROM CommunityPostPollVote v WHERE v.user.id = :uid", uid);
         del("DELETE FROM Post p WHERE p.user.id = :uid", uid);
         del("DELETE FROM CommunityPost cp WHERE cp.user.id = :uid", uid);
-        // Kullanıcının sahip olduğu topluluklar silinmez, sahibi boşaltılır (Event ile aynı mantık)
+        // Kullanıcının sahip olduğu topluluklar silinmez: önce sahiplik uygun üyeye devredilir,
+        // aday yoksa sahibi boşaltılır (Event ile aynı mantık)
+        transferOwnedCommunities(uid);
+        em.flush();
         del("UPDATE Community c SET c.owner = null WHERE c.owner.id = :uid", uid);
         del("DELETE FROM CommunityMember cm WHERE cm.user.id = :uid", uid);
         del("DELETE FROM EventAttendance ea WHERE ea.user.id = :uid", uid);

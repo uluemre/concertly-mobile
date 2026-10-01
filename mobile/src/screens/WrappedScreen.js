@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { displayGenre } from '../utils/text';
 import API from '../services/api';
 import EventCard from '../components/EventCard';
 import EventImage from '../components/EventImage';
@@ -195,7 +196,7 @@ export default function WrappedScreen({ navigation }) {
               <Text style={styles.cardLabel}>{tu('wrapped_genres')}</Text>
               {summary.genres.map(g => (
                 <View key={g.genre} style={styles.genreRow}>
-                  <Text style={styles.genreName} numberOfLines={1}>{g.genre}</Text>
+                  <Text style={styles.genreName} numberOfLines={1}>{displayGenre(g.genre, t)}</Text>
                   <View style={styles.genreTrack}>
                     <LinearGradient
                       colors={getGenreGradient(g.genre)}

@@ -6,6 +6,7 @@ import com.concertly.backend.model.Artist;
 import com.concertly.backend.model.SpotifyConnection;
 import com.concertly.backend.model.User;
 import com.concertly.backend.repository.*;
+import com.concertly.backend.security.JwtUtil;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -36,18 +37,29 @@ public class SpotifyUserService {
     private final ArtistRepository artistRepository;
     private final ArtistFollowRepository artistFollowRepository;
     private final SpotifyService spotifyService;
+    private final JwtUtil jwtUtil;
     private final RestTemplate restTemplate = ExternalHttp.restTemplate();
 
     public SpotifyUserService(SpotifyConnectionRepository connectionRepository,
                                UserRepository userRepository,
                                ArtistRepository artistRepository,
                                ArtistFollowRepository artistFollowRepository,
-                               SpotifyService spotifyService) {
+                               SpotifyService spotifyService,
+                               JwtUtil jwtUtil) {
         this.connectionRepository = connectionRepository;
         this.userRepository = userRepository;
         this.artistRepository = artistRepository;
         this.artistFollowRepository = artistFollowRepository;
         this.spotifyService = spotifyService;
+        this.jwtUtil = jwtUtil;
+    }
+
+    static final String STATE_PURPOSE = "spotify-link";
+    static final long STATE_TTL_MS = 10 * 60 * 1000L;
+
+    /** Callback'teki imzalı state'i doğrular; geçersiz/süresi dolmuşsa null (SEC-01). */
+    public Long verifyState(String state) {
+        return jwtUtil.parsePurposeToken(state, STATE_PURPOSE);
     }
 
     public String getAuthUrl(Long userId) {
@@ -58,7 +70,8 @@ public class SpotifyUserService {
                     + "&response_type=code"
                     + "&redirect_uri=" + URLEncoder.encode(configuredRedirectUri, StandardCharsets.UTF_8)
                     + "&scope=" + URLEncoder.encode(scope, StandardCharsets.UTF_8)
-                    + "&state=" + userId
+                    + "&state=" + URLEncoder.encode(
+                            jwtUtil.generatePurposeToken(userId, STATE_PURPOSE, STATE_TTL_MS), StandardCharsets.UTF_8)
                     + "&show_dialog=true";
         } catch (Exception e) {
             throw new RuntimeException("Auth URL oluşturulamadı", e);

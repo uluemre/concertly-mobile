@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Animated,
   Modal, TextInput, KeyboardAvoidingView, Platform,
-  Alert, Share,
+  Alert,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -14,6 +14,7 @@ import PollCard from './PollCard';
 import CommentModal from './CommentModal';
 import { openEvent } from '../../navigation/navHelpers';
 import { publishPostUpdate } from '../../services/postUpdates';
+import { buildShareUrl, shareWithLink } from '../../services/shareLinks';
 
 const GRADIENTS = [
   ['#E94560', '#7C3AED'],
@@ -99,33 +100,26 @@ export default React.memo(function PostCard({
   };
 
   const handleShare = async () => {
-    try {
-      const parts = [
-        item.eventName ? `🎵 ${item.eventName}` : '',
-        item.content ? `"${item.content}"` : '',
-        `— @${item.username}`,
-        '',
-        '🎟️ Concertly ile müziği ve canlı konserleri keşfet!',
-        'https://concertly.app',
-      ].filter(Boolean);
-      await Share.share({ message: parts.join('\n') });
-    } catch (err) {
-      if (err.message !== 'The user did not share') {
-        Alert.alert('Hata', 'Paylaşım başarısız.');
-      }
-    }
+    const message = [
+      item.eventName ? `🎵 ${item.eventName}` : '',
+      item.content ? `"${item.content}"` : '',
+      `— @${item.username}`,
+      '',
+      t('post_share_tagline'),
+    ].filter((x, i) => x || i === 3).join('\n');
+    await shareWithLink(message, buildShareUrl('post', item.id));
   };
 
   const handleDelete = () => {
-    Alert.alert('Postu Sil', 'Bu postu silmek istediğine emin misin?', [
-      { text: 'İptal', style: 'cancel' },
+    Alert.alert(t('profile_post_delete_title'), t('profile_post_delete_confirm'), [
+      { text: t('cancel'), style: 'cancel' },
       {
-        text: 'Sil', style: 'destructive', onPress: async () => {
+        text: t('delete'), style: 'destructive', onPress: async () => {
           try {
             await API.delete(`/posts/${item.id}`);
             onDelete?.(item.id);
           } catch {
-            Alert.alert('Hata', 'Post silinemedi.');
+            Alert.alert(t('error'), t('profile_post_delete_error'));
           }
         },
       },
@@ -169,10 +163,10 @@ export default React.memo(function PostCard({
 
   const handleOptions = () => {
     if (isOwner) {
-      Alert.alert('Post İşlemleri', null, [
-        { text: 'Düzenle', onPress: () => { setEditText(item.content || ''); setShowEditModal(true); } },
-        { text: 'Sil', style: 'destructive', onPress: handleDelete },
-        { text: 'İptal', style: 'cancel' },
+      Alert.alert(t('profile_post_actions'), null, [
+        { text: t('edit'), onPress: () => { setEditText(item.content || ''); setShowEditModal(true); } },
+        { text: t('delete'), style: 'destructive', onPress: handleDelete },
+        { text: t('cancel'), style: 'cancel' },
       ]);
     } else {
       Alert.alert(t('mod_options_title'), null, [
@@ -191,7 +185,7 @@ export default React.memo(function PostCard({
       onEdit?.(item.id, res.data.content);
       setShowEditModal(false);
     } catch {
-      Alert.alert('Hata', 'Post düzenlenemedi.');
+      Alert.alert(t('error'), t('profile_edit_error'));
     } finally {
       setEditSaving(false);
     }
@@ -265,7 +259,7 @@ export default React.memo(function PostCard({
         </TouchableOpacity>
         <View style={styles.headerRight}>
           <Text style={styles.postTime}>{formatTimeAgo(item.createdAt, lang)}</Text>
-          <TouchableOpacity onPress={handleOptions} style={styles.optionsBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <TouchableOpacity onPress={handleOptions} style={styles.optionsBtn} accessibilityRole="button" accessibilityLabel={t('mod_options_title')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Text style={styles.optionsIcon}>⋯</Text>
           </TouchableOpacity>
         </View>
@@ -276,7 +270,7 @@ export default React.memo(function PostCard({
         <TouchableOpacity style={styles.editOverlay} activeOpacity={1} onPress={() => setShowEditModal(false)} />
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.editSheetWrapper}>
           <View style={[styles.editSheet, { backgroundColor: colors.card }]}>
-            <Text style={[styles.editTitle, { color: colors.text }]}>Postu Düzenle</Text>
+            <Text style={[styles.editTitle, { color: colors.text }]}>{t('profile_edit_title')}</Text>
             <TextInput
               style={[styles.editInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
               value={editText}
@@ -287,14 +281,14 @@ export default React.memo(function PostCard({
             />
             <View style={styles.editActions}>
               <TouchableOpacity style={[styles.editBtn, { backgroundColor: colors.border }]} onPress={() => setShowEditModal(false)}>
-                <Text style={[styles.editBtnText, { color: colors.text }]}>İptal</Text>
+                <Text style={[styles.editBtnText, { color: colors.text }]}>{t('cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.editBtn, { backgroundColor: colors.primary, opacity: editSaving ? 0.6 : 1 }]}
                 onPress={handleEditSave}
                 disabled={editSaving}
               >
-                <Text style={[styles.editBtnText, { color: '#fff' }]}>{editSaving ? 'Kaydediliyor...' : 'Kaydet'}</Text>
+                <Text style={[styles.editBtnText, { color: '#fff' }]}>{editSaving ? t('profile_edit_saving') : t('profile_edit_save')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -332,7 +326,7 @@ export default React.memo(function PostCard({
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionBtn} onPress={handleShare} activeOpacity={0.7}>
           <Text style={styles.actionIcon}>🔗</Text>
-          <Text style={styles.actionCount}>Paylaş</Text>
+          <Text style={styles.actionCount}>{t('share')}</Text>
         </TouchableOpacity>
       </View>
 

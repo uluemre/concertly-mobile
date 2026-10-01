@@ -7,10 +7,13 @@ import com.concertly.backend.model.Post;
 import com.concertly.backend.model.User;
 import com.concertly.backend.model.Artist;
 import com.concertly.backend.repository.ArtistRepository;
+import com.concertly.backend.repository.CommunityMemberRepository;
 import com.concertly.backend.repository.CommunityRepository;
+import com.concertly.backend.service.CommunityService;
 import com.concertly.backend.repository.EventRepository;
 import com.concertly.backend.repository.PostRepository;
 import com.concertly.backend.repository.UserRepository;
+import com.concertly.backend.service.PrivacyService;
 import com.concertly.backend.service.ShareLinkService;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +21,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +44,7 @@ public class ShareController {
     private final UserRepository userRepository;
     private final PostRepository postRepository;
     private final CommunityRepository communityRepository;
+    private final CommunityMemberRepository communityMemberRepository;
     private final ShareLinkService shareLinkService;
     private final ShareLinkConfig shareLinkConfig;
 
@@ -48,8 +53,10 @@ public class ShareController {
             UserRepository userRepository,
             PostRepository postRepository,
             CommunityRepository communityRepository,
+            CommunityMemberRepository communityMemberRepository,
             ShareLinkService shareLinkService,
             ShareLinkConfig shareLinkConfig) {
+        this.communityMemberRepository = communityMemberRepository;
         this.eventRepository = eventRepository;
         this.artistRepository = artistRepository;
         this.userRepository = userRepository;
@@ -81,10 +88,11 @@ public class ShareController {
 
     @GetMapping(value = "/u/{username}", produces = MediaType.TEXT_HTML_VALUE)
     public ResponseEntity<String> user(@PathVariable String username) {
-        User user = userRepository.findByUsername(username).orElse(null);
+        User user = userRepository.findByUsernameNormalized(username).orElse(null);
         if (user == null || !Boolean.TRUE.equals(user.getIsActive())) return notFound("profile");
+        // SEC-05: özel hesabın bio'su link önizlemesine (OG) sızmaz
         String subtitle = ShareLinkService.truncate(
-                user.getBio() != null && !user.getBio().isBlank()
+                !PrivacyService.isPrivate(user) && user.getBio() != null && !user.getBio().isBlank()
                         ? user.getBio()
                         : "Konser pasaportunu Concertly'de gör",
                 140);
@@ -96,6 +104,11 @@ public class ShareController {
     public ResponseEntity<String> post(@PathVariable Long id) {
         Post post = postRepository.findById(id).orElse(null);
         if (post == null) return notFound("post/" + id);
+        // SEC-05: özel hesabın veya moderasyonla gizlenmiş gönderinin içeriği/görseli önizlemeye sızmaz
+        if (PrivacyService.isPrivate(post.getUser()) || Boolean.TRUE.equals(post.getIsHidden())) {
+            return html(shareLinkService.renderLandingPage(
+                    "post/" + id, "Concertly", "Bu gönderiyi Concertly'de gör", null));
+        }
         String author = post.getUser() != null ? "@" + post.getUser().getUsername() : "Concertly";
         return html(shareLinkService.renderLandingPage(
                 "post/" + id, author, ShareLinkService.truncate(post.getContent(), 160), post.getImageUrl()));
@@ -104,7 +117,23 @@ public class ShareController {
     @GetMapping(value = "/c/{id}", produces = MediaType.TEXT_HTML_VALUE)
     public ResponseEntity<String> community(@PathVariable Long id) {
         Community community = communityRepository.findById(id).orElse(null);
-        if (community == null || !"PUBLIC".equals(community.getVisibility())) return notFound("communities");
+        if (community == null) return notFound("communities");
+        // C4: görünürlük null → PUBLIC. SECRET, reddedilen (7 gün kararsız PENDING dahil) ve
+        // incelemenin ilk 24 saatindeki topluluk keşif kuralını izleyip 404 olur.
+        String visibility = community.getVisibility() == null ? "PUBLIC" : community.getVisibility();
+        if ("SECRET".equals(visibility)
+                || CommunityService.isHiddenFromDiscovery(community, LocalDateTime.now())) {
+            return notFound("communities");
+        }
+        if ("PRIVATE".equals(visibility)) {
+            // Özel topluluk: ad + temel bilgi + özel etiketi + üye SAYISI. Gönderi/üye/yorum içeriği yok.
+            long members = communityMemberRepository.countByCommunityIdAndStatus(id, "ACTIVE");
+            String type = join(community.getEmoji(), community.getType());
+            String info = join(join("🔒 Özel topluluk", type), members + " üye");
+            return html(shareLinkService.renderLandingPage(
+                    "community/" + id, community.getName(),
+                    join(info, ShareLinkService.truncate(community.getDescription(), 100)), null));
+        }
         return html(shareLinkService.renderLandingPage(
                 "community/" + id, community.getName(),
                 ShareLinkService.truncate(community.getDescription(), 160), null));

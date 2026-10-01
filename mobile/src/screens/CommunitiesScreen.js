@@ -11,6 +11,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { communityTypeLabel } from '../utils/communityType';
 import API, { getErrorMessage } from '../services/api';
+import { communityErrorMessage } from '../utils/communityErrors';
 import { goBackOrFallback } from '../navigation/navHelpers';
 
 // key: i18n key, apiValue: backend'e gönderilecek değer (null = hepsi), emoji: chip görseli
@@ -29,7 +30,7 @@ const FILTERS = [
 export default function CommunitiesScreen({ navigation }) {
   const { colors } = useTheme();
   const { session } = useAuth();
-  const { t, tu } = useLanguage();
+  const { t, tu, lang } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [activeFilter, setActiveFilter] = useState('all');
   const [query, setQuery] = useState('');
@@ -40,8 +41,19 @@ export default function CommunitiesScreen({ navigation }) {
   const [code, setCode] = useState('');
   const [joiningCode, setJoiningCode] = useState(false);
   const debounceRef = useRef(null);
+  // Yalnızca en son isteğin cevabı ekrana yazılır (N-52 deseni, B2)
+  const fetchSeq = useRef(0);
+  // Odağa dönüşte güncel arama metni kullanılsın (useFocusEffect eski closure'u tutar)
+  const queryRef = useRef('');
+  queryRef.current = query;
+  // İlk açılışta odak isteği zaten gidiyor; debounce'un ikinci istek atmasını engeller
+  const skipFirstDebounce = useRef(true);
+  // Uçuştaki katılma/ayrılma istekleri (topluluk id'si başına, B3)
+  const joinInFlight = useRef(new Set());
+  const locale = lang === 'en' ? 'en-GB' : 'tr-TR';
 
   const fetchCommunities = useCallback(async (type, q) => {
+    const seq = ++fetchSeq.current;
     try {
       setLoading(true);
       const favGenres = session.favoriteGenres;
@@ -59,24 +71,27 @@ export default function CommunitiesScreen({ navigation }) {
         if (q && q.trim()) params.q = q.trim();
         res = await API.get('/communities', { params });
       }
+      if (seq !== fetchSeq.current) return;
       setCommunities(res.data);
       setError(null);
     } catch (err) {
+      if (seq !== fetchSeq.current) return;
       setError(getErrorMessage(err));
     } finally {
-      setLoading(false);
+      if (seq === fetchSeq.current) setLoading(false);
     }
   }, []);
 
   // Fetch on mount and when filters change
   useFocusEffect(
     useCallback(() => {
-      fetchCommunities(activeFilter, query);
+      fetchCommunities(activeFilter, queryRef.current);
     }, [activeFilter]) // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   // Debounced search
   useEffect(() => {
+    if (skipFirstDebounce.current) { skipFirstDebounce.current = false; return; }
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       fetchCommunities(activeFilter, query);
@@ -96,15 +111,36 @@ export default function CommunitiesScreen({ navigation }) {
       setShowCode(false);
       navigation.navigate('CommunityDetail', { communityId: res.data.id });
     } catch (err) {
-      Alert.alert(t('error'), getErrorMessage(err));
+      Alert.alert(t('error'), communityErrorMessage(err, t));
     } finally {
       setJoiningCode(false);
     }
   };
 
-  const toggleJoin = async (community) => {
+  const toggleJoin = (community) => {
     // Sahip topluluktan ayrılamaz (sunucu 400 döner); listeden asla ayrılma isteği gitmez (A5)
     if (community.currentUserRole === 'OWNER') return;
+    if (joinInFlight.current.has(community.id)) return;
+    // Arşivlenmiş toplulukta yeni katılım kapalı: üye olmayan için API çağrısı yok
+    if (community.archived && !community.isJoinedByCurrentUser) return;
+    if (community.isJoinedByCurrentUser) {
+      // Ayrılmadan önce onay (C7)
+      Alert.alert(
+        t('community_leave'),
+        t(community.currentUserRole === 'MODERATOR' ? 'community_leave_confirm' : 'community_leave_confirm_member'),
+        [
+          { text: t('cancel'), style: 'cancel' },
+          { text: t('community_leave'), style: 'destructive', onPress: () => runJoin(community) },
+        ]
+      );
+      return;
+    }
+    runJoin(community);
+  };
+
+  const runJoin = async (community) => {
+    if (joinInFlight.current.has(community.id)) return;
+    joinInFlight.current.add(community.id);
     try {
       if (community.isJoinedByCurrentUser) {
         await API.delete(`/communities/${community.id}/join`);
@@ -122,7 +158,9 @@ export default function CommunitiesScreen({ navigation }) {
         }
       }
     } catch (err) {
-      Alert.alert(t('error'), getErrorMessage(err));
+      Alert.alert(t('error'), communityErrorMessage(err, t));
+    } finally {
+      joinInFlight.current.delete(community.id);
     }
   };
 
@@ -139,8 +177,15 @@ export default function CommunitiesScreen({ navigation }) {
         </TouchableOpacity>
       );
     }
+    if (community.archived && !community.isJoinedByCurrentUser) {
+      return <Text style={styles.archivedInfo}>{t('community_archived_info')}</Text>;
+    }
     const pending = community.currentUserStatus === 'PENDING';
     const joined = community.isJoinedByCurrentUser;
+    // İncelemedeki toplulukta üye olmayana katılım kapalı (B5)
+    if (community.approvalStatus === 'PENDING' && !joined && !pending) {
+      return <Text style={styles.archivedInfo}>{t('community_pending_join_info')}</Text>;
+    }
     const active = joined || pending;
     return (
       <TouchableOpacity
@@ -300,6 +345,9 @@ export default function CommunitiesScreen({ navigation }) {
                     <Text style={styles.cardMeta} numberOfLines={1}>
                       {community.city ? `${community.city} · ` : ''}{communityTypeLabel(community.type, t)}
                     </Text>
+                    {community.archived ? (
+                      <Text style={styles.archivedBadge}>{t('community_archived_badge')}</Text>
+                    ) : null}
                     <View style={styles.tagRow}>
                       {pending ? (
                         <View style={[styles.statusChip, styles.statusReview]}>
@@ -322,7 +370,7 @@ export default function CommunitiesScreen({ navigation }) {
 
                 <View style={styles.cardFooter}>
                   <View style={styles.metrics}>
-                    <Text style={styles.metric}>👥 {community.memberCount.toLocaleString('tr-TR')}</Text>
+                    <Text style={styles.metric}>👥 {community.memberCount.toLocaleString(locale)}</Text>
                     <Text style={styles.metricDot}>·</Text>
                     <Text style={styles.metric}>📝 {community.postCount}</Text>
                   </View>
@@ -465,5 +513,10 @@ function createStyles(colors) {
     joinButtonActive: { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: colors.border },
     joinText: { color: '#fff', fontSize: 13, fontWeight: '800' },
     joinTextActive: { color: colors.textSecondary },
+    archivedBadge: {
+      alignSelf: 'flex-start', marginTop: 4, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8,
+      overflow: 'hidden', backgroundColor: colors.border, color: colors.textSecondary, fontSize: 11, fontWeight: '800',
+    },
+    archivedInfo: { color: colors.textSecondary, fontSize: 12, fontWeight: '600', flexShrink: 1, textAlign: 'right' },
   });
 }

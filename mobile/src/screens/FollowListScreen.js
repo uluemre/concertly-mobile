@@ -9,6 +9,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useFocusEffect } from '@react-navigation/native';
 import API from '../services/api';
 import { goBackOrFallback } from '../navigation/navHelpers';
+import { apiErrorMessage, isPrivateAccountError } from '../utils/communityErrors';
 
 export default function FollowListScreen({ route, navigation }) {
   const { userId, type } = route.params;
@@ -19,6 +20,10 @@ export default function FollowListScreen({ route, navigation }) {
 
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [locked, setLocked] = useState(false);
+
+  // Sunucu followStatus göndermezse eski alana düşülür
+  const statusOf = (u) => u.followStatus || (u.isFollowedByCurrentUser ? 'ACCEPTED' : 'NONE');
 
   const title = type === 'followers' ? t('follow_followers') : t('follow_following');
 
@@ -37,8 +42,15 @@ export default function FollowListScreen({ route, navigation }) {
     try {
       const res = await API.get(`/users/${userId}/${type}`);
       setUsers(res.data);
+      setLocked(false);
     } catch (err) {
-      Alert.alert(t('error'), t('follow_load_error'));
+      if (isPrivateAccountError(err)) {
+        // Gizli hesabın listesi: genel hata yerine kilit mesajı
+        setUsers([]);
+        setLocked(true);
+      } else {
+        Alert.alert(t('error'), t('follow_load_error'));
+      }
     } finally {
       setLoading(false);
     }
@@ -48,20 +60,25 @@ export default function FollowListScreen({ route, navigation }) {
     if (targetUser.id === session.userId || pendingIds.current.has(targetUser.id)) return;
     pendingIds.current.add(targetUser.id);
     try {
-      if (targetUser.isFollowedByCurrentUser) {
+      const status = statusOf(targetUser);
+      let nextStatus;
+      if (status === 'ACCEPTED' || status === 'PENDING') {
+        // Takip ediliyor → takipten çık; istek beklemede → isteği iptal et
         await API.delete(`/users/${targetUser.id}/follow`);
+        nextStatus = 'NONE';
       } else {
         await API.post(`/users/${targetUser.id}/follow`);
+        nextStatus = targetUser.isPrivate ? 'PENDING' : 'ACCEPTED';
       }
       setUsers(prev =>
         prev.map(u =>
           u.id === targetUser.id
-            ? { ...u, isFollowedByCurrentUser: !u.isFollowedByCurrentUser }
+            ? { ...u, followStatus: nextStatus, isFollowedByCurrentUser: nextStatus === 'ACCEPTED' }
             : u
         )
       );
     } catch (err) {
-      Alert.alert(t('error'), t('follow_action_error'));
+      Alert.alert(t('error'), apiErrorMessage(err, t, 'follow_action_error'));
     } finally {
       pendingIds.current.delete(targetUser.id);
     }
@@ -69,6 +86,7 @@ export default function FollowListScreen({ route, navigation }) {
 
   const renderUser = ({ item }) => {
     const isSelf = item.id === session.userId;
+    const status = statusOf(item);
     return (
       <TouchableOpacity
         style={styles.row}
@@ -90,16 +108,19 @@ export default function FollowListScreen({ route, navigation }) {
           <TouchableOpacity
             style={[
               styles.followBtn,
-              item.isFollowedByCurrentUser && styles.followBtnActive,
+              status === 'ACCEPTED' && styles.followBtnActive,
             ]}
             onPress={() => handleToggleFollow(item)}
             activeOpacity={0.8}
           >
             <Text style={[
               styles.followBtnText,
-              item.isFollowedByCurrentUser && styles.followBtnTextActive,
+              status === 'ACCEPTED' && styles.followBtnTextActive,
             ]}>
-              {item.isFollowedByCurrentUser ? t('follow_btn_active') : t('follow_btn')}
+              {status === 'ACCEPTED' ? t('follow_btn_active')
+                : status === 'PENDING' ? t('user_profile_requested')
+                : item.isPrivate ? t('follow_btn_request')
+                : t('follow_btn')}
             </Text>
           </TouchableOpacity>
         )}
@@ -132,9 +153,10 @@ export default function FollowListScreen({ route, navigation }) {
         contentContainerStyle={users.length === 0 && styles.emptyContainer}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text style={styles.emptyEmoji}>👥</Text>
+            <Text style={styles.emptyEmoji}>{locked ? '🔒' : '👥'}</Text>
             <Text style={styles.emptyText}>
-              {type === 'followers' ? t('follow_no_followers') : t('follow_no_following')}
+              {locked ? t('private_account_list_locked')
+                : type === 'followers' ? t('follow_no_followers') : t('follow_no_following')}
             </Text>
           </View>
         }

@@ -6,6 +6,7 @@ import com.concertly.backend.model.Follow;
 import com.concertly.backend.model.User;
 import com.concertly.backend.repository.FollowRepository;
 import com.concertly.backend.repository.UserRepository;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,22 +17,28 @@ import java.util.stream.Collectors;
 @Service
 public class FollowService {
 
+    /** Bekleyen istek listesi için üst sınır (sayfalama yok). */
+    private static final int MAX_PENDING_LIST = 200;
+
     private final FollowRepository followRepository;
     private final UserRepository   userRepository;
     private final NotificationService notificationService;
     private final ModerationService moderationService;
+    private final PrivacyService privacyService;
 
     public FollowService(FollowRepository followRepository,
                          UserRepository userRepository,
                          NotificationService notificationService,
-                         ModerationService moderationService) {
+                         ModerationService moderationService,
+                         PrivacyService privacyService) {
         this.followRepository    = followRepository;
         this.userRepository      = userRepository;
         this.notificationService = notificationService;
         this.moderationService   = moderationService;
+        this.privacyService      = privacyService;
     }
 
-    // ✅ TAKİP ET
+    // ✅ TAKİP ET — özel hesapta PENDING istek, açık hesapta doğrudan ACCEPTED
     @Transactional
     public void follow(Long followerId, Long followingId) {
 
@@ -49,20 +56,23 @@ public class FollowService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Kullanıcı bulunamadı: " + followingId));
 
-        // Zaten takip ediliyorsa işlem tamam sayılır (N-27): eski ekrandan gelen ikinci
-        // basış hata göstermez, ikinci bildirim de gitmez
+        // Zaten takip ediliyorsa ya da istek beklemedeyse işlem tamam sayılır (N-27): eski
+        // ekrandan gelen ikinci basış hata göstermez, ikinci bildirim de gitmez
         if (followRepository.findByFollowerIdAndFollowingId(followerId, followingId).isPresent()) {
             return;
         }
 
+        boolean needsApproval = PrivacyService.isPrivate(following);
         Follow follow = new Follow();
         follow.setFollower(follower);
         follow.setFollowing(following);
+        follow.setStatus(needsApproval ? Follow.PENDING : Follow.ACCEPTED);
         followRepository.save(follow);
-        notificationService.send(followingId, followerId, "follow", "user", followingId);
+        notificationService.send(followingId, followerId,
+                needsApproval ? "follow_request" : "follow", "user", followingId);
     }
 
-    // ✅ TAKİBİ BIRAK
+    // ✅ TAKİBİ BIRAK / İSTEĞİ İPTAL ET — PENDING ve ACCEPTED satırı siler
     @Transactional
     public void unfollow(Long followerId, Long followingId) {
 
@@ -71,7 +81,42 @@ public class FollowService {
                 .ifPresent(followRepository::delete);
     }
 
+    // ✅ BEKLEYEN TAKİP İSTEKLERİM — yalnızca başlık alanları
+    @Transactional(readOnly = true)
+    public List<UserSummaryResponse> getFollowRequests(Long ownerId) {
+        Set<Long> hidden = moderationService.getHiddenUserIds(ownerId);
+        return followRepository.findPendingRequests(ownerId, PageRequest.of(0, MAX_PENDING_LIST)).stream()
+                .map(Follow::getFollower)
+                .filter(u -> !hidden.contains(u.getId()))
+                .map(u -> toSummary(u, ownerId, false, true))
+                .collect(Collectors.toList());
+    }
+
+    // ✅ İSTEĞİ KABUL ET — yalnızca KENDİME gelen bir istek; başkasının isteği 404
+    @Transactional
+    public void acceptRequest(Long ownerId, Long requesterId) {
+        Follow follow = findPendingFor(ownerId, requesterId);
+        follow.setStatus(Follow.ACCEPTED);
+        followRepository.save(follow);
+        notificationService.clearFollowRequest(ownerId, requesterId);
+        notificationService.send(requesterId, ownerId, "follow_accepted", "user", ownerId);
+    }
+
+    // ✅ İSTEĞİ REDDET — satır silinir; kabul edilmiş takipçiye dokunmaz
+    @Transactional
+    public void rejectRequest(Long ownerId, Long requesterId) {
+        followRepository.delete(findPendingFor(ownerId, requesterId));
+        notificationService.clearFollowRequest(ownerId, requesterId);
+    }
+
+    private Follow findPendingFor(Long ownerId, Long requesterId) {
+        return followRepository.findByFollowerIdAndFollowingId(requesterId, ownerId)
+                .filter(f -> Follow.PENDING.equals(f.getStatus()))
+                .orElseThrow(() -> new ResourceNotFoundException("Takip isteği bulunamadı."));
+    }
+
     // ✅ KULLANICI PROFİLİ — takipçi/takip sayısı ve mevcut kullanıcının takip durumu
+    @Transactional(readOnly = true)
     public UserSummaryResponse getUserProfile(Long targetUserId, Long currentUserId) {
 
         moderationService.requireVisible(currentUserId, targetUserId);
@@ -79,48 +124,61 @@ public class FollowService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Kullanıcı bulunamadı: " + targetUserId));
 
-        long followerCount  = followRepository.countByFollowingId(targetUserId);
-        long followingCount = followRepository.countByFollowerId(targetUserId);
-
-        boolean isFollowed = currentUserId != null &&
-                followRepository.findByFollowerIdAndFollowingId(currentUserId, targetUserId).isPresent();
-
         // E-posta/telefon yalnızca kullanıcı kendi profilini çekerken döner (Ayarlar formu)
         boolean isSelf = targetUserId.equals(currentUserId);
-        return UserSummaryResponse.from(target, followerCount, followingCount, isFollowed, isSelf);
+        // Özel hesapta yetkisiz izleyici yalnızca başlığı görür (şehir/türler gizli)
+        boolean restricted = !privacyService.canViewContent(currentUserId, target);
+        return toSummary(target, currentUserId, isSelf, restricted);
     }
 
-    // ✅ TAKİPÇİ LİSTESİ — beni takip edenler
+    // ✅ TAKİPÇİ LİSTESİ — beni takip edenler (yalnızca kabul edilenler)
+    @Transactional(readOnly = true)
     public List<UserSummaryResponse> getFollowers(Long userId, Long currentUserId) {
         moderationService.requireVisible(currentUserId, userId);
+        privacyService.requireCanViewContent(currentUserId, userId);
         Set<Long> hidden = moderationService.getHiddenUserIds(currentUserId);
-        return followRepository.findAllByFollowingId(userId).stream()
-                .filter(f -> !hidden.contains(f.getFollower().getId()))
-                .map(f -> {
-                    User follower = f.getFollower();
-                    long fc  = followRepository.countByFollowingId(follower.getId());
-                    long fwc = followRepository.countByFollowerId(follower.getId());
-                    boolean isFollowed = currentUserId != null &&
-                            followRepository.findByFollowerIdAndFollowingId(currentUserId, follower.getId()).isPresent();
-                    return UserSummaryResponse.from(follower, fc, fwc, isFollowed);
-                })
+        List<User> users = followRepository.findAcceptedFollowers(userId).stream()
+                .map(Follow::getFollower)
+                .filter(u -> !hidden.contains(u.getId()))
+                .toList();
+        return toSummaries(users, currentUserId);
+    }
+
+    // ✅ TAKİP LİSTESİ — takip ettiklerim (yalnızca kabul edilenler)
+    @Transactional(readOnly = true)
+    public List<UserSummaryResponse> getFollowing(Long userId, Long currentUserId) {
+        moderationService.requireVisible(currentUserId, userId);
+        privacyService.requireCanViewContent(currentUserId, userId);
+        Set<Long> hidden = moderationService.getHiddenUserIds(currentUserId);
+        List<User> users = followRepository.findAcceptedFollowing(userId).stream()
+                .map(Follow::getFollowing)
+                .filter(u -> !hidden.contains(u.getId()))
+                .toList();
+        return toSummaries(users, currentUserId);
+    }
+
+    /** Liste satırları: özel + yetkisiz hesapların şehir/türleri toplu sorguyla gizlenir. */
+    private List<UserSummaryResponse> toSummaries(List<User> users, Long currentUserId) {
+        Set<Long> restricted = privacyService.restrictedOwnerIds(currentUserId, users);
+        return users.stream()
+                .map(u -> toSummary(u, currentUserId, false, restricted.contains(u.getId())))
                 .collect(Collectors.toList());
     }
 
-    // ✅ TAKİP LİSTESİ — takip ettiklerim
-    public List<UserSummaryResponse> getFollowing(Long userId, Long currentUserId) {
-        moderationService.requireVisible(currentUserId, userId);
-        Set<Long> hidden = moderationService.getHiddenUserIds(currentUserId);
-        return followRepository.findAllByFollowerId(userId).stream()
-                .filter(f -> !hidden.contains(f.getFollowing().getId()))
-                .map(f -> {
-                    User following = f.getFollowing();
-                    long fc  = followRepository.countByFollowingId(following.getId());
-                    long fwc = followRepository.countByFollowerId(following.getId());
-                    boolean isFollowed = currentUserId != null &&
-                            followRepository.findByFollowerIdAndFollowingId(currentUserId, following.getId()).isPresent();
-                    return UserSummaryResponse.from(following, fc, fwc, isFollowed);
-                })
-                .collect(Collectors.toList());
+    private UserSummaryResponse toSummary(User user, Long currentUserId, boolean includeContact, boolean restricted) {
+        long followers = followRepository.countAcceptedFollowers(user.getId());
+        long following = followRepository.countAcceptedFollowing(user.getId());
+        String status = followStatus(currentUserId, user.getId());
+        UserSummaryResponse dto = UserSummaryResponse.from(user, followers, following,
+                Follow.ACCEPTED.equals(status), includeContact).withFollowStatus(status);
+        return restricted ? dto.restrictToHeader() : dto;
+    }
+
+    /** NONE | PENDING | ACCEPTED — izleyicinin hedefi takip durumu (NULL satır = ACCEPTED). */
+    private String followStatus(Long currentUserId, Long targetId) {
+        if (currentUserId == null || currentUserId.equals(targetId)) return "NONE";
+        return followRepository.findByFollowerIdAndFollowingId(currentUserId, targetId)
+                .map(f -> f.isAccepted() ? Follow.ACCEPTED : Follow.PENDING)
+                .orElse("NONE");
     }
 }

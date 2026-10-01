@@ -3,6 +3,7 @@ package com.concertly.backend.service;
 import com.concertly.backend.dto.response.CommunityResponse;
 import com.concertly.backend.model.Community;
 import com.concertly.backend.repository.*;
+import com.concertly.backend.security.AuthRateLimiter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -60,7 +61,8 @@ class CommunityTypeFilterTest {
         service = new CommunityService(repo, members, posts, mock(CommunityPostLikeRepository.class),
                 mock(CommunityPostCommentRepository.class), mock(CommunityPostPollOptionRepository.class),
                 mock(CommunityPostPollVoteRepository.class), mock(UserRepository.class),
-                mock(NotificationService.class));
+                mock(NotificationService.class), mock(NotificationRepository.class),
+                mock(ModerationService.class), mock(ContentLimitService.class), new AuthRateLimiter());
     }
 
     private List<Long> ids(String type, String q) {

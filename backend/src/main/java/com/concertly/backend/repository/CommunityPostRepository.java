@@ -14,6 +14,8 @@ public interface CommunityPostRepository extends JpaRepository<CommunityPost, Lo
 
     long countByCommunityId(Long communityId);
 
+    long countByUserIdAndCreatedAtAfter(Long userId, java.time.LocalDateTime since);
+
     void deleteByCommunityId(Long communityId);
 
     // Toplu post sayımı — (communityId, count)

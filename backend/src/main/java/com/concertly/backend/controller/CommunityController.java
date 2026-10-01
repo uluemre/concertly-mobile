@@ -155,6 +155,18 @@ public class CommunityController {
         communityService.removeMember(JwtUtil.getCurrentUserId(), id, userId);
     }
 
+    // B7: yasaklı üyeler (yönetici) ve yasağı kaldırma
+    @GetMapping("/{id}/bans")
+    public List<CommunityMemberResponse> bans(@PathVariable Long id) {
+        return communityService.getBannedMembers(JwtUtil.getCurrentUserId(), id);
+    }
+
+    @DeleteMapping("/{id}/bans/{userId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void unban(@PathVariable Long id, @PathVariable Long userId) {
+        communityService.unbanMember(JwtUtil.getCurrentUserId(), id, userId);
+    }
+
     @PostMapping("/{id}/transfer/{userId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void transfer(@PathVariable Long id, @PathVariable Long userId) {
@@ -188,6 +200,31 @@ public class CommunityController {
             @PathVariable Long postId,
             @RequestBody CreateCommunityPostRequest request) {
         return communityService.addPostComment(JwtUtil.getCurrentUserId(), id, postId, request.getContent());
+    }
+
+    // B11: yönetici gizleme (OWNER / ACTIVE MODERATOR / admin)
+    @PostMapping("/{id}/posts/{postId}/hide")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void hidePost(@PathVariable Long id, @PathVariable Long postId) {
+        communityService.setPostHidden(JwtUtil.getCurrentUserId(), id, postId, true);
+    }
+
+    @DeleteMapping("/{id}/posts/{postId}/hide")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void unhidePost(@PathVariable Long id, @PathVariable Long postId) {
+        communityService.setPostHidden(JwtUtil.getCurrentUserId(), id, postId, false);
+    }
+
+    @PostMapping("/{id}/posts/{postId}/comments/{commentId}/hide")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void hideComment(@PathVariable Long id, @PathVariable Long postId, @PathVariable Long commentId) {
+        communityService.setCommentHidden(JwtUtil.getCurrentUserId(), id, postId, commentId, true);
+    }
+
+    @DeleteMapping("/{id}/posts/{postId}/comments/{commentId}/hide")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void unhideComment(@PathVariable Long id, @PathVariable Long postId, @PathVariable Long commentId) {
+        communityService.setCommentHidden(JwtUtil.getCurrentUserId(), id, postId, commentId, false);
     }
 
     @PostMapping("/{id}/posts/{postId}/poll/vote")

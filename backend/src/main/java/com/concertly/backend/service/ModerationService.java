@@ -7,6 +7,7 @@ import com.concertly.backend.model.MessagePrivacy;
 import com.concertly.backend.model.Report;
 import com.concertly.backend.model.User;
 import com.concertly.backend.repository.BlockRepository;
+import com.concertly.backend.repository.BuddySwipeRepository;
 import com.concertly.backend.repository.FollowRepository;
 import com.concertly.backend.repository.MessageRepository;
 import com.concertly.backend.repository.ReportRepository;
@@ -29,11 +30,16 @@ public class ModerationService {
     private final FollowRepository followRepository;
     private final MessageRepository messageRepository;
 
+    // Konser Arkadaşı eşleşmesini engelde silmek için (zorunlu: yoksa engel eşleşmeyi sessizce bırakırdı)
+    private final BuddySwipeRepository buddySwipeRepository;
+
     public ModerationService(BlockRepository blockRepository,
                              ReportRepository reportRepository,
                              UserRepository userRepository,
                              FollowRepository followRepository,
-                             MessageRepository messageRepository) {
+                             MessageRepository messageRepository,
+                             BuddySwipeRepository buddySwipeRepository) {
+        this.buddySwipeRepository = java.util.Objects.requireNonNull(buddySwipeRepository);
         this.blockRepository = blockRepository;
         this.reportRepository = reportRepository;
         this.userRepository = userRepository;
@@ -54,7 +60,7 @@ public class ModerationService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "DM_CLOSED");
         }
         if (privacy == MessagePrivacy.FOLLOWING
-                && !followRepository.existsByFollowerIdAndFollowingId(receiver.getId(), senderId)) {
+                && !followRepository.isAcceptedFollower(receiver.getId(), senderId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "DM_FOLLOWING_ONLY");
         }
     }
@@ -79,6 +85,10 @@ public class ModerationService {
         // Engel iki yöndeki takibi de kaldırır; engel kalkınca takip kendiliğinden geri gelmez
         followRepository.findByFollowerIdAndFollowingId(blockerId, blockedId).ifPresent(followRepository::delete);
         followRepository.findByFollowerIdAndFollowingId(blockedId, blockerId).ifPresent(followRepository::delete);
+
+        // N-10: aralarındaki Konser Arkadaşı eşleşmesi/swipe'ları iki yönde silinir (aynı işlem);
+        // engel kalkınca eşleşme geri gelmez
+        buddySwipeRepository.deleteBetween(blockerId, blockedId);
     }
 
     @Transactional

@@ -32,7 +32,7 @@ class FollowIdempotencyTest {
         follows = mock(FollowRepository.class);
         UserRepository users = mock(UserRepository.class);
         notifications = mock(NotificationService.class);
-        service = new FollowService(follows, users, notifications, mock(ModerationService.class));
+        service = new FollowService(follows, users, notifications, mock(ModerationService.class), mock(PrivacyService.class));
         when(users.findById(1L)).thenReturn(Optional.of(user(1)));
         when(users.findById(2L)).thenReturn(Optional.of(user(2)));
     }

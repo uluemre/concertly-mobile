@@ -15,6 +15,9 @@ public final class ContentLimits {
     public static final int POST_MAX = 500;
     public static final int COMMENT_MAX = 300;
     public static final int COMMUNITY_POST_MAX = 500;
+    /** Topluluk anketi: mobil en fazla 4 seçenek, seçenek başına 60 karakter. */
+    public static final int POLL_OPTIONS_MAX = 4;
+    public static final int POLL_OPTION_TEXT_MAX = 60;
     /** Sütun genişliği (posts / comments / community_posts .content). */
     public static final int COLUMN_LENGTH = 1000;
 

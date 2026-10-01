@@ -8,6 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { apiErrorMessage } from '../utils/communityErrors';
 import API from '../services/api';
 import DeepLinkLoader from '../components/DeepLinkLoader';
 import { publishPostUpdate } from '../services/postUpdates';
@@ -98,8 +99,8 @@ function PostDetailContent({ route, navigation }) {
       setPost(prev => ({ ...prev, commentCount: nextComments }));
       publishPostUpdate(post.id, { commentCount: nextComments });
       setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
-    } catch {
-      Alert.alert(t('error'), t('postdetail_error'));
+    } catch (err) {
+      Alert.alert(t('error'), apiErrorMessage(err, t, 'postdetail_error'));
     } finally {
       setSending(false);
     }

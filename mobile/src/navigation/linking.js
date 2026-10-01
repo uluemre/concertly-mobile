@@ -23,7 +23,7 @@ import { SHARE_BASE_URL } from '../services/shareLinks';
 const APP_SCREEN_NAMES = new Set([
   'Onboarding', 'GenreSelection', 'ArtistSelection', 'Login', 'Register', 'VerifyEmail', 'MainApp',
   'EventDetail', 'CreatePost', 'EventsPicker', 'FeedTab', 'UserProfile', 'Communities', 'CommunityDetail',
-  'CreateCommunity', 'CommunityManage', 'ArtistProfile', 'Welcome', 'Settings', 'Map', 'FollowList',
+  'CreateCommunity', 'CommunityManage', 'ArtistProfile', 'Welcome', 'Settings', 'Map', 'FollowList', 'FollowRequests',
   'Admin', 'AdminEvents', 'AdminUsers', 'AdminPosts', 'AdminDeletionFeedback', 'AdminCommunities',
   'SpotifyRecommendations', 'VenueProfile', 'PostDetail', 'ConcertBuddyMatch', 'ConcertPassport',
   'ChatList', 'Chat', 'SongQuiz', 'DailySong', 'BlindRank', 'SetlistPrediction', 'Games', 'Wrapped',

@@ -144,10 +144,14 @@ export default function ArtistProfileScreen({ route, navigation }) {
 
     setArtist(artistRes.value.data);
     setFollowing(artistRes.value.data.followedByCurrentUser || false);
+    // /events yaklaşan + geçmişi birlikte döndürür; geçmişler ayrı listede olduğundan
+    // aynı kayıt iki kez sayılmasın (N-61)
+    const pastList = pastEventsRes.status === 'fulfilled' ? pastEventsRes.value.data : [];
+    const pastIds = new Set(pastList.map(e => e.id));
     setEvents(eventsRes.status === 'fulfilled'
-      ? eventsRes.value.data.filter(e => parseEventDate(e.eventDate) >= new Date())
+      ? eventsRes.value.data.filter(e => parseEventDate(e.eventDate) >= new Date() && !pastIds.has(e.id))
       : []);
-    setPastEvents(pastEventsRes.status === 'fulfilled' ? pastEventsRes.value.data : []);
+    setPastEvents(pastList);
     setPosts(postsRes.status === 'fulfilled' ? postsRes.value.data : []);
     if (reviewsRes.status === 'fulfilled') {
       setReviews(reviewsRes.value.data);
@@ -257,7 +261,7 @@ export default function ArtistProfileScreen({ route, navigation }) {
             <Text style={styles.backText}>{t('back')}</Text>
           </TouchableOpacity>
           {/* Sanatçı sayfası paylaşımı — linki alan kişi uygulamada açar */}
-          <TouchableOpacity style={styles.shareIconBtn} onPress={shareArtist} activeOpacity={0.8}>
+          <TouchableOpacity style={styles.shareIconBtn} onPress={shareArtist} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={t('share')}>
             <Text style={styles.shareIconText}>🔗</Text>
           </TouchableOpacity>
         </View>
@@ -382,7 +386,7 @@ export default function ArtistProfileScreen({ route, navigation }) {
       {/* ── SEKMELER ────────────────────────────────────────────────────── */}
       <View style={styles.tabs}>
         {[
-          { key: 'events',  icon: '🎫', count: events.length },
+          { key: 'events',  icon: '🎫', count: events.length + pastEvents.length },
           { key: 'posts',   icon: '📝', count: posts.length },
           { key: 'reviews', icon: '⭐', count: reviews.length },
         ].map(tab => (
@@ -391,6 +395,9 @@ export default function ArtistProfileScreen({ route, navigation }) {
             style={[styles.tab, activeTab === tab.key && styles.tabActive]}
             onPress={() => setActiveTab(tab.key)}
             activeOpacity={0.7}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: activeTab === tab.key }}
+            accessibilityLabel={`${t(`artist_${tab.key}_label`)}: ${tab.count}`}
           >
             <Text style={styles.tabIcon}>{tab.icon}</Text>
             <Text style={[styles.tabCount, activeTab === tab.key && styles.tabCountActive]}>
@@ -615,10 +622,10 @@ function createStyles(colors) {
     backButton: { marginBottom: 24 },
     heroTopRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
     shareIconBtn: {
-      backgroundColor: 'rgba(255,255,255,0.15)',
+      backgroundColor: colors.card,
       width: 38, height: 38, borderRadius: 19,
       alignItems: 'center', justifyContent: 'center',
-      borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
+      borderWidth: 1, borderColor: colors.border,
     },
     shareIconText: { fontSize: 17 },
     backText: { color: colors.textSecondary, fontSize: 15, fontWeight: '600' },

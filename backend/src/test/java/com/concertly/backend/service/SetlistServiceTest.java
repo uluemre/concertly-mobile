@@ -1,9 +1,12 @@
 package com.concertly.backend.service;
 
 import com.concertly.backend.model.Artist;
+import com.concertly.backend.model.AttendanceStatus;
 import com.concertly.backend.model.Event;
+import com.concertly.backend.model.EventAttendance;
 import com.concertly.backend.model.SetlistSubmission;
 import com.concertly.backend.model.User;
+import com.concertly.backend.repository.EventAttendanceRepository;
 import com.concertly.backend.repository.EventRepository;
 import com.concertly.backend.repository.SetlistSubmissionRepository;
 import com.concertly.backend.repository.UserRepository;
@@ -13,6 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -31,12 +35,14 @@ class SetlistServiceTest {
     @Mock private SetlistSubmissionRepository submissionRepository;
     @Mock private EventRepository eventRepository;
     @Mock private UserRepository userRepository;
+    @Mock private EventAttendanceRepository attendanceRepository;
 
     private SetlistService service;
 
     @BeforeEach
     void setUp() {
-        service = new SetlistService(deezerService, submissionRepository, eventRepository, userRepository);
+        service = new SetlistService(deezerService, submissionRepository, eventRepository, userRepository,
+                attendanceRepository);
     }
 
     private static Event event(LocalDateTime date) {
@@ -128,6 +134,63 @@ class SetlistServiceTest {
 
         assertThrows(IllegalArgumentException.class,
                 () -> service.submitConfirmation(1L, 1L, List.of("Kahraman")));
+    }
+
+    // ── SEC-07: yalnızca katılan kullanıcı setlist bildirebilir ─────────────
+
+    private static EventAttendance attendance(AttendanceStatus status) {
+        EventAttendance ea = new EventAttendance();
+        ea.setStatus(status);
+        return ea;
+    }
+
+    private void pastEvent() {
+        when(eventRepository.findById(1L)).thenReturn(Optional.of(event(LocalDateTime.now().minusDays(1))));
+    }
+
+    @Test
+    void attendedUserCanConfirm() {
+        pastEvent();
+        when(attendanceRepository.findByUserIdAndEventId(1L, 1L))
+                .thenReturn(Optional.of(attendance(AttendanceStatus.GOING)));
+        when(submissionRepository.findByUserIdAndEventIdAndKind(1L, 1L, SetlistSubmission.KIND_CONFIRMATION))
+                .thenReturn(Optional.empty());
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user(1L)));
+
+        service.submitConfirmation(1L, 1L, List.of("Kahraman"));
+
+        verify(submissionRepository).save(any(SetlistSubmission.class));
+    }
+
+    @Test
+    void interestedOnlyOrNoAttendanceGets403() {
+        pastEvent();
+        when(attendanceRepository.findByUserIdAndEventId(1L, 1L))
+                .thenReturn(Optional.of(attendance(AttendanceStatus.INTERESTED)));
+        when(attendanceRepository.findByUserIdAndEventId(2L, 1L)).thenReturn(Optional.empty());
+
+        for (long uid : new long[]{1L, 2L}) {
+            ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                    () -> service.submitConfirmation(1L, uid, List.of("Kahraman")));
+            assertEquals(403, ex.getStatusCode().value());
+            assertEquals("SETLIST_NOT_ATTENDED", ex.getReason());
+        }
+        verify(submissionRepository, never()).save(any());
+    }
+
+    @Test
+    void stateTellsWhetherUserCanConfirm() {
+        pastEvent();
+        when(deezerService.searchArtists("Hadise", 1)).thenReturn(List.of(Map.of("artistId", 5L)));
+        when(deezerService.getTopTracks(5L, 40)).thenReturn(List.of(
+                new DeezerService.Track("A", "", ""), new DeezerService.Track("B", "", ""), new DeezerService.Track("C", "", "")));
+        when(attendanceRepository.findByUserIdAndEventId(1L, 1L))
+                .thenReturn(Optional.of(attendance(AttendanceStatus.GOING)));
+        when(attendanceRepository.findByUserIdAndEventId(2L, 1L))
+                .thenReturn(Optional.of(attendance(AttendanceStatus.INTERESTED)));
+
+        assertEquals(true, service.getState(1L, 1L).get("canConfirm"));
+        assertEquals(false, service.getState(1L, 2L).get("canConfirm"));
     }
 
     // ── Lig tablosu ─────────────────────────────────────────────────────────

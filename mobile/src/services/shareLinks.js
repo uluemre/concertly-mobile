@@ -1,4 +1,6 @@
-import { Share } from 'react-native';
+import { Share, Platform, Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { translations } from '../i18n/translations';
 
 /**
  * Paylaşılabilir linkler.
@@ -40,6 +42,25 @@ export function buildShareUrl(kind, id) {
 export async function shareWithLink(message, url) {
   const link = url || DOWNLOAD_URL;
   const body = message ? `${message}\n\n${link}` : link;
+  if (Platform.OS === 'web') {
+    // Web'de Share API'si çoğu tarayıcıda yok ya da reddediliyor: panoya kopyala.
+    try {
+      if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+        await navigator.share({ text: body });
+        return;
+      }
+    } catch (e) {
+      if (e && e.name === 'AbortError') return; // kullanıcı kendisi vazgeçti
+    }
+    try {
+      await navigator.clipboard.writeText(body);
+      let lang = 'tr';
+      try { lang = (await AsyncStorage.getItem('appLanguage')) || 'tr'; } catch {}
+      const dict = translations[lang] || translations.tr;
+      Alert.alert(dict.share_link_copied || translations.tr.share_link_copied);
+    } catch {}
+    return;
+  }
   try {
     await Share.share({ message: body });
   } catch {}

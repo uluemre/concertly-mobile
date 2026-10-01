@@ -5,7 +5,9 @@ import com.concertly.backend.model.*;
 import com.concertly.backend.repository.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import com.concertly.backend.security.AuthRateLimiter;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
 
@@ -37,6 +39,10 @@ class CommunityAuthorizationTest {
     private CommunityPostLikeRepository likeRepo;
     private CommunityMemberRepository memberRepo;
     private NotificationService notifications;
+    private NotificationRepository notificationRepo;
+    private ModerationService moderation;
+    private ContentLimitService contentLimits;
+    private AuthRateLimiter rateLimiter;
     private CommunityService service;
 
     private static <T> T withId(T entity, long id) {
@@ -123,6 +129,10 @@ class CommunityAuthorizationTest {
         voteRepo = mock(CommunityPostPollVoteRepository.class);
         likeRepo = mock(CommunityPostLikeRepository.class);
         notifications = mock(NotificationService.class);
+        notificationRepo = mock(NotificationRepository.class);
+        moderation = mock(ModerationService.class);
+        contentLimits = mock(ContentLimitService.class);
+        rateLimiter = new AuthRateLimiter();
 
         when(communityRepo.findById(anyLong())).thenAnswer(i -> Optional.ofNullable(communities.get(i.<Long>getArgument(0))));
         when(postRepo.findById(anyLong())).thenAnswer(i -> Optional.ofNullable(posts.get(i.<Long>getArgument(0))));
@@ -146,7 +156,8 @@ class CommunityAuthorizationTest {
         when(likeRepo.findByUserIdAndCommunityPostId(anyLong(), anyLong())).thenReturn(Optional.empty());
 
         service = new CommunityService(communityRepo, memberRepo, postRepo, likeRepo, commentRepo,
-                optionRepo, voteRepo, userRepo, notifications);
+                optionRepo, voteRepo, userRepo, notifications, notificationRepo, moderation,
+                contentLimits, rateLimiter);
     }
 
     // ── D1: başka topluluğun gönderisinin yorumları okunamaz ─────────────────────
@@ -203,9 +214,9 @@ class CommunityAuthorizationTest {
 
     @Test
     void d3_outsiderCannotLikeOrUnlikePrivateOrSecretPosts() {
-        assertThrows(IllegalArgumentException.class, () -> service.likeCommunityPost(4L, PRIV, POST_PRIV));
+        assertThrows(ResponseStatusException.class, () -> service.likeCommunityPost(4L, PRIV, POST_PRIV));
         assertThrows(ResourceNotFoundException.class, () -> service.likeCommunityPost(4L, SECRET, POST_SECRET));
-        assertThrows(IllegalArgumentException.class, () -> service.unlikeCommunityPost(4L, PRIV, POST_PRIV));
+        assertThrows(ResponseStatusException.class, () -> service.unlikeCommunityPost(4L, PRIV, POST_PRIV));
         assertThrows(ResourceNotFoundException.class, () -> service.unlikeCommunityPost(4L, SECRET, POST_SECRET));
         verify(likeRepo, never()).save(any());
         verify(likeRepo, never()).delete(any());
@@ -230,9 +241,9 @@ class CommunityAuthorizationTest {
 
     @Test
     void d4_privateAndSecretMemberListsAreHiddenFromOutsiders() {
-        assertThrows(IllegalArgumentException.class, () -> service.getMembers(PRIV, 4L));
-        assertThrows(IllegalArgumentException.class, () -> service.getMembers(PRIV, null), "oturumsuz");
-        assertThrows(IllegalArgumentException.class, () -> service.getMembers(PRIV, 6L), "isteği bekleyen");
+        assertThrows(ResponseStatusException.class, () -> service.getMembers(PRIV, 4L));
+        assertThrows(ResponseStatusException.class, () -> service.getMembers(PRIV, null), "oturumsuz");
+        assertThrows(ResponseStatusException.class, () -> service.getMembers(PRIV, 6L), "isteği bekleyen");
         assertThrows(ResourceNotFoundException.class, () -> service.getMembers(SECRET, 4L));
         assertThrows(ResourceNotFoundException.class, () -> service.getMembers(SECRET, null));
     }
@@ -249,14 +260,14 @@ class CommunityAuthorizationTest {
 
     @Test
     void d5_normalMemberCannotApprovePendingRequestViaInvite() {
-        assertThrows(IllegalArgumentException.class, () -> service.inviteUser(3L, PRIV, 6L));
+        assertThrows(ResponseStatusException.class, () -> service.inviteUser(3L, PRIV, 6L));
         assertEquals("PENDING", membership(6, PRIV).getStatus());
         verifyNoInteractions(notifications);
     }
 
     @Test
     void d5_normalMemberCannotApproveDirectly() {
-        assertThrows(IllegalArgumentException.class, () -> service.approveRequest(3L, PRIV, 6L));
+        assertThrows(ResponseStatusException.class, () -> service.approveRequest(3L, PRIV, 6L));
         assertEquals("PENDING", membership(6, PRIV).getStatus());
     }
 
@@ -279,9 +290,9 @@ class CommunityAuthorizationTest {
 
     @Test
     void d5_regularInviteFlowIsUnchanged() {
-        // Sıradan üye, hiç ilişkisi olmayan birini davet edebilir (INVITED)
-        service.inviteUser(3L, PRIV, 7L);
+        // SEC-C03 (karar değişti): davet yalnızca sahip/moderatör; sahip ilişkisiz birini davet eder (INVITED)
+        service.inviteUser(1L, PRIV, 7L);
         verify(memberRepo).save(argThat(m -> m.getUser().getId().equals(7L) && "INVITED".equals(m.getStatus())));
-        verify(notifications).send(7L, 3L, "community_invite", "community", PRIV);
+        verify(notifications).send(7L, 1L, "community_invite", "community", PRIV);
     }
 }

@@ -31,6 +31,23 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByUsername(String username);
 
+    /** Büyük/küçük harf fark etmeden aynı kullanıcı adına sahip tüm hesaplar (N-55). */
+    List<User> findAllByUsernameIgnoreCase(String username);
+
+    /**
+     * Kullanıcı adıyla arama (N-55): önce birebir eşleşme, yoksa harf büyüklüğü yok sayılarak
+     * TEK eşleşme. Eski kayıtlarda yalnızca harf farkı olan birden çok hesap varsa
+     * hangisinin kastedildiği belli olmadığından hiçbiri döndürülmez.
+     */
+    default Optional<User> findByUsernameNormalized(String raw) {
+        if (raw == null || raw.isBlank()) return Optional.empty();
+        String name = raw.trim();
+        Optional<User> exact = findByUsername(name);
+        if (exact.isPresent()) return exact;
+        List<User> matches = findAllByUsernameIgnoreCase(name);
+        return matches.size() == 1 ? Optional.of(matches.get(0)) : Optional.empty();
+    }
+
     // 🔥 SEARCH — yalnızca herkese açık kullanıcı adı; e-posta ile kullanıcı bulunamaz (gizlilik)
     default List<User> search(String q) {
         return searchByPattern(SearchText.containsPattern(q));

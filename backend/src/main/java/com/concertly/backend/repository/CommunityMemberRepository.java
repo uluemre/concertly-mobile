@@ -1,6 +1,7 @@
 package com.concertly.backend.repository;
 
 import com.concertly.backend.model.CommunityMember;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,6 +40,20 @@ public interface CommunityMemberRepository extends JpaRepository<CommunityMember
     // Kullanıcının ACTIVE üye olduğu topluluk id'leri — "joined" bilgisini tek sorguda verir
     @Query("SELECT m.community.id FROM CommunityMember m WHERE m.user.id = :userId AND m.status = 'ACTIVE'")
     Set<Long> findActiveCommunityIdsByUserId(@Param("userId") Long userId);
+
+    /**
+     * Sahip hesabı silinirken devralacak aday: yalnızca ACTIVE üyelik, silinen kullanıcı hariç,
+     * verilen rolde (NULL rol = MEMBER, yeniden başlatmadaki backfill ile aynı). En erken joinedAt,
+     * eşitlikte en küçük üyelik id. İlk satır için PageRequest.of(0, 1) verin.
+     */
+    @Query("SELECT m FROM CommunityMember m JOIN FETCH m.user " +
+           "WHERE m.community.id = :communityId AND m.user.id <> :excludeUserId " +
+           "AND m.status = 'ACTIVE' AND COALESCE(m.role, 'MEMBER') = :role " +
+           "ORDER BY m.joinedAt ASC, m.id ASC")
+    List<CommunityMember> findSuccessorCandidates(@Param("communityId") Long communityId,
+                                                  @Param("excludeUserId") Long excludeUserId,
+                                                  @Param("role") String role,
+                                                  Pageable page);
 
     /**
      * Topluluk sistemi v2'den önce eklenen üyelikler: durum/rol kolonları sonradan

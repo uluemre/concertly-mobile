@@ -116,13 +116,12 @@ class BannedUserTest {
 
     @Test
     void jwtFilterRejectsStillValidAccessTokenOfBannedUser() throws Exception {
-        org.springframework.security.core.userdetails.UserDetailsService uds = mock(
-                org.springframework.security.core.userdetails.UserDetailsService.class);
+        UserDetailsServiceImpl uds = mock(UserDetailsServiceImpl.class);
         UserDetails disabled = new org.springframework.security.core.userdetails.User(
                 "7:yasakli@test.com", "hash", false, true, true, true, List.of());
-        when(uds.loadUserByUsername("yasakli@test.com")).thenReturn(disabled);
+        when(uds.loadUserById(7L)).thenReturn(disabled);
         when(jwtUtil.isTokenValid("tok")).thenReturn(true);
-        when(jwtUtil.extractEmail("tok")).thenReturn("yasakli@test.com");
+        when(jwtUtil.extractUserId("tok")).thenReturn(7L);
 
         MockHttpServletRequest req = new MockHttpServletRequest("GET", "/api/posts");
         req.addHeader("Authorization", "Bearer tok");
@@ -135,13 +134,12 @@ class BannedUserTest {
 
     @Test
     void jwtFilterStillAuthenticatesActiveUser() throws Exception {
-        org.springframework.security.core.userdetails.UserDetailsService uds = mock(
-                org.springframework.security.core.userdetails.UserDetailsService.class);
+        UserDetailsServiceImpl uds = mock(UserDetailsServiceImpl.class);
         UserDetails active = new org.springframework.security.core.userdetails.User(
                 "7:aktif@test.com", "hash", true, true, true, true, List.of());
-        when(uds.loadUserByUsername("aktif@test.com")).thenReturn(active);
+        when(uds.loadUserById(7L)).thenReturn(active);
         when(jwtUtil.isTokenValid("tok")).thenReturn(true);
-        when(jwtUtil.extractEmail("tok")).thenReturn("aktif@test.com");
+        when(jwtUtil.extractUserId("tok")).thenReturn(7L);
 
         MockHttpServletRequest req = new MockHttpServletRequest("GET", "/api/posts");
         req.addHeader("Authorization", "Bearer tok");

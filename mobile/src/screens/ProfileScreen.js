@@ -18,6 +18,7 @@ import { useTheme } from '../theme';
 import { ProfileSkeletonPage } from '../components/SkeletonLoader';
 import BadgeGrid from '../components/profile/BadgeGrid';
 import { parseEventDate, dateLocale } from '../utils/time';
+import { apiErrorMessage } from '../utils/communityErrors';
 import { openEvent } from '../navigation/navHelpers';
 import { usePostUpdates } from '../services/postUpdates';
 
@@ -135,7 +136,7 @@ export default function ProfileScreen({ navigation, route }) {
         setProfile(prev => ({ ...prev, profileImageUrl: localUri }));
         Alert.alert(t('success'), t('profile_photo_updated'));
       } catch (err) {
-        Alert.alert(t('error'), t('profile_photo_error'));
+        Alert.alert(t('error'), apiErrorMessage(err, t, 'profile_photo_error'));
       } finally {
         setUploadingPhoto(false);
       }
@@ -143,7 +144,7 @@ export default function ProfileScreen({ navigation, route }) {
   };
 
   const handleInviteFriends = () => {
-    const msg = `🎟️ Concertly uygulamasına katıl!\n\nŞehrindeki canlı konserleri ve etkinlikleri keşfet, konser arkadaşı bul ve kendi konser pasaportunu oluştur 🎸`;
+    const msg = t('profile_invite_message');
     // Davet linki profilime gider; uygulama yüklü değilse indirme sayfası açılır.
     shareWithLink(msg, session.username ? buildShareUrl('user', session.username) : DOWNLOAD_URL);
   };
@@ -216,6 +217,8 @@ export default function ProfileScreen({ navigation, route }) {
               onPress={() => navigation.navigate('Settings')}
               style={styles.settingsButton}
               activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel={t('settings_title')}
             >
               <Ionicons name="settings-outline" size={20} color={colors.text} />
             </TouchableOpacity>
@@ -418,14 +421,16 @@ export default function ProfileScreen({ navigation, route }) {
                       <TouchableOpacity onPress={() => openEvent(navigation, item.eventId)} activeOpacity={0.7}>
                         <Text style={styles.postEventName}>{item.eventName || 'Etkinlik'}</Text>
                       </TouchableOpacity>
-                    ) : (
-                      <Text style={styles.postEventName}>{item.eventName || 'Etkinlik'}</Text>
-                    )}
+                    ) : item.eventName ? (
+                      <Text style={styles.postEventName}>{item.eventName}</Text>
+                    ) : <View />}
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                       <Text style={styles.postDate}>
                         {new Date(item.createdAt).toLocaleDateString(dateLocale(lang))}
                       </Text>
                       <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel={t('profile_post_actions')}
                         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                         onPress={() => Alert.alert(t('profile_post_actions'), null, [
                           {

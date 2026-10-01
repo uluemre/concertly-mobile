@@ -39,6 +39,15 @@ public class Community {
 
     private LocalDateTime reviewedAt;
 
+    // Sahibi silinen ve devralacak aktif üyesi olmayan topluluk arşivlenir. NULL = arşivli değil.
+    @Column(name = "archived_at")
+    private LocalDateTime archivedAt;
+
+    // B5: admin incelemesinin başladığı an (kurulum veya onaylı toplulukta ad/açıklama/görünürlük
+    // değişimi). NULL = createdAt kullanılır. 24 sa gizli / 7 gün otomatik ret süreleri buradan sayılır.
+    @Column(name = "review_requested_at")
+    private LocalDateTime reviewRequestedAt;
+
     private LocalDateTime createdAt = LocalDateTime.now();
 
     public Long getId() { return id; }
@@ -87,6 +96,18 @@ public class Community {
 
     public LocalDateTime getReviewedAt() { return reviewedAt; }
     public void setReviewedAt(LocalDateTime reviewedAt) { this.reviewedAt = reviewedAt; }
+
+    public LocalDateTime getArchivedAt() { return archivedAt; }
+    public void setArchivedAt(LocalDateTime archivedAt) { this.archivedAt = archivedAt; }
+    public boolean isArchived() { return archivedAt != null; }
+
+    public LocalDateTime getReviewRequestedAt() { return reviewRequestedAt; }
+    public void setReviewRequestedAt(LocalDateTime reviewRequestedAt) { this.reviewRequestedAt = reviewRequestedAt; }
+
+    /** İnceleme sürelerinin başlangıcı: reviewRequestedAt, yoksa createdAt. */
+    public LocalDateTime getReviewStart() {
+        return reviewRequestedAt != null ? reviewRequestedAt : createdAt;
+    }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
 }

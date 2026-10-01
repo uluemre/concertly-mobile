@@ -22,9 +22,15 @@ public class CommunityPostComment {
     @JoinColumn(name = "community_post_id")
     private CommunityPost communityPost;
 
+    // B11: yönetici/admin gizlemesi; yönetici olmayanlara listelenmez, kayıt silinmez.
+    private Boolean isHidden = false;
+
     private LocalDateTime createdAt = LocalDateTime.now();
 
     public Long getId() { return id; }
+
+    public Boolean getIsHidden() { return isHidden != null && isHidden; }
+    public void setIsHidden(Boolean isHidden) { this.isHidden = isHidden; }
 
     public String getContent() { return content; }
     public void setContent(String content) { this.content = content; }

@@ -15,6 +15,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { parseEventDate, dateLocale } from '../utils/time';
 import { goBackOrFallback, openEvent } from '../navigation/navHelpers';
 import { usePostUpdates } from '../services/postUpdates';
+import { apiErrorMessage, isPrivateAccountError } from '../utils/communityErrors';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2;
@@ -43,8 +44,14 @@ function UserProfileContent({ route, navigation }) {
   const [followedArtists, setFollowedArtists] = useState([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [following, setFollowing] = useState(false);
+  // 'NONE' | 'PENDING' | 'ACCEPTED' (gizli hesapta takip isteği beklemede olabilir)
+  const [followStatus, setFollowStatus] = useState('NONE');
   const [followLoading, setFollowLoading] = useState(false);
+  // Gizli hesabın içeriği bu görüntüleyiciye kapalı (alt uç noktalar 403 PRIVATE_ACCOUNT döndü)
+  const [locked, setLocked] = useState(false);
+  // Eski bir yanıtın daha yeni durumu ezmemesi için istek sırası
+  const fetchSeq = useRef(0);
+  const followBusy = useRef(false);
   const [activeTab, setActiveTab] = useState('posts');
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -61,20 +68,28 @@ function UserProfileContent({ route, navigation }) {
     fetchAll();
   }, [userId]);
 
-  const fetchAll = async () => {
+  const fetchAll = async (refresh = false) => {
+    const seq = ++fetchSeq.current;
     try {
-      const [profileRes, postsRes, eventsRes, artistsRes] = await Promise.all([
+      // allSettled: gizli hesapta alt uçlar 403 döner, profil başlığı yine de gösterilir
+      const [profileRes, postsRes, eventsRes, artistsRes] = await Promise.allSettled([
         API.get(`/users/${userId}/profile?currentUserId=${session.userId}`),
         API.get(`/users/${userId}/posts`),
         API.get(`/users/${userId}/events`),
         API.get(`/users/${userId}/followed-artists`),
       ]);
+      if (seq !== fetchSeq.current) return;
+      if (profileRes.status !== 'fulfilled') throw profileRes.reason;
 
-      setProfile(profileRes.data);
-      setFollowing(profileRes.data.isFollowedByCurrentUser || false);
-      setPosts(postsRes.data);
-      setEvents(eventsRes.data);
-      setFollowedArtists(artistsRes.data);
+      const subResults = [postsRes, eventsRes, artistsRes];
+      const isLocked = subResults.some(r => r.status === 'rejected' && isPrivateAccountError(r.reason));
+      const profileData = profileRes.value.data;
+      setProfile(profileData);
+      setFollowStatus(profileData.followStatus || (profileData.isFollowedByCurrentUser ? 'ACCEPTED' : 'NONE'));
+      setLocked(isLocked);
+      setPosts(postsRes.status === 'fulfilled' ? postsRes.value.data : []);
+      setEvents(eventsRes.status === 'fulfilled' ? eventsRes.value.data : []);
+      setFollowedArtists(artistsRes.status === 'fulfilled' ? artistsRes.value.data : []);
 
       Animated.parallel([
         Animated.timing(fadeAnim, {
@@ -87,38 +102,51 @@ function UserProfileContent({ route, navigation }) {
     } catch (err) {
       // Eskiden uyarı + goBack yapılıyordu; doğrudan açılan linkte geri gidilemediği
       // için boş bir profil kalıyordu
+      if (seq !== fetchSeq.current) return;
       console.log('profile fetch error:', err.message);
-      setNotFound(true);
+      // Takip işleminden sonraki yenilemede hata, açık profili "bulunamadı"ya çevirmesin
+      if (!refresh) setNotFound(true);
     } finally {
-      setLoading(false);
+      if (seq === fetchSeq.current) setLoading(false);
     }
   };
 
-  const handleFollowToggle = async () => {
-    if (followLoading) return;
+  const runFollowAction = async (request, optimisticStatus) => {
+    if (followBusy.current) return;
+    followBusy.current = true;
     setFollowLoading(true);
-    const wasFollowing = following;
-    setFollowing(!wasFollowing);
-
+    const previousStatus = followStatus;
+    setFollowStatus(optimisticStatus);
     try {
-      if (wasFollowing) {
-        await API.delete(`/users/${userId}/follow?followerId=${session.userId}`);
-        setProfile(prev => ({
-          ...prev,
-          followerCount: Math.max(0, (prev.followerCount || 1) - 1),
-        }));
-      } else {
-        await API.post(`/users/${userId}/follow?followerId=${session.userId}`);
-        setProfile(prev => ({
-          ...prev,
-          followerCount: (prev.followerCount || 0) + 1,
-        }));
-      }
+      await request();
+      // Gerçek durum (PENDING / ACCEPTED), sayılar ve içerik kilidi sunucudan okunur
+      await fetchAll(true);
     } catch (err) {
-      setFollowing(wasFollowing);
-      Alert.alert(t('error'), t('userprofile_action_error'));
+      setFollowStatus(previousStatus);
+      Alert.alert(t('error'), apiErrorMessage(err, t, 'userprofile_action_error'));
     } finally {
+      followBusy.current = false;
       setFollowLoading(false);
+    }
+  };
+
+  const handleFollowToggle = () => {
+    if (followBusy.current) return;
+    if (followStatus === 'ACCEPTED') {
+      runFollowAction(() => API.delete(`/users/${userId}/follow?followerId=${session.userId}`), 'NONE');
+    } else if (followStatus === 'PENDING') {
+      Alert.alert(t('user_profile_cancel_request_title'), null, [
+        { text: t('cancel'), style: 'cancel' },
+        {
+          text: t('user_profile_cancel_request_btn'), style: 'destructive',
+          onPress: () => runFollowAction(() => API.delete(`/users/${userId}/follow?followerId=${session.userId}`), 'NONE'),
+        },
+      ]);
+    } else {
+      runFollowAction(
+        () => API.post(`/users/${userId}/follow?followerId=${session.userId}`),
+        profile?.isPrivate ? 'PENDING' : 'ACCEPTED',
+      );
     }
   };
 
@@ -177,7 +205,7 @@ function UserProfileContent({ route, navigation }) {
           <TouchableOpacity style={styles.backButton} onPress={() => goBackOrFallback(navigation)}>
             <Text style={styles.backText}>{t('back')}</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleModeration} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <TouchableOpacity onPress={handleModeration} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel={t('mod_options_title')}>
             <Text style={styles.moreText}>⋯</Text>
           </TouchableOpacity>
         </View>
@@ -217,11 +245,13 @@ function UserProfileContent({ route, navigation }) {
                 style={styles.followButtonWrapper}
                 activeOpacity={0.85}
               >
-                {following ? (
+                {followStatus !== 'NONE' ? (
                   <View style={styles.followingButton}>
                     {followLoading
                       ? <ActivityIndicator size="small" color={colors.primary} />
-                      : <Text style={styles.followingText}>{t('user_profile_following')}</Text>
+                      : <Text style={styles.followingText}>
+                          {followStatus === 'PENDING' ? t('user_profile_requested') : t('user_profile_following')}
+                        </Text>
                     }
                   </View>
                 ) : (
@@ -233,7 +263,9 @@ function UserProfileContent({ route, navigation }) {
                   >
                     {followLoading
                       ? <ActivityIndicator size="small" color={colors.text} />
-                      : <Text style={styles.followText}>{t('user_profile_follow')}</Text>
+                      : <Text style={styles.followText}>
+                          {profile?.isPrivate ? t('user_profile_follow_request') : t('user_profile_follow')}
+                        </Text>
                     }
                   </LinearGradient>
                 )}
@@ -265,8 +297,8 @@ function UserProfileContent({ route, navigation }) {
         {/* STATS */}
         <View style={styles.statsRow}>
           <View style={styles.stat}>
-            <Text style={styles.statNumber}>{posts.length}</Text>
-            <Text style={styles.statLabel}>{t('profile_post_count')}</Text>
+            <Text style={styles.statNumber}>{locked ? '—' : posts.length}</Text>
+            <Text style={styles.statLabel}>{tu('profile_post_count')}</Text>
           </View>
           <View style={styles.statDivider} />
           <TouchableOpacity
@@ -275,7 +307,7 @@ function UserProfileContent({ route, navigation }) {
             activeOpacity={0.7}
           >
             <Text style={styles.statNumber}>{profile?.followerCount || 0}</Text>
-            <Text style={styles.statLabel}>{t('profile_followers')}</Text>
+            <Text style={styles.statLabel}>{tu('profile_followers')}</Text>
           </TouchableOpacity>
           <View style={styles.statDivider} />
           <TouchableOpacity
@@ -284,12 +316,12 @@ function UserProfileContent({ route, navigation }) {
             activeOpacity={0.7}
           >
             <Text style={styles.statNumber}>{profile?.followingCount || 0}</Text>
-            <Text style={styles.statLabel}>{t('profile_following')}</Text>
+            <Text style={styles.statLabel}>{tu('profile_following')}</Text>
           </TouchableOpacity>
           <View style={styles.statDivider} />
           <View style={styles.stat}>
-            <Text style={styles.statNumber}>{events.length}</Text>
-            <Text style={styles.statLabel}>{t('profile_event_count')}</Text>
+            <Text style={styles.statNumber}>{locked ? '—' : events.length}</Text>
+            <Text style={styles.statLabel}>{tu('profile_event_count')}</Text>
           </View>
         </View>
       </LinearGradient>
@@ -326,6 +358,13 @@ function UserProfileContent({ route, navigation }) {
         </View>
       )}
 
+      {locked ? (
+        <View style={styles.lockCard}>
+          <Text style={styles.lockEmoji}>🔒</Text>
+          <Text style={styles.lockTitle}>{t('private_account_locked_title')}</Text>
+          <Text style={styles.lockText}>{t('private_account_locked_msg')}</Text>
+        </View>
+      ) : (<>
       {/* ── SEKMELER (emoji + sayı) ──────────────────────────────────────── */}
       <View style={styles.tabs}>
         {[
@@ -431,6 +470,7 @@ function UserProfileContent({ route, navigation }) {
         )}
 
       </View>
+      </>)}
     </Animated.ScrollView>
   );
 }
@@ -516,6 +556,15 @@ function createStyles(colors) {
     tabIcon: { fontSize: 20 },
     tabCount: { fontSize: 12, fontWeight: '700', color: colors.textSecondary },
     tabCountActive: { color: colors.text },
+
+    // GİZLİ HESAP KİLİDİ
+    lockCard: {
+      alignItems: 'center', margin: 16, padding: 28, borderRadius: 16,
+      backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
+    },
+    lockEmoji: { fontSize: 40, marginBottom: 10 },
+    lockTitle: { fontSize: 16, fontWeight: '700', color: colors.text, marginBottom: 6 },
+    lockText: { fontSize: 14, color: colors.textSecondary, textAlign: 'center', lineHeight: 20 },
 
     // İÇERİK
     content: { padding: 16, paddingBottom: 32 },

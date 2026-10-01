@@ -33,9 +33,18 @@ public class NotificationService {
         this.pushMessageFactory = pushMessageFactory;
     }
 
+    /**
+     * Geri alınıp tekrarlanabilen (idempotent) eylemler: beğen/geri al/tekrar beğen ya da
+     * takip/bırak/takip aynı bildirimi ve push'u yeniden üretmesin (N-30). Yorum, mesaj,
+     * davet gibi her seferinde yeni olay sayılan türler bu listede DEĞİL.
+     */
+    private static final java.util.Set<String> ONCE_PER_ACTOR_TYPES = java.util.Set.of("like", "follow", "follow_request");
+
     public void send(Long recipientId, Long actorId, String type, String entityType, Long entityId) {
         try {
             if (recipientId.equals(actorId)) return;
+            if (ONCE_PER_ACTOR_TYPES.contains(type) && notificationRepository
+                    .existsByRecipientIdAndActorIdAndTypeAndEntityId(recipientId, actorId, type, entityId)) return;
             User recipient = userRepository.findById(recipientId).orElseThrow();
             User actor     = userRepository.findById(actorId).orElseThrow();
             Notification n = new Notification();
@@ -47,6 +56,16 @@ public class NotificationService {
             notificationRepository.save(n);
             push(recipient, n);
         } catch (Exception ignored) {}
+    }
+
+    /**
+     * Sahip bir takip isteğini kabul/reddedince eski "follow_request" bildirimini siler; böylece aynı
+     * kişinin sonraki isteği sahibine yeniden bildirilebilir. İstek sahibi İPTAL edince çağrılmaz
+     * (iptal/yeniden-iste spam'i engelli kalır).
+     */
+    @Transactional
+    public void clearFollowRequest(Long ownerId, Long requesterId) {
+        notificationRepository.deleteByRecipientIdAndActorIdAndType(ownerId, requesterId, "follow_request");
     }
 
     /** Aktörsüz sistem bildirimi (turne duyurusu, konser hatırlatması vb.). Aynı bildirimi tekrar göndermez. */

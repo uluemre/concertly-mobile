@@ -7,10 +7,11 @@ import API from '../../services/api';
 import { useTheme } from '../../theme';
 import { formatTimeAgo } from '../../utils/time';
 import { useLanguage } from '../../context/LanguageContext';
+import { apiErrorMessage } from '../../utils/communityErrors';
 
 export default function CommentModal({ visible, postId, currentUserId, onClose }) {
   const { colors } = useTheme();
-  const { lang } = useLanguage();
+  const { lang, t } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -46,8 +47,8 @@ export default function CommentModal({ visible, postId, currentUserId, onClose }
       await API.post(`/posts/${postId}/comments`, { userId: currentUserId, content: text.trim() });
       setText('');
       fetchComments();
-    } catch {
-      Alert.alert('Hata', 'Yorum gönderilemedi.');
+    } catch (err) {
+      Alert.alert(t('error'), apiErrorMessage(err, t, 'postdetail_error'));
     } finally {
       setSending(false);
     }

@@ -18,6 +18,22 @@ import { EventsSkeletonPage } from '../components/SkeletonLoader';
 import { LAUNCH_CITIES, launchCityOrNull } from '../constants/cities';
 import { parseEventDate } from '../utils/time';
 import { foldSearch } from '../utils/text';
+
+// GG.AA.YYYY → yerel gece yarısı Date; boş ya da geçersiz (31.02, abc) ise null
+function parseFilterDate(str) {
+  const m = /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/.exec(String(str || '').trim());
+  if (!m) return null;
+  const d = Number(m[1]), mo = Number(m[2]), y = Number(m[3]);
+  const dt = new Date(y, mo - 1, d);
+  return dt.getFullYear() === y && dt.getMonth() === mo - 1 && dt.getDate() === d ? dt : null;
+}
+// Yazarken (ör. "1") uyarı çıkmasın: yalnızca tarih uzunluğuna ulaşınca ya da harf girilince
+function isBadDateInput(str) {
+  const s = String(str || '').trim();
+  if (!s) return false;
+  if (parseFilterDate(s)) return false;
+  return s.length >= 8 || /[^0-9.]/.test(s);
+}
 import { goBackOrFallback, openEvent } from '../navigation/navHelpers';
 
 const CITIES = ['Tümü', ...LAUNCH_CITIES];
@@ -163,17 +179,13 @@ export default function EventsScreen({ navigation, route }) {
       list = list.filter(e => e.genre?.toLowerCase().includes(selectedGenre.toLowerCase()));
     }
 
-    if (startDate.trim()) {
-      const [d, m, y] = startDate.split('.');
-      const start = parseEventDate(`${y}-${m}-${d}`);
-      if (!isNaN(start)) list = list.filter(e => parseEventDate(e.eventDate) >= start);
-    }
-
-    if (endDate.trim()) {
-      const [d, m, y] = endDate.split('.');
-      const end = parseEventDate(`${y}-${m}-${d}`);
+    // Geçersiz tarih (31.02.2026, abc) sessizce kabul edilmez: filtre uygulanmaz, uyarı gösterilir (N-50)
+    const start = parseFilterDate(startDate);
+    if (start) list = list.filter(e => parseEventDate(e.eventDate) >= start);
+    const end = parseFilterDate(endDate);
+    if (end) {
       end.setHours(23, 59, 59);
-      if (!isNaN(end)) list = list.filter(e => parseEventDate(e.eventDate) <= end);
+      list = list.filter(e => parseEventDate(e.eventDate) <= end);
     }
 
     // "Yakın tarih" (varsayılan): yaklaşanlarda en yakın gelecek, Geçmiş'te en yeni önce —
@@ -401,6 +413,10 @@ export default function EventsScreen({ navigation, route }) {
               />
             </View>
           </View>
+
+          {(isBadDateInput(startDate) || isBadDateInput(endDate)) && (
+            <Text style={{ color: colors.error || '#E94560', fontSize: 12, marginTop: 8 }}>{t('events_date_invalid')}</Text>
+          )}
 
           <Text style={[styles.filterSectionLabel, { color: colors.textSecondary, marginTop: 20 }]}>{t('events_filter_sort')}</Text>
           <View style={styles.filterChipsWrap}>

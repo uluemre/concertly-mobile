@@ -137,6 +137,13 @@ export function routeForNotification(data) {
       return communityRoute(data.type, entityId);
     case 'user':
       // Mesaj bildirimi sohbeti açar, takip bildirimi profili.
+      if (data.type === 'follow_request') {
+        return { screen: 'FollowRequests', params: {} };
+      }
+      if (data.type === 'follow_accepted') {
+        const actorId = data.actorId != null ? Number(data.actorId) : entityId;
+        return actorId ? { screen: 'UserProfile', params: { userId: actorId } } : null;
+      }
       if (data.type === 'message' && data.actorId) {
         return { screen: 'Chat', params: { userId: Number(data.actorId), username: data.actorUsername } };
       }

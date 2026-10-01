@@ -31,9 +31,9 @@ export default React.memo(function HomePostCard({ item, index, navigation }) {
               <TouchableOpacity onPress={() => openEvent(navigation, item.eventId)} activeOpacity={0.7}>
                 <Text style={styles.event} numberOfLines={1}>🎵 {item.eventName}</Text>
               </TouchableOpacity>
-            ) : (
+            ) : item.eventName ? (
               <Text style={styles.event} numberOfLines={1}>🎵 {item.eventName}</Text>
-            )}
+            ) : null}
           </View>
           <Text style={styles.time}>{formatTimeAgo(item.createdAt, lang)}</Text>
         </View>

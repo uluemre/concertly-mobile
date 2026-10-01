@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
@@ -11,6 +11,7 @@ import { useAuth } from '../context/AuthContext';
 import API, { getErrorMessage } from '../services/api';
 import CityPicker from '../components/CityPicker';
 import { goBackOrFallback } from '../navigation/navHelpers';
+import { communityErrorMessage } from '../utils/communityErrors';
 
 const TYPES = ['Rock', 'Festival', 'Elektronik', 'Şehir', 'Caz', 'Pop', 'Rap', 'Diğer'];
 
@@ -35,11 +36,20 @@ const VISIBILITIES = [
   { value: 'SECRET',  labelKey: 'community_visibility_secret',  descKey: 'community_visibility_secret_desc',  icon: '🕵️' },
 ];
 
-export default function CreateCommunityScreen({ navigation }) {
+const normalizeVisibility = (v) => {
+  const up = (v || 'PUBLIC').toString().toUpperCase();
+  return VISIBILITIES.some(x => x.value === up) ? up : 'PUBLIC';
+};
+
+export default function CreateCommunityScreen({ navigation, route }) {
   const { colors } = useTheme();
   const { t, tu } = useLanguage();
   const { session } = useAuth();
   const styles = useMemo(() => createStyles(colors), [colors]);
+
+  // BUG-03: { communityId, mode: 'edit' } ile açılırsa düzenleme modu (ad, açıklama, görünürlük)
+  const editId = route?.params?.mode === 'edit' ? route?.params?.communityId : null;
+  const isEdit = editId != null;
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -48,10 +58,94 @@ export default function CreateCommunityScreen({ navigation }) {
   const [themeIdx, setThemeIdx] = useState(0);
   const [visibility, setVisibility] = useState('PUBLIC');
   const [submitting, setSubmitting] = useState(false);
+  const [loadingEdit, setLoadingEdit] = useState(isEdit);
+  const [editColors, setEditColors] = useState(null);
+  const original = useRef(null);
 
   const theme = THEMES[themeIdx];
 
+  useEffect(() => {
+    if (!isEdit) return undefined;
+    let alive = true;
+    API.get(`/communities/${editId}`)
+      .then(({ data }) => {
+        if (!alive) return;
+        if (!data?.canManage) {
+          Alert.alert(t('error'), t('community_edit_not_allowed'));
+          goBackOrFallback(navigation);
+          return;
+        }
+        const init = {
+          name: data.name || '',
+          description: data.description || '',
+          visibility: normalizeVisibility(data.visibility),
+        };
+        original.current = init;
+        setName(init.name);
+        setDescription(init.description);
+        setVisibility(init.visibility);
+        if (data.gradientStart && data.gradientEnd) {
+          setEditColors({ start: data.gradientStart, end: data.gradientEnd, emoji: data.emoji || theme.emoji });
+        }
+        setLoadingEdit(false);
+      })
+      .catch((err) => {
+        if (!alive) return;
+        Alert.alert(t('error'), communityErrorMessage(err, t, 'community_edit_load_error'));
+        goBackOrFallback(navigation);
+      });
+    return () => { alive = false; };
+  }, [isEdit, editId]);
+
+  const showError = (err) => {
+    Alert.alert(t('error'), err?.response?.data?.message === 'COMMUNITY_DESCRIPTION_TOO_LONG'
+      ? t('community_create_desc_too_long', { max: DESCRIPTION_MAX })
+      : (isEdit ? communityErrorMessage(err, t, 'community_edit_error') : getErrorMessage(err)));
+  };
+
+  // Yalnız değişen alanlar gönderilir (sunucu null alanı değiştirmez)
+  const editChanges = () => {
+    const o = original.current || {};
+    const body = {};
+    if (name.trim() !== (o.name || '').trim()) body.name = name.trim();
+    if (description.trim() !== (o.description || '').trim()) body.description = description.trim();
+    if (visibility !== o.visibility) body.visibility = visibility;
+    return body;
+  };
+
+  const saveEdit = async (body) => {
+    setSubmitting(true);
+    try {
+      await API.put(`/communities/${editId}`, body);
+      Alert.alert(t('success'), t('community_edit_success'));
+      goBackOrFallback(navigation);
+    } catch (err) {
+      showError(err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const submitEdit = () => {
+    if (submitting) return;
+    if (!name.trim()) {
+      Alert.alert(t('error'), t('community_create_name_required'));
+      return;
+    }
+    const body = editChanges();
+    if (Object.keys(body).length === 0) {
+      goBackOrFallback(navigation);
+      return;
+    }
+    // SEC-C02: ad/açıklama/görünürlük değişikliği topluluğu yeniden incelemeye alır — önce onay
+    Alert.alert(t('community_edit_review_title'), t('community_edit_review_msg'), [
+      { text: t('cancel'), style: 'cancel' },
+      { text: t('community_edit_review_confirm'), onPress: () => saveEdit(body) },
+    ]);
+  };
+
   const submit = async () => {
+    if (isEdit) { submitEdit(); return; }
     if (!name.trim()) {
       Alert.alert(t('error'), t('community_create_name_required'));
       return;
@@ -71,13 +165,21 @@ export default function CreateCommunityScreen({ navigation }) {
       Alert.alert(t('success'), t('community_create_success'));
       navigation.replace('CommunityDetail', { communityId: res.data.id });
     } catch (err) {
-      Alert.alert(t('error'), err?.response?.data?.message === 'COMMUNITY_DESCRIPTION_TOO_LONG'
-        ? t('community_create_desc_too_long', { max: DESCRIPTION_MAX })
-        : getErrorMessage(err));
+      showError(err);
     } finally {
       setSubmitting(false);
     }
   };
+
+  if (loadingEdit) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  const hero = isEdit && editColors ? editColors : theme;
 
   return (
     <KeyboardAvoidingView
@@ -85,12 +187,14 @@ export default function CreateCommunityScreen({ navigation }) {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <LinearGradient colors={[theme.start, theme.end]} style={styles.hero}>
+        <LinearGradient colors={[hero.start, hero.end]} style={styles.hero}>
           <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.backButton}>
             <Text style={styles.backText}>{t('back')}</Text>
           </TouchableOpacity>
-          <Text style={styles.heroEmoji}>{theme.emoji}</Text>
-          <Text style={styles.heroTitle}>{name.trim() || t('community_create_title')}</Text>
+          <Text style={styles.heroEmoji}>{hero.emoji}</Text>
+          <Text style={styles.heroTitle}>
+            {isEdit ? t('community_edit_title') : (name.trim() || t('community_create_title'))}
+          </Text>
         </LinearGradient>
 
         {/* İsim */}
@@ -116,6 +220,8 @@ export default function CreateCommunityScreen({ navigation }) {
           maxLength={DESCRIPTION_MAX}
         />
 
+        {/* Tema, tür ve şehir yalnız oluşturmada (düzenleme: ad, açıklama, görünürlük) */}
+        {!isEdit && (<>
         {/* Tema (emoji + renk) */}
         <Text style={styles.label}>{tu('community_create_emoji')}</Text>
         <View style={styles.themeRow}>
@@ -148,6 +254,7 @@ export default function CreateCommunityScreen({ navigation }) {
         {/* Şehir */}
         <Text style={styles.label}>{tu('community_create_city')}</Text>
         <CityPicker value={city} onChange={setCity} colors={colors} t={t} />
+        </>)}
 
         {/* Görünürlük */}
         <Text style={styles.label}>{tu('community_create_visibility')}</Text>
@@ -171,7 +278,7 @@ export default function CreateCommunityScreen({ navigation }) {
 
         {/* Onay bilgilendirmesi */}
         <View style={styles.infoBox}>
-          <Text style={styles.infoText}>ℹ️ {t('community_create_info')}</Text>
+          <Text style={styles.infoText}>ℹ️ {t(isEdit ? 'community_edit_info' : 'community_create_info')}</Text>
         </View>
 
         <TouchableOpacity
@@ -182,7 +289,7 @@ export default function CreateCommunityScreen({ navigation }) {
         >
           {submitting
             ? <ActivityIndicator color="#fff" />
-            : <Text style={styles.submitText}>{t('community_create_submit')}</Text>}
+            : <Text style={styles.submitText}>{t(isEdit ? 'save' : 'community_create_submit')}</Text>}
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>

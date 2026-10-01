@@ -32,7 +32,8 @@ class ProfileIdentityChangeTest {
         service = new UserService(users, mock(PostRepository.class), mock(LikeRepository.class),
                 mock(CommentRepository.class), mock(EventVerificationRepository.class),
                 mock(BingoCardRepository.class), mock(BadgeService.class), mock(ConcertAttendanceService.class),
-                ENCODER);
+                ENCODER, mock(com.concertly.backend.repository.FollowRepository.class));
+        ReflectionTestUtils.setField(service, "emailVerificationService", mock(EmailVerificationService.class));
         user = new User();
         ReflectionTestUtils.setField(user, "id", 5L);
         user.setUsername("emre");
@@ -87,11 +88,69 @@ class ProfileIdentityChangeTest {
     void takenUsernameOrEmailIsAClearConflict() {
         User other = new User();
         ReflectionTestUtils.setField(other, "id", 9L);
-        when(users.findByUsername("dolu_ad")).thenReturn(Optional.of(other));
+        when(users.findAllByUsernameIgnoreCase("dolu_ad")).thenReturn(List.of(other));
         when(users.findAllByEmailIgnoreCase("dolu@mail.com")).thenReturn(List.of(other));
 
         assertThrows(AlreadyExistsException.class, () -> service.updateProfile(5L, form("dolu_ad", "emre@mail.com", "sifre123")));
         assertThrows(AlreadyExistsException.class, () -> service.updateProfile(5L, form("emre", "dolu@mail.com", "sifre123")));
         verify(users, never()).save(any());
+    }
+
+    // ── N-25: e-posta doğrulaması + oturumlar ──
+
+    @Test
+    void emailChangeWithVerificationEnabledStartsVerificationAndKeepsSessions() {
+        EmailVerificationService verification = mock(EmailVerificationService.class);
+        when(verification.isEnabled()).thenReturn(true);
+        ReflectionTestUtils.setField(service, "emailVerificationService", verification);
+
+        var response = service.updateProfile(5L, form("emre", "yeni@mail.com", "sifre123"));
+
+        assertEquals("yeni@mail.com", user.getEmail());
+        assertEquals(Boolean.TRUE, response.getEmailVerificationRequired());
+        verify(verification).start(user); // yeni adrese kod; start() emailVerified=false yapar
+    }
+
+    @Test
+    void emailChangeWithVerificationDisabledIsUnchanged() {
+        EmailVerificationService verification = mock(EmailVerificationService.class);
+        when(verification.isEnabled()).thenReturn(false);
+        ReflectionTestUtils.setField(service, "emailVerificationService", verification);
+
+        var response = service.updateProfile(5L, form("emre", "yeni@mail.com", "sifre123"));
+
+        assertNull(response.getEmailVerificationRequired());
+        verify(verification, never()).start(any());
+    }
+
+    @Test
+    void usernameChangeNeverStartsVerification() {
+        EmailVerificationService verification = mock(EmailVerificationService.class);
+        when(verification.isEnabled()).thenReturn(true);
+        ReflectionTestUtils.setField(service, "emailVerificationService", verification);
+
+        var response = service.updateProfile(5L, form("yeni_ad", "emre@mail.com", "sifre123"));
+
+        assertNull(response.getEmailVerificationRequired());
+        verify(verification, never()).start(any());
+    }
+
+    @Test
+    void verifyEmailChangeDelegatesForCurrentUserOnly() {
+        EmailVerificationService verification = mock(EmailVerificationService.class);
+        ReflectionTestUtils.setField(service, "emailVerificationService", verification);
+
+        service.verifyEmailChange(5L, "123456");
+
+        verify(verification).verifyForUser(5L, "123456");
+        verifyNoMoreInteractions(verification);
+    }
+
+    @Test
+    void identityChangeDoesNotTouchRefreshTokens() {
+        // UserService'in RefreshToken bagimliligi yok: kimlik degisimi diger cihaz oturumlarini iptal edemez
+        assertTrue(java.util.Arrays.stream(UserService.class.getDeclaredFields())
+                .noneMatch(f -> f.getType().getSimpleName().contains("RefreshToken")));
+        service.updateProfile(5L, form("yeni_ad", "yeni@mail.com", "sifre123"));
     }
 }
