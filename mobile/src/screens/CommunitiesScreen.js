@@ -103,6 +103,8 @@ export default function CommunitiesScreen({ navigation }) {
   };
 
   const toggleJoin = async (community) => {
+    // Sahip topluluktan ayrılamaz (sunucu 400 döner); listeden asla ayrılma isteği gitmez (A5)
+    if (community.currentUserRole === 'OWNER') return;
     try {
       if (community.isJoinedByCurrentUser) {
         await API.delete(`/communities/${community.id}/join`);
@@ -125,6 +127,18 @@ export default function CommunitiesScreen({ navigation }) {
   };
 
   const renderJoinButton = (community) => {
+    // Sahip "Katıldın" yerine detaydaki gibi "Yönet" görür ve yönetim ekranına gider (A5)
+    if (community.currentUserRole === 'OWNER') {
+      return (
+        <TouchableOpacity
+          onPress={() => navigation.navigate('CommunityManage', { communityId: community.id })}
+          activeOpacity={0.85}
+          style={[styles.joinButton, styles.joinButtonActive]}
+        >
+          <Text style={[styles.joinText, styles.joinTextActive]}>{t('community_manage')}</Text>
+        </TouchableOpacity>
+      );
+    }
     const pending = community.currentUserStatus === 'PENDING';
     const joined = community.isJoinedByCurrentUser;
     const active = joined || pending;
