@@ -38,6 +38,9 @@ public class Artist {
     private Long    spotifyFollowers;
     private String  genreTags;
 
+    /** Yumusak birlestirme: doluysa bu kayit mukerrerdir ve bu kimlikli asil kayda tasinmistir (silinmez). */
+    private Long mergedIntoArtistId;
+
     public Long getId() {
         return id;
     }
@@ -74,4 +77,7 @@ public class Artist {
 
     public String getGenreTags()              { return genreTags; }
     public void   setGenreTags(String g)      { this.genreTags = g; }
+
+    public Long getMergedIntoArtistId()          { return mergedIntoArtistId; }
+    public void setMergedIntoArtistId(Long id)   { this.mergedIntoArtistId = id; }
 }

@@ -79,10 +79,12 @@ public class ShareController {
 
     @GetMapping(value = "/a/{id}", produces = MediaType.TEXT_HTML_VALUE)
     public ResponseEntity<String> artist(@PathVariable Long id) {
-        Artist artist = artistRepository.findById(id).orElse(null);
+        Artist artist = artistRepository.findById(id)
+                .map(a -> com.concertly.backend.repository.MergePointers.rootOf(a, artistRepository))
+                .orElse(null); // birlestirilmis eski kimlik asil sanatciyi gosterir (N-09)
         if (artist == null) return notFound("artist/" + id);
         return html(shareLinkService.renderLandingPage(
-                "artist/" + id, artist.getName(),
+                "artist/" + artist.getId(), artist.getName(),
                 join(artist.getGenre(), "Concertly'de takip et"), artist.getImageUrl()));
     }
 

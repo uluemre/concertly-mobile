@@ -171,14 +171,14 @@ public class AdminController {
         if (req.getTicketUrl() != null) event.setTicketUrl(req.getTicketUrl());
 
         if (req.getArtistId() != null) {
-            artistRepository.findById(req.getArtistId()).ifPresent(event::setArtist);
+            MergePointers.canonical(artistRepository.findById(req.getArtistId()), artistRepository).ifPresent(event::setArtist);
         } else if (req.getArtistName() != null) {
             event.setArtist(resolveOrCreateArtist(req));
             if (req.getArtistGenre() != null) event.setGenre(req.getArtistGenre());
         }
 
         if (req.getVenueId() != null) {
-            venueRepository.findById(req.getVenueId()).ifPresent(event::setVenue);
+            MergePointers.canonical(venueRepository.findById(req.getVenueId()), venueRepository).ifPresent(event::setVenue);
         } else if (req.getVenueName() != null) {
             event.setVenue(resolveOrCreateVenue(req, event.getVenue()));
         }
@@ -291,7 +291,7 @@ public class AdminController {
 
     private Artist resolveOrCreateArtist(CreateEventRequest req) {
         if (req.getArtistId() != null) {
-            return artistRepository.findById(req.getArtistId())
+            return MergePointers.canonical(artistRepository.findById(req.getArtistId()), artistRepository)
                 .orElseThrow(() -> new ResourceNotFoundException("Artist bulunamadi: " + req.getArtistId()));
         }
         // Aynı adlı sanatçı varsa onu kullan; eskiden her seferinde yeni kayıt açılıyordu (N-09)
@@ -306,7 +306,7 @@ public class AdminController {
 
     private Venue resolveOrCreateVenue(CreateEventRequest req, Venue existing) {
         if (req.getVenueId() != null) {
-            return venueRepository.findById(req.getVenueId())
+            return MergePointers.canonical(venueRepository.findById(req.getVenueId()), venueRepository)
                 .orElseThrow(() -> new ResourceNotFoundException("Venue bulunamadi: " + req.getVenueId()));
         }
         Venue venue = existing != null ? existing : new Venue();

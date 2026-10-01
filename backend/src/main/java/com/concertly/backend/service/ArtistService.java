@@ -62,15 +62,30 @@ public class ArtistService {
 
     // ✅ SANATÇI PROFİLİ
     public ArtistResponse getArtist(Long artistId, Long currentUserId) {
-        Artist artist = artistRepository.findById(artistId)
+        // Birlestirilmis (eski) kimlikle gelen istek ASIL sanatciyi doner; yanitin id alani asil kimliktir (N-09)
+        Artist artist = MergePointers.canonical(artistRepository.findById(artistId), artistRepository)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Sanatçı bulunamadı: " + artistId));
+        Long canonicalId = artist.getId();
 
-        long followerCount = artistFollowRepository.countByArtistId(artistId);
+        long followerCount = artistFollowRepository.countByArtistId(canonicalId);
         boolean isFollowed = currentUserId != null &&
-                artistFollowRepository.findByUserIdAndArtistId(currentUserId, artistId).isPresent();
+                artistFollowRepository.findByUserIdAndArtistId(currentUserId, canonicalId).isPresent();
 
         return ArtistResponse.from(artist, followerCount, isFollowed);
+    }
+
+    /**
+     * Liste uclari icin: kimligi dogrular (yoksa 404) ve birlestirilmis kayitta ASIL kimligi dondurur (N-09).
+     * Eski derin linkler ve onbellekteki istemciler birlestirmeden sonra da calisir.
+     */
+    private Long canonicalArtistId(Long artistId) {
+        Artist found = artistRepository.findById(artistId).orElse(null);
+        if (found != null) return MergePointers.rootOf(found, artistRepository).getId();
+        if (!artistRepository.existsById(artistId)) {
+            throw new ResourceNotFoundException("Sanatçı bulunamadı: " + artistId);
+        }
+        return artistId;
     }
 
     // ✅ SANATÇININ ETKİNLİKLERİ
@@ -84,9 +99,7 @@ public class ArtistService {
     }
 
     public List<EventResponse> getArtistEvents(Long artistId) {
-        if (!artistRepository.existsById(artistId)) {
-            throw new ResourceNotFoundException("Sanatçı bulunamadı: " + artistId);
-        }
+        artistId = canonicalArtistId(artistId);
         // Yaklaşanlar önce (en yakın üstte), sonra geçmişler — ekran yaklaşanları süzüp
         // bu sırayla gösteriyor. Eskiden liste tarihe göre azalan geliyordu: en uzak konser üstteydi.
         return collapseCopies(eventRepository.findByArtistIdOrderByEventDateDesc(artistId)
@@ -101,9 +114,7 @@ public class ArtistService {
 
     // ✅ SANATÇININ ETKİNLİKLERİNE AIT POSTLAR
     public List<PostResponse> getArtistPosts(Long artistId, Long currentUserId) {
-        if (!artistRepository.existsById(artistId)) {
-            throw new ResourceNotFoundException("Sanatçı bulunamadı: " + artistId);
-        }
+        artistId = canonicalArtistId(artistId);
         // Engelli kullanıcıların ve özel hesapların (yetkisiz izleyiciye) gönderileri elenir (SEC-05)
         Set<Long> blocked = moderationService.getHiddenUserIds(currentUserId);
         List<Post> visible = postRepository.findByEventArtistIdOrderByCreatedAtDesc(artistId).stream()
@@ -143,11 +154,11 @@ public class ArtistService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Kullanıcı bulunamadı: " + userId));
-        Artist artist = artistRepository.findById(artistId)
+        Artist artist = MergePointers.canonical(artistRepository.findById(artistId), artistRepository)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Sanatçı bulunamadı: " + artistId));
 
-        if (artistFollowRepository.findByUserIdAndArtistId(userId, artistId).isPresent()) {
+        if (artistFollowRepository.findByUserIdAndArtistId(userId, artist.getId()).isPresent()) {
             throw new AlreadyExistsException("Bu sanatçıyı zaten takip ediyorsunuz.");
         }
 
@@ -202,7 +213,8 @@ public class ArtistService {
                 .collect(Collectors.toMap(Artist::getId, a -> a));
         return ids.stream()
                 .map(byId::get)
-                .filter(a -> a != null && a.getImageUrl() != null && !a.getImageUrl().isBlank())
+                .filter(a -> a != null && a.getMergedIntoArtistId() == null
+                        && a.getImageUrl() != null && !a.getImageUrl().isBlank())
                 .limit(safe)
                 .map(a -> ArtistResponse.from(a,
                         artistFollowRepository.countByArtistId(a.getId()),
@@ -228,11 +240,11 @@ public class ArtistService {
                         "Kullanici bulunamadi: " + userId));
 
         for (Long artistId : artistIds) {
-            Artist artist = artistRepository.findById(artistId)
+            Artist artist = MergePointers.canonical(artistRepository.findById(artistId), artistRepository)
                     .orElseThrow(() -> new ResourceNotFoundException(
                             "Sanatci bulunamadi: " + artistId));
 
-            if (artistFollowRepository.findByUserIdAndArtistId(userId, artistId).isEmpty()) {
+            if (artistFollowRepository.findByUserIdAndArtistId(userId, artist.getId()).isEmpty()) {
                 ArtistFollow follow = new ArtistFollow();
                 follow.setUser(user);
                 follow.setArtist(artist);
@@ -248,6 +260,7 @@ public class ArtistService {
         int skipped = 0;
 
         for (Artist a : all) {
+            if (a.getMergedIntoArtistId() != null) continue; // birlestirilmis mukerrer zenginlestirilmez (N-09)
             if (a.getImageUrl() != null && a.getGenre() != null && a.getSpotifyId() != null) {
                 skipped++;
                 continue;
@@ -280,9 +293,7 @@ public class ArtistService {
 
     // ✅ GEÇMİŞ ETKİNLİKLER (puan dahil)
     public List<EventResponse> getArtistPastEvents(Long artistId) {
-        if (!artistRepository.existsById(artistId)) {
-            throw new ResourceNotFoundException("Sanatçı bulunamadı: " + artistId);
-        }
+        artistId = canonicalArtistId(artistId);
         List<Event> pastEvents = eventRepository.findByArtistIdOrderByEventDateDesc(artistId)
                 .stream()
                 .filter(Event::listedPublicly)
@@ -317,8 +328,11 @@ public class ArtistService {
     // ✅ TAKİBİ BIRAK
     @Transactional
     public void unfollow(Long userId, Long artistId) {
+        // Eski (birlestirilmis) kimlikle gelen takibi birak da calissin: takipler asil kayda tasindi (N-09)
+        Artist found = artistRepository.findById(artistId).orElse(null);
+        Long targetId = found == null ? artistId : MergePointers.rootOf(found, artistRepository).getId();
         ArtistFollow follow = artistFollowRepository
-                .findByUserIdAndArtistId(userId, artistId)
+                .findByUserIdAndArtistId(userId, targetId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Bu sanatçıyı zaten takip etmiyorsunuz."));
         artistFollowRepository.delete(follow);

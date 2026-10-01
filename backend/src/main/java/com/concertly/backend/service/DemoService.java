@@ -178,7 +178,8 @@ public class DemoService {
         venueRepository.save(v);
 
         Artist a = artistRepository.findByNameIgnoreCase("Test Artist").orElseGet(Artist::new);
-        a.setName("Test Artist"); a.setGenre("Rock");
+        if (a.getId() == null || a.getName() == null || a.getName().isBlank()) a.setName("Test Artist");
+        a.setGenre("Rock");
         artistRepository.save(a);
 
         Event e = new Event();
@@ -200,7 +201,8 @@ public class DemoService {
     }
     private Artist artist(String name, String genre) {
         Artist a = artistRepository.findByNameIgnoreCase(name).orElseGet(Artist::new);
-        a.setName(name); a.setGenre(genre);
+        if (a.getId() == null || a.getName() == null || a.getName().isBlank()) a.setName(name);
+        a.setGenre(genre);
         return artistRepository.save(a);
     }
     private Event event(String name, String desc, LocalDateTime date, Artist artist, Venue venue) {

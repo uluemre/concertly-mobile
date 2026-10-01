@@ -33,19 +33,21 @@ public class VenueService {
     }
 
     public VenueDetailResponse getVenue(Long venueId, Long currentUserId) {
-        Venue venue = venueRepository.findById(venueId)
+        // Birlestirilmis (eski) kimlikle gelen istek ASIL mekani doner; yanitin id alani asil kimliktir (N-08)
+        Venue venue = MergePointers.canonical(venueRepository.findById(venueId), venueRepository)
                 .orElseThrow(() -> new ResourceNotFoundException("Mekan bulunamadı: " + venueId));
+        Long canonicalId = venue.getId();
 
-        Double avgRating = reviewRepository.avgRatingByVenueId(venueId);
-        long reviewCount = reviewRepository.countByVenueId(venueId);
+        Double avgRating = reviewRepository.avgRatingByVenueId(canonicalId);
+        long reviewCount = reviewRepository.countByVenueId(canonicalId);
         // Sayı, listedeki kartlarla aynı olsun (N-33): aynı konserin kaynak kopyaları tek sayılır
-        long totalEvents = collapseCopies(eventRepository.findByVenueIdOrderByEventDateAsc(venueId).stream()
+        long totalEvents = collapseCopies(eventRepository.findByVenueIdOrderByEventDateAsc(canonicalId).stream()
                 .filter(com.concertly.backend.model.Event::listedPublicly)
                 .toList()).size();
 
         Integer myRating = null;
         if (currentUserId != null) {
-            myRating = reviewRepository.findByUserIdAndVenueId(currentUserId, venueId)
+            myRating = reviewRepository.findByUserIdAndVenueId(currentUserId, canonicalId)
                     .map(VenueReview::getRating).orElse(null);
         }
 
@@ -61,8 +63,14 @@ public class VenueService {
         return concertGrouping == null ? events : concertGrouping.collapse(events);
     }
 
+    /** Birlestirilmis (eski) mekan kimligi gelirse ASIL mekanin kimligi (N-08); bulunamazsa aynen (bos liste). */
+    private Long canonicalVenueId(Long venueId) {
+        Venue found = venueRepository.findById(venueId).orElse(null);
+        return found == null ? venueId : MergePointers.rootOf(found, venueRepository).getId();
+    }
+
     public List<EventResponse> getVenueEvents(Long venueId) {
-        return collapseCopies(eventRepository.findByVenueIdOrderByEventDateAsc(venueId)
+        return collapseCopies(eventRepository.findByVenueIdOrderByEventDateAsc(canonicalVenueId(venueId))
                 .stream()
                 .filter(com.concertly.backend.model.Event::listedPublicly)
                 .toList())
@@ -72,7 +80,7 @@ public class VenueService {
     }
 
     public List<VenueReviewResponse> getReviews(Long venueId) {
-        return reviewRepository.findByVenueIdOrderByCreatedAtDesc(venueId)
+        return reviewRepository.findByVenueIdOrderByCreatedAtDesc(canonicalVenueId(venueId))
                 .stream()
                 .map(VenueReviewResponse::from)
                 .toList();
@@ -84,12 +92,12 @@ public class VenueService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Puan 1-5 arasında olmalı.");
         }
 
-        Venue venue = venueRepository.findById(venueId)
+        Venue venue = MergePointers.canonical(venueRepository.findById(venueId), venueRepository)
                 .orElseThrow(() -> new ResourceNotFoundException("Mekan bulunamadı: " + venueId));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Kullanıcı bulunamadı: " + userId));
 
-        VenueReview review = reviewRepository.findByUserIdAndVenueId(userId, venueId)
+        VenueReview review = reviewRepository.findByUserIdAndVenueId(userId, venue.getId())
                 .orElse(new VenueReview());
         review.setUser(user);
         review.setVenue(venue);

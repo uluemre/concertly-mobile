@@ -213,6 +213,7 @@ public class EventSuggestionService {
         return artistRepository.search(fragment).stream()
                 .filter(a -> normalize(a.getName()).equals(normalized))
                 .findFirst()
+                .map(a -> com.concertly.backend.repository.MergePointers.rootOf(a, artistRepository)) // birlestirilmisse asil kayit (N-09)
                 .orElseGet(() -> {
                     Artist artist = new Artist();
                     artist.setName(name);
@@ -231,6 +232,7 @@ public class EventSuggestionService {
         return venueRepository.findAll().stream()
                 .filter(v -> normalize(v.getName()).equals(normalized) && normalize(v.getCity()).equals(city))
                 .findFirst()
+                .map(v -> com.concertly.backend.repository.MergePointers.rootOf(v, venueRepository)) // birlestirilmisse asil kayit (N-08)
                 .orElseGet(() -> {
                     Venue venue = new Venue();
                     venue.setName(request.getVenueName().trim());

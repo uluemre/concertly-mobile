@@ -87,7 +87,10 @@ public class SearchService {
                 .toList();
 
         List<com.concertly.backend.model.Venue> venues =
-                venueRepository == null ? List.of() : venueRepository.search(query);
+                venueRepository == null ? List.of()
+                        : venueRepository.search(query).stream()
+                                .filter(v -> v.getMergedIntoVenueId() == null) // birlestirilmis mukerrer gorunmez (N-08)
+                                .toList();
 
         // BUG-01: kaynaktan sanatçı adı yerine mekan adı gelmiş kayıtlar ("Oran Açıkhava")
         // sanatçı sekmesinde mekan olarak görünüyordu. Adı, aramayla eşleşen bir mekanın
@@ -99,6 +102,7 @@ public class SearchService {
 
         List<ArtistResponse> artists = artistRepository.search(query)
                 .stream()
+                .filter(a -> a.getMergedIntoArtistId() == null) // birlestirilmis mukerrer gorunmez (N-09)
                 .filter(a -> !venueKeys.contains(
                         com.concertly.backend.repository.SearchText.nameKey(a.getName())))
                 .map(a -> {

@@ -271,8 +271,13 @@ public class AuthService {
 
         if (request.getArtistIds() != null) {
             for (Long artistId : request.getArtistIds()) {
-                if (artistFollowRepository.findByUserIdAndArtistId(user.getId(), artistId).isEmpty()) {
-                    artistRepository.findById(artistId).ifPresent(artist -> {
+                // Eski (birlestirilmis) kimlik gelirse asil sanatci takip edilir (N-09)
+                com.concertly.backend.model.Artist resolved = artistRepository.findById(artistId)
+                        .map(a -> com.concertly.backend.repository.MergePointers.rootOf(a, artistRepository))
+                        .orElse(null);
+                Long followId = resolved != null ? resolved.getId() : artistId;
+                if (artistFollowRepository.findByUserIdAndArtistId(user.getId(), followId).isEmpty()) {
+                    java.util.Optional.ofNullable(resolved).ifPresent(artist -> {
                         ArtistFollow af = new ArtistFollow();
                         af.setUser(user);
                         af.setArtist(artist);

@@ -183,6 +183,15 @@ public class ConcertGrouping {
     static boolean sameVenueName(Event a, Event b, String city) {
         java.util.List<String> ta = venueNameTokens(a, city);
         java.util.List<String> tb = venueNameTokens(b, city);
+        return tokensCover(ta, tb);
+    }
+
+    /** Mekan ADI metinleri icin aynı kural (mukerrer mekan birlestirme: DuplicateDetector). */
+    static boolean sameVenueName(String nameA, String nameB, String city) {
+        return tokensCover(venueNameTokens(nameA, city), venueNameTokens(nameB, city));
+    }
+
+    private static boolean tokensCover(java.util.List<String> ta, java.util.List<String> tb) {
         if (ta.isEmpty() || tb.isEmpty()) return false;
         java.util.List<String> small = ta.size() <= tb.size() ? ta : tb;
         java.util.List<String> large = small == ta ? tb : ta;
@@ -194,7 +203,11 @@ public class ConcertGrouping {
 
     static java.util.List<String> venueNameTokens(Event e, String city) {
         if (e.getVenue() == null) return java.util.List.of();
-        String n = " " + EventMatcher.normalize(e.getVenue().getName()) + " ";
+        return venueNameTokens(e.getVenue().getName(), city);
+    }
+
+    static java.util.List<String> venueNameTokens(String venueName, String city) {
+        String n = " " + EventMatcher.normalize(venueName) + " ";
         n = n.replace(" open air ", " acikhava ").replace(" acik hava ", " acikhava ");
         java.util.List<String> out = new ArrayList<>();
         for (String w : n.trim().split(" ")) {
@@ -204,7 +217,7 @@ public class ConcertGrouping {
     }
 
     /** Ayni kelime ya da biri digerinin ekli hali (en az 5 harf ortak kok: "otopark"/"otoparki"). */
-    private static boolean sameWord(String x, String y) {
+    static boolean sameWord(String x, String y) {
         if (x.equals(y)) return true;
         String shorter = x.length() <= y.length() ? x : y;
         String longer = shorter == x ? y : x;
@@ -218,6 +231,10 @@ public class ConcertGrouping {
                 || vb.getLatitude() == null || vb.getLongitude() == null) return null;
         return com.concertly.backend.service.EventVerificationService.distanceInMeters(
                 va.getLatitude(), va.getLongitude(), vb.getLatitude(), vb.getLongitude());
+    }
+
+    static boolean isGenericVenueWord(String w) {
+        return GENERIC_VENUE_WORDS.contains(w);
     }
 
     private static boolean shareDistinctiveVenueWord(Event a, Event b) {

@@ -9,6 +9,7 @@ import com.concertly.backend.model.Event;
 import com.concertly.backend.model.Venue;
 import com.concertly.backend.repository.ArtistRepository;
 import com.concertly.backend.repository.EventRepository;
+import com.concertly.backend.repository.MergePointers;
 import com.concertly.backend.repository.UserRepository;
 import com.concertly.backend.repository.VenueRepository;
 import org.springframework.stereotype.Service;
@@ -41,7 +42,7 @@ public class EventService {
 
         Artist artist;
         if (request.getArtistId() != null) {
-            artist = artistRepository.findById(request.getArtistId())
+            artist = MergePointers.canonical(artistRepository.findById(request.getArtistId()), artistRepository)
                     .orElseThrow(() -> new ResourceNotFoundException("Artist bulunamadi: " + request.getArtistId()));
         } else {
             // Aynı adlı sanatçı varsa onu kullan; eskiden her seferinde yeni kayıt açılıyordu (N-09: "Hadise" ×2)
@@ -56,7 +57,7 @@ public class EventService {
 
         Venue venue;
         if (request.getVenueId() != null) {
-            venue = venueRepository.findById(request.getVenueId())
+            venue = MergePointers.canonical(venueRepository.findById(request.getVenueId()), venueRepository)
                     .orElseThrow(() -> new ResourceNotFoundException("Venue bulunamadi: " + request.getVenueId()));
         } else {
             venue = new Venue();

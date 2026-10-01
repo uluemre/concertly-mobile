@@ -889,7 +889,9 @@ public class TicketmasterService {
         Artist artist = artistRepository.findExisting(externalId, artistName)
                 .orElseGet(Artist::new);
 
-        artist.setName(artistName);
+        // Birleştirmede seçilen asıl adı TM geri çevirmesin: ad yalnız yeni/boş kayıtta yazılır
+        if (artist.getId() == null || isBlank(artist.getName()))
+            artist.setName(artistName);
         if (artist.getExternalId() == null)
             artist.setExternalId(externalId);
 
@@ -916,6 +918,13 @@ public class TicketmasterService {
                 String venueExternalId = (String) v.get("id");
                 if (venueExternalId != null) {
                     venue = venueRepository.findByExternalId(venueExternalId).orElseGet(Venue::new);
+                    // Bu kimlik birlestirilmis bir mukerrere aitse repository ASIL mekani dondurur (N-08):
+                    // asil kaydin kimligi/adi/konumu ezilmez, ayni kimlik iki satira yazilmaz.
+                    // Asil kayitta kimlik yoksa da (Biletinial/elle) ayni kural: kimlik kopyalanmaz,
+                    // ad/sehir/adres/koordinat ezilmez; yalniz bos alanlar doldurulur.
+                    if (venue.getId() != null && !venueExternalId.equals(venue.getExternalId())) {
+                        return fillVenueBlanks(venue, v, fallbackCity);
+                    }
                     venue.setExternalId(venueExternalId);
                 }
 
@@ -970,6 +979,56 @@ public class TicketmasterService {
         return null;
     }
 
+    /** Birlestirme ile cozulen asil mekanda yalniz bos alanlari TM verisiyle doldurur. */
+    @SuppressWarnings("unchecked")
+    private Venue fillVenueBlanks(Venue venue, Map<String, Object> v, String fallbackCity) {
+        boolean changed = false;
+        String name = (String) v.get("name");
+        if (isBlank(venue.getName()) && !isBlank(name)) {
+            venue.setName(name);
+            changed = true;
+        }
+        if (isBlank(venue.getCity())) {
+            String city = null;
+            if (v.get("city") != null)
+                city = (String) ((Map<String, Object>) v.get("city")).get("name");
+            if (isBlank(city))
+                city = fallbackCity;
+            if (!isBlank(city)) {
+                venue.setCity(city);
+                changed = true;
+            }
+        }
+        if (isBlank(venue.getCountry()) && v.get("country") != null) {
+            venue.setCountry((String) ((Map<String, Object>) v.get("country")).get("name"));
+            changed = true;
+        }
+        if (isBlank(venue.getAddress()) && v.get("address") != null) {
+            String line1 = (String) ((Map<String, Object>) v.get("address")).get("line1");
+            if (!isBlank(line1)) {
+                venue.setAddress(line1);
+                changed = true;
+            }
+        }
+        if ((venue.getLatitude() == null || venue.getLongitude() == null) && v.get("location") != null) {
+            Map<String, Object> loc = (Map<String, Object>) v.get("location");
+            try {
+                venue.setLatitude(Double.parseDouble((String) loc.get("latitude")));
+                venue.setLongitude(Double.parseDouble((String) loc.get("longitude")));
+                changed = true;
+            } catch (Exception ignored) {
+            }
+        }
+        if (venue.getImageUrl() == null) {
+            String img = extractBestImage((List<Map<String, Object>>) v.get("images"));
+            if (img != null) {
+                venue.setImageUrl(img);
+                changed = true;
+            }
+        }
+        return changed ? venueRepository.save(venue) : venue;
+    }
+
     public Map<String, Integer> enrichMissingData() {
         AtomicInteger enrichedImages = new AtomicInteger(0);
         AtomicInteger enrichedGenres = new AtomicInteger(0);
@@ -977,7 +1036,7 @@ public class TicketmasterService {
         // Sadece görseli veya türü eksik artist'leri sorgula
         List<Artist> allArtists = artistRepository.findAll();
         List<Artist> needsEnrich = allArtists.stream()
-                .filter(a -> !isBlank(a.getName()) && (isBlank(a.getImageUrl()) ||
+                .filter(a -> a.getMergedIntoArtistId() == null && !isBlank(a.getName()) && (isBlank(a.getImageUrl()) ||
                         (a.getImageUrl() != null && a.getImageUrl().contains("s1.ticketm.net")) ||
                         isBlank(a.getGenre())))
                 .collect(java.util.stream.Collectors.toList());

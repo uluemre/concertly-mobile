@@ -47,6 +47,17 @@ public class Venue {
 
     private Double longitude;
 
+    /** Yumusak birlestirme: doluysa bu kayit mukerrerdir ve bu kimlikli asil kayda tasinmistir (silinmez). */
+    private Long mergedIntoVenueId;
+
+    public Long getMergedIntoVenueId() {
+        return mergedIntoVenueId;
+    }
+
+    public void setMergedIntoVenueId(Long mergedIntoVenueId) {
+        this.mergedIntoVenueId = mergedIntoVenueId;
+    }
+
     public Long getId() {
         return id;
     }

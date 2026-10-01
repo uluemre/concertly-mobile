@@ -28,23 +28,37 @@ public interface ArtistRepository extends JpaRepository<Artist, Long> {
     default Optional<Artist> findExisting(String externalId, String name) {
         if (externalId != null && !externalId.isBlank()) {
             Optional<Artist> byId = findFirstByExternalIdOrderByIdAsc(externalId);
-            if (byId.isPresent()) return byId;
+            if (byId.isPresent()) return MergePointers.canonical(byId, this);
         }
         String key = SearchText.nameKey(name);
         if (key.isEmpty()) return Optional.empty();
         String firstWord = name.trim().split(" ")[0];
         List<Artist> candidates = search(firstWord);
         if (candidates == null) return Optional.empty();
-        return candidates.stream()
+        // Birlestirilmis (merged_into_artist_id dolu) bir kayit bulunursa ASIL kayit doner (N-09):
+        // mukerrer geri gelmez, yeni etkinlik birlestirilmis sanatciya baglanmaz.
+        return MergePointers.canonical(candidates.stream()
                 .filter(a -> key.equals(SearchText.nameKey(a.getName())))
-                .min(Comparator.comparing(Artist::getId));
+                .min(Comparator.comparing(Artist::getId)), this);
     }
 
-    Optional<Artist> findByNameIgnoreCase(String name);
+    Optional<Artist> findFirstByNameIgnoreCaseOrderByIdAsc(String name);
 
-    Optional<Artist> findFirstByNameIgnoreCase(String name);
+    Optional<Artist> findFirstBySpotifyIdOrderByIdAsc(String spotifyId);
 
-    Optional<Artist> findBySpotifyId(String spotifyId);
+    // Asagidaki aramalar birlestirilmis kayitta ASIL kaydi dondurur (N-09). Tek sonuc bekleyen
+    // eski turetilmis sorgular ayni adli/Spotify kimlikli iki kayitta hata veriyordu; artik en eskisi.
+    default Optional<Artist> findByNameIgnoreCase(String name) {
+        return MergePointers.canonical(findFirstByNameIgnoreCaseOrderByIdAsc(name), this);
+    }
+
+    default Optional<Artist> findFirstByNameIgnoreCase(String name) {
+        return MergePointers.canonical(findFirstByNameIgnoreCaseOrderByIdAsc(name), this);
+    }
+
+    default Optional<Artist> findBySpotifyId(String spotifyId) {
+        return MergePointers.canonical(findFirstBySpotifyIdOrderByIdAsc(spotifyId), this);
+    }
 
     /** Türkçe harf / büyük-küçük harf duyarsız, % ve _ joker değil (SearchText). */
     default List<Artist> search(String q) {
@@ -59,6 +73,7 @@ public interface ArtistRepository extends JpaRepository<Artist, Long> {
     @Query("""
                 SELECT a FROM Artist a
                 WHERE LOWER(a.genre) IN :genres
+                  AND a.mergedIntoArtistId IS NULL
                 ORDER BY a.name ASC
             """)
     List<Artist> findByGenreIn(@Param("genres") List<String> genres);
