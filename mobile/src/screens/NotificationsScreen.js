@@ -4,7 +4,6 @@ import {
   StyleSheet, ActivityIndicator, Image,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../theme';
 import { ListSkeletonPage } from '../components/SkeletonLoader';
@@ -23,25 +22,26 @@ export default function NotificationsScreen({ navigation }) {
   const { session, setNotificationCount } = useAuth();
   const { t } = useLanguage();
 
+  // icon: Ionicons adı; tint: tema rengi anahtarı (colors[tint])
   const TYPE_CONFIG = useMemo(() => ({
-    follow:         { icon: '👤', text: t('notif_follow') },
-    follow_request:  { icon: '🙋', text: t('notif_follow_request') },
-    follow_accepted: { icon: '✅', text: t('notif_follow_accepted') },
-    like:           { icon: '❤️', text: t('notif_like') },
-    comment:        { icon: '💬', text: t('notif_comment') },
-    message:        { icon: '✉️', text: t('notif_message') },
-    new_event:      { icon: '🎤', text: t('notif_new_event') },
-    event_reminder: { icon: '🎫', text: t('notif_event_reminder') },
-    daily_song:     { icon: '📅', text: t('notif_daily_song') },
-    badge:          { icon: '🏅', text: t('notif_default') },
+    follow:         { icon: 'person-add', tint: 'primary', text: t('notif_follow') },
+    follow_request:  { icon: 'hand-left', tint: 'secondary', text: t('notif_follow_request') },
+    follow_accepted: { icon: 'checkmark-circle', tint: 'accent', text: t('notif_follow_accepted') },
+    like:           { icon: 'heart', tint: 'primary', text: t('notif_like') },
+    comment:        { icon: 'chatbubble', tint: 'accent', text: t('notif_comment') },
+    message:        { icon: 'mail', tint: 'secondary', text: t('notif_message') },
+    new_event:      { icon: 'mic', tint: 'primary', text: t('notif_new_event') },
+    event_reminder: { icon: 'ticket', tint: 'secondary', text: t('notif_event_reminder') },
+    daily_song:     { icon: 'calendar', tint: 'accent', text: t('notif_daily_song') },
+    badge:          { icon: 'ribbon', tint: 'secondary', text: t('notif_default') },
     // Topluluk bildirimleri (A3)
-    community_invite:           { icon: '👥', text: t('notif_community_invite') },
-    community_join_request:     { icon: '🙋', text: t('notif_community_join_request') },
-    community_request_approved: { icon: '✅', text: t('notif_community_request_approved') },
-    community_approved:         { icon: '✅', text: t('notif_community_approved') },
-    community_rejected:         { icon: '⚠️', text: t('notif_community_rejected') },
-    community_ownership:        { icon: '👑', text: t('notif_community_ownership') },
-    community_comment:          { icon: '💬', text: t('notif_community_comment') },
+    community_invite:           { icon: 'people', tint: 'accent', text: t('notif_community_invite') },
+    community_join_request:     { icon: 'hand-left', tint: 'secondary', text: t('notif_community_join_request') },
+    community_request_approved: { icon: 'checkmark-circle', tint: 'accent', text: t('notif_community_request_approved') },
+    community_approved:         { icon: 'checkmark-circle', tint: 'accent', text: t('notif_community_approved') },
+    community_rejected:         { icon: 'alert-circle', tint: 'secondary', text: t('notif_community_rejected') },
+    community_ownership:        { icon: 'star', tint: 'secondary', text: t('notif_community_ownership') },
+    community_comment:          { icon: 'chatbubbles', tint: 'accent', text: t('notif_community_comment') },
   }), [t]);
 
   // Rozet bildirimi (N-38): mesaj alanı rozet kodunu taşır, ad dile göre çevrilir
@@ -120,29 +120,30 @@ export default function NotificationsScreen({ navigation }) {
 
   // Bir grup için aktör etiketi + metin (1'den fazlaysa grup metni)
   const getLine = (g) => {
-    const cfg = TYPE_CONFIG[g.type] || { icon: '🔔', text: t('notif_default') };
+    const cfg = TYPE_CONFIG[g.type] || { icon: 'notifications', tint: 'textSecondary', text: t('notif_default') };
     // Sistem topluluk bildirimleri tam cümledir; aktör adı yazılmaz (A3)
     if (isCommunityNotification(g.type) && !COMMUNITY_ACTOR_TYPES.includes(g.type)) {
-      return { actor: '', text: cfg.text, icon: cfg.icon };
+      return { actor: '', text: cfg.text, icon: cfg.icon, tint: cfg.tint };
     }
     if (g.type === 'badge') {
       // Tam cümle; başına aktör adı yazılmaz
-      return { actor: '', text: t('notif_badge', { badge: badgeName(g.rep.message) }), icon: cfg.icon };
+      return { actor: '', text: t('notif_badge', { badge: badgeName(g.rep.message) }), icon: cfg.icon, tint: cfg.tint };
     }
     const others = g.actors.length - 1;
     if ((g.type === 'like' || g.type === 'comment' || g.type === 'follow') && others > 0) {
       const key = g.type === 'like' ? 'notif_like_group'
         : g.type === 'comment' ? 'notif_comment_group'
         : 'notif_follow_group';
-      return { actor: `@${g.actors[0]}`, text: t(key, { count: others }), icon: cfg.icon };
+      return { actor: `@${g.actors[0]}`, text: t(key, { count: others }), icon: cfg.icon, tint: cfg.tint };
     }
     if (g.type === 'message' && g.count > 1) {
-      return { actor: `@${g.rep.actorUsername}`, text: t('notif_message_group', { count: g.count }), icon: cfg.icon };
+      return { actor: `@${g.rep.actorUsername}`, text: t('notif_message_group', { count: g.count }), icon: cfg.icon, tint: cfg.tint };
     }
     return {
       actor: g.rep.actorUsername ? `@${g.rep.actorUsername}` : 'Concertly',
       text: cfg.text,
       icon: cfg.icon,
+      tint: cfg.tint,
     };
   };
 
@@ -226,12 +227,16 @@ export default function NotificationsScreen({ navigation }) {
     const line = getLine(g);
     const rep = g.rep;
     const isUnread = g.isUnread;
+    const communityName = isCommunityNotification(g.type) ? communityNameFromMessage(rep.message) : null;
+    const time = timeAgo(rep.createdAt);
 
     return (
       <TouchableOpacity
         style={[styles.row, isUnread && styles.rowUnread]}
         onPress={() => handlePress(g)}
         activeOpacity={0.75}
+        accessibilityRole="button"
+        accessibilityLabel={[line.actor, line.text, communityName, time].filter(Boolean).join(', ')}
       >
         {/* Avatar ayrıca tıklanır: bildirimi oluşturan kişinin profili */}
         <TouchableOpacity
@@ -239,22 +244,25 @@ export default function NotificationsScreen({ navigation }) {
           disabled={!rep.actorId}
           onPress={() => navigation.navigate('UserProfile', { userId: rep.actorId })}
           activeOpacity={0.75}
+          accessibilityRole="button"
+          accessibilityLabel={rep.actorUsername ? `@${rep.actorUsername}` : undefined}
+          accessibilityElementsHidden={!rep.actorId}
+          importantForAccessibility={rep.actorId ? 'auto' : 'no-hide-descendants'}
         >
           {rep.actorProfileImageUrl ? (
             <Image source={{ uri: rep.actorProfileImageUrl }} style={styles.avatar} />
+          ) : rep.actorUsername ? (
+            <View style={styles.avatarPlaceholder}>
+              <Text style={styles.avatarInitial}>{rep.actorUsername[0].toUpperCase()}</Text>
+            </View>
           ) : (
-            <LinearGradient
-              colors={rep.actorUsername ? ['#7C3AED', '#E94560'] : ['#E94560', '#F5A623']}
-              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-              style={styles.avatarPlaceholder}
-            >
-              {rep.actorUsername
-                ? <Text style={styles.avatarInitial}>{rep.actorUsername[0].toUpperCase()}</Text>
-                : <Ionicons name="musical-notes" size={22} color="#fff" />}
-            </LinearGradient>
+            // Kişisiz (sistem) bildirim: Concertly'nin kendisi — marka rengi
+            <View style={[styles.avatarPlaceholder, styles.avatarSystem]}>
+              <Ionicons name="musical-notes" size={22} color="#fff" />
+            </View>
           )}
           <View style={styles.typeBadge}>
-            <Text style={styles.typeBadgeText}>{line.icon}</Text>
+            <Ionicons name={line.icon} size={13} color={colors[line.tint] || colors.textSecondary} />
           </View>
         </TouchableOpacity>
 
@@ -267,10 +275,13 @@ export default function NotificationsScreen({ navigation }) {
             <Text style={styles.message} numberOfLines={1}>{rep.message}</Text>
           ) : null}
           {/* Topluluk bildiriminde ham Türkçe sunucu cümlesi yerine yalnızca topluluk adı */}
-          {isCommunityNotification(g.type) && communityNameFromMessage(rep.message) ? (
-            <Text style={styles.message} numberOfLines={1}>👥 {communityNameFromMessage(rep.message)}</Text>
+          {communityName ? (
+            <View style={styles.communityLine}>
+              <Ionicons name="people" size={14} color={colors.textSecondary} />
+              <Text style={[styles.message, styles.communityName]} numberOfLines={1}>{communityName}</Text>
+            </View>
           ) : null}
-          <Text style={styles.time}>{timeAgo(rep.createdAt)}</Text>
+          <Text style={styles.time}>{time}</Text>
         </View>
 
         {isUnread && <View style={styles.dot} />}
@@ -281,9 +292,9 @@ export default function NotificationsScreen({ navigation }) {
   if (loading) {
     return (
       <View style={styles.container}>
-        <LinearGradient colors={colors.headerGradient} style={styles.header}>
-          <Text style={styles.headerTitle}>{t('notifications_title')}</Text>
-        </LinearGradient>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle} accessibilityRole="header">{t('notifications_title')}</Text>
+        </View>
         <ListSkeletonPage />
       </View>
     );
@@ -292,17 +303,18 @@ export default function NotificationsScreen({ navigation }) {
   if (error && grouped.length === 0) {
     return (
       <View style={styles.container}>
-        <LinearGradient colors={colors.headerGradient} style={styles.header}>
-          <Text style={styles.headerTitle}>{t('notifications_title')}</Text>
-        </LinearGradient>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle} accessibilityRole="header">{t('notifications_title')}</Text>
+        </View>
         <View style={styles.empty}>
-          <Text style={styles.emptyEmoji}>📡</Text>
+          <Ionicons name="cloud-offline-outline" size={52} color={colors.textSecondary} style={styles.emptyIcon} />
           <Text style={styles.emptyTitle}>{t('load_failed')}</Text>
           <Text style={styles.emptySub}>{error}</Text>
           <TouchableOpacity
             onPress={() => { setError(null); setLoading(true); fetchAndMarkRead(); }}
             style={styles.retryBtn}
             activeOpacity={0.85}
+            accessibilityRole="button"
           >
             <Text style={styles.retryBtnText}>{t('retry')}</Text>
           </TouchableOpacity>
@@ -313,9 +325,9 @@ export default function NotificationsScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={colors.headerGradient} style={styles.header}>
-        <Text style={styles.headerTitle}>{t('notifications_title')}</Text>
-      </LinearGradient>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle} accessibilityRole="header">{t('notifications_title')}</Text>
+      </View>
 
       <SectionList
         sections={sections}
@@ -333,7 +345,7 @@ export default function NotificationsScreen({ navigation }) {
         removeClippedSubviews
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text style={styles.emptyEmoji}>🔔</Text>
+            <Ionicons name="notifications-outline" size={52} color={colors.textSecondary} style={styles.emptyIcon} />
             <Text style={styles.emptyTitle}>{t('notifications_empty')}</Text>
             <Text style={styles.emptySub}>{t('notifications_empty_sub')}</Text>
           </View>
@@ -372,8 +384,11 @@ function createStyles(colors) {
     avatarPlaceholder: {
       width: 50, height: 50, borderRadius: 25,
       justifyContent: 'center', alignItems: 'center',
+      backgroundColor: colors.cardAlt,
+      borderWidth: 1, borderColor: colors.border,
     },
-    avatarInitial: { color: '#fff', fontSize: 20, fontWeight: '900' },
+    avatarSystem: { backgroundColor: colors.primary, borderWidth: 0 },
+    avatarInitial: { color: colors.text, fontSize: 20, fontWeight: '900' },
     typeBadge: {
       position: 'absolute', bottom: -2, right: -4,
       width: 24, height: 24, borderRadius: 12,
@@ -381,11 +396,12 @@ function createStyles(colors) {
       justifyContent: 'center', alignItems: 'center',
       borderWidth: 2, borderColor: colors.background,
     },
-    typeBadgeText: { fontSize: 11 },
 
     body: { flex: 1 },
     message: { fontSize: 14, color: colors.text, lineHeight: 20 },
     actor: { fontWeight: '800', color: colors.text },
+    communityLine: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    communityName: { flexShrink: 1 },
     time: { fontSize: 12, color: colors.textSecondary, marginTop: 4, fontWeight: '600' },
 
     dot: {
@@ -402,7 +418,7 @@ function createStyles(colors) {
     },
     emptyContainer: { flex: 1 },
     empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 100, paddingHorizontal: 40 },
-    emptyEmoji: { fontSize: 52, marginBottom: 16 },
+    emptyIcon: { marginBottom: 16 },
     emptyTitle: { fontSize: 17, fontWeight: '700', color: colors.text, marginBottom: 8 },
     emptySub: { fontSize: 13, color: colors.textSecondary, textAlign: 'center', lineHeight: 20 },
     retryBtn: { marginTop: 18, backgroundColor: colors.primary, paddingHorizontal: 28, paddingVertical: 12, borderRadius: 14 },
