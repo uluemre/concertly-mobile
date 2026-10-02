@@ -69,7 +69,7 @@ Backend requires a local PostgreSQL instance: database `concertly_mobile`, user 
 **API client** (`src/services/api.js`):
 - Axios instance. `getBaseUrl()` picks the host automatically:
   - production builds (and dev when `USE_PROD_IN_DEV = true`) → the configured production server, defaulting to `https://concertly-api.onrender.com/api`.
-  - dev with `USE_PROD_IN_DEV = false` → the LAN IP from Expo's `hostUri` on port 8082, so a phone on the same network hits the local backend. To test against the local backend, flip `USE_PROD_IN_DEV` to `false`.
+  - dev with `USE_PROD_IN_DEV = false` → the LAN IP from Expo's `hostUri` on port 8082 (override with `EXPO_PUBLIC_DEV_API_PORT` in the gitignored `mobile/.env.local`, matching the backend's port), so a phone on the same network hits the local backend. To test against the local backend, flip `USE_PROD_IN_DEV` to `false`.
 - JWT is attached automatically by a request interceptor reading a module-level `_authToken` (set by `AuthContext`).
 - **Refresh-token rotation**: on `401`, the response interceptor calls `/auth/refresh` once, queues concurrent requests while refreshing, retries them with the new token, and on failure invokes the session-expired handler (logout + navigate to Login).
 - **Image URLs are stored relative** (`/uploads/<file>`) and absolutized to `SERVER_ORIGIN` in the response interceptor so they survive host changes. `uploadImage()` posts multipart to `/media/upload` and stores back the relative path.
@@ -162,6 +162,8 @@ waits for admin approval, which sets `isVerified`.
 - `SpotifyService` / `SpotifyUserService` — artist metadata & recommendations
 - `TicketmasterService` — event data import
 - `DeezerService` — song/preview data for games
+- `SimilarArtistService` — "Similar artists" rail on ArtistProfile (`GET /api/artists/{id}/similar`): Deezer related list, exact-name match, only artists we have locally, upcoming-concert artists first; cached per artist
+- `ItunesService` — keyless fallback previews when Deezer has too few (quiz/blind rank, Concert Day warm-up, setlist candidates); exact artist-name match only
 - `EmailService` — password-reset codes via Gmail SMTP (no-op unless `MAIL_ENABLED=true`)
 
 **Configuration** (`application.properties`): all secrets are read as `${ENV_VAR:safe-default}` — the file is committed but contains **no real secrets**. Production supplies env vars (`DB_URL`, `JWT_SECRET`, `SPOTIFY_*`, `TICKETMASTER_API_KEY`, `MAIL_*`, `ADMIN_EMAIL`, etc.); the inline defaults are for local dev only. Newer knobs: `PUSH_ENABLED`, `EXPO_ACCESS_TOKEN`, `SHARE_BASE_URL`, `IOS_APP_ID`, `IOS_BUNDLE_ID`, `ANDROID_PACKAGE`, `APP_SCHEME`, `NEW_ACCOUNT_HOURS` and the `NEW_ACCOUNT_MAX_*` caps, plus the `VERIFY_*` GPS rules. The JWT default is explicitly marked "do not use in production". A user matching `ADMIN_EMAIL` is promoted to `ROLE_ADMIN` on startup.

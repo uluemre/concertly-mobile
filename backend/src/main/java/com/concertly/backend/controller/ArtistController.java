@@ -5,6 +5,7 @@ import com.concertly.backend.dto.response.EventResponse;
 import com.concertly.backend.dto.response.PostResponse;
 import com.concertly.backend.security.JwtUtil;
 import com.concertly.backend.service.ArtistService;
+import com.concertly.backend.service.SimilarArtistService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,9 +17,11 @@ import java.util.Map;
 public class ArtistController {
 
     private final ArtistService artistService;
+    private final SimilarArtistService similarArtistService;
 
-    public ArtistController(ArtistService artistService) {
+    public ArtistController(ArtistService artistService, SimilarArtistService similarArtistService) {
         this.artistService = artistService;
+        this.similarArtistService = similarArtistService;
     }
 
     @GetMapping("/{id}")
@@ -61,6 +64,12 @@ public class ArtistController {
     public void bulkFollow(@RequestBody Map<String, List<Long>> body) {
         Long userId = JwtUtil.getCurrentUserId();
         artistService.bulkFollow(userId, body.get("artistIds"));
+    }
+
+    // GET /api/artists/{id}/similar — Deezer'ın benzerlerinden bizde kaydı olanlar
+    @GetMapping("/{id}/similar")
+    public List<ArtistResponse> getSimilar(@PathVariable Long id) {
+        return similarArtistService.getSimilar(id, JwtUtil.getCurrentUserId());
     }
 
     // GET /api/artists/popular?limit=12 — yaklaşan konser sayısına göre

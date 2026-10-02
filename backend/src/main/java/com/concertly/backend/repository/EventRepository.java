@@ -134,6 +134,12 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     List<Object[]> countUpcomingListedByVenueIdIn(@Param("venueIds") java.util.Collection<Long> venueIds,
                                                   @Param("from") java.time.LocalDateTime from);
 
+    /** Sanatçı başına yaklaşan, listede görünen etkinlik sayısı (benzer sanatçıları sıralamak için). */
+    @Query("SELECT e.artist.id, COUNT(e) FROM Event e WHERE e.artist.id IN :artistIds AND e.eventDate >= :from"
+            + " AND e.isApproved = true AND e.delistedReason IS NULL GROUP BY e.artist.id")
+    List<Object[]> countUpcomingListedByArtistIdIn(@Param("artistIds") java.util.Collection<Long> artistIds,
+                                                   @Param("from") java.time.LocalDateTime from);
+
     @EntityGraph(attributePaths = {"artist", "venue", "createdBy"})
     List<Event> findByEventDateBetween(java.time.LocalDateTime start, java.time.LocalDateTime end);
 

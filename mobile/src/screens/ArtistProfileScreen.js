@@ -100,6 +100,7 @@ export default function ArtistProfileScreen({ route, navigation }) {
   const [pastEvents, setPastEvents] = useState([]);
   const [posts, setPosts] = useState([]);
   const [reviews, setReviews] = useState([]);
+  const [similar, setSimilar] = useState([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [following, setFollowing] = useState(false);
@@ -115,6 +116,17 @@ export default function ArtistProfileScreen({ route, navigation }) {
 
   useEffect(() => {
     fetchAll();
+  }, [artistId]);
+
+  // Benzer sanatçılar ayrı yüklenir: Deezer yavaşsa profil beklemesin, hata olursa şerit gizli kalır
+  useEffect(() => {
+    let cancelled = false;
+    setSimilar([]);
+    if (!/^\d+$/.test(String(artistId ?? ''))) return undefined;
+    API.get(`/artists/${artistId}/similar`)
+      .then(res => { if (!cancelled) setSimilar(Array.isArray(res.data) ? res.data : []); })
+      .catch(() => {});
+    return () => { cancelled = true; };
   }, [artistId]);
 
   const fetchAll = async () => {
@@ -385,6 +397,35 @@ export default function ArtistProfileScreen({ route, navigation }) {
           </View>
         </View>
       </LinearGradient>
+
+      {/* ── BENZER SANATÇILAR ───────────────────────────────────────────── */}
+      {similar.length > 0 && (
+        <View style={styles.similarSection}>
+          <Text style={styles.similarTitle}>{t('artist_similar')}</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.similarRow}>
+            {similar.map(a => (
+              <TouchableOpacity
+                key={a.id}
+                style={styles.similarItem}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel={a.name}
+                // push: geri tuşu bir önceki sanatçıya dönsün (navigate aynı ekranın parametresini değiştirirdi)
+                onPress={() => navigation.push('ArtistProfile', { artistId: a.id, artistName: a.name })}
+              >
+                {a.imageUrl ? (
+                  <Image source={{ uri: a.imageUrl }} style={styles.similarAvatar} />
+                ) : (
+                  <LinearGradient colors={getGenreGradient(a.genre)} style={[styles.similarAvatar, styles.similarInitialsWrap]}>
+                    <Text style={styles.similarInitials}>{getInitials(a.name)}</Text>
+                  </LinearGradient>
+                )}
+                <Text style={styles.similarName} numberOfLines={2}>{a.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      )}
 
       {/* ── SEKMELER ────────────────────────────────────────────────────── */}
       <View style={styles.tabs}>
@@ -677,6 +718,14 @@ function createStyles(colors) {
     statDivider: { width: 1, height: 32, backgroundColor: colors.border },
 
     // SEKMELER (emoji + sayı, profil ekranıyla aynı)
+    similarSection: { paddingTop: 16, paddingBottom: 12, gap: 10, backgroundColor: colors.background },
+    similarTitle: { color: colors.text, fontSize: 16, fontWeight: '800', paddingHorizontal: 16 },
+    similarRow: { gap: 14, paddingHorizontal: 16 },
+    similarItem: { width: 72, alignItems: 'center' },
+    similarAvatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.card },
+    similarInitialsWrap: { alignItems: 'center', justifyContent: 'center' },
+    similarInitials: { color: '#fff', fontSize: 20, fontWeight: '800' },
+    similarName: { color: colors.text, fontSize: 12, fontWeight: '600', textAlign: 'center', marginTop: 6 },
     tabs: { flexDirection: 'row', backgroundColor: colors.background, borderBottomWidth: 1, borderBottomColor: colors.border },
     tab: { flex: 1, paddingVertical: 12, alignItems: 'center', gap: 3, borderBottomWidth: 3, borderBottomColor: 'transparent' },
     tabActive: { borderBottomColor: colors.primary },

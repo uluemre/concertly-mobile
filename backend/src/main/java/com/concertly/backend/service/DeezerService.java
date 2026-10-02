@@ -119,6 +119,28 @@ public class DeezerService {
         return results;
     }
 
+    /** Deezer'ın "benzer sanatçılar" listesi — yalnızca adlar, Deezer'ın benzerlik sırasıyla. */
+    @SuppressWarnings("unchecked")
+    public List<String> getRelatedArtistNames(long artistId, int limit) {
+        List<String> names = new ArrayList<>();
+        try {
+            String url = "https://api.deezer.com/artist/" + artistId + "/related?limit=" + limit;
+            Map<String, Object> response = restTemplate.getForObject(url, Map.class);
+            if (response == null) return names;
+
+            List<Map<String, Object>> data = (List<Map<String, Object>>) response.get("data");
+            if (data == null) return names;
+
+            for (Map<String, Object> item : data) {
+                Object name = item.get("name");
+                if (name != null && !name.toString().isBlank()) names.add(name.toString().trim());
+            }
+        } catch (Exception e) {
+            System.out.println("  ❌ Deezer benzer sanatçı hatası (artistId=" + artistId + "): " + e.getMessage());
+        }
+        return names;
+    }
+
     /** Sanatçının en popüler şarkıları — sadece önizlemesi olanlar, başlığa göre tekilleştirilmiş. */
     @SuppressWarnings("unchecked")
     public List<Track> getTopTracks(long artistId, int limit) {
