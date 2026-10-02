@@ -81,7 +81,7 @@ public class BiletinialImportService {
     }
 
     /**
-     * Ham kayitlari yazar.
+     * Ham kayitlari yazar. Kaynaktan bagimsizdir; Bubilet de bunu kullanir.
      *
      * Her kayit KENDI transaction'inda islenir (bkz. BiletinialRecordWriter):
      * tek bir bozuk kayit partinin geri kalanini dusurmez. Daha once tum parti
@@ -101,11 +101,12 @@ public class BiletinialImportService {
                 if (writer.upsert(raw)) created++; else updated++;
             } catch (Exception e) {
                 skipped++;
-                log.warn("Biletinial kaydi yazilamadi ({}): {}", raw.sourceEventId(), e.getMessage());
+                log.warn("{} kaydi yazilamadi ({}): {}", raw.source(), raw.sourceEventId(), e.getMessage());
             }
         }
-        log.info("Biletinial ice aktarim: {} cekildi, {} yeni, {} guncellendi, {} atlandi",
-                records.size(), created, updated, skipped);
+        String label = records.isEmpty() ? "Bilet sitesi" : records.get(0).source();
+        log.info("{} ice aktarim: {} cekildi, {} yeni, {} guncellendi, {} atlandi",
+                label, records.size(), created, updated, skipped);
         return new ImportResult(records.size(), created, updated, skipped);
     }
 

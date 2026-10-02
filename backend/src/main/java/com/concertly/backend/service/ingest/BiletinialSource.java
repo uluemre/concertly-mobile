@@ -58,7 +58,7 @@ public class BiletinialSource {
     /** Etkinlik saatleri Turkiye duvar saatiyle saklanir. */
     private static final ZoneId ISTANBUL = ZoneId.of("Europe/Istanbul");
 
-    private final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
     private final RestTemplate restTemplate;
     private final long politeDelayMs;
     private final int maxRetries;
@@ -210,14 +210,15 @@ public class BiletinialSource {
 
     // ── Yardimcilar ─────────────────────────────────────────────────────────
 
-    private List<JsonNode> jsonLdBlocks(String html) {
+    /** Sayfadaki JSON-LD bloklari; Bubilet okuyucusu da kullanir. */
+    static List<JsonNode> jsonLdBlocks(String html) {
         List<JsonNode> nodes = new ArrayList<>();
         Matcher matcher = LD_JSON.matcher(html);
         while (matcher.find()) {
             String raw = matcher.group(1).trim();
             if (raw.isEmpty()) continue;
             try {
-                nodes.add(mapper.readTree(raw));
+                nodes.add(MAPPER.readTree(raw));
             } catch (Exception e) {
                 log.debug("JSON-LD blogu okunamadi: {}", e.getMessage());
             }
@@ -252,14 +253,14 @@ public class BiletinialSource {
         return null;
     }
 
-    private static String text(JsonNode node) {
+    static String text(JsonNode node) {
         if (node == null || node.isMissingNode() || node.isNull()) return null;
         String value = node.isTextual() ? node.asText() : node.toString();
         value = value.trim();
         return value.isEmpty() ? null : value;
     }
 
-    private static Double toDouble(JsonNode node) {
+    static Double toDouble(JsonNode node) {
         if (node == null || node.isMissingNode() || node.isNull()) return null;
         try {
             return Double.valueOf(node.asText());

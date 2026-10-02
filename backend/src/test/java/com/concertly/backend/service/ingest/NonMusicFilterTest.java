@@ -34,6 +34,7 @@ class NonMusicFilterTest {
             "Cem Yılmaz Stand-Up",
             "Standup Gecesi",
             "Gırgıriye Müzikali",
+            "Lions Fight Night 3",
             "Afara - Bir Arabesk Müzikal",
             "Şehir Tiyatroları: Hamlet",
             "Komedi Dükkanı",

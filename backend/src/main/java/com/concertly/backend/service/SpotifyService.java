@@ -1,11 +1,13 @@
 package com.concertly.backend.service;
 
 import com.concertly.backend.config.ExternalHttp;
+import com.concertly.backend.repository.SearchText;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.*;
@@ -25,6 +27,18 @@ public class SpotifyService {
     private long tokenExpiry = 0;
     private volatile boolean credentialsUnavailable = false;
     private volatile boolean credentialsWarningLogged = false;
+    /** 429 sonrasi Spotify'in istedigi bekleme bitene kadar istek atilmaz (epoch ms). */
+    private volatile long rateLimitedUntil = 0;
+
+    /** Spotify su an erisim limiti nedeniyle bekletiyor mu. */
+    public boolean isRateLimited() {
+        return System.currentTimeMillis() < rateLimitedUntil;
+    }
+
+    /** Limitin bitmesine kalan sure (ms); limit yoksa 0. */
+    public long rateLimitRemainingMs() {
+        return Math.max(0, rateLimitedUntil - System.currentTimeMillis());
+    }
 
     private boolean hasUsableCredentials() {
         return !credentialsUnavailable
@@ -77,6 +91,7 @@ public class SpotifyService {
 
         for (String query : queries) {
             if (query == null || query.isBlank()) continue;
+            if (isRateLimited()) return null; // limitteyken istek atmak bekleme suresini uzatir
             SpotifyArtistData result = doSearch(query);
             if (result != null) return result; // ilk başarılı sonuçta dur
             // Rate limit için kısa bekleme
@@ -115,14 +130,21 @@ public class SpotifyService {
                 return null;
             }
 
-            // Pick the best match — prefer exact name match
-            Map<String, Object> best = items.get(0);
+            // Yalnizca ADI TUTAN sonucu kabul et (Turkce harf / noktalama duyarsiz,
+            // sanatci kimligiyle ayni kural). Eskiden ilk sonuc alinirdi; "Candle
+            // Experience" gibi kayitlar alakasiz bir sanatcinin profiline baglaniyordu.
+            String wanted = SearchText.nameKey(query);
+            Map<String, Object> best = null;
             for (Map<String, Object> item : items) {
                 String itemName = (String) item.get("name");
-                if (itemName != null && itemName.equalsIgnoreCase(query)) {
+                if (!wanted.isEmpty() && wanted.equals(SearchText.nameKey(itemName))) {
                     best = item;
                     break;
                 }
+            }
+            if (best == null) {
+                System.out.println("  🔍 Spotify'da adi tutan sanatci yok: " + query);
+                return null;
             }
 
             // Best image (largest = index 0 from Spotify)
@@ -155,17 +177,23 @@ public class SpotifyService {
 
             return new SpotifyArtistData(imageUrl, genre, spotifyId, name, followerCount, popularity, rawGenres);
 
+        } catch (HttpClientErrorException.TooManyRequests e) {
+            // Spotify'in istedigi sure kadar hic istek atma; uymazsak bekleme uzuyor
+            // (gecmiste 24 saatlik yasak yedik).
+            long waitSeconds = 30;
+            String retryAfter = e.getResponseHeaders() != null
+                    ? e.getResponseHeaders().getFirst(HttpHeaders.RETRY_AFTER) : null;
+            try { if (retryAfter != null) waitSeconds = Long.parseLong(retryAfter.trim()); }
+            catch (NumberFormatException ignored) { }
+            rateLimitedUntil = System.currentTimeMillis() + waitSeconds * 1000L;
+            System.out.println("  ⏳ Spotify erisim limiti: " + waitSeconds + " sn istek atilmayacak");
+            return null;
         } catch (Exception e) {
             String msg = e.getMessage();
-            if (msg != null && msg.contains("429")) {
-                System.out.println("  ⏳ Spotify rate limit — 2sn bekleniyor...");
-                try { Thread.sleep(2000); } catch (InterruptedException ignored) {}
-            } else {
-                if (msg != null && (msg.contains("invalid_client") || msg.contains("401") || msg.contains("400 Bad Request"))) {
-                    credentialsUnavailable = true;
-                }
-                System.out.println("  ❌ Spotify hata (" + query + "): " + msg);
+            if (msg != null && (msg.contains("invalid_client") || msg.contains("401") || msg.contains("400 Bad Request"))) {
+                credentialsUnavailable = true;
             }
+            System.out.println("  ❌ Spotify hata (" + query + "): " + msg);
             return null;
         }
     }

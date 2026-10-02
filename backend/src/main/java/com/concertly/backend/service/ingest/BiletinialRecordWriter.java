@@ -12,8 +12,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Locale;
+
 /**
- * Tek bir Biletinial kaydini yazar.
+ * Tek bir bilet sitesi kaydini (Biletinial, Bubilet) yazar.
+ *
+ * Kaynak kaydin kendisinden okunur (RawConcertData.source); kimlik on eki ve
+ * Event.source buna gore secilir, boylece ayni yazici her JSON-LD kaynagina
+ * hizmet eder.
  *
  * Neden ayri sinif: her kayit KENDI transaction'inda islenmeli. Tum partiyi
  * tek transaction icinde yazip kayit bazinda hata yutmak ise yaramiyor —
@@ -46,13 +52,14 @@ public class BiletinialRecordWriter {
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public boolean upsert(RawConcertData raw) {
-        String externalId = BiletinialImportService.EXTERNAL_ID_PREFIX + raw.sourceEventId();
+        EventSource source = EventSource.valueOf(raw.source());
+        String externalId = externalIdPrefix(source) + raw.sourceEventId();
 
         // Kimlik once event_sources uzerinden aranir: kayit baska bir etkinlikle
         // BIRLESTIRILMIS olabilir, o zaman asil kaydi guncelleriz ve mukerrer
         // yeniden olusmaz. Bulunamazsa eski yol (events.external_id) denenir;
         // bu satirlar backfill oncesinden kalanlardir.
-        Event event = sourceLinks.find(EventSource.BILETINIAL, externalId)
+        Event event = sourceLinks.find(source, externalId)
                 .map(EventSourceLink::getEvent)
                 .orElseGet(() -> eventRepository.findByExternalId(externalId).orElse(null));
 
@@ -63,14 +70,14 @@ public class BiletinialRecordWriter {
         }
         // Birlestirilmis asil kaydin kendi alanlari ezilmemeli; yalnizca kaynak
         // satiri tazelenir.
-        boolean canonicalFromOtherSource = !isNew && event.getSource() != EventSource.BILETINIAL;
+        boolean canonicalFromOtherSource = !isNew && event.getSource() != source;
 
         Artist artist = findOrCreateArtist(raw);
         Venue venue = findOrCreateVenue(raw);
 
         if (canonicalFromOtherSource) {
             // Asil kayit baska kaynaktan; yalnizca kaynak satirini guncelledik.
-            sourceLinks.upsert(event, EventSource.BILETINIAL, externalId,
+            sourceLinks.upsert(event, source, externalId,
                     raw.ticketUrl(), raw.ticketUrl(), false);
             return false;
         }
@@ -91,14 +98,22 @@ public class BiletinialRecordWriter {
         // listeden bilerek kaldirilmis kayit (V5) sync ile geri acilmaz.
         event.setIsApproved(event.getDelistedReason() == null);
         event.setIsVerified(true);
-        event.setSource(EventSource.BILETINIAL);
+        event.setSource(source);
         event.setSourceUrl(raw.ticketUrl());
 
         Event saved = eventRepository.save(event);
         // Kaynak kimligi her kosuda tazelenir (last_seen_at).
-        sourceLinks.upsert(saved, EventSource.BILETINIAL, externalId,
+        sourceLinks.upsert(saved, source, externalId,
                 raw.ticketUrl(), raw.ticketUrl(), !canonicalFromOtherSource);
         return isNew;
+    }
+
+    /**
+     * Ticketmaster kimlikleriyle karismasin diye kaynak on eki, ornegin
+     * "biletinial:" ya da "bubilet:".
+     */
+    static String externalIdPrefix(EventSource source) {
+        return source.name().toLowerCase(Locale.ROOT) + ":";
     }
 
     /**

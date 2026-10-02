@@ -39,7 +39,8 @@ public final class NonMusicFilter {
             word("atolye(si)?"),
             word("sergi(si)?"),
             word("cinayet(ler|leri)?( [a-z0-9]+){0,3} kumpanya(si)?"),
-            word("oyun"));
+            word("oyun"),
+            word("fight night"));
 
     /** Bunlardan biri geçiyorsa etkinlik müziktir; asla elenmez. */
     private static final Pattern MUSIC = word(

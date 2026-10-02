@@ -6,6 +6,7 @@ import {
   TextInput, KeyboardAvoidingView, Platform, Linking,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { FontAwesome } from '@expo/vector-icons';
 import EventCard from '../components/EventCard';
 import DeepLinkLoader from '../components/DeepLinkLoader';
 import API from '../services/api';
@@ -356,8 +357,10 @@ export default function ArtistProfileScreen({ route, navigation }) {
                   style={styles.spotifyMiniBtn}
                   activeOpacity={0.8}
                   onPress={() => Linking.openURL(`https://open.spotify.com/artist/${artist.spotifyId}`)}
+                  accessibilityRole="link"
+                  accessibilityLabel={t('artist_open_spotify')}
                 >
-                  <Text style={styles.spotifyMiniBtnText}>↗</Text>
+                  <FontAwesome name="spotify" size={22} color="#1DB954" />
                 </TouchableOpacity>
               )}
             </View>
@@ -661,7 +664,6 @@ function createStyles(colors) {
       borderWidth: 1, borderColor: '#1DB954',
       justifyContent: 'center', alignItems: 'center',
     },
-    spotifyMiniBtnText: { color: '#1DB954', fontSize: 18, fontWeight: '700' },
 
     statsRow: {
       flexDirection: 'row', alignItems: 'center',

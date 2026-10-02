@@ -12,6 +12,8 @@ public enum EventSource {
     TICKETMASTER,
     /** Biletinial içe aktarımı (schema.org JSON-LD). */
     BILETINIAL,
+    /** Bubilet içe aktarımı (schema.org JSON-LD). */
+    BUBILET,
     /** Admin panelinden elle eklendi. */
     ADMIN,
     /** Sıradan kullanıcı önerdi — admin onayı gerekir. */

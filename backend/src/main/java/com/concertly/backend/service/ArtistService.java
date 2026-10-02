@@ -253,41 +253,64 @@ public class ArtistService {
         }
     }
 
-    @Transactional
+    /**
+     * Spotify kimligi eksik sanatcilari toplu esler.
+     *
+     * - Yaklasan konseri olanlar once islenir: limit yuzunden yarida kalirsa
+     *   ekranda gorunen sanatcilar tamamlanmis olur.
+     * - Her sanatci ayri kaydedilir; kesilen kosu kaldigi yerden devam eder
+     *   (kimligi dolan sanatci bir sonraki kosuda atlanir).
+     * - Spotify uzun bekleme isterse kosu durur; kisa beklemede beklenir.
+     * Transaction bilerek yok: on dakikalik kosu tek transaction'da tutulmaz.
+     */
     public int enrichAllArtists() {
-        List<Artist> all = artistRepository.findAll();
-        int enriched = 0;
-        int skipped = 0;
+        LocalDateTime now = LocalDateTime.now();
+        Set<Long> withUpcoming = eventRepository.findAll().stream()
+                .filter(e -> e.getArtist() != null && e.getEventDate() != null && e.getEventDate().isAfter(now))
+                .map(e -> e.getArtist().getId())
+                .collect(Collectors.toSet());
 
-        for (Artist a : all) {
-            if (a.getMergedIntoArtistId() != null) continue; // birlestirilmis mukerrer zenginlestirilmez (N-09)
-            if (a.getImageUrl() != null && a.getGenre() != null && a.getSpotifyId() != null) {
-                skipped++;
-                continue;
+        List<Artist> todo = artistRepository.findAll().stream()
+                .filter(a -> a.getMergedIntoArtistId() == null) // birlestirilmis mukerrer zenginlestirilmez (N-09)
+                .filter(a -> a.getSpotifyId() == null || a.getImageUrl() == null || a.getGenre() == null)
+                .sorted(Comparator.comparing((Artist a) -> !withUpcoming.contains(a.getId()))
+                        .thenComparing(Artist::getId))
+                .toList();
+
+        int enriched = 0;
+        int processed = 0;
+        for (Artist a : todo) {
+            if (spotifyService.isRateLimited()) {
+                long waitMs = spotifyService.rateLimitRemainingMs();
+                if (waitMs > 60_000) {
+                    System.out.println("⛔ Spotify " + (waitMs / 1000) + " sn bekleme istedi; kosu durduruldu ("
+                            + processed + "/" + todo.size() + "). Sonra tekrar calistir, kaldigi yerden devam eder.");
+                    break;
+                }
+                try { Thread.sleep(waitMs + 1000); } catch (InterruptedException e) { Thread.currentThread().interrupt(); break; }
             }
 
             // Spotify rate limit: saniyede ~3 istek
             try { Thread.sleep(350); } catch (InterruptedException e) { Thread.currentThread().interrupt(); break; }
+            processed++;
 
-            System.out.println("🎵 Zenginlestiriliyor: " + a.getName());
+            System.out.println("🎵 Zenginlestiriliyor (" + processed + "/" + todo.size() + "): " + a.getName());
             SpotifyService.SpotifyArtistData sd = spotifyService.searchArtist(a.getName());
-            if (sd != null) {
-                if (a.getImageUrl() == null && sd.imageUrl != null) a.setImageUrl(sd.imageUrl);
-                if (a.getGenre() == null && sd.genre != null) a.setGenre(sd.genre);
-                if (a.getSpotifyId() == null && sd.spotifyId != null) a.setSpotifyId(sd.spotifyId);
-                if (sd.popularity != null) a.setPopularity(sd.popularity);
-                if (sd.followerCount != null) a.setSpotifyFollowers(sd.followerCount.longValue());
-                if (!sd.rawGenres.isEmpty()) {
-                    a.setGenreTags(String.join(", ", sd.rawGenres));
-                }
-                enriched++;
-                System.out.println("  ✅ image=" + (sd.imageUrl != null) + " genre=" + sd.genre
-                        + " popularity=" + sd.popularity);
+            if (sd == null) continue;
+
+            if (a.getImageUrl() == null && sd.imageUrl != null) a.setImageUrl(sd.imageUrl);
+            if (a.getGenre() == null && sd.genre != null) a.setGenre(sd.genre);
+            if (a.getSpotifyId() == null && sd.spotifyId != null) a.setSpotifyId(sd.spotifyId);
+            if (sd.popularity != null) a.setPopularity(sd.popularity);
+            if (sd.followerCount != null) a.setSpotifyFollowers(sd.followerCount.longValue());
+            if (!sd.rawGenres.isEmpty()) {
+                a.setGenreTags(String.join(", ", sd.rawGenres));
             }
+            artistRepository.save(a);
+            enriched++;
         }
 
-        artistRepository.saveAll(all);
-        System.out.println("📊 " + enriched + " zenginlestirildi, " + skipped + " zaten tamdi");
+        System.out.println("📊 " + enriched + " zenginlestirildi, " + processed + "/" + todo.size() + " denendi");
         return enriched;
     }
 
