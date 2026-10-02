@@ -5,8 +5,8 @@ import {
   Animated, Dimensions, Alert, Image,
   TextInput, KeyboardAvoidingView, Platform, Linking,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { FontAwesome } from '@expo/vector-icons';
+// Ionicons'ta Spotify logosu yok: yalnızca o buton FontAwesome kullanır
+import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import EventCard from '../components/EventCard';
 import DeepLinkLoader from '../components/DeepLinkLoader';
 import API from '../services/api';
@@ -18,28 +18,6 @@ import { buildShareUrl, shareWithLink } from '../services/shareLinks';
 import { formatTimeAgo, parseEventDate, dateLocale } from '../utils/time';
 import { goBackOrFallback, openEvent } from '../navigation/navHelpers';
 
-const GENRE_GRADIENTS = {
-  'Rock':       ['#E94560', '#7C1AED'],
-  'Pop':        ['#FF6B9D', '#C44569'],
-  'Rap':        ['#2C3E50', '#F39C12'],
-  'Elektronik': ['#00D4AA', '#0066CC'],
-  'Jazz':       ['#F5A623', '#8B4513'],
-  'Klasik':     ['#4A0E8F', '#1a237e'],
-  'Indie':      ['#00BCD4', '#2E7D32'],
-  'R&B':        ['#9C27B0', '#E91E63'],
-  'Folk':       ['#8BC34A', '#5D4037'],
-  'Reggae':     ['#43A047', '#FDD835'],
-  'Arabesk':    ['#8B0000', '#DAA520'],
-};
-
-function getGenreGradient(genre) {
-  if (!genre) return ['#E94560', '#7C3AED'];
-  const key = Object.keys(GENRE_GRADIENTS).find(k =>
-    genre.toLowerCase().includes(k.toLowerCase())
-  );
-  return GENRE_GRADIENTS[key] || ['#E94560', '#7C3AED'];
-}
-
 function getInitials(name) {
   if (!name) return '?';
   const words = name.trim().split(/\s+/);
@@ -47,23 +25,39 @@ function getInitials(name) {
   return (words[0][0] + words[1][0]).toUpperCase();
 }
 
-function StarRating({ value, onChange, size = 26 }) {
+function StarRating({ value, onChange, size = 26, colors }) {
   return (
     <View style={{ flexDirection: 'row', gap: 4 }}>
       {[1, 2, 3, 4, 5].map(star => (
-        <TouchableOpacity key={star} onPress={() => onChange && onChange(star)} activeOpacity={0.7}>
-          <Text style={{ fontSize: size, color: star <= value ? '#F5A623' : '#555' }}>★</Text>
+        <TouchableOpacity
+          key={star}
+          onPress={() => onChange && onChange(star)}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={`${star}/5`}
+          accessibilityState={{ selected: star <= value }}
+        >
+          <Ionicons
+            name={star <= value ? 'star' : 'star-outline'}
+            size={size}
+            color={star <= value ? colors.secondary : colors.textSecondary}
+          />
         </TouchableOpacity>
       ))}
     </View>
   );
 }
 
-function StarDisplay({ value, size = 14 }) {
+function StarDisplay({ value, size = 14, colors }) {
   return (
-    <View style={{ flexDirection: 'row', gap: 1 }}>
+    <View style={{ flexDirection: 'row', gap: 1 }} accessibilityLabel={`${Math.round(value)}/5`}>
       {[1, 2, 3, 4, 5].map(star => (
-        <Text key={star} style={{ fontSize: size, color: star <= Math.round(value) ? '#F5A623' : '#444' }}>★</Text>
+        <Ionicons
+          key={star}
+          name={star <= Math.round(value) ? 'star' : 'star-outline'}
+          size={size}
+          color={star <= Math.round(value) ? colors.secondary : colors.border}
+        />
       ))}
     </View>
   );
@@ -79,14 +73,6 @@ function formatFollowers(n) {
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2;
 
-const gradientSets = [
-  ['#E94560', '#7C3AED'],
-  ['#F5A623', '#E94560'],
-  ['#00D4AA', '#7C3AED'],
-  ['#7C3AED', '#F5A623'],
-];
-
-const eventEmojis = ['🎸', '🎤', '🥁', '🎹', '🎺', '🎻', '🎪', '🎭'];
 
 export default function ArtistProfileScreen({ route, navigation }) {
   const { colors } = useTheme();
@@ -266,16 +252,15 @@ export default function ArtistProfileScreen({ route, navigation }) {
       keyboardShouldPersistTaps="handled"
     >
       {/* ── HERO ─────────────────────────────────────────────────────────── */}
-      <LinearGradient colors={colors.headerGradient} style={styles.hero}>
-        <View style={styles.heroBgCircle} />
+      <View style={styles.hero}>
 
         <View style={styles.heroTopRow}>
-          <TouchableOpacity style={styles.backButton} onPress={() => goBackOrFallback(navigation)}>
+          <TouchableOpacity style={styles.backButton} onPress={() => goBackOrFallback(navigation)} accessibilityRole="button">
             <Text style={styles.backText}>{t('back')}</Text>
           </TouchableOpacity>
           {/* Sanatçı sayfası paylaşımı — linki alan kişi uygulamada açar */}
           <TouchableOpacity style={styles.shareIconBtn} onPress={shareArtist} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={t('share')}>
-            <Text style={styles.shareIconText}>🔗</Text>
+            <Ionicons name="share-outline" size={18} color={colors.text} />
           </TouchableOpacity>
         </View>
 
@@ -285,11 +270,11 @@ export default function ArtistProfileScreen({ route, navigation }) {
             {artist?.imageUrl ? (
               <Image source={{ uri: artist.imageUrl }} style={styles.avatar} />
             ) : (
-              <LinearGradient colors={getGenreGradient(artist?.genre)} style={styles.avatarPlaceholder}>
+              <View style={styles.avatarPlaceholder}>
                 <Text style={styles.avatarLetter}>
                   {getInitials(artist?.name || artistName)}
                 </Text>
-              </LinearGradient>
+              </View>
             )}
           </View>
 
@@ -300,7 +285,7 @@ export default function ArtistProfileScreen({ route, navigation }) {
             {/* Yıldızlar */}
             {avgRating !== null && (
               <View style={styles.avgRatingRow}>
-                <StarDisplay value={avgRating} size={14} />
+                <StarDisplay value={avgRating} size={14} colors={colors} />
                 <Text style={styles.avgRatingText}>{avgRating.toFixed(1)}</Text>
                 <Text style={styles.avgRatingCount}>({reviews.length})</Text>
               </View>
@@ -308,16 +293,22 @@ export default function ArtistProfileScreen({ route, navigation }) {
 
             {/* Genre tag'leri */}
             {(artist?.genreTags || artist?.genre) && (
-              <Text style={styles.genreTagsText} numberOfLines={2}>
-                🎵 {artist.genreTags || artist.genre}
-              </Text>
+              <View style={styles.metaRow}>
+                <Ionicons name="musical-notes-outline" size={13} color={colors.textSecondary} />
+                <Text style={[styles.genreTagsText, styles.metaText]} numberOfLines={2}>
+                  {artist.genreTags || artist.genre}
+                </Text>
+              </View>
             )}
 
             {/* Spotify takipçi */}
             {artist?.spotifyFollowers != null && (
-              <Text style={styles.spotifyFollowersText}>
-                🎧 {formatFollowers(artist.spotifyFollowers)} Spotify takipçi
-              </Text>
+              <View style={styles.metaRow}>
+                <Ionicons name="headset-outline" size={13} color={colors.textSecondary} />
+                <Text style={[styles.spotifyFollowersText, styles.metaText]}>
+                  {formatFollowers(artist.spotifyFollowers)} Spotify takipçi
+                </Text>
+              </View>
             )}
 
             {/* Popülerlik barı */}
@@ -325,11 +316,7 @@ export default function ArtistProfileScreen({ route, navigation }) {
               <View style={styles.popularityRow}>
                 <Text style={styles.popularityLabel}>{t('artist_popularity')}</Text>
                 <View style={[styles.popularityTrack, { backgroundColor: colors.border }]}>
-                  <LinearGradient
-                    colors={['#1DB954', '#00D4AA']}
-                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                    style={[styles.popularityFill, { width: `${artist.popularity}%` }]}
-                  />
+                  <View style={[styles.popularityFill, { width: `${artist.popularity}%` }]} />
                 </View>
                 <Text style={styles.popularityValue}>{artist.popularity}</Text>
               </View>
@@ -342,6 +329,9 @@ export default function ArtistProfileScreen({ route, navigation }) {
                 disabled={followLoading}
                 style={styles.followWrapper}
                 activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel={following ? t('artist_following') : t('artist_follow')}
+                accessibilityState={{ selected: following, busy: followLoading }}
               >
                 {following ? (
                   <View style={[styles.followingButton, { borderColor: colors.primary }]}>
@@ -351,16 +341,12 @@ export default function ArtistProfileScreen({ route, navigation }) {
                     }
                   </View>
                 ) : (
-                  <LinearGradient
-                    colors={['#E94560', '#7C3AED']}
-                    style={styles.followButton}
-                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                  >
+                  <View style={styles.followButton}>
                     {followLoading
                       ? <ActivityIndicator size="small" color="#fff" />
                       : <Text style={styles.followText}>{t('artist_follow')}</Text>
                     }
-                  </LinearGradient>
+                  </View>
                 )}
               </TouchableOpacity>
 
@@ -396,7 +382,7 @@ export default function ArtistProfileScreen({ route, navigation }) {
             <Text style={styles.statLabel}>{t('artist_reviews_label')}</Text>
           </View>
         </View>
-      </LinearGradient>
+      </View>
 
       {/* ── BENZER SANATÇILAR ───────────────────────────────────────────── */}
       {similar.length > 0 && (
@@ -416,9 +402,9 @@ export default function ArtistProfileScreen({ route, navigation }) {
                 {a.imageUrl ? (
                   <Image source={{ uri: a.imageUrl }} style={styles.similarAvatar} />
                 ) : (
-                  <LinearGradient colors={getGenreGradient(a.genre)} style={[styles.similarAvatar, styles.similarInitialsWrap]}>
+                  <View style={[styles.similarAvatar, styles.similarInitialsWrap]}>
                     <Text style={styles.similarInitials}>{getInitials(a.name)}</Text>
-                  </LinearGradient>
+                  </View>
                 )}
                 <Text style={styles.similarName} numberOfLines={2}>{a.name}</Text>
               </TouchableOpacity>
@@ -430,9 +416,9 @@ export default function ArtistProfileScreen({ route, navigation }) {
       {/* ── SEKMELER ────────────────────────────────────────────────────── */}
       <View style={styles.tabs}>
         {[
-          { key: 'events',  icon: '🎫', count: events.length + pastEvents.length },
-          { key: 'posts',   icon: '📝', count: posts.length },
-          { key: 'reviews', icon: '⭐', count: reviews.length },
+          { key: 'events',  icon: 'ticket-outline', count: events.length + pastEvents.length },
+          { key: 'posts',   icon: 'document-text-outline', count: posts.length },
+          { key: 'reviews', icon: 'star-outline', count: reviews.length },
         ].map(tab => (
           <TouchableOpacity
             key={tab.key}
@@ -443,7 +429,11 @@ export default function ArtistProfileScreen({ route, navigation }) {
             accessibilityState={{ selected: activeTab === tab.key }}
             accessibilityLabel={`${t(`artist_${tab.key}_label`)}: ${tab.count}`}
           >
-            <Text style={styles.tabIcon}>{tab.icon}</Text>
+            <Ionicons
+              name={tab.icon}
+              size={20}
+              color={activeTab === tab.key ? colors.primary : colors.textSecondary}
+            />
             <Text style={[styles.tabCount, activeTab === tab.key && styles.tabCountActive]}>
               {tab.count}
             </Text>
@@ -459,7 +449,7 @@ export default function ArtistProfileScreen({ route, navigation }) {
             {/* YAKLAŞAN ETKİNLİKLER */}
             {events.length === 0 ? (
               <View style={styles.empty}>
-                <Text style={styles.emptyEmoji}>🎭</Text>
+                <Ionicons name="calendar-outline" size={52} color={colors.textSecondary} style={styles.emptyIcon} />
                 <Text style={styles.emptyText}>{t('artist_no_events')}</Text>
               </View>
             ) : (
@@ -491,6 +481,7 @@ export default function ArtistProfileScreen({ route, navigation }) {
                     style={[styles.pastCard, { backgroundColor: colors.card, borderColor: colors.border }]}
                     onPress={() => openEvent(navigation, item)}
                     activeOpacity={0.85}
+                    accessibilityRole="button"
                   >
                     <View style={styles.pastCardLeft}>
                       <Text style={[styles.pastCardDate, { color: colors.textSecondary }]}>
@@ -502,16 +493,19 @@ export default function ArtistProfileScreen({ route, navigation }) {
                         {item.name}
                       </Text>
                       {item.venueCity && (
-                        <Text style={[styles.pastCardCity, { color: colors.textSecondary }]}>
-                          📍 {item.venueCity}
-                        </Text>
+                        <View style={styles.metaRow}>
+                          <Ionicons name="location-outline" size={11} color={colors.textSecondary} />
+                          <Text style={[styles.pastCardCity, { color: colors.textSecondary }]}>
+                            {item.venueCity}
+                          </Text>
+                        </View>
                       )}
                     </View>
 
                     <View style={styles.pastCardRight}>
                       {item.avgRating != null && item.avgRating > 0 ? (
                         <>
-                          <StarDisplay value={item.avgRating} size={13} />
+                          <StarDisplay value={item.avgRating} size={13} colors={colors} />
                           <Text style={[styles.pastCardRating, { color: colors.textSecondary }]}>
                             {Number(item.avgRating).toFixed(1)} · {item.reviewCount} yorum
                           </Text>
@@ -532,24 +526,24 @@ export default function ArtistProfileScreen({ route, navigation }) {
         {activeTab === 'posts' && (
           posts.length === 0 ? (
             <View style={styles.empty}>
-              <Text style={styles.emptyEmoji}>📭</Text>
+              <Ionicons name="document-text-outline" size={52} color={colors.textSecondary} style={styles.emptyIcon} />
               <Text style={styles.emptyText}>{t('artist_no_posts')}</Text>
             </View>
           ) : (
             posts.map((item, index) => (
               <View key={item.id} style={styles.postCard}>
                 <View style={styles.postHeader}>
-                  <LinearGradient
-                    colors={gradientSets[index % gradientSets.length]}
-                    style={styles.postAvatar}
-                  >
+                  <View style={styles.postAvatar}>
                     <Text style={styles.postAvatarText}>
                       {item.username?.charAt(0).toUpperCase() || '?'}
                     </Text>
-                  </LinearGradient>
+                  </View>
                   <View style={styles.postHeaderInfo}>
                     <Text style={styles.postUsername}>@{item.username}</Text>
-                    <Text style={styles.postEvent}>🎵 {item.eventName}</Text>
+                    <View style={styles.metaRow}>
+                      <Ionicons name="musical-notes-outline" size={12} color={colors.textSecondary} />
+                      <Text style={[styles.postEvent, styles.postEventText]} numberOfLines={1}>{item.eventName}</Text>
+                    </View>
                   </View>
                   <Text style={styles.postDate}>
                     {new Date(item.createdAt).toLocaleDateString(dateLocale(lang), {
@@ -559,8 +553,14 @@ export default function ArtistProfileScreen({ route, navigation }) {
                 </View>
                 <Text style={styles.postContent}>{item.content}</Text>
                 <View style={styles.postFooter}>
-                  <Text style={styles.postStat}>❤️ {item.likeCount || 0}</Text>
-                  <Text style={styles.postStat}>💬 {item.commentCount || 0}</Text>
+                  <View style={styles.postStatItem}>
+                    <Ionicons name="heart-outline" size={14} color={colors.textSecondary} />
+                    <Text style={styles.postStat}>{item.likeCount || 0}</Text>
+                  </View>
+                  <View style={styles.postStatItem}>
+                    <Ionicons name="chatbubble-outline" size={14} color={colors.textSecondary} />
+                    <Text style={styles.postStat}>{item.commentCount || 0}</Text>
+                  </View>
                 </View>
               </View>
             ))
@@ -575,9 +575,9 @@ export default function ArtistProfileScreen({ route, navigation }) {
                 {myReview ? t('artist_review_form_title_edit') : t('artist_review_form_title_new')}
               </Text>
               <View style={styles.reviewStarRow}>
-                <StarRating value={myRating} onChange={setMyRating} size={32} />
+                <StarRating value={myRating} onChange={setMyRating} size={32} colors={colors} />
                 {myReview && (
-                  <TouchableOpacity onPress={handleDeleteReview} style={styles.deleteReviewBtn}>
+                  <TouchableOpacity onPress={handleDeleteReview} style={styles.deleteReviewBtn} accessibilityRole="button">
                     <Text style={styles.deleteReviewText}>{t('delete')}</Text>
                   </TouchableOpacity>
                 )}
@@ -595,23 +595,21 @@ export default function ArtistProfileScreen({ route, navigation }) {
                 style={[styles.reviewSubmitBtn, { opacity: reviewLoading ? 0.6 : 1 }]}
                 onPress={handleSubmitReview}
                 disabled={reviewLoading}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: reviewLoading, busy: reviewLoading }}
               >
-                <LinearGradient
-                  colors={['#E94560', '#7C3AED']}
-                  style={styles.reviewSubmitGradient}
-                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                >
+                <View style={styles.reviewSubmitInner}>
                   <Text style={styles.reviewSubmitText}>
                     {reviewLoading ? t('artist_review_saving') : myReview ? t('artist_review_update') : t('artist_review_submit')}
                   </Text>
-                </LinearGradient>
+                </View>
               </TouchableOpacity>
             </View>
 
             {/* YORUM LİSTESİ */}
             {reviews.length === 0 ? (
               <View style={styles.empty}>
-                <Text style={styles.emptyEmoji}>💬</Text>
+                <Ionicons name="chatbubbles-outline" size={52} color={colors.textSecondary} style={styles.emptyIcon} />
                 <Text style={styles.emptyText}>{t('artist_no_reviews')}</Text>
                 <Text style={[styles.emptySubText, { color: colors.textSecondary }]}>
                   {t('artist_no_reviews_sub')}
@@ -621,17 +619,14 @@ export default function ArtistProfileScreen({ route, navigation }) {
               reviews.map(r => (
                 <View key={r.id} style={[styles.reviewCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
                   <View style={styles.reviewHeader}>
-                    <LinearGradient
-                      colors={['#E94560', '#7C3AED']}
-                      style={styles.reviewAvatar}
-                    >
+                    <View style={styles.reviewAvatar}>
                       <Text style={styles.reviewAvatarText}>
                         {r.username?.charAt(0).toUpperCase() || '?'}
                       </Text>
-                    </LinearGradient>
+                    </View>
                     <View style={styles.reviewMeta}>
                       <Text style={[styles.reviewUsername, { color: colors.text }]}>@{r.username}</Text>
-                      <StarDisplay value={r.rating} />
+                      <StarDisplay value={r.rating} colors={colors} />
                     </View>
                     <Text style={[styles.reviewDate, { color: colors.textSecondary }]}>
                       {formatTimeAgo(r.createdAt, lang)}
@@ -659,10 +654,6 @@ function createStyles(colors) {
 
     // HERO
     hero: { paddingTop: 56, paddingBottom: 32, paddingHorizontal: 24, overflow: 'hidden', position: 'relative' },
-    heroBgCircle: {
-      position: 'absolute', width: 300, height: 300, borderRadius: 150,
-      backgroundColor: colors.primary + '15', top: -80, right: -80,
-    },
     backButton: { marginBottom: 24 },
     heroTopRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
     shareIconBtn: {
@@ -671,13 +662,15 @@ function createStyles(colors) {
       alignItems: 'center', justifyContent: 'center',
       borderWidth: 1, borderColor: colors.border,
     },
-    shareIconText: { fontSize: 17 },
     backText: { color: colors.textSecondary, fontSize: 15, fontWeight: '600' },
     heroInner: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 20, gap: 16 },
     avatarCol: { alignItems: 'center' },
     avatar: { width: 100, height: 100, borderRadius: 50, borderWidth: 3, borderColor: colors.border },
-    avatarPlaceholder: { width: 100, height: 100, borderRadius: 50, justifyContent: 'center', alignItems: 'center' },
-    avatarLetter: { fontSize: 44, fontWeight: '900', color: 'rgba(255,255,255,0.95)' },
+    avatarPlaceholder: {
+      width: 100, height: 100, borderRadius: 50, justifyContent: 'center', alignItems: 'center',
+      backgroundColor: colors.cardAlt, borderWidth: 3, borderColor: colors.border,
+    },
+    avatarLetter: { fontSize: 44, fontWeight: '900', color: colors.text },
     infoCol: { flex: 1, paddingTop: 2 },
     artistName: { fontSize: 22, fontWeight: 'bold', color: colors.text, marginBottom: 6, lineHeight: 27 },
 
@@ -687,15 +680,18 @@ function createStyles(colors) {
 
     genreTagsText: { color: colors.textSecondary, fontSize: 12, marginBottom: 5, lineHeight: 17 },
     spotifyFollowersText: { color: colors.textSecondary, fontSize: 12, marginBottom: 5 },
+    // İkon + metin satırı (tür, Spotify takipçi, şehir, etkinlik adı)
+    metaRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+    metaText: { flexShrink: 1 },
     popularityRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
     popularityLabel: { color: colors.textSecondary, fontSize: 11 },
     popularityTrack: { flex: 1, height: 5, borderRadius: 3, overflow: 'hidden' },
-    popularityFill: { height: '100%', borderRadius: 3 },
+    popularityFill: { height: '100%', borderRadius: 3, backgroundColor: '#1DB954' },
     popularityValue: { color: colors.textSecondary, fontSize: 11, minWidth: 22, textAlign: 'right' },
 
     heroActions: { flexDirection: 'row', gap: 8, alignItems: 'center', marginTop: 4 },
     followWrapper: { flex: 1 },
-    followButton: { paddingVertical: 10, borderRadius: 12, alignItems: 'center' },
+    followButton: { paddingVertical: 10, borderRadius: 12, alignItems: 'center', backgroundColor: colors.primary },
     followText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
     followingButton: { paddingVertical: 10, borderRadius: 12, alignItems: 'center', borderWidth: 2 },
     followingText: { fontWeight: 'bold', fontSize: 14 },
@@ -723,13 +719,15 @@ function createStyles(colors) {
     similarRow: { gap: 14, paddingHorizontal: 16 },
     similarItem: { width: 72, alignItems: 'center' },
     similarAvatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.card },
-    similarInitialsWrap: { alignItems: 'center', justifyContent: 'center' },
-    similarInitials: { color: '#fff', fontSize: 20, fontWeight: '800' },
+    similarInitialsWrap: {
+      alignItems: 'center', justifyContent: 'center',
+      backgroundColor: colors.cardAlt, borderWidth: 1, borderColor: colors.border,
+    },
+    similarInitials: { color: colors.text, fontSize: 20, fontWeight: '800' },
     similarName: { color: colors.text, fontSize: 12, fontWeight: '600', textAlign: 'center', marginTop: 6 },
     tabs: { flexDirection: 'row', backgroundColor: colors.background, borderBottomWidth: 1, borderBottomColor: colors.border },
     tab: { flex: 1, paddingVertical: 12, alignItems: 'center', gap: 3, borderBottomWidth: 3, borderBottomColor: 'transparent' },
     tabActive: { borderBottomColor: colors.primary },
-    tabIcon: { fontSize: 20 },
     tabCount: { fontSize: 12, fontWeight: '700', color: colors.textSecondary },
     tabCountActive: { color: colors.text },
 
@@ -750,14 +748,19 @@ function createStyles(colors) {
     // POST KARTI
     postCard: { backgroundColor: colors.card, borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: colors.border },
     postHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 10 },
-    postAvatar: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
+    postAvatar: {
+      width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center',
+      backgroundColor: colors.cardAlt, borderWidth: 1, borderColor: colors.border,
+    },
     postAvatarText: { color: colors.text, fontWeight: 'bold', fontSize: 16 },
     postHeaderInfo: { flex: 1 },
     postUsername: { fontSize: 14, fontWeight: 'bold', color: colors.text },
     postEvent: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
+    postEventText: { marginTop: 0, flexShrink: 1 },
     postDate: { fontSize: 11, color: colors.textSecondary },
     postContent: { fontSize: 14, color: colors.text, lineHeight: 20, marginBottom: 12 },
     postFooter: { flexDirection: 'row', gap: 14 },
+    postStatItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     postStat: { fontSize: 13, color: colors.textSecondary },
 
     // YORUM FORMU
@@ -775,7 +778,7 @@ function createStyles(colors) {
       textAlignVertical: 'top', marginBottom: 12,
     },
     reviewSubmitBtn: { borderRadius: 12, overflow: 'hidden' },
-    reviewSubmitGradient: { paddingVertical: 12, alignItems: 'center' },
+    reviewSubmitInner: { paddingVertical: 12, alignItems: 'center', backgroundColor: colors.primary },
     reviewSubmitText: { color: '#fff', fontWeight: '800', fontSize: 14 },
 
     // YORUM LİSTESİ
@@ -784,8 +787,11 @@ function createStyles(colors) {
       marginBottom: 10,
     },
     reviewHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
-    reviewAvatar: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
-    reviewAvatarText: { color: '#fff', fontWeight: '800', fontSize: 14 },
+    reviewAvatar: {
+      width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center',
+      backgroundColor: colors.cardAlt, borderWidth: 1, borderColor: colors.border,
+    },
+    reviewAvatarText: { color: colors.text, fontWeight: '800', fontSize: 14 },
     reviewMeta: { flex: 1, gap: 3 },
     reviewUsername: { fontSize: 13, fontWeight: '700' },
     reviewDate: { fontSize: 11 },
@@ -793,7 +799,7 @@ function createStyles(colors) {
 
     // BOŞ
     empty: { alignItems: 'center', paddingVertical: 56 },
-    emptyEmoji: { fontSize: 52, marginBottom: 14 },
+    emptyIcon: { marginBottom: 14 },
     emptyText: { color: colors.textSecondary, fontSize: 15, fontWeight: '700' },
     emptySubText: { fontSize: 13, marginTop: 6 },
 
