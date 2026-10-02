@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity,
   ScrollView, Alert, Animated, Dimensions
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -11,15 +11,17 @@ import { useLanguage } from '../context/LanguageContext';
 const { width } = Dimensions.get('window');
 const CARD_SIZE = (width - 48) / 2;
 
+// tint: tema rengi anahtarı (colors[tint]) — kartlar düz, rengi yalnızca ikon taşır.
+// Mor (purple) yardımcı renk olarak tek kartta.
 const MENU_ITEM_DEFS = [
-  { id: 1, titleKey: 'menu_communities', subKey: 'menu_communities_sub', emoji: '👥', gradient: ['#00D4AA', '#7C3AED'], screen: 'Communities', available: true },
-  { id: 10, titleKey: 'menu_wrapped', subKey: 'menu_wrapped_sub', emoji: '✨', gradient: ['#EC4899', '#F5A623'], screen: 'Wrapped', available: true },
-  { id: 7, titleKey: 'menu_map_item', subKey: 'menu_map_item_sub', emoji: '🗺️', gradient: ['#00D4AA', '#00A8FF'], screen: 'Map', available: true },
-  { id: 4, titleKey: 'menu_buddy_item', subKey: 'menu_buddy_item_sub', emoji: '🎸', gradient: ['#E94560', '#F5A623'], screen: 'ConcertBuddyMatch', available: true },
-  { id: 11, titleKey: 'menu_passport', subKey: 'menu_passport_sub', emoji: '🎟️', gradient: ['#00A8FF', '#7C3AED'], screen: 'ConcertPassport', available: true },
-  { id: 9, titleKey: 'menu_games', subKey: 'menu_games_sub', emoji: '🎮', gradient: ['#7C3AED', '#EC4899'], screen: 'Games', available: true },
+  { id: 1, titleKey: 'menu_communities', subKey: 'menu_communities_sub', icon: 'people-outline', tint: 'accent', screen: 'Communities', available: true },
+  { id: 10, titleKey: 'menu_wrapped', subKey: 'menu_wrapped_sub', icon: 'sparkles-outline', tint: 'primary', screen: 'Wrapped', available: true },
+  { id: 7, titleKey: 'menu_map_item', subKey: 'menu_map_item_sub', icon: 'map-outline', tint: 'accent', screen: 'Map', available: true },
+  { id: 4, titleKey: 'menu_buddy_item', subKey: 'menu_buddy_item_sub', icon: 'person-add-outline', tint: 'secondary', screen: 'ConcertBuddyMatch', available: true },
+  { id: 11, titleKey: 'menu_passport', subKey: 'menu_passport_sub', icon: 'ticket-outline', tint: 'purple', screen: 'ConcertPassport', available: true },
+  { id: 9, titleKey: 'menu_games', subKey: 'menu_games_sub', icon: 'game-controller-outline', tint: 'primary', screen: 'Games', available: true },
   // Eksik konserleri kullanıcı bildirebilsin — Ticketmaster dışı veri kanalı
-  { id: 12, titleKey: 'menu_suggest_event', subKey: 'menu_suggest_event_sub', emoji: '➕', gradient: ['#F5A623', '#E94560'], screen: 'SuggestEvent', available: true },
+  { id: 12, titleKey: 'menu_suggest_event', subKey: 'menu_suggest_event_sub', icon: 'add-circle-outline', tint: 'secondary', screen: 'SuggestEvent', available: true },
 ];
 
 function AnimatedCard({ item, index, navigation, styles, colors, isSetupCard }) {
@@ -104,15 +106,10 @@ function AnimatedCard({ item, index, navigation, styles, colors, isSetupCard }) 
         onPress={handlePress}
         activeOpacity={0.82}
         style={styles.cardTouchable}
+        accessibilityRole="button"
+        accessibilityLabel={`${item.title}, ${isSetupCard ? t('menu_tap_to_start') : item.subtitle}`}
       >
-        <LinearGradient
-          colors={item.available ? item.gradient : [colors.cardAlt, colors.card]}
-          style={styles.card}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          <View style={styles.cardCircle} />
-
+        <View style={[styles.card, !item.available && styles.cardUnavailable]}>
           {isSetupCard && (
             <Animated.View
               pointerEvents="none"
@@ -135,7 +132,12 @@ function AnimatedCard({ item, index, navigation, styles, colors, isSetupCard }) 
             </View>
           )}
 
-          <Text style={styles.cardEmoji}>{item.emoji}</Text>
+          <Ionicons
+            name={item.icon}
+            size={30}
+            color={item.available ? colors[item.tint] || colors.primary : colors.textSecondary}
+            style={styles.cardIcon}
+          />
           <Text style={[styles.cardTitle, !item.available && styles.cardTitleMuted]}>
             {item.title}
           </Text>
@@ -145,10 +147,10 @@ function AnimatedCard({ item, index, navigation, styles, colors, isSetupCard }) 
 
           {item.available && (
             <View style={styles.arrowContainer}>
-              <Text style={styles.arrow}>→</Text>
+              <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
             </View>
           )}
-        </LinearGradient>
+        </View>
       </TouchableOpacity>
 
       {isSetupCard && (
@@ -163,7 +165,7 @@ function AnimatedCard({ item, index, navigation, styles, colors, isSetupCard }) 
 
 const ADMIN_ITEM_DEF = {
   id: 99, titleKey: 'menu_admin', subKey: 'menu_admin_sub',
-  emoji: '⚙️', gradient: ['#1a1a2e', '#7C3AED'],
+  icon: 'settings-outline', tint: 'textSecondary',
   screen: 'Admin', available: true, requiresAdmin: true,
 };
 
@@ -199,13 +201,13 @@ export default function ExploreScreen({ navigation }) {
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
     >
-      <LinearGradient colors={colors.headerGradient} style={styles.header}>
+      <View style={styles.header}>
         <Animated.View style={{ opacity: headerOpacity, transform: [{ translateY: headerAnim }] }}>
           <Text style={styles.headerLabel}>Concertly</Text>
           <Text style={styles.headerTitle}>{t('explore_title')}</Text>
           <Text style={styles.headerSub}>{t('explore_subtitle')}</Text>
         </Animated.View>
-      </LinearGradient>
+      </View>
 
       <View style={styles.grid}>
         {visibleItems.map((item, index) => (
@@ -244,11 +246,6 @@ function createStyles(colors) {
     cardTouchable: {
       borderRadius: 20,
       overflow: 'hidden',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.22,
-      shadowRadius: 12,
-      elevation: 8,
     },
     card: {
       width: '100%',
@@ -257,28 +254,22 @@ function createStyles(colors) {
       justifyContent: 'flex-end',
       position: 'relative',
       overflow: 'hidden',
+      backgroundColor: colors.card,
       borderWidth: 1,
       borderColor: colors.border,
+      borderRadius: 20,
     },
-    cardCircle: {
-      position: 'absolute',
-      top: -30,
-      right: -30,
-      width: 110,
-      height: 110,
-      borderRadius: 55,
-      backgroundColor: 'rgba(255,255,255,0.08)',
-    },
+    cardUnavailable: { backgroundColor: colors.cardAlt },
     badge: {
       position: 'absolute',
       top: 12,
       right: 12,
-      backgroundColor: 'rgba(255,255,255,0.15)',
+      backgroundColor: colors.cardAlt,
       paddingHorizontal: 8,
       paddingVertical: 3,
       borderRadius: 8,
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.2)',
+      borderColor: colors.border,
     },
     badgeText: { color: colors.textSecondary, fontSize: 10, fontWeight: '700' },
 
@@ -290,35 +281,33 @@ function createStyles(colors) {
       bottom: 0,
       borderRadius: 22,
       borderWidth: 2,
-      borderColor: '#A855F7',
+      borderColor: colors.primary,
     },
     shimmerBar: {
       position: 'absolute',
       top: -20,
       bottom: -20,
       width: 48,
-      backgroundColor: 'rgba(255,255,255,0.28)',
+      backgroundColor: 'rgba(255,255,255,0.12)',
     },
     setupBadge: {
       position: 'absolute',
       top: 12,
       right: 12,
-      backgroundColor: 'rgba(168, 85, 247, 0.35)',
+      backgroundColor: colors.primary,
       paddingHorizontal: 8,
       paddingVertical: 3,
       borderRadius: 8,
-      borderWidth: 1,
-      borderColor: 'rgba(168, 85, 247, 0.6)',
     },
+    // Marka renginin üstündeki yazı her iki temada da beyaz kalır
     setupBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
 
-    cardEmoji: { fontSize: 36, marginBottom: 10 },
+    cardIcon: { marginBottom: 10 },
     cardTitle: { fontSize: 16, fontWeight: 'bold', color: colors.text, marginBottom: 3 },
     cardTitleMuted: { color: colors.text },
-    cardSubtitle: { fontSize: 12, color: 'rgba(255,255,255,0.8)', lineHeight: 16 },
+    cardSubtitle: { fontSize: 12, color: colors.textSecondary, lineHeight: 16 },
     cardSubtitleMuted: { color: colors.textSecondary },
     arrowContainer: { marginTop: 10 },
-    arrow: { color: 'rgba(255,255,255,0.9)', fontSize: 18, fontWeight: 'bold' },
 
     footer: { alignItems: 'center', marginTop: 28, paddingHorizontal: 24 },
     footerText: { color: colors.textSecondary, fontSize: 13, textAlign: 'center' },
