@@ -6,7 +6,7 @@ import org.springframework.web.client.RestTemplate;
 import java.time.Duration;
 
 /**
- * Dış servis (Ticketmaster, Spotify, Deezer, Brevo, Expo push, Open-Meteo)
+ * Dış servis (Ticketmaster, Spotify, Deezer, iTunes, Brevo, Expo push, Open-Meteo)
  * çağrıları için zaman aşımlı RestTemplate.
  *
  * {@code new RestTemplate()} süresiz bekler: karşı taraf yanıt vermezse istek

@@ -17,20 +17,23 @@ public class QuizService {
     private static final int MIN_TRACKS = 4; // 1 doğru + 2 çeldirici için en az 3, marj payıyla 4
 
     private final DeezerService deezerService;
+    private final ItunesService itunesService;
     private final QuizScoreRepository quizScoreRepository;
     private final UserRepository userRepository;
 
     public QuizService(DeezerService deezerService,
+                       ItunesService itunesService,
                        QuizScoreRepository quizScoreRepository,
                        UserRepository userRepository) {
         this.deezerService = deezerService;
+        this.itunesService = itunesService;
         this.quizScoreRepository = quizScoreRepository;
         this.userRepository = userRepository;
     }
 
     /** Sanatçının top şarkılarından çoktan seçmeli sorular üretir. */
     public Map<String, Object> buildQuiz(long artistId, String artistName) {
-        List<DeezerService.Track> tracks = deezerService.getTopTracks(artistId, 50);
+        List<DeezerService.Track> tracks = tracksFor(artistId, artistName);
 
         if (tracks.size() < MIN_TRACKS) {
             throw new IllegalArgumentException("Bu sanatçı için yeterli şarkı bulunamadı");
@@ -74,9 +77,17 @@ public class QuizService {
         return quiz;
     }
 
+    /** Deezer önizlemeleri yetmezse iTunes'a düşer (birebir sanatçı adı eşleşmesiyle). */
+    private List<DeezerService.Track> tracksFor(long artistId, String artistName) {
+        List<DeezerService.Track> tracks = deezerService.getTopTracks(artistId, 50);
+        if (tracks.size() >= MIN_TRACKS) return tracks;
+        List<DeezerService.Track> fallback = itunesService.getTopTracks(artistName, 50);
+        return fallback.size() > tracks.size() ? fallback : tracks;
+    }
+
     /** Blind Ranking için sanatçının şarkılarından rastgele 10'luk set döner. */
     public Map<String, Object> buildBlindRank(long artistId, String artistName) {
-        List<DeezerService.Track> tracks = deezerService.getTopTracks(artistId, 50);
+        List<DeezerService.Track> tracks = tracksFor(artistId, artistName);
 
         if (tracks.size() < MIN_TRACKS) {
             throw new IllegalArgumentException("Bu sanatçı için yeterli şarkı bulunamadı");

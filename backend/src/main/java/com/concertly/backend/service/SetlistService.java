@@ -28,17 +28,20 @@ public class SetlistService {
     private static final int POINTS_PER_HIT = 10;
 
     private final DeezerService deezerService;
+    private final ItunesService itunesService;
     private final SetlistSubmissionRepository submissionRepository;
     private final EventRepository eventRepository;
     private final UserRepository userRepository;
     private final EventAttendanceRepository attendanceRepository;
 
     public SetlistService(DeezerService deezerService,
+                          ItunesService itunesService,
                           SetlistSubmissionRepository submissionRepository,
                           EventRepository eventRepository,
                           UserRepository userRepository,
                           EventAttendanceRepository attendanceRepository) {
         this.deezerService = deezerService;
+        this.itunesService = itunesService;
         this.submissionRepository = submissionRepository;
         this.eventRepository = eventRepository;
         this.userRepository = userRepository;
@@ -158,11 +161,13 @@ public class SetlistService {
     private List<Map<String, Object>> candidatesFor(Event event) {
         String artistName = event.getArtist().getName();
         List<Map<String, Object>> found = deezerService.searchArtists(artistName, 1);
-        if (found.isEmpty()) {
-            throw new IllegalArgumentException("Sanatçı Deezer'da bulunamadı: " + artistName);
+        List<DeezerService.Track> tracks = found.isEmpty()
+                ? List.of()
+                : deezerService.getTopTracks((long) found.get(0).get("artistId"), 40);
+        if (tracks.size() < MIN_PREDICTION) {
+            // Deezer'da yok ya da az: iTunes'tan birebir sanatçı eşleşmesiyle dene
+            tracks = itunesService.getTopTracks(artistName, 40);
         }
-        long deezerId = (long) found.get(0).get("artistId");
-        List<DeezerService.Track> tracks = deezerService.getTopTracks(deezerId, 40);
         if (tracks.size() < MIN_PREDICTION) {
             throw new IllegalArgumentException("Bu sanatçı için yeterli şarkı bulunamadı");
         }

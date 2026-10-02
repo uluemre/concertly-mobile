@@ -46,6 +46,7 @@ public class ConcertDayService {
     private final EventAttendanceService attendanceService;
     private final WeatherService weatherService;
     private final DeezerService deezerService;
+    private final ItunesService itunesService;
 
     private final Map<String, CachedTracks> warmupCache = new ConcurrentHashMap<>();
 
@@ -77,12 +78,14 @@ public class ConcertDayService {
                              EventRepository eventRepository,
                              EventAttendanceService attendanceService,
                              WeatherService weatherService,
-                             DeezerService deezerService) {
+                             DeezerService deezerService,
+                             ItunesService itunesService) {
         this.attendanceRepository = attendanceRepository;
         this.eventRepository = eventRepository;
         this.attendanceService = attendanceService;
         this.weatherService = weatherService;
         this.deezerService = deezerService;
+        this.itunesService = itunesService;
     }
 
     /** En yakın "gidiyorum" konseri; yoksa null. */
@@ -135,9 +138,9 @@ public class ConcertDayService {
     }
 
     /**
-     * Sanatçının Deezer'daki en popüler şarkıları. Yalnızca adı birebir
-     * eşleşen Deezer sanatçısı kullanılır — yanlış sanatçının şarkılarını
-     * çalmaktansa listeyi boş bırakmak daha iyi.
+     * Sanatçının Deezer'daki en popüler şarkıları; Deezer boş dönerse iTunes.
+     * Yalnızca adı birebir eşleşen sanatçı kullanılır — yanlış sanatçının
+     * şarkılarını çalmaktansa listeyi boş bırakmak daha iyi.
      */
     List<WarmupTrack> warmupFor(String artistName) {
         if (artistName == null || artistName.isBlank()) return List.of();
@@ -154,6 +157,11 @@ public class ConcertDayService {
             if (deezerId != null) {
                 tracks = deezerService.getTopTracks(deezerId, 25).stream()
                         .limit(WARMUP_SIZE)
+                        .map(t -> new WarmupTrack(t.title, t.previewUrl, t.coverUrl))
+                        .toList();
+            }
+            if (tracks.isEmpty()) {
+                tracks = itunesService.getTopTracks(artistName, WARMUP_SIZE).stream()
                         .map(t -> new WarmupTrack(t.title, t.previewUrl, t.coverUrl))
                         .toList();
             }

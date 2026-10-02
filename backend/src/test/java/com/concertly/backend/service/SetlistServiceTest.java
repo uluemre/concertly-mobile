@@ -32,6 +32,7 @@ import static org.mockito.Mockito.*;
 class SetlistServiceTest {
 
     @Mock private DeezerService deezerService;
+    @Mock private ItunesService itunesService;
     @Mock private SetlistSubmissionRepository submissionRepository;
     @Mock private EventRepository eventRepository;
     @Mock private UserRepository userRepository;
@@ -41,7 +42,7 @@ class SetlistServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new SetlistService(deezerService, submissionRepository, eventRepository, userRepository,
+        service = new SetlistService(deezerService, itunesService, submissionRepository, eventRepository, userRepository,
                 attendanceRepository);
     }
 
@@ -191,6 +192,19 @@ class SetlistServiceTest {
 
         assertEquals(true, service.getState(1L, 1L).get("canConfirm"));
         assertEquals(false, service.getState(1L, 2L).get("canConfirm"));
+    }
+
+    @Test
+    void candidatesFallBackToItunesWhenDeezerHasNoArtist() {
+        pastEvent();
+        when(deezerService.searchArtists("Hadise", 1)).thenReturn(List.of());
+        when(itunesService.getTopTracks("Hadise", 40)).thenReturn(List.of(
+                new DeezerService.Track("Düm Tek Tek", "p1", ""), new DeezerService.Track("Prenses", "p2", ""),
+                new DeezerService.Track("Aşkım Olur musun", "p3", "")));
+        when(attendanceRepository.findByUserIdAndEventId(1L, 1L)).thenReturn(Optional.empty());
+
+        List<?> candidates = (List<?>) service.getState(1L, 1L).get("candidates");
+        assertEquals(3, candidates.size());
     }
 
     // ── Lig tablosu ─────────────────────────────────────────────────────────

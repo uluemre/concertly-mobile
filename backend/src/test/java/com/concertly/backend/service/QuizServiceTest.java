@@ -21,6 +21,7 @@ import static org.mockito.Mockito.when;
 class QuizServiceTest {
 
     @Mock private DeezerService deezerService;
+    @Mock private ItunesService itunesService;
     @Mock private QuizScoreRepository quizScoreRepository;
     @Mock private UserRepository userRepository;
 
@@ -28,7 +29,7 @@ class QuizServiceTest {
 
     @BeforeEach
     void setUp() {
-        quizService = new QuizService(deezerService, quizScoreRepository, userRepository);
+        quizService = new QuizService(deezerService, itunesService, quizScoreRepository, userRepository);
     }
 
     private static List<DeezerService.Track> tracks(int count) {
@@ -83,6 +84,16 @@ class QuizServiceTest {
         Map<String, Object> quiz = quizService.buildQuiz(1L, "Az Şarkılı");
 
         assertEquals(6, quiz.get("questionCount"));
+    }
+
+    @Test
+    void fallsBackToItunesWhenDeezerHasTooFewTracks() {
+        when(deezerService.getTopTracks(anyLong(), anyInt())).thenReturn(tracks(2));
+        when(itunesService.getTopTracks("Hadise", 50)).thenReturn(tracks(12));
+
+        Map<String, Object> quiz = quizService.buildQuiz(1L, "Hadise");
+
+        assertEquals(10, quiz.get("questionCount"));
     }
 
     @Test

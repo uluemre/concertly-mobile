@@ -10,6 +10,7 @@ import com.concertly.backend.repository.EventRepository;
 import com.concertly.backend.repository.SetlistSubmissionRepository;
 import com.concertly.backend.repository.UserRepository;
 import com.concertly.backend.service.DeezerService;
+import com.concertly.backend.service.ItunesService;
 import com.concertly.backend.service.SetlistService;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.jpa.repository.Query;
@@ -88,7 +89,7 @@ class QaBatch2Test {
     private SetlistService svc(EventAttendanceRepository att, SetlistSubmissionRepository sub, Event ev) {
         EventRepository er = mock(EventRepository.class);
         when(er.findById(1L)).thenReturn(Optional.of(ev));
-        return new SetlistService(mock(DeezerService.class), sub, er, mock(UserRepository.class), att);
+        return new SetlistService(mock(DeezerService.class), mock(ItunesService.class), sub, er, mock(UserRepository.class), att);
     }
 
     private Event event(LocalDateTime d) {

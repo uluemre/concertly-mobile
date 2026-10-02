@@ -36,13 +36,14 @@ class ConcertDayServiceTest {
     @Mock private EventAttendanceService attendanceService;
     @Mock private WeatherService weatherService;
     @Mock private DeezerService deezerService;
+    @Mock private ItunesService itunesService;
 
     private ConcertDayService service;
 
     @BeforeEach
     void setUp() {
         service = new ConcertDayService(attendanceRepository, eventRepository, attendanceService,
-                weatherService, deezerService);
+                weatherService, deezerService, itunesService);
         when(attendanceService.getFriendsAttending(anyLong(), anyLong())).thenReturn(List.of());
     }
 
@@ -117,6 +118,17 @@ class ConcertDayServiceTest {
                 Map.of("artistId", 9L, "name", "Güllü")));
         assertTrue(service.warmupFor("Kibariye").isEmpty());
         verify(deezerService, never()).getTopTracks(anyLong(), anyInt());
+    }
+
+    @Test
+    void warmupFallsBackToItunesWhenDeezerHasNoExactMatch() {
+        when(deezerService.searchArtists(eq("Kibariye"), anyInt())).thenReturn(List.of());
+        when(itunesService.getTopTracks(eq("Kibariye"), anyInt())).thenReturn(List.of(
+                new DeezerService.Track("Gönül Yarası", "https://p/1.m4a", "c1")));
+
+        List<ConcertDayService.WarmupTrack> tracks = service.warmupFor("Kibariye");
+        assertEquals(1, tracks.size());
+        assertEquals("Gönül Yarası", tracks.get(0).title());
     }
 
     @Test
