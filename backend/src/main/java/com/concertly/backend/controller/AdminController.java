@@ -138,6 +138,10 @@ public class AdminController {
             : approved
                 ? eventRepository.findByIsApproved(true)
                 : eventRepository.findByIsApprovedAndDelistedReasonIsNull(false);
+        // Admin'in sildiği (listeden kaldırılan) etkinlikler yönetim listesine geri gelmesin
+        events = new ArrayList<>(events.stream()
+            .filter(e -> !ADMIN_REMOVED.equals(e.getDelistedReason()))
+            .toList());
         events.sort(Comparator.comparing(Event::getEventDate));
         return events.stream().map(EventResponse::from).toList();
     }
@@ -194,12 +198,46 @@ public class AdminController {
         return EventResponse.from(eventRepository.save(event));
     }
 
+    /** Admin'in sildiği ama bağlı verisi olduğu için listeden kaldırılan etkinliklerin işareti. */
+    static final String ADMIN_REMOVED = "ADMIN_REMOVED";
+
+    @jakarta.persistence.PersistenceContext
+    private jakarta.persistence.EntityManager em;
+
+    // Bağlı kaydı (katılım, gönderi, kaynak linki, birleşmiş kopya...) olmayan etkinlik gerçekten
+    // silinir. Olan etkinlik FK yüzünden silinemiyordu ("Silinemedi"); artık listeden kaldırılır:
+    // kullanıcı verisi kaybolmaz, sync geri açmaz (delistedReason), admin listesinde görünmez.
     @DeleteMapping("/events/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @org.springframework.transaction.annotation.Transactional
     public void deleteEvent(@PathVariable Long id) {
-        if (!eventRepository.existsById(id))
-            throw new ResourceNotFoundException("Etkinlik bulunamadi: " + id);
-        eventRepository.deleteById(id);
+        Event event = eventRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Etkinlik bulunamadi: " + id));
+        if (eventReferenceCount(id) == 0) {
+            eventRepository.delete(event);
+            return;
+        }
+        event.setDelistedReason(ADMIN_REMOVED);
+        event.setIsApproved(false);
+        eventRepository.save(event);
+    }
+
+    private long eventReferenceCount(Long id) {
+        Object n = em.createNativeQuery(
+                "SELECT (SELECT count(*) FROM event_attendances WHERE event_id = :id)"
+                + " + (SELECT count(*) FROM posts WHERE event_id = :id)"
+                + " + (SELECT count(*) FROM event_bookmarks WHERE event_id = :id)"
+                + " + (SELECT count(*) FROM event_verifications WHERE event_id = :id)"
+                + " + (SELECT count(*) FROM event_reviews WHERE event_id = :id)"
+                + " + (SELECT count(*) FROM concert_buddies WHERE event_id = :id)"
+                + " + (SELECT count(*) FROM setlist_submissions WHERE event_id = :id)"
+                + " + (SELECT count(*) FROM event_sources WHERE event_id = :id)"
+                + " + (SELECT count(*) FROM bingo_cards WHERE event_id = :id)"
+                + " + (SELECT count(*) FROM notifications WHERE entity_type = 'event' AND entity_id = :id)"
+                + " + (SELECT count(*) FROM events WHERE merged_into_event_id = :id)")
+            .setParameter("id", id)
+            .getSingleResult();
+        return ((Number) n).longValue();
     }
 
     // ── POSTS ──────────────────────────────────────────────────────────────────
