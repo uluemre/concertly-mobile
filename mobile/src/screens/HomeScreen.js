@@ -4,7 +4,6 @@ import {
   TouchableOpacity, ScrollView, Dimensions,
   Animated, StatusBar, FlatList, Modal, AppState,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import API, { getErrorMessage } from '../services/api';
@@ -30,7 +29,7 @@ const FEATURED_CARD_HEIGHT = 240;
 const CITIES = ['Tümü', ...LAUNCH_CITIES];
 
 export default function HomeScreen({ navigation }) {
-  const { colors } = useTheme();
+  const { colors, themeMode } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { session } = useAuth();
   const { t } = useLanguage();
@@ -196,25 +195,36 @@ export default function HomeScreen({ navigation }) {
 
   if (error && events.length === 0 && posts.length === 0) return (
     <View style={styles.errorScreen}>
-      <Text style={styles.errorEmoji}>📡</Text>
+      <Ionicons name="cloud-offline-outline" size={52} color={colors.textSecondary} style={styles.errorIcon} />
       <Text style={styles.errorTitle}>{t('load_failed')}</Text>
       <Text style={styles.errorText}>{error}</Text>
-      <TouchableOpacity onPress={() => fetchData()} activeOpacity={0.85} style={styles.retryBtn}>
+      <TouchableOpacity onPress={() => fetchData()} activeOpacity={0.85} style={styles.retryBtn} accessibilityRole="button">
         <Text style={styles.retryBtnText}>{t('retry')}</Text>
       </TouchableOpacity>
     </View>
   );
 
+  const dailyStatusText = !daily ? t('games_daily_waiting')
+    : daily.finished
+      ? (daily.solved
+        ? (daily.streak > 0 ? t('games_daily_streak_safe', { count: daily.streak }) : t('games_daily_done'))
+        : t('games_daily_missed'))
+      : (daily.streak > 0 ? t('games_daily_keep_streak', { count: daily.streak }) : t('games_daily_waiting'));
+  const dailyIcon = daily?.finished
+    ? (daily?.solved ? { name: 'checkmark-circle', color: colors.accent } : { name: 'close-circle', color: colors.textSecondary })
+    : { name: 'musical-notes', color: colors.primary };
+
   return (
     <View style={styles.screen}>
-      <StatusBar barStyle="light-content" />
+      {/* Başlık artık düz tema zemininde: açık temada koyu durum çubuğu yazısı */}
+      <StatusBar barStyle={themeMode === 'light' ? 'dark-content' : 'light-content'} />
 
       <SearchModal visible={searchModalVisible} onClose={() => setSearchModalVisible(false)} navigation={navigation} />
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 
         {/* HEADER */}
-        <LinearGradient colors={colors.screenGradient} style={styles.header}>
+        <View style={styles.header}>
           <Animated.View style={[styles.headerTop, { opacity: headerOpacity, transform: [{ translateY: headerAnim }] }]}>
             <View>
               <Text style={styles.headerBrand}>Concertly</Text>
@@ -222,15 +232,20 @@ export default function HomeScreen({ navigation }) {
                 onPress={() => setCityModalVisible(true)}
                 style={styles.cityRow}
                 activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel={`${t('home_city_select')}: ${selectedCity || t('home_all_turkey')}`}
               >
-                <Text style={styles.cityRowText}>📍 {selectedCity || t('home_all_turkey')}</Text>
-                <Text style={styles.cityRowChevron}>▾</Text>
+                <Ionicons name="location-outline" size={14} color={colors.textSecondary} />
+                <Text style={styles.cityRowText}>{selectedCity || t('home_all_turkey')}</Text>
+                <Ionicons name="chevron-down" size={12} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
             <TouchableOpacity
               style={styles.dmBtn}
               onPress={() => navigation.navigate('ChatList')}
               activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel={unreadMessages > 0 ? `${t('messages_title')} (${unreadMessages})` : t('messages_title')}
             >
               <Ionicons name="chatbubble-ellipses-outline" size={21} color={colors.text} />
               {unreadMessages > 0 && (
@@ -245,11 +260,13 @@ export default function HomeScreen({ navigation }) {
             style={styles.searchBar}
             onPress={() => setSearchModalVisible(true)}
             activeOpacity={0.7}
+            accessibilityRole="search"
+            accessibilityLabel={t('home_search_placeholder')}
           >
             <Ionicons name="search" size={18} color={colors.textSecondary} style={styles.searchIcon} />
             <Text style={styles.searchPlaceholder}>{t('home_search_placeholder')}</Text>
           </TouchableOpacity>
-        </LinearGradient>
+        </View>
 
         {/* KONSER GÜNÜ — gidiyorum dediğin en yakın konser (yoksa görünmez) */}
         <NextConcertCard navigation={navigation} />
@@ -261,13 +278,13 @@ export default function HomeScreen({ navigation }) {
               <View style={[styles.sectionAccent, { backgroundColor: colors.primary }]} />
               <Text style={styles.sectionTitle}>{t('home_featured')}</Text>
             </View>
-            <TouchableOpacity onPress={() => navigation.navigate('MainApp', { screen: 'Events' })} style={styles.seeAllBtn}>
+            <TouchableOpacity onPress={() => navigation.navigate('MainApp', { screen: 'Events' })} style={styles.seeAllBtn} accessibilityRole="button">
               <Text style={[styles.seeAllText, { color: colors.primary }]}>{t('home_see_all_btn')}</Text>
             </TouchableOpacity>
           </View>
           {filteredEvents.length === 0 ? (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyEmoji}>🎭</Text>
+              <Ionicons name="calendar-outline" size={44} color={colors.textSecondary} style={styles.emptyIcon} />
               <Text style={styles.emptyText}>{t('home_no_events')}</Text>
             </View>
           ) : (
@@ -296,7 +313,6 @@ export default function HomeScreen({ navigation }) {
         {/* BU HAFTA SONU + TAKİP ETTİKLERİN (boşsa görünmez) */}
         <EventRail
           title={t('home_weekend')}
-          emoji="🗓️"
           accent={colors.secondary}
           events={weekendEvents}
           onPressEvent={handleNavigateToEvent}
@@ -304,7 +320,6 @@ export default function HomeScreen({ navigation }) {
         />
         <EventRail
           title={t('home_followed_artists')}
-          emoji="⭐"
           accent={colors.purple}
           events={followedEvents}
           onPressEvent={handleNavigateToEvent}
@@ -315,39 +330,31 @@ export default function HomeScreen({ navigation }) {
           onPress={() => navigation.navigate('DailySong')}
           activeOpacity={0.85}
           style={styles.dailyWidget}
+          accessibilityRole="button"
+          accessibilityLabel={`${t('menu_daily_song')}, ${dailyStatusText}`}
         >
-          <LinearGradient
-            colors={daily?.finished
-              ? (daily?.solved ? ['#00897B', '#00D4AA'] : ['#7f1d1d', '#E94560'])
-              : ['#1a0a2e', '#2d1b69']}
-            style={styles.dailyWidgetGrad}
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-          >
+          <View style={styles.dailyWidgetInner}>
             <View style={styles.dailyLeft}>
-              <Text style={styles.dailyEmoji}>
-                {daily?.finished ? (daily?.solved ? '✅' : '❌') : '🎵'}
-              </Text>
+              <Ionicons name={dailyIcon.name} size={28} color={dailyIcon.color} />
               <View style={styles.dailyTextCol}>
                 <Text style={styles.dailyLabel} numberOfLines={1}>{t('menu_daily_song')}</Text>
-                <Text style={styles.dailyStatus} numberOfLines={1}>
-                  {!daily && t('games_daily_waiting')}
-                  {daily?.finished && daily?.solved && (daily.streak > 0 ? t('games_daily_streak_safe', { count: daily.streak }) : t('games_daily_done'))}
-                  {daily?.finished && !daily?.solved && t('games_daily_missed')}
-                  {daily && !daily.finished && (daily.streak > 0 ? t('games_daily_keep_streak', { count: daily.streak }) : t('games_daily_waiting'))}
-                </Text>
+                <Text style={styles.dailyStatus} numberOfLines={1}>{dailyStatusText}</Text>
               </View>
             </View>
             <View style={styles.dailyRight}>
               {daily?.streak > 0 && (
                 <View style={styles.dailyStreak}>
-                  <Text style={styles.dailyStreakText}>🔥 {daily.streak}</Text>
+                  <Ionicons name="flame" size={14} color={colors.secondary} />
+                  <Text style={styles.dailyStreakText}>{daily.streak}</Text>
                 </View>
               )}
               {!daily?.finished && (
-                <Text style={styles.dailyPlayBtn}>▶ Oyna</Text>
+                <View style={styles.dailyPlayBtn}>
+                  <Ionicons name="play" size={14} color="#fff" />
+                </View>
               )}
             </View>
-          </LinearGradient>
+          </View>
         </TouchableOpacity>
 
         {/* TRENDING POSTLAR */}
@@ -360,9 +367,9 @@ export default function HomeScreen({ navigation }) {
           </View>
           {filteredPosts.length === 0 ? (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyEmoji}>📭</Text>
+              <Ionicons name="chatbubbles-outline" size={44} color={colors.textSecondary} style={styles.emptyIcon} />
               <Text style={styles.emptyText}>{t('home_no_posts')}</Text>
-              <TouchableOpacity style={styles.moreBtn} onPress={() => navigation.navigate('FeedTab')}>
+              <TouchableOpacity style={styles.moreBtn} onPress={() => navigation.navigate('FeedTab')} accessibilityRole="button">
                 <Text style={styles.moreBtnText}>{t('home_see_all_posts')}</Text>
               </TouchableOpacity>
             </View>
@@ -371,7 +378,7 @@ export default function HomeScreen({ navigation }) {
               {filteredPosts.slice(0, 4).map((item, index) => (
                 <HomePostCard key={`post-${item.id}`} item={item} index={index} navigation={navigation} />
               ))}
-              <TouchableOpacity style={styles.moreBtn} onPress={() => navigation.navigate('FeedTab')}>
+              <TouchableOpacity style={styles.moreBtn} onPress={() => navigation.navigate('FeedTab')} accessibilityRole="button">
                 <Text style={styles.moreBtnText}>{t('home_see_all_posts')}</Text>
               </TouchableOpacity>
             </>
@@ -416,7 +423,7 @@ function createStyles(colors) {
     loadingScreen: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background, gap: 14 },
     skeletonScreen: { flex: 1, backgroundColor: colors.background, paddingTop: 56 },
     errorScreen: { flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 40 },
-    errorEmoji: { fontSize: 52, marginBottom: 14 },
+    errorIcon: { marginBottom: 14 },
     errorTitle: { color: colors.text, fontSize: 17, fontWeight: '800', marginBottom: 8 },
     errorText: { color: colors.textSecondary, fontSize: 13, textAlign: 'center', lineHeight: 20, marginBottom: 20 },
     retryBtn: { backgroundColor: colors.primary, paddingHorizontal: 28, paddingVertical: 12, borderRadius: 14 },
@@ -427,7 +434,6 @@ function createStyles(colors) {
     headerBrand: { fontSize: 30, fontWeight: '900', color: colors.text, letterSpacing: -0.5 },
     cityRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4, alignSelf: 'flex-start' },
     cityRowText: { fontSize: 13, color: colors.textSecondary, fontWeight: '600' },
-    cityRowChevron: { fontSize: 11, color: colors.textSecondary },
     dmBtn: {
       width: 44, height: 44, borderRadius: 22,
       backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
@@ -437,7 +443,7 @@ function createStyles(colors) {
     dmBadge: {
       position: 'absolute', top: -4, right: -4,
       minWidth: 18, height: 18, borderRadius: 9,
-      backgroundColor: '#E94560', paddingHorizontal: 4,
+      backgroundColor: colors.primary, paddingHorizontal: 4,
       justifyContent: 'center', alignItems: 'center',
     },
     dmBadgeText: { color: '#fff', fontSize: 10, fontWeight: '800' },
@@ -458,19 +464,28 @@ function createStyles(colors) {
     featuredList: { paddingRight: 20, gap: 14, paddingBottom: 4 },
     moreBtn: { marginTop: 4, paddingVertical: 14, borderRadius: 14, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, alignItems: 'center' },
     moreBtnText: { color: colors.textSecondary, fontSize: 13, fontWeight: '700' },
-    dailyWidget: { marginHorizontal: 16, marginTop: 22, marginBottom: 4, borderRadius: 16, overflow: 'hidden' },
-    dailyWidgetGrad: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14 },
+    dailyWidget: {
+      marginHorizontal: 16, marginTop: 22, marginBottom: 4, borderRadius: 16, overflow: 'hidden',
+      backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
+    },
+    dailyWidgetInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14 },
     dailyLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
     dailyTextCol: { flex: 1 },
-    dailyEmoji: { fontSize: 28 },
-    dailyLabel: { color: '#fff', fontSize: 14, fontWeight: '800' },
-    dailyStatus: { color: 'rgba(255,255,255,0.75)', fontSize: 12, marginTop: 2 },
+    dailyLabel: { color: colors.text, fontSize: 14, fontWeight: '800' },
+    dailyStatus: { color: colors.textSecondary, fontSize: 12, marginTop: 2 },
     dailyRight: { flexDirection: 'row', alignItems: 'center', gap: 10, flexShrink: 0, marginLeft: 10 },
-    dailyStreak: { backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
-    dailyStreakText: { color: '#fff', fontSize: 13, fontWeight: '800' },
-    dailyPlayBtn: { color: '#fff', fontSize: 13, fontWeight: '800', backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
+    dailyStreak: {
+      flexDirection: 'row', alignItems: 'center', gap: 4,
+      backgroundColor: colors.cardAlt, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12,
+    },
+    dailyStreakText: { color: colors.text, fontSize: 13, fontWeight: '800' },
+    // Marka renginin üstündeki ikon her iki temada da beyaz
+    dailyPlayBtn: {
+      width: 34, height: 34, borderRadius: 17,
+      backgroundColor: colors.primary, justifyContent: 'center', alignItems: 'center',
+    },
     emptyState: { alignItems: 'center', paddingVertical: 36 },
-    emptyEmoji: { fontSize: 44, marginBottom: 10 },
+    emptyIcon: { marginBottom: 10 },
     emptyText: { color: colors.textSecondary, fontSize: 14 },
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' },
     cityModal: { borderTopLeftRadius: 24, borderTopRightRadius: 24, borderWidth: 1, padding: 24, paddingBottom: 40, maxHeight: '60%' },
