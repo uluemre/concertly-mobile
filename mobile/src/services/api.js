@@ -25,7 +25,10 @@ function getBaseUrl() {
     const hostUri = Constants.expoConfig?.hostUri;
     if (hostUri) {
       const ip = hostUri.split(':')[0];
-      return `http://${ip}:8082/api`;
+      // Port yerelde .env.local ile değişebilir (backend'in local.properties'iyle aynı olmalı);
+      // yanlış port Metro'ya düşer ve JSON yerine Expo manifesti döner
+      const port = process.env.EXPO_PUBLIC_DEV_API_PORT || '8082';
+      return `http://${ip}:${port}/api`;
     }
   } catch { }
   return PROD_API;

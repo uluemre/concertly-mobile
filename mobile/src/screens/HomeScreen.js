@@ -110,7 +110,7 @@ export default function HomeScreen({ navigation }) {
     Promise.allSettled([API.get(url), API.get('/posts/feed/trending')])
       .then(([evRes, postRes]) => {
         if (!isMounted.current) return;
-        if (evRes.status === 'fulfilled') setEvents(evRes.value.data);
+        if (evRes.status === 'fulfilled') setEvents(Array.isArray(evRes.value.data) ? evRes.value.data : []);
         if (postRes.status === 'fulfilled') setPosts(postRes.value.data);
         const failed = [evRes, postRes].find(r => r.status === 'rejected');
         if (!failed) { setError(null); return; }
