@@ -9,7 +9,6 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { DOWNLOAD_URL, buildShareUrl, shareWithLink } from '../services/shareLinks';
-import { LinearGradient } from 'expo-linear-gradient';
 import EventCard from '../components/EventCard';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -24,13 +23,6 @@ import { usePostUpdates } from '../services/postUpdates';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2;
-
-const gradientSets = [
-  ['#E94560', '#7C3AED'],
-  ['#F5A623', '#E94560'],
-  ['#00D4AA', '#7C3AED'],
-  ['#7C3AED', '#F5A623'],
-];
 
 export default function ProfileScreen({ navigation, route }) {
   const { colors } = useTheme();
@@ -224,18 +216,24 @@ export default function ProfileScreen({ navigation, route }) {
             </TouchableOpacity>
 
             <View style={styles.profileTop}>
-              <TouchableOpacity onPress={handlePickPhoto} style={styles.avatarWrapper} disabled={uploadingPhoto}>
+              <TouchableOpacity
+                onPress={handlePickPhoto}
+                style={styles.avatarWrapper}
+                disabled={uploadingPhoto}
+                accessibilityRole="imagebutton"
+                accessibilityState={{ disabled: uploadingPhoto, busy: uploadingPhoto }}
+              >
                 {profile?.profileImageUrl ? (
                   <Image source={{ uri: profile.profileImageUrl }} style={styles.avatarImage} />
                 ) : (
                   <View style={styles.avatarPlaceholder}>
-                    <Text style={styles.avatarEmoji}>👤</Text>
+                    <Ionicons name="person" size={36} color={colors.textSecondary} />
                   </View>
                 )}
                 <View style={styles.avatarEditBadge}>
                   {uploadingPhoto
                     ? <ActivityIndicator size="small" color="#fff" />
-                    : <Text style={styles.avatarEditText}>📷</Text>
+                    : <Ionicons name="camera" size={13} color="#fff" />
                   }
                 </View>
               </TouchableOpacity>
@@ -262,6 +260,8 @@ export default function ProfileScreen({ navigation, route }) {
                 style={styles.stat}
                 onPress={() => navigation.navigate('FollowList', { userId: session.userId, type: 'followers' })}
                 activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel={`${profile?.followerCount || 0} ${t('profile_followers')}`}
               >
                 <Text style={styles.statNumber}>{profile?.followerCount || 0}</Text>
                 <Text style={styles.statLabel}>{tu('profile_followers')}</Text>
@@ -271,6 +271,8 @@ export default function ProfileScreen({ navigation, route }) {
                 style={styles.stat}
                 onPress={() => navigation.navigate('FollowList', { userId: session.userId, type: 'following' })}
                 activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel={`${profile?.followingCount || 0} ${t('profile_following')}`}
               >
                 <Text style={styles.statNumber}>{profile?.followingCount || 0}</Text>
                 <Text style={styles.statLabel}>{tu('profile_following')}</Text>
@@ -286,20 +288,23 @@ export default function ProfileScreen({ navigation, route }) {
 
         {/* ARKADAŞINI DAVET ET */}
         <View style={styles.inviteSection}>
-          <TouchableOpacity onPress={handleInviteFriends} activeOpacity={0.85}>
-            <LinearGradient
-              colors={['#7C3AED', '#E94560']}
-              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-              style={styles.inviteCard}
-            >
+          <TouchableOpacity
+            onPress={handleInviteFriends}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel={`Arkadaşını Davet Et, ${t('share')}`}
+          >
+            <View style={styles.inviteCard}>
+              <Ionicons name="gift-outline" size={26} color={colors.primary} />
               <View style={styles.inviteInfo}>
-                <Text style={styles.inviteTitle}>🎁 Arkadaşını Davet Et</Text>
+                <Text style={styles.inviteTitle}>Arkadaşını Davet Et</Text>
                 <Text style={styles.inviteSub}>Concertly'yi arkadaşlarınla paylaş, birlikte konserlere gidin!</Text>
               </View>
               <View style={styles.inviteBadge}>
-                <Text style={styles.inviteBadgeText}>Paylaş 🚀</Text>
+                <Ionicons name="share-social-outline" size={14} color="#fff" />
+                <Text style={styles.inviteBadgeText}>{t('share')}</Text>
               </View>
-            </LinearGradient>
+            </View>
           </TouchableOpacity>
         </View>
 
@@ -310,24 +315,38 @@ export default function ProfileScreen({ navigation, route }) {
               style={styles.gameCard}
               onPress={() => navigation.navigate('Games')}
               activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel={`${t('profile_games_title')}: ${gameStats.streak} ${t('profile_game_streak')}, ${gameStats.quizGames} ${t('profile_game_quiz')}, ${gameStats.quizBest} ${t('profile_game_best')}`}
             >
               <View style={styles.gameCardHeader}>
-                <Text style={styles.gameCardTitle}>🎮 {t('profile_games_title')}</Text>
-                <Text style={styles.gameCardChevron}>›</Text>
+                <View style={styles.gameCardTitleRow}>
+                  <Ionicons name="game-controller-outline" size={18} color={colors.primary} />
+                  <Text style={styles.gameCardTitle}>{t('profile_games_title')}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
               </View>
               <View style={styles.gameStatsRow}>
                 <View style={styles.gameStat}>
-                  <Text style={styles.gameStatValue}>🔥 {gameStats.streak}</Text>
+                  <View style={styles.gameStatValueRow}>
+                    <Ionicons name="flame" size={16} color={colors.secondary} />
+                    <Text style={styles.gameStatValue}>{gameStats.streak}</Text>
+                  </View>
                   <Text style={styles.gameStatLabel}>{tu('profile_game_streak')}</Text>
                 </View>
                 <View style={styles.gameStatDivider} />
                 <View style={styles.gameStat}>
-                  <Text style={styles.gameStatValue}>🎤 {gameStats.quizGames}</Text>
+                  <View style={styles.gameStatValueRow}>
+                    <Ionicons name="mic" size={16} color={colors.primary} />
+                    <Text style={styles.gameStatValue}>{gameStats.quizGames}</Text>
+                  </View>
                   <Text style={styles.gameStatLabel}>{tu('profile_game_quiz')}</Text>
                 </View>
                 <View style={styles.gameStatDivider} />
                 <View style={styles.gameStat}>
-                  <Text style={styles.gameStatValue}>🏆 {gameStats.quizBest}</Text>
+                  <View style={styles.gameStatValueRow}>
+                    <Ionicons name="trophy" size={16} color={colors.secondary} />
+                    <Text style={styles.gameStatValue}>{gameStats.quizBest}</Text>
+                  </View>
                   <Text style={styles.gameStatLabel}>{tu('profile_game_best')}</Text>
                 </View>
               </View>
@@ -350,6 +369,8 @@ export default function ProfileScreen({ navigation, route }) {
                   style={styles.followedItem}
                   onPress={() => navigation.navigate('ArtistProfile', { artistId: a.id, artistName: a.name })}
                   activeOpacity={0.8}
+                  accessibilityRole="button"
+                  accessibilityLabel={a.name}
                 >
                   {a.imageUrl ? (
                     <Image source={{ uri: a.imageUrl }} style={styles.followedAvatar} />
@@ -370,18 +391,25 @@ export default function ProfileScreen({ navigation, route }) {
         {/* SEKMELER */}
         <View style={styles.tabs}>
           {[
-            { key: 'posts', icon: '📝', label: t('profile_tab_posts'), count: posts.length },
-            { key: 'events', icon: '🎫', label: t('profile_tab_events'), count: events.length },
-            { key: 'bookmarks', icon: '🔖', label: t('profile_tab_saved'), count: bookmarks.length },
-            { key: 'badges', icon: '🏅', label: t('profile_tab_badges'), count: `${badges.filter(b => b.earned).length}/${badges.length}` },
+            { key: 'posts', icon: 'document-text-outline', label: t('profile_tab_posts'), count: posts.length },
+            { key: 'events', icon: 'ticket-outline', label: t('profile_tab_events'), count: events.length },
+            { key: 'bookmarks', icon: 'bookmark-outline', label: t('profile_tab_saved'), count: bookmarks.length },
+            { key: 'badges', icon: 'ribbon-outline', label: t('profile_tab_badges'), count: `${badges.filter(b => b.earned).length}/${badges.length}` },
           ].map(tab => (
             <TouchableOpacity
               key={tab.key}
               style={[styles.tab, activeTab === tab.key && styles.tabActive]}
               onPress={() => setActiveTab(tab.key)}
               activeOpacity={0.7}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: activeTab === tab.key }}
+              accessibilityLabel={`${tab.label}: ${tab.count}`}
             >
-              <Text style={styles.tabIcon}>{tab.icon}</Text>
+              <Ionicons
+                name={tab.icon}
+                size={20}
+                color={activeTab === tab.key ? colors.primary : colors.textSecondary}
+              />
               {/* Etiketsiz ikonlar ne olduklarını söylemiyordu */}
               <Text style={[styles.tabLabel, activeTab === tab.key && styles.tabCountActive]} numberOfLines={1}>
                 {tab.label} <Text style={styles.tabCount}>{tab.count}</Text>
@@ -395,13 +423,14 @@ export default function ProfileScreen({ navigation, route }) {
           {activeTab === 'posts' ? (
             posts.length === 0 ? (
               <View style={styles.empty}>
-                <Text style={styles.emptyEmoji}>📭</Text>
+                <Ionicons name="create-outline" size={52} color={colors.textSecondary} style={styles.emptyIcon} />
                 <Text style={styles.emptyText}>{t('profile_empty_posts')}</Text>
                 <Text style={styles.emptySubText}>{t('profile_empty_posts_sub')}</Text>
                 <TouchableOpacity
                   style={styles.emptyCta}
                   onPress={() => navigation.navigate('MainApp', { screen: 'Events' })}
                   activeOpacity={0.85}
+                  accessibilityRole="button"
                 >
                   <Text style={styles.emptyCtaText}>{t('profile_empty_cta')}</Text>
                 </TouchableOpacity>
@@ -456,14 +485,20 @@ export default function ProfileScreen({ navigation, route }) {
                           { text: t('cancel'), style: 'cancel' },
                         ])}
                       >
-                        <Text style={{ color: colors.textSecondary, fontSize: 18 }}>⋯</Text>
+                        <Ionicons name="ellipsis-horizontal" size={18} color={colors.textSecondary} />
                       </TouchableOpacity>
                     </View>
                   </View>
                   <Text style={styles.postContent} numberOfLines={3}>{item.content}</Text>
                   <View style={styles.postFooter}>
-                    <Text style={styles.postStat}>♥ {item.likeCount || 0}</Text>
-                    <Text style={styles.postStat}>💬 {item.commentCount || 0}</Text>
+                    <View style={styles.postStatItem}>
+                      <Ionicons name="heart-outline" size={14} color={colors.textSecondary} />
+                      <Text style={styles.postStat}>{item.likeCount || 0}</Text>
+                    </View>
+                    <View style={styles.postStatItem}>
+                      <Ionicons name="chatbubble-outline" size={14} color={colors.textSecondary} />
+                      <Text style={styles.postStat}>{item.commentCount || 0}</Text>
+                    </View>
                   </View>
                 </TouchableOpacity>
               ))
@@ -471,13 +506,14 @@ export default function ProfileScreen({ navigation, route }) {
           ) : activeTab === 'events' ? (
             events.length === 0 ? (
               <View style={styles.empty}>
-                <Text style={styles.emptyEmoji}>🎭</Text>
+                <Ionicons name="calendar-outline" size={52} color={colors.textSecondary} style={styles.emptyIcon} />
                 <Text style={styles.emptyText}>{t('profile_empty_events')}</Text>
                 <Text style={styles.emptySubText}>{t('profile_empty_events_sub')}</Text>
                 <TouchableOpacity
                   style={styles.emptyCta}
                   onPress={() => navigation.navigate('MainApp', { screen: 'Events' })}
                   activeOpacity={0.85}
+                  accessibilityRole="button"
                 >
                   <Text style={styles.emptyCtaText}>{t('profile_empty_cta')}</Text>
                 </TouchableOpacity>
@@ -498,13 +534,14 @@ export default function ProfileScreen({ navigation, route }) {
           ) : activeTab === 'bookmarks' ? (
             bookmarks.length === 0 ? (
               <View style={styles.empty}>
-                <Text style={styles.emptyEmoji}>🔖</Text>
+                <Ionicons name="bookmark-outline" size={52} color={colors.textSecondary} style={styles.emptyIcon} />
                 <Text style={styles.emptyText}>{t('profile_empty_bookmarks')}</Text>
                 <Text style={styles.emptySubText}>{t('profile_empty_bookmarks_sub')}</Text>
                 <TouchableOpacity
                   style={styles.emptyCta}
                   onPress={() => navigation.navigate('MainApp', { screen: 'Events' })}
                   activeOpacity={0.85}
+                  accessibilityRole="button"
                 >
                   <Text style={styles.emptyCtaText}>{t('profile_empty_cta')}</Text>
                 </TouchableOpacity>
@@ -529,15 +566,11 @@ export default function ProfileScreen({ navigation, route }) {
 
         {/* ÇIKIŞ */}
         <View style={styles.logoutArea}>
-          <TouchableOpacity onPress={handleLogout}>
-            <LinearGradient
-              colors={['#E94560', '#7C3AED']}
-              style={styles.logoutButton}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            >
+          <TouchableOpacity onPress={handleLogout} accessibilityRole="button">
+            <View style={styles.logoutButton}>
+              <Ionicons name="log-out-outline" size={18} color={colors.primary} />
               <Text style={styles.logoutText}>{t('profile_logout_btn')}</Text>
-            </LinearGradient>
+            </View>
           </TouchableOpacity>
         </View>
 
@@ -602,7 +635,6 @@ function createStyles(colors) {
       borderWidth: 2.5,
       borderColor: colors.border,
     },
-    avatarEmoji: { fontSize: 34 },
     avatarEditBadge: {
       position: 'absolute',
       bottom: 0,
@@ -616,7 +648,6 @@ function createStyles(colors) {
       borderWidth: 2,
       borderColor: colors.background,
     },
-    avatarEditText: { fontSize: 12 },
 
     // USERNAME & BIO
     username: {
@@ -682,9 +713,6 @@ function createStyles(colors) {
     tabActive: {
       borderBottomColor: colors.primary,
     },
-    tabIcon: {
-      fontSize: 20,
-    },
     tabLabel: {
       fontSize: 12,
       color: colors.textSecondary,
@@ -721,6 +749,7 @@ function createStyles(colors) {
     postDate: { fontSize: 11, color: colors.textSecondary },
     postContent: { fontSize: 14, color: colors.text, lineHeight: 20, marginBottom: 12 },
     postFooter: { flexDirection: 'row', gap: 14 },
+    postStatItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     postStat: { fontSize: 13, color: colors.textSecondary },
 
     // EVENT GRID
@@ -747,7 +776,7 @@ function createStyles(colors) {
 
     // EMPTY
     empty: { alignItems: 'center', paddingVertical: 48 },
-    emptyEmoji: { fontSize: 52, marginBottom: 14 },
+    emptyIcon: { marginBottom: 14 },
     emptyText: { color: colors.text, fontSize: 16, fontWeight: '600', marginBottom: 6 },
     emptySubText: { color: colors.textSecondary, fontSize: 13, textAlign: 'center' },
     emptyCta: { marginTop: 16, borderWidth: 1.5, borderColor: colors.primary, borderRadius: 999, paddingHorizontal: 18, paddingVertical: 9 },
@@ -768,10 +797,11 @@ function createStyles(colors) {
       alignItems: 'center',
       marginBottom: 14,
     },
+    gameCardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     gameCardTitle: { fontSize: 14, fontWeight: '800', color: colors.text },
-    gameCardChevron: { fontSize: 20, color: colors.textSecondary },
     gameStatsRow: { flexDirection: 'row', alignItems: 'center' },
     gameStat: { flex: 1, alignItems: 'center' },
+    gameStatValueRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     gameStatValue: { fontSize: 18, fontWeight: '800', color: colors.text },
     gameStatLabel: { fontSize: 10, color: colors.textSecondary, marginTop: 4, letterSpacing: 0.6, fontWeight: '700', textAlign: 'center' },
     gameStatDivider: { width: 1, height: 30, backgroundColor: colors.border },
@@ -807,22 +837,28 @@ function createStyles(colors) {
     inviteSection: { paddingHorizontal: 16, marginTop: 12 },
     inviteCard: {
       borderRadius: 16, padding: 14, flexDirection: 'row',
-      alignItems: 'center', justifyContent: 'space-between', gap: 10,
+      alignItems: 'center', justifyContent: 'space-between', gap: 12,
+      backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
     },
     inviteInfo: { flex: 1 },
-    inviteTitle: { color: '#fff', fontSize: 14, fontWeight: '800', marginBottom: 2 },
-    inviteSub: { color: 'rgba(255,255,255,0.85)', fontSize: 11, lineHeight: 15 },
+    inviteTitle: { color: colors.text, fontSize: 14, fontWeight: '800', marginBottom: 2 },
+    inviteSub: { color: colors.textSecondary, fontSize: 11, lineHeight: 15 },
+    // Marka renginin üstündeki yazı/ikon her iki temada da beyaz
     inviteBadge: {
-      backgroundColor: 'rgba(255,255,255,0.2)',
+      flexDirection: 'row', alignItems: 'center', gap: 6,
+      backgroundColor: colors.primary,
       paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12,
-      borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)',
     },
     inviteBadgeText: { color: '#fff', fontSize: 12, fontWeight: '800' },
 
     // LOGOUT
     logoutArea: { padding: 16, paddingBottom: 32 },
-    logoutButton: { padding: 16, borderRadius: 16, alignItems: 'center' },
-    logoutText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+    logoutButton: {
+      padding: 16, borderRadius: 16,
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+      borderWidth: 1.5, borderColor: colors.primary,
+    },
+    logoutText: { color: colors.primary, fontSize: 16, fontWeight: 'bold' },
     editOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' },
     editSheetWrapper: { position: 'absolute', bottom: 0, left: 0, right: 0 },
     editSheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 36 },
