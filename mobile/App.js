@@ -2,8 +2,11 @@ import AppNavigator from './src/navigation/AppNavigator';
 import { ThemeProvider } from './src/theme';
 import { AuthProvider } from './src/context/AuthContext';
 import { LanguageProvider } from './src/context/LanguageContext';
+import { initMonitoring, wrapRoot } from './src/services/monitoring';
 
-export default function App() {
+initMonitoring();
+
+function App() {
   return (
     <ThemeProvider>
       <LanguageProvider>
@@ -14,3 +17,5 @@ export default function App() {
     </ThemeProvider>
   );
 }
+
+export default wrapRoot(App);

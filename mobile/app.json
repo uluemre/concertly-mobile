@@ -147,7 +147,8 @@
           "defaultChannel": "default"
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "@sentry/react-native"
     ],
     "extra": {
       "apiUrl": "https://concertly-api.onrender.com/api",

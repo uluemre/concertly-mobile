@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet,
-  TouchableOpacity, RefreshControl, FlatList,
+  TouchableOpacity, RefreshControl,
   TextInput, ScrollView, Modal,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { Ionicons } from '@expo/vector-icons';
 import { fetchAllConcerts } from '../services/concerts';
 import { useTheme } from '../theme';
@@ -204,7 +205,11 @@ export default function EventsScreen({ navigation, route }) {
   const genericImages = useMemo(() => findGenericImages(events), [events]);
 
   const renderItem = useCallback(({ item, index }) => (
-    <AnimatedListItem index={index} style={layout === 'tile' ? styles.tileCell : null}>
+    <AnimatedListItem
+      index={index}
+      // Izgarada sütun arası boşluk (FlashList'te columnWrapperStyle yok)
+      style={layout === 'tile' ? (index % 2 === 0 ? styles.tileCellLeft : styles.tileCellRight) : null}
+    >
       <EventCard
         item={item}
         variant={layout}
@@ -332,19 +337,15 @@ export default function EventsScreen({ navigation, route }) {
         </View>
       )}
 
-      <FlatList
+      {/* FlashList: ~1300 etkinlikte kaydırma akıcı kalsın diye satırları geri dönüştürür */}
+      <FlashList
         key={layout === 'tile' ? 'grid' : 'single'}
         data={filtered}
         numColumns={layout === 'tile' ? 2 : 1}
-        columnWrapperStyle={layout === 'tile' ? styles.gridRow : undefined}
         keyExtractor={item => item.id.toString()}
         contentContainerStyle={styles.list}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
         renderItem={renderItem}
-        initialNumToRender={8}
-        maxToRenderPerBatch={8}
-        windowSize={11}
-        removeClippedSubviews
         ListEmptyComponent={
           loadError ? (
             // Hata ile "sonuç yok" ayrı durumlar: kullanıcı tekrar deneyebilmeli.
@@ -540,8 +541,8 @@ function createStyles(colors) {
     setlistBannerText: { color: '#E94560', fontSize: 13, fontWeight: '800', textAlign: 'center' },
 
     list: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 32 },
-    gridRow: { gap: 12 },
-    tileCell: { flex: 1, maxWidth: '50%' },
+    tileCellLeft: { flex: 1, paddingRight: 6 },
+    tileCellRight: { flex: 1, paddingLeft: 6 },
     layoutSwitch: { flexDirection: 'row', alignItems: 'center', height: 38, borderWidth: 1, borderRadius: 12, paddingHorizontal: 3, gap: 2 },
     layoutBtn: { width: 34, height: 30, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
 

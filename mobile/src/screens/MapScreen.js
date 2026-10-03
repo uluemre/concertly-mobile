@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import MapView, { Marker, Circle } from 'react-native-maps';
 import * as Location from 'expo-location';
+import Supercluster from 'supercluster';
 import { Ionicons } from '@expo/vector-icons';
 import API from '../services/api';
 import { useTheme } from '../theme';
@@ -35,6 +36,20 @@ function getMarkerColor(genre) {
     if (g.includes(key)) return GENRE_COLORS[key];
   }
   return GENRE_COLORS.default;
+}
+
+// Bölgenin yakınlaştırma düzeyi (supercluster 0–20 ölçeği)
+function regionZoom(region) {
+  return Math.max(0, Math.min(20, Math.round(Math.log2(360 / Math.max(region.longitudeDelta, 1e-6)))));
+}
+
+function regionBBox(region) {
+  return [
+    region.longitude - region.longitudeDelta / 2,
+    region.latitude - region.latitudeDelta / 2,
+    region.longitude + region.longitudeDelta / 2,
+    region.latitude + region.latitudeDelta / 2,
+  ];
 }
 
 function haversineKm(lat1, lon1, lat2, lon2) {
@@ -138,11 +153,50 @@ export default function MapScreen({ navigation }) {
   // Özel işaretçiler ilk çizimde birkaç an izlenir (ikon yazı tipi otursun), sonra
   // donmuş görüntü olarak kalır — kaydırma/yakınlaştırma akıcı olur.
   const [trackMarkers, setTrackMarkers] = useState(true);
+
+  // Uzaklaşınca yakın mekânlar tek yuvarlakta toplanır (içindeki etkinlik sayısıyla);
+  // ekranda bir anda çizilen işaretçi sayısı düşer, harita akıcı kalır.
+  const clusterIndex = useMemo(() => {
+    const index = new Supercluster({
+      radius: 56,
+      maxZoom: 15,
+      map: (p) => ({ events: p.events }),
+      reduce: (acc, p) => { acc.events += p.events; },
+    });
+    index.load(venueGroups.map(g => ({
+      type: 'Feature',
+      properties: { key: g.key, events: g.events.length },
+      geometry: { type: 'Point', coordinates: [Number(g.longitude), Number(g.latitude)] },
+    })));
+    return index;
+  }, [venueGroups]);
+
+  const [region, setRegion] = useState(null);
+  const groupByKey = useMemo(() => new Map(venueGroups.map(g => [g.key, g])), [venueGroups]);
+  const clusters = useMemo(() => {
+    // Harita ilk bölge bildirimini göndermeden önce açılış bölgesi kullanılır
+    const r = region || (userLocation ? { ...userLocation, latitudeDelta: 0.3, longitudeDelta: 0.3 } : TURKEY_CENTER);
+    return clusterIndex.getClusters(regionBBox(r), regionZoom(r));
+  }, [clusterIndex, region, userLocation]);
+
+  // Çizilen küme/işaretçi seti değişince işaretçiler kısa süre yeniden izlenir
+  const clusterSignature = useMemo(
+    () => clusters.map(c => (c.properties.cluster ? `c${c.id}:${c.properties.events}` : c.properties.key)).join('|'),
+    [clusters],
+  );
   useEffect(() => {
     setTrackMarkers(true);
     const timer = setTimeout(() => setTrackMarkers(false), 800);
     return () => clearTimeout(timer);
-  }, [venueGroups]);
+  }, [clusterSignature]);
+
+  const handleClusterPress = useCallback((cluster) => {
+    if (!mapRef.current) return;
+    const [longitude, latitude] = cluster.geometry.coordinates;
+    const zoom = Math.min(clusterIndex.getClusterExpansionZoom(cluster.id) + 1, 18);
+    const delta = 360 / Math.pow(2, zoom);
+    mapRef.current.animateToRegion({ latitude, longitude, latitudeDelta: delta, longitudeDelta: delta }, 450);
+  }, [clusterIndex]);
 
   const venueKeyOf = (e) => e && `${Number(e.venueLatitude).toFixed(5)},${Number(e.venueLongitude).toFixed(5)}`;
   const selectedVenueKey = venueKeyOf(selectedEvent);
@@ -155,8 +209,15 @@ export default function MapScreen({ navigation }) {
     return [...filteredEvents].sort((a, b) => (a.distanceKm ?? 9999) - (b.distanceKm ?? 9999));
   }, [filteredEvents, userLocation]);
 
-  const handleMarkerPress = useCallback((event) => {
+  const handleMarkerPress = useCallback((event, focus = false) => {
     setSelectedEvent(event);
+    // Listeden seçilen etkinliğin mekânı bir kümenin içinde kalmış olabilir: oraya yaklaş
+    if (focus && mapRef.current) {
+      mapRef.current.animateToRegion({
+        latitude: Number(event.venueLatitude), longitude: Number(event.venueLongitude),
+        latitudeDelta: 0.02, longitudeDelta: 0.02,
+      }, 450);
+    }
     Animated.spring(bottomAnim, { toValue: 0, tension: 65, friction: 11, useNativeDriver: true }).start();
   }, [bottomAnim]);
 
@@ -242,6 +303,7 @@ export default function MapScreen({ navigation }) {
         showsUserLocation={true}
         showsMyLocationButton={false}
         onPress={handleMapPress}
+        onRegionChangeComplete={setRegion}
       >
         {/* Mesafe dairesi */}
         {userLocation && selectedRadius && (
@@ -254,7 +316,26 @@ export default function MapScreen({ navigation }) {
           />
         )}
 
-        {venueGroups.map(group => {
+        {clusters.map(feature => {
+          if (feature.properties.cluster) {
+            const [longitude, latitude] = feature.geometry.coordinates;
+            const count = feature.properties.events;
+            const size = count >= 100 ? 54 : count >= 20 ? 46 : 40;
+            return (
+              <Marker
+                key={`cluster-${feature.id}`}
+                coordinate={{ latitude, longitude }}
+                onPress={() => handleClusterPress(feature)}
+                tracksViewChanges={trackMarkers}
+              >
+                <View style={[styles.cluster, { width: size, height: size, borderRadius: size / 2 }]}>
+                  <Text style={styles.clusterText}>{count > 999 ? '999+' : count}</Text>
+                </View>
+              </Marker>
+            );
+          }
+          const group = groupByKey.get(feature.properties.key);
+          if (!group) return null;
           const first = group.events[0];
           const color = getMarkerColor(first.genre);
           const isSelected = selectedVenueKey === group.key;
@@ -354,7 +435,7 @@ export default function MapScreen({ navigation }) {
               <TouchableOpacity
                 key={event.id}
                 style={styles.nearbyCard}
-                onPress={() => handleMarkerPress(event)}
+                onPress={() => handleMarkerPress(event, true)}
                 activeOpacity={0.85}
               >
                 <View style={[styles.nearbyDot, { backgroundColor: getMarkerColor(event.genre) }]} />
@@ -436,6 +517,11 @@ function createStyles(colors) {
       borderWidth: 3,
     },
     subRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 3 },
+    cluster: {
+      alignItems: 'center', justifyContent: 'center',
+      backgroundColor: colors.primary, borderWidth: 3, borderColor: 'rgba(255,255,255,0.85)',
+    },
+    clusterText: { color: '#fff', fontSize: 14, fontWeight: '900' },
     markerWrap: { width: 58, height: 54, alignItems: 'center', justifyContent: 'center' },
     markerCount: {
       position: 'absolute', top: 0, right: 0,
