@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import {
     View, Text, StyleSheet, Animated, Dimensions, Image
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -124,10 +123,7 @@ export default function WelcomeScreen({ navigation, route }) {
     }, []);
 
     return (
-        <LinearGradient
-            colors={[colors.background, colors.card, colors.background]}
-            style={styles.container}
-        >
+        <View style={styles.container}>
             {/* LOGO + HALKALAR */}
             <View style={styles.logoWrapper}>
 
@@ -154,16 +150,13 @@ export default function WelcomeScreen({ navigation, route }) {
                     styles.logoContainer,
                     { opacity: logoOpacity, transform: [{ scale: logoScale }] },
                 ]}>
-                    <LinearGradient
-                        colors={['#E94560', '#7C3AED']}
-                        style={styles.logoGradient}
-                    >
+                    <View style={styles.logoGradient}>
                         <Image
                             source={require('../../assets/icon.png')}
                             style={styles.logo}
                             resizeMode="contain"
                         />
-                    </LinearGradient>
+                    </View>
                 </Animated.View>
 
             </View>
@@ -188,7 +181,7 @@ export default function WelcomeScreen({ navigation, route }) {
                 <LoadingDots dotStyle={styles.dot} />
             </Animated.View>
 
-        </LinearGradient>
+        </View>
     );
 }
 
@@ -233,6 +226,7 @@ function createStyles(colors) {
   return StyleSheet.create({
     container: {
         flex: 1,
+        backgroundColor: colors.background,
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -266,6 +260,7 @@ function createStyles(colors) {
     logoGradient: {
         width: '100%', height: '100%',
         justifyContent: 'center', alignItems: 'center',
+        backgroundColor: colors.primary,
     },
     logo: { width: 70, height: 70 },
 

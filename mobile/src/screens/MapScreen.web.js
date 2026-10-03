@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import API from '../services/api';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
@@ -69,7 +69,7 @@ export default function MapScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={colors.headerGradient} style={styles.header}>
+      <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => goBackOrFallback(navigation)}
@@ -82,7 +82,7 @@ export default function MapScreen({ navigation }) {
           {loading ? t('map_loading') : t('map_events_count', { count: events.length })}
         </Text>
         <Text style={styles.notice}>{t('map_web_note')}</Text>
-      </LinearGradient>
+      </View>
 
       <View style={styles.filterBar}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
@@ -119,13 +119,22 @@ export default function MapScreen({ navigation }) {
             >
               <Text style={styles.name} numberOfLines={2}>{event.name}</Text>
               {!!event.artistName && event.artistName !== event.name && (
-                <Text style={styles.artist} numberOfLines={1}>🎤 {event.artistName}</Text>
+                <View style={styles.detailRow}>
+                  <Ionicons name="mic-outline" size={13} color={colors.text} />
+                  <Text style={[styles.artist, styles.detailText]} numberOfLines={1}>{event.artistName}</Text>
+                </View>
               )}
-              <Text style={styles.detail}>📅 {formatDate(event.eventDate)}</Text>
+              <View style={styles.detailRow}>
+                <Ionicons name="calendar-clear-outline" size={13} color={colors.textSecondary} />
+                <Text style={[styles.detail, styles.detailText]}>{formatDate(event.eventDate)}</Text>
+              </View>
               {!!(event.venueName || event.venueCity) && (
-                <Text style={styles.detail} numberOfLines={2}>
-                  📍 {[event.venueName, event.venueCity].filter(Boolean).join(' · ')}
-                </Text>
+                <View style={styles.detailRow}>
+                  <Ionicons name="location-outline" size={13} color={colors.textSecondary} />
+                  <Text style={[styles.detail, styles.detailText]} numberOfLines={2}>
+                    {[event.venueName, event.venueCity].filter(Boolean).join(' · ')}
+                  </Text>
+                </View>
               )}
               {hasCoords(event) && (
                 <TouchableOpacity
@@ -176,6 +185,8 @@ function createStyles(colors) {
     name: { color: colors.text, fontSize: 16, fontWeight: '700' },
     artist: { color: colors.text, marginTop: 4, opacity: 0.85 },
     detail: { color: colors.textSecondary, marginTop: 4 },
+    detailRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 },
+    detailText: { marginTop: 0, flexShrink: 1 },
     mapLink: {
       alignSelf: 'flex-start', marginTop: 10,
       paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12,

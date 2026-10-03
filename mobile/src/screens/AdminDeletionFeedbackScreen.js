@@ -3,6 +3,7 @@ import {
   View, Text, FlatList, TouchableOpacity,
   StyleSheet, ActivityIndicator, RefreshControl,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
@@ -80,8 +81,8 @@ export default function AdminDeletionFeedbackScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => goBackOrFallback(navigation, 'Admin')} style={styles.backBtn}>
-          <Text style={styles.backText}>←</Text>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation, 'Admin')} style={styles.backBtn} accessibilityRole="button" accessibilityLabel={t('back')}>
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('admin_nav_deletion_title')}</Text>
         <View style={styles.backBtn} />
@@ -111,7 +112,7 @@ export default function AdminDeletionFeedbackScreen({ navigation }) {
         }
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text style={styles.emptyEmoji}>📭</Text>
+            <Ionicons name="file-tray-outline" size={48} color={colors.textSecondary} style={styles.emptyEmoji} />
             <Text style={styles.emptyText}>{t('admin_deletion_empty')}</Text>
           </View>
         }
@@ -138,7 +139,6 @@ function createStyles(colors) {
       borderBottomColor: colors.border,
     },
     backBtn: { width: 40, alignItems: 'center' },
-    backText: { fontSize: 24, color: colors.text },
     headerTitle: { fontSize: 18, fontWeight: '700', color: colors.text },
 
     summary: {
@@ -161,7 +161,7 @@ function createStyles(colors) {
     separator: { height: 1, backgroundColor: colors.border, marginLeft: 16 },
     emptyContainer: { flex: 1, justifyContent: 'center' },
     empty: { alignItems: 'center', paddingVertical: 60 },
-    emptyEmoji: { fontSize: 48, marginBottom: 12 },
+    emptyEmoji: { marginBottom: 12 },
     emptyText: { fontSize: 15, color: colors.textSecondary },
   });
 }

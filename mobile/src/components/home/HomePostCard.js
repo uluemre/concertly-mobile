@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../theme';
 import { formatTimeAgo } from '../../utils/time';
 import { useLanguage } from '../../context/LanguageContext';
@@ -28,19 +29,29 @@ export default React.memo(function HomePostCard({ item, index, navigation }) {
             <Text style={styles.username}>@{item.username}</Text>
             {item.eventId ? (
               // Konsere bağlı gönderide etkinlik satırı ayrıca etkinliği açar
-              <TouchableOpacity onPress={() => openEvent(navigation, item.eventId)} activeOpacity={0.7}>
-                <Text style={styles.event} numberOfLines={1}>🎵 {item.eventName}</Text>
+              <TouchableOpacity onPress={() => openEvent(navigation, item.eventId)} activeOpacity={0.7} style={styles.eventRow} accessibilityRole="link">
+                <Ionicons name="musical-notes-outline" size={11} color={colors.textSecondary} />
+                <Text style={styles.event} numberOfLines={1}>{item.eventName}</Text>
               </TouchableOpacity>
             ) : item.eventName ? (
-              <Text style={styles.event} numberOfLines={1}>🎵 {item.eventName}</Text>
+              <View style={styles.eventRow}>
+                <Ionicons name="musical-notes-outline" size={11} color={colors.textSecondary} />
+                <Text style={styles.event} numberOfLines={1}>{item.eventName}</Text>
+              </View>
             ) : null}
           </View>
           <Text style={styles.time}>{formatTimeAgo(item.createdAt, lang)}</Text>
         </View>
         <Text style={styles.content} numberOfLines={3}>{item.content}</Text>
         <View style={styles.footer}>
-          <Text style={styles.stat}>❤️ {item.likeCount ?? 0}</Text>
-          <Text style={styles.stat}>💬 {item.commentCount ?? 0}</Text>
+          <View style={styles.statItem}>
+            <Ionicons name="heart-outline" size={14} color={colors.textSecondary} />
+            <Text style={styles.stat}>{item.likeCount ?? 0}</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Ionicons name="chatbubble-outline" size={14} color={colors.textSecondary} />
+            <Text style={styles.stat}>{item.commentCount ?? 0}</Text>
+          </View>
           <View style={styles.dot} />
         </View>
       </View>
@@ -64,10 +75,12 @@ function createStyles(colors) {
       borderWidth: 1, borderColor: colors.border,
     },
     username: { fontSize: 13, fontWeight: '800', color: colors.text, marginBottom: 2 },
-    event: { fontSize: 11, color: colors.textSecondary },
+    eventRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    event: { fontSize: 11, color: colors.textSecondary, flexShrink: 1 },
     time: { fontSize: 11, color: colors.textSecondary },
     content: { fontSize: 14, color: colors.text, lineHeight: 20, marginBottom: 12, opacity: 0.75 },
     footer: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    statItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     stat: { fontSize: 13, color: colors.textSecondary, fontWeight: '600' },
     dot: { marginLeft: 'auto', width: 6, height: 6, borderRadius: 3, backgroundColor: colors.border },
   });

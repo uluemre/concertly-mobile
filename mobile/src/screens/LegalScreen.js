@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import { LEGAL_CONTENT } from '../constants/legalContent';
@@ -9,7 +10,7 @@ import { goBackOrFallback } from '../navigation/navHelpers';
 
 export default function LegalScreen({ navigation, route }) {
   const { colors } = useTheme();
-  const { lang } = useLanguage();
+  const { lang, t } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const doc = route?.params?.doc === 'privacy' ? 'privacy' : 'terms';
@@ -18,8 +19,8 @@ export default function LegalScreen({ navigation, route }) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.backBtn}>
-          <Text style={styles.backText}>←</Text>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.backBtn} accessibilityRole="button" accessibilityLabel={t('back')}>
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>{content.title}</Text>
         <View style={styles.backBtn} />
@@ -54,7 +55,6 @@ function createStyles(colors) {
       borderBottomColor: colors.border,
     },
     backBtn: { width: 40, alignItems: 'center' },
-    backText: { fontSize: 24, color: colors.text },
     headerTitle: { flex: 1, textAlign: 'center', fontSize: 18, fontWeight: '700', color: colors.text },
 
     body: { padding: 20 },

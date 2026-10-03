@@ -4,7 +4,7 @@ import {
   ActivityIndicator, FlatList, Animated,
   RefreshControl,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import API, { getErrorMessage } from '../services/api';
 import { useTheme } from '../theme';
 import { ListSkeletonPage } from '../components/SkeletonLoader';
@@ -145,32 +145,32 @@ export default function FeedScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={colors.headerGradient} style={styles.header}>
+      <View style={styles.header}>
         {/* Akış yığına itilen bir ekran; geri dönüş yolu olmalı (N-29) */}
-        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.backButton}>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.backButton} accessibilityRole="button">
           <Text style={styles.backText}>{t('back')}</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('feed_title')}</Text>
         <View style={styles.tabBar}>
           <Animated.View style={[styles.tabIndicator, { left: indicatorLeft }]} />
-          <TouchableOpacity style={styles.tabBtn} onPress={() => switchTab('trending')}>
+          <TouchableOpacity style={styles.tabBtn} onPress={() => switchTab('trending')} accessibilityRole="tab" accessibilityState={{ selected: activeTab === 'trending' }}>
             <Text style={[styles.tabBtnText, activeTab === 'trending' && styles.tabBtnTextActive]}>
               {t('feed_trending')}
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.tabBtn} onPress={() => switchTab('following')}>
+          <TouchableOpacity style={styles.tabBtn} onPress={() => switchTab('following')} accessibilityRole="tab" accessibilityState={{ selected: activeTab === 'following' }}>
             <Text style={[styles.tabBtnText, activeTab === 'following' && styles.tabBtnTextActive]}>
               {t('feed_following')}
             </Text>
           </TouchableOpacity>
         </View>
-      </LinearGradient>
+      </View>
 
       {loading ? (
         <ListSkeletonPage rows={6} />
       ) : (error && posts.length === 0) ? (
         <View style={styles.empty}>
-          <Text style={styles.emptyEmoji}>📡</Text>
+          <Ionicons name="cloud-offline-outline" size={56} color={colors.textSecondary} style={styles.emptyEmoji} />
           <Text style={styles.emptyTitle}>{t('load_failed')}</Text>
           <Text style={styles.emptySubtext}>{error}</Text>
           <TouchableOpacity
@@ -181,10 +181,11 @@ export default function FeedScreen({ navigation }) {
             }}
             activeOpacity={0.85}
             style={styles.emptyCtaWrap}
+            accessibilityRole="button"
           >
-            <LinearGradient colors={['#E94560', '#7C3AED']} style={styles.emptyCta} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+            <View style={styles.emptyCta}>
               <Text style={styles.emptyCtaText}>{t('retry')}</Text>
-            </LinearGradient>
+            </View>
           </TouchableOpacity>
         </View>
       ) : (
@@ -208,7 +209,12 @@ export default function FeedScreen({ navigation }) {
           }
           ListEmptyComponent={
             <View style={styles.empty}>
-              <Text style={styles.emptyEmoji}>{activeTab === 'following' ? '👥' : '📭'}</Text>
+              <Ionicons
+                name={activeTab === 'following' ? 'people-outline' : 'document-text-outline'}
+                size={56}
+                color={colors.textSecondary}
+                style={styles.emptyEmoji}
+              />
               <Text style={styles.emptyTitle}>
                 {activeTab === 'following' ? t('feed_empty_following_title') : t('feed_empty_title')}
               </Text>
@@ -219,17 +225,13 @@ export default function FeedScreen({ navigation }) {
                 onPress={() => activeTab === 'following' ? switchTab('trending') : navigation.navigate('MainApp', { screen: 'Events' })}
                 activeOpacity={0.85}
                 style={styles.emptyCtaWrap}
+                accessibilityRole="button"
               >
-                <LinearGradient
-                  colors={['#E94560', '#7C3AED']}
-                  style={styles.emptyCta}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                >
+                <View style={styles.emptyCta}>
                   <Text style={styles.emptyCtaText}>
                     {activeTab === 'following' ? t('feed_empty_following_cta') : t('feed_empty_cta')}
                   </Text>
-                </LinearGradient>
+                </View>
               </TouchableOpacity>
             </View>
           }
@@ -241,15 +243,12 @@ export default function FeedScreen({ navigation }) {
         style={styles.fab}
         onPress={() => navigation.navigate('CreatePost')}
         activeOpacity={0.85}
+        accessibilityRole="button"
+        accessibilityLabel={t('post_header')}
       >
-        <LinearGradient
-          colors={['#E94560', '#7C3AED']}
-          style={styles.fabInner}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          <Text style={styles.fabIcon}>✏️</Text>
-        </LinearGradient>
+        <View style={styles.fabInner}>
+          <Ionicons name="create-outline" size={26} color="#fff" />
+        </View>
       </TouchableOpacity>
     </View>
   );
@@ -280,21 +279,21 @@ function createStyles(colors) {
     loadingText: { color: colors.textSecondary, fontSize: 14 },
     listContent: { padding: 16, paddingBottom: 32 },
     empty: { alignItems: 'center', paddingVertical: 60, paddingHorizontal: 32 },
-    emptyEmoji: { fontSize: 56, marginBottom: 16 },
+    emptyEmoji: { marginBottom: 16 },
     emptyTitle: { fontSize: 17, fontWeight: 'bold', color: colors.text, marginBottom: 8, textAlign: 'center' },
     emptySubtext: { fontSize: 13, color: colors.textSecondary, textAlign: 'center', lineHeight: 20 },
     emptyCtaWrap: { marginTop: 20 },
-    emptyCta: { paddingVertical: 12, paddingHorizontal: 28, borderRadius: 14, alignItems: 'center' },
+    emptyCta: { paddingVertical: 12, paddingHorizontal: 28, borderRadius: 14, alignItems: 'center', backgroundColor: colors.primary },
     emptyCtaText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
     fab: {
       position: 'absolute', right: 20, bottom: 24,
-      borderRadius: 30, shadowColor: '#000', shadowOpacity: 0.3,
-      shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 6,
+      borderRadius: 30, shadowColor: '#000', shadowOpacity: 0.2,
+      shadowRadius: 6, shadowOffset: { width: 0, height: 3 }, elevation: 4,
     },
     fabInner: {
       width: 60, height: 60, borderRadius: 30,
       justifyContent: 'center', alignItems: 'center',
+      backgroundColor: colors.primary,
     },
-    fabIcon: { fontSize: 26 },
   });
 }

@@ -5,7 +5,6 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Image,
   KeyboardAvoidingView, Platform,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme';
@@ -21,7 +20,7 @@ export default function AuthLayout({
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   return (
-    <LinearGradient colors={colors.screenGradient} style={styles.container}>
+    <View style={styles.container}>
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -60,14 +59,9 @@ export default function AuthLayout({
                   accessible={false}
                 />
               ) : icon ? (
-                <LinearGradient
-                  colors={['#E94560', '#7C3AED']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.iconBadge}
-                >
+                <View style={styles.iconBadge}>
                   <Ionicons name={icon} size={30} color="#fff" />
-                </LinearGradient>
+                </View>
               ) : null}
               {title ? (
                 <Text style={styles.title} accessibilityRole="header">{title}</Text>
@@ -83,7 +77,7 @@ export default function AuthLayout({
           {footer ? <View style={styles.footer}>{footer}</View> : null}
         </ScrollView>
       </KeyboardAvoidingView>
-    </LinearGradient>
+    </View>
   );
 }
 
@@ -103,6 +97,7 @@ function createStyles(colors) {
     iconBadge: {
       width: 64, height: 64, borderRadius: 20,
       alignItems: 'center', justifyContent: 'center', marginBottom: 16,
+      backgroundColor: colors.primary,
     },
     title: {
       fontSize: 26, fontWeight: '800', color: colors.text,

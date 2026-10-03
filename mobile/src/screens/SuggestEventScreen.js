@@ -3,7 +3,6 @@ import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
   ScrollView, Alert, ActivityIndicator, KeyboardAvoidingView, Platform,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import API from '../services/api';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
@@ -109,13 +108,13 @@ export default function SuggestEventScreen({ navigation }) {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-        <LinearGradient colors={colors.headerGradient} style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => goBackOrFallback(navigation)}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => goBackOrFallback(navigation)} accessibilityRole="button">
             <Text style={styles.backText}>{t('back')}</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{t('suggest_title')}</Text>
           <Text style={styles.headerSub}>{t('suggest_subtitle')}</Text>
-        </LinearGradient>
+        </View>
 
         {field('name', 'suggest_field_name', { placeholder: 'suggest_field_name_ph' })}
         {field('artistName', 'suggest_field_artist', { placeholder: 'suggest_field_artist_ph' })}

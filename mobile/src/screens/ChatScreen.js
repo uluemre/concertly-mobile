@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, FlatList, TextInput,
   ActivityIndicator, KeyboardAvoidingView, Platform, Image, Alert, AppState,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
@@ -122,14 +122,11 @@ export default function ChatScreen({ navigation, route }) {
     return (
       <View style={[styles.bubbleRow, mine ? styles.bubbleRowMine : styles.bubbleRowTheirs]}>
         {mine ? (
-          <LinearGradient
-            colors={['#E94560', '#7C3AED']}
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-            style={[styles.bubble, styles.bubbleMine]}
-          >
+          // Kendi mesajın: düz marka rengi balon
+          <View style={[styles.bubble, styles.bubbleMine, { backgroundColor: colors.primary }]}>
             <Text style={styles.bubbleTextMine}>{item.content}</Text>
             <Text style={styles.bubbleTimeMine}>{formatClock(item.createdAt, lang)}</Text>
-          </LinearGradient>
+          </View>
         ) : (
           <View style={[styles.bubble, styles.bubbleTheirs, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <Text style={[styles.bubbleTextTheirs, { color: colors.text }]}>{item.content}</Text>
@@ -148,35 +145,40 @@ export default function ChatScreen({ navigation, route }) {
       style={[styles.container, { backgroundColor: colors.background }]}
     >
       {/* HEADER */}
-      <LinearGradient colors={colors.headerGradient} style={styles.header}>
+      <View style={styles.header}>
         <TouchableOpacity onPress={() => goBackOrFallback(navigation)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel={t('back')}>
-          <Text style={[styles.backText, { color: colors.primary }]}>‹</Text>
+          <Ionicons name="chevron-back" size={28} color={colors.primary} />
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.headerUser}
           onPress={() => navigation.navigate('UserProfile', { userId })}
           activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel={`@${username}`}
         >
-          <LinearGradient colors={['#00D4AA', '#3B82F6']} style={styles.headerAvatar}>
+          <View style={styles.headerAvatar}>
             {profileImageUrl ? (
               <Image source={{ uri: profileImageUrl }} style={styles.headerAvatarImg} />
             ) : (
               <Text style={styles.headerAvatarText}>{username?.charAt(0).toUpperCase()}</Text>
             )}
-          </LinearGradient>
+          </View>
           <View>
             <Text style={[styles.headerUsername, { color: colors.text }]}>@{username}</Text>
             {sharedEventName && (
-              <Text style={[styles.headerEvent, { color: colors.textSecondary }]} numberOfLines={1}>
-                🎪 {sharedEventName}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Ionicons name="musical-notes-outline" size={11} color={colors.textSecondary} />
+                <Text style={[styles.headerEvent, { color: colors.textSecondary, marginTop: 0, flexShrink: 1 }]} numberOfLines={1}>
+                  {sharedEventName}
+                </Text>
+              </View>
             )}
           </View>
         </TouchableOpacity>
         <TouchableOpacity onPress={handleModeration} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel={t('mod_options_title')}>
-          <Text style={[styles.moreText, { color: colors.text }]}>⋯</Text>
+          <Ionicons name="ellipsis-horizontal" size={24} color={colors.text} style={styles.moreText} />
         </TouchableOpacity>
-      </LinearGradient>
+      </View>
 
       {/* MESSAGES */}
       {loading ? (
@@ -214,15 +216,14 @@ export default function ChatScreen({ navigation, route }) {
           onPress={handleSend}
           disabled={!text.trim() || sending}
           activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel={t('send')}
         >
-          <LinearGradient
-            colors={text.trim() ? ['#E94560', '#7C3AED'] : [colors.cardAlt, colors.cardAlt]}
-            style={styles.sendBtn}
-          >
+          <View style={[styles.sendBtn, { backgroundColor: text.trim() ? colors.primary : colors.cardAlt }]}>
             {sending
               ? <ActivityIndicator size="small" color="#fff" />
-              : <Text style={styles.sendBtnText}>➤</Text>}
-          </LinearGradient>
+              : <Ionicons name="send" size={17} color={text.trim() ? '#fff' : colors.textSecondary} />}
+          </View>
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -242,12 +243,13 @@ function createStyles(colors) {
     headerAvatar: {
       width: 40, height: 40, borderRadius: 20,
       justifyContent: 'center', alignItems: 'center', overflow: 'hidden',
+      backgroundColor: colors.cardAlt, borderWidth: 1, borderColor: colors.border,
     },
     headerAvatarImg: { width: 40, height: 40, borderRadius: 20 },
-    headerAvatarText: { color: '#fff', fontSize: 16, fontWeight: '900' },
+    headerAvatarText: { color: colors.text, fontSize: 16, fontWeight: '900' },
     headerUsername: { fontSize: 17, fontWeight: '800' },
     headerEvent: { fontSize: 11, marginTop: 1 },
-    moreText: { fontSize: 26, fontWeight: '700', paddingHorizontal: 4, letterSpacing: 1 },
+    moreText: { paddingHorizontal: 4 },
 
     bubbleRow: { marginBottom: 10, flexDirection: 'row' },
     bubbleRowMine: { justifyContent: 'flex-end' },
@@ -276,6 +278,5 @@ function createStyles(colors) {
       width: 44, height: 44, borderRadius: 22,
       justifyContent: 'center', alignItems: 'center',
     },
-    sendBtnText: { color: '#fff', fontSize: 18, fontWeight: '900' },
   });
 }

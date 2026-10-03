@@ -4,7 +4,7 @@ import {
   TouchableOpacity, ActivityIndicator,
   Alert, ScrollView, KeyboardAvoidingView, Platform, Image
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import API, { uploadImage } from '../services/api';
 import { useTheme } from '../theme';
@@ -20,9 +20,9 @@ export default function CreatePostScreen({ route, navigation }) {
   const { event } = route.params || {};
 
   const POST_TYPES = useMemo(() => [
-    { key: 'TEXT', label: t('post_type_text') },
-    { key: 'IMAGE', label: t('post_type_image') },
-    { key: 'POLL', label: t('post_type_poll') },
+    { key: 'TEXT', icon: 'create-outline', label: t('post_type_text') },
+    { key: 'IMAGE', icon: 'image-outline', label: t('post_type_image') },
+    { key: 'POLL', icon: 'stats-chart-outline', label: t('post_type_poll') },
   ], [t]);
 
   const [postType, setPostType] = useState('TEXT');
@@ -114,26 +114,29 @@ export default function CreatePostScreen({ route, navigation }) {
     >
       <ScrollView style={styles.container}>
         {/* HEADER */}
-        <LinearGradient colors={['#E94560', '#7C3AED']} style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => goBackOrFallback(navigation)}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => goBackOrFallback(navigation)} accessibilityRole="button">
             <Text style={styles.backText}>{t('post_cancel')}</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{t('post_header')}</Text>
           <Text style={styles.headerSub}>{event ? event.name : t('post_general_sub')}</Text>
-        </LinearGradient>
+        </View>
 
         <View style={styles.content}>
           {/* TÜR SEÇİCİ */}
           <View style={styles.typeRow}>
-            {POST_TYPES.map(t => (
+            {POST_TYPES.map(pt => (
               <TouchableOpacity
-                key={t.key}
-                style={[styles.typeBtn, postType === t.key && styles.typeBtnActive]}
-                onPress={() => setPostType(t.key)}
+                key={pt.key}
+                style={[styles.typeBtn, postType === pt.key && styles.typeBtnActive, styles.typeBtnRow]}
+                onPress={() => setPostType(pt.key)}
                 activeOpacity={0.8}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: postType === pt.key }}
               >
-                <Text style={[styles.typeBtnText, postType === t.key && styles.typeBtnTextActive]}>
-                  {t.label}
+                <Ionicons name={pt.icon} size={15} color={postType === pt.key ? colors.primary : colors.textSecondary} />
+                <Text style={[styles.typeBtnText, postType === pt.key && styles.typeBtnTextActive]}>
+                  {pt.label}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -144,8 +147,18 @@ export default function CreatePostScreen({ route, navigation }) {
             <View style={styles.eventCard}>
               <Text style={styles.eventCardLabel}>{t('post_event_label')}</Text>
               <Text style={styles.eventCardName}>{event.name}</Text>
-              {event.artistName && <Text style={styles.eventCardSub}>🎤 {event.artistName}</Text>}
-              {event.venueCity && <Text style={styles.eventCardSub}>📍 {event.venueCity}</Text>}
+              {event.artistName && (
+                <View style={styles.inlineRow}>
+                  <Ionicons name="mic-outline" size={13} color={colors.textSecondary} />
+                  <Text style={styles.eventCardSub}>{event.artistName}</Text>
+                </View>
+              )}
+              {event.venueCity && (
+                <View style={styles.inlineRow}>
+                  <Ionicons name="location-outline" size={13} color={colors.textSecondary} />
+                  <Text style={styles.eventCardSub}>{event.venueCity}</Text>
+                </View>
+              )}
             </View>
           )}
 
@@ -169,12 +182,12 @@ export default function CreatePostScreen({ route, navigation }) {
 
           {/* FOTOĞRAF */}
           {postType === 'IMAGE' && (
-            <TouchableOpacity style={styles.imagePicker} onPress={pickImage} activeOpacity={0.8}>
+            <TouchableOpacity style={styles.imagePicker} onPress={pickImage} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={t('post_pick_photo')}>
               {imageUri ? (
                 <Image source={{ uri: imageUri }} style={styles.imagePreview} resizeMode="cover" />
               ) : (
                 <View style={styles.imagePickerEmpty}>
-                  <Text style={styles.imagePickerEmoji}>📷</Text>
+                  <Ionicons name="camera-outline" size={40} color={colors.textSecondary} />
                   <Text style={styles.imagePickerText}>{t('post_pick_photo')}</Text>
                 </View>
               )}
@@ -195,14 +208,14 @@ export default function CreatePostScreen({ route, navigation }) {
                     maxLength={80}
                   />
                   {pollOptions.length > 2 && (
-                    <TouchableOpacity onPress={() => removePollOption(i)} style={styles.pollRemove}>
-                      <Text style={styles.pollRemoveText}>✕</Text>
+                    <TouchableOpacity onPress={() => removePollOption(i)} style={styles.pollRemove} accessibilityRole="button" accessibilityLabel={t('delete')}>
+                      <Ionicons name="close" size={16} color={colors.textSecondary} />
                     </TouchableOpacity>
                   )}
                 </View>
               ))}
               {pollOptions.length < 4 && (
-                <TouchableOpacity style={styles.addOptionBtn} onPress={addPollOption}>
+                <TouchableOpacity style={styles.addOptionBtn} onPress={addPollOption} accessibilityRole="button">
                   <Text style={styles.addOptionText}>{t('post_add_option')}</Text>
                 </TouchableOpacity>
               )}
@@ -228,15 +241,10 @@ export default function CreatePostScreen({ route, navigation }) {
           {loading ? (
             <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 24 }} />
           ) : (
-            <TouchableOpacity onPress={handlePost} style={{ marginTop: 24 }}>
-              <LinearGradient
-                colors={['#F5A623', '#E94560']}
-                style={styles.submitButton}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-              >
+            <TouchableOpacity onPress={handlePost} style={{ marginTop: 24 }} accessibilityRole="button">
+              <View style={[styles.submitButton, { backgroundColor: colors.primary }]}>
                 <Text style={styles.submitText}>{t('post_share')}</Text>
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
           )}
         </View>
@@ -250,9 +258,11 @@ function createStyles(colors) {
     container: { flex: 1, backgroundColor: colors.background },
     header: { paddingTop: 60, paddingBottom: 24, paddingHorizontal: 24 },
     backButton: { marginBottom: 16 },
-    backText: { color: 'rgba(255,255,255,0.8)', fontSize: 15 },
-    headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#fff' },
-    headerSub: { fontSize: 13, color: 'rgba(255,255,255,0.8)', marginTop: 4 },
+    backText: { color: colors.textSecondary, fontSize: 15 },
+    headerTitle: { fontSize: 24, fontWeight: 'bold', color: colors.text },
+    headerSub: { fontSize: 13, color: colors.textSecondary, marginTop: 4 },
+    inlineRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 },
+    typeBtnRow: { flexDirection: 'row', justifyContent: 'center', gap: 6 },
 
     content: { padding: 16, gap: 14 },
 
@@ -271,7 +281,7 @@ function createStyles(colors) {
     },
     eventCardLabel: { fontSize: 10, color: colors.textSecondary, fontWeight: '700', letterSpacing: 1, marginBottom: 6 },
     eventCardName: { fontSize: 16, fontWeight: 'bold', color: colors.text, marginBottom: 4 },
-    eventCardSub: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
+    eventCardSub: { fontSize: 13, color: colors.textSecondary },
 
     inputCard: {
       backgroundColor: colors.card, borderRadius: 16, padding: 16,
@@ -290,7 +300,6 @@ function createStyles(colors) {
       minHeight: 180, backgroundColor: colors.card,
       justifyContent: 'center', alignItems: 'center', gap: 8,
     },
-    imagePickerEmoji: { fontSize: 40 },
     imagePickerText: { color: colors.textSecondary, fontSize: 15, fontWeight: '600' },
 
     pollSection: { gap: 10 },
@@ -304,7 +313,6 @@ function createStyles(colors) {
       borderWidth: 1, borderColor: colors.border,
       justifyContent: 'center', alignItems: 'center',
     },
-    pollRemoveText: { color: colors.textSecondary, fontSize: 14, fontWeight: '700' },
     addOptionBtn: {
       padding: 12, borderRadius: 12, alignItems: 'center',
       borderWidth: 1, borderColor: colors.border, borderStyle: 'dashed',

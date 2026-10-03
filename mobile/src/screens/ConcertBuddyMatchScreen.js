@@ -21,13 +21,6 @@ import { goBackOrFallback, openEvent } from '../navigation/navHelpers';
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width - 32;
 
-const AVATAR_GRADIENTS = [
-  ['#E94560', '#7C3AED'],
-  ['#00D4AA', '#3B82F6'],
-  ['#F5A623', '#E94560'],
-  ['#7C3AED', '#00D4AA'],
-  ['#3B82F6', '#E94560'],
-];
 
 function compatInfo(score, t) {
   if (score >= 80) return { label: t('buddy_compat_great'), color: '#00D4AA' };
@@ -36,11 +29,9 @@ function compatInfo(score, t) {
   return { label: t('buddy_compat_explore'), color: '#A0A0B0' };
 }
 
-function Avatar({ user, size, styles, index = 0, ring }) {
-  const gradient = AVATAR_GRADIENTS[(user?.userId ?? index) % AVATAR_GRADIENTS.length];
+function Avatar({ user, size, styles, ring }) {
   return (
-    <LinearGradient
-      colors={gradient}
+    <View
       style={[{ width: size, height: size, borderRadius: size / 2 }, styles.avatar, ring && styles.avatarRing]}
     >
       {user?.profileImageUrl ? (
@@ -48,7 +39,7 @@ function Avatar({ user, size, styles, index = 0, ring }) {
       ) : (
         <Text style={[styles.avatarLetter, { fontSize: size * 0.4 }]}>{user?.username?.charAt(0).toUpperCase()}</Text>
       )}
-    </LinearGradient>
+    </View>
   );
 }
 
@@ -68,6 +59,7 @@ function MatchOverlay({ matchedUser, onClose, navigation, t, styles, session }) 
 
   return (
     <Animated.View style={[styles.matchOverlay, { opacity: opacityAnim }]}>
+      {/* Eşleşme anı (kutlama) — perde degradesi kalır */}
       <LinearGradient colors={['#0A0A14F2', '#2A0A2EF2']} style={StyleSheet.absoluteFill} />
       <Animated.View style={[styles.matchContent, { transform: [{ scale: scaleAnim }] }]}>
         <View style={styles.matchAvatars}>
@@ -345,9 +337,9 @@ export default function ConcertBuddyMatchScreen({ navigation, route }) {
 
   const EmptyPanel = ({ icon, title, sub, children }) => (
     <View style={styles.emptyCard}>
-      <LinearGradient colors={['#E94560', '#7C3AED']} style={styles.emptyIcon}>
+      <View style={styles.emptyIcon}>
         <Ionicons name={icon} size={28} color="#fff" />
-      </LinearGradient>
+      </View>
       <Text style={styles.emptyTitle}>{title}</Text>
       <Text style={styles.emptySub}>{sub}</Text>
       {children}
@@ -357,9 +349,9 @@ export default function ConcertBuddyMatchScreen({ navigation, route }) {
   return (
     <View style={styles.container}>
       {/* BAŞLIK */}
-      <LinearGradient colors={colors.headerGradient} style={styles.header}>
+      <View style={styles.header}>
         <View style={styles.headerTop}>
-          <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.iconBtn} hitSlop={10}>
+          <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.iconBtn} hitSlop={10} accessibilityRole="button" accessibilityLabel={t('back')}>
             <Ionicons name="chevron-back" size={22} color={colors.text} />
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
@@ -380,7 +372,14 @@ export default function ConcertBuddyMatchScreen({ navigation, route }) {
           ].map(([key, icon, label, count]) => {
             const active = activeTab === key;
             return (
-              <TouchableOpacity key={key} style={[styles.tab, active && styles.tabActive]} onPress={() => setActiveTab(key)} activeOpacity={0.85}>
+              <TouchableOpacity
+                key={key}
+                style={[styles.tab, active && styles.tabActive]}
+                onPress={() => setActiveTab(key)}
+                activeOpacity={0.85}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: active }}
+              >
                 <Ionicons name={active ? icon : `${icon}-outline`} size={16} color={active ? '#fff' : colors.textSecondary} />
                 <Text style={[styles.tabText, { color: active ? '#fff' : colors.textSecondary }]}>{label}</Text>
                 {count > 0 ? (
@@ -392,7 +391,7 @@ export default function ConcertBuddyMatchScreen({ navigation, route }) {
             );
           })}
         </View>
-      </LinearGradient>
+      </View>
 
       {loading ? (
         <View style={styles.centered}>
@@ -432,15 +431,15 @@ export default function ConcertBuddyMatchScreen({ navigation, route }) {
               {renderCard(currentCard)}
             </View>
             <View style={styles.actions}>
-              <TouchableOpacity style={styles.passBtn} onPress={() => flyCard(false)} disabled={swiping} activeOpacity={0.8}>
+              <TouchableOpacity style={styles.passBtn} onPress={() => flyCard(false)} disabled={swiping} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={t('close')}>
                 <Ionicons name="close" size={30} color="#E94560" />
               </TouchableOpacity>
               <Text style={styles.counter}>{currentIndex + 1} / {cards.length}</Text>
-              <TouchableOpacity onPress={() => flyCard(true)} disabled={swiping} activeOpacity={0.85}>
-                <LinearGradient colors={['#00D4AA', '#3B82F6']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.likeBtn}>
+              <TouchableOpacity onPress={() => flyCard(true)} disabled={swiping} activeOpacity={0.85} accessibilityRole="button">
+                <View style={styles.likeBtn}>
                   <Ionicons name="people" size={20} color="#fff" />
                   <Text style={styles.likeBtnText}>{t('buddy_like')}</Text>
-                </LinearGradient>
+                </View>
               </TouchableOpacity>
             </View>
           </>
@@ -570,9 +569,9 @@ function createStyles(colors) {
     cardBody: { paddingHorizontal: 18, paddingBottom: 18 },
     identityRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 14 },
     avatarLift: { marginTop: -38 },
-    avatar: { alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+    avatar: { alignItems: 'center', justifyContent: 'center', overflow: 'hidden', backgroundColor: colors.cardAlt },
     avatarRing: { borderWidth: 4, borderColor: colors.card },
-    avatarLetter: { color: '#fff', fontWeight: '900' },
+    avatarLetter: { color: colors.text, fontWeight: '900' },
     identityText: { flex: 1, paddingTop: 10 },
     username: { color: colors.text, fontSize: 20, fontWeight: '900' },
     metaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
@@ -607,7 +606,7 @@ function createStyles(colors) {
     counter: { color: colors.textSecondary, fontSize: 13, fontWeight: '800' },
     likeBtn: {
       height: 64, paddingHorizontal: 24, borderRadius: 32, flexDirection: 'row', alignItems: 'center', gap: 8,
-      shadowColor: '#00D4AA', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 12, elevation: 6,
+      backgroundColor: colors.accent,
     },
     likeBtnText: { color: '#fff', fontSize: 16, fontWeight: '900' },
 
@@ -616,7 +615,7 @@ function createStyles(colors) {
       alignItems: 'center', padding: 22, borderRadius: 22,
       backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
     },
-    emptyIcon: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
+    emptyIcon: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', marginBottom: 14, backgroundColor: colors.primary },
     emptyTitle: { color: colors.text, fontSize: 19, fontWeight: '900', marginBottom: 6, textAlign: 'center' },
     emptySub: { color: colors.textSecondary, fontSize: 14, lineHeight: 20, textAlign: 'center' },
     emptyActions: { flexDirection: 'row', gap: 10, marginTop: 18, alignSelf: 'stretch' },

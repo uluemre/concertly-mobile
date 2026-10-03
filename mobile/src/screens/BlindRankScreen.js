@@ -4,6 +4,7 @@ import {
   ActivityIndicator, Image, ScrollView, Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
@@ -143,7 +144,7 @@ export default function BlindRankScreen({ navigation }) {
           <Text style={[styles.headerSub, { color: colors.textSecondary }]}>{t('blind_subtitle')}</Text>
 
           <View style={[styles.searchBar, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={{ color: colors.textSecondary, fontSize: 16 }}>⌕</Text>
+            <Ionicons name="search" size={17} color={colors.textSecondary} />
             <TextInput
               style={[styles.searchInput, { color: colors.text }]}
               placeholder={t('quiz_search_placeholder')}
@@ -167,21 +168,23 @@ export default function BlindRankScreen({ navigation }) {
                 style={[styles.artistRow, { backgroundColor: colors.card, borderColor: colors.border }]}
                 onPress={() => startRanking(item)}
                 activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel={item.name}
               >
                 {item.imageUrl ? (
                   <Image source={{ uri: item.imageUrl }} style={styles.artistImg} />
                 ) : (
                   <View style={[styles.artistImg, styles.artistImgFallback]}>
-                    <Text style={{ fontSize: 22 }}>🎤</Text>
+                    <Ionicons name="mic-outline" size={22} color={colors.primary} />
                   </View>
                 )}
                 <Text style={[styles.artistName, { color: colors.text }]}>{item.name}</Text>
-                <Text style={[styles.artistChevron, { color: colors.textSecondary }]}>›</Text>
+                <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
               </TouchableOpacity>
             )}
             ListEmptyComponent={
               <View style={styles.empty}>
-                <Text style={styles.emptyEmoji}>🏆</Text>
+                <Ionicons name="trophy-outline" size={48} color={colors.textSecondary} style={styles.emptyEmoji} />
                 <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
                   {query.trim().length >= 2 ? t('quiz_no_artists') : t('quiz_search_hint')}
                 </Text>
@@ -197,7 +200,7 @@ export default function BlindRankScreen({ navigation }) {
   if (phase === 'loading') {
     return (
       <View style={[styles.container, styles.centered, { backgroundColor: colors.background }]}>
-        <Text style={{ fontSize: 56, marginBottom: 16 }}>🏆</Text>
+        <Ionicons name="trophy-outline" size={56} color={colors.textSecondary} style={{ marginBottom: 16 }} />
         <ActivityIndicator size="large" color={colors.primary} />
         <Text style={[styles.loadingText, { color: colors.textSecondary }]}>{t('quiz_loading')}</Text>
       </View>
@@ -219,18 +222,21 @@ export default function BlindRankScreen({ navigation }) {
               <Image source={{ uri: currentTrack.coverUrl }} style={styles.currentCover} />
             ) : (
               <View style={[styles.currentCover, styles.coverFallback]}>
-                <Text style={{ fontSize: 26 }}>🎵</Text>
+                <Ionicons name="musical-notes" size={26} color={colors.textSecondary} />
               </View>
             )}
             <View style={styles.currentInfo}>
               <Text style={[styles.currentTitle, { color: colors.text }]} numberOfLines={2}>
                 {currentTrack?.title}
               </Text>
-              <TouchableOpacity onPress={togglePreview} activeOpacity={0.8}>
+              <TouchableOpacity onPress={togglePreview} activeOpacity={0.8} accessibilityRole="button" accessibilityState={{ selected: playing }}>
                 <LinearGradient colors={['#E94560', '#7C3AED']} style={styles.listenBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-                  <Text style={styles.listenBtnText}>
-                    {playing ? t('blind_pause') : t('blind_listen')}
-                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Ionicons name={playing ? 'pause' : 'play'} size={14} color="#fff" />
+                    <Text style={styles.listenBtnText}>
+                      {playing ? t('blind_pause') : t('blind_listen')}
+                    </Text>
+                  </View>
                 </LinearGradient>
               </TouchableOpacity>
             </View>
@@ -262,7 +268,7 @@ export default function BlindRankScreen({ navigation }) {
                     <Image source={{ uri: slot.coverUrl }} style={styles.slotCover} />
                   ) : null}
                   <Text style={[styles.slotTitle, { color: colors.text }]} numberOfLines={1}>{slot.title}</Text>
-                  <Text style={{ fontSize: 12 }}>🔒</Text>
+                  <Ionicons name="lock-closed" size={12} color={colors.textSecondary} />
                 </>
               ) : (
                 <Text style={[styles.slotEmpty, { color: colors.primary }]}>{t('blind_empty_slot')}</Text>
@@ -346,10 +352,9 @@ function createStyles(colors) {
     artistImg: { width: 52, height: 52, borderRadius: 26 },
     artistImgFallback: { backgroundColor: '#7C3AED33', justifyContent: 'center', alignItems: 'center' },
     artistName: { flex: 1, fontSize: 16, fontWeight: '700' },
-    artistChevron: { fontSize: 24, fontWeight: '300' },
 
     empty: { alignItems: 'center', paddingVertical: 60, paddingHorizontal: 32 },
-    emptyEmoji: { fontSize: 48, marginBottom: 12 },
+    emptyEmoji: { marginBottom: 12 },
     emptyText: { fontSize: 14, textAlign: 'center', lineHeight: 20 },
 
     // SIRALAMA

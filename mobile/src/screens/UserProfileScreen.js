@@ -4,7 +4,7 @@ import {
   ActivityIndicator, ScrollView, Image,
   Animated, Dimensions, Alert
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import EventCard from '../components/EventCard';
 import API from '../services/api';
 import DeepLinkLoader from '../components/DeepLinkLoader';
@@ -14,20 +14,12 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { parseEventDate, dateLocale } from '../utils/time';
 import { goBackOrFallback, openEvent } from '../navigation/navHelpers';
+import { hapticLight } from '../utils/haptics';
 import { usePostUpdates } from '../services/postUpdates';
 import { apiErrorMessage, isPrivateAccountError } from '../utils/communityErrors';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2;
-
-const gradientSets = [
-  ['#E94560', '#7C3AED'],
-  ['#F5A623', '#E94560'],
-  ['#00D4AA', '#7C3AED'],
-  ['#7C3AED', '#F5A623'],
-];
-
-const eventEmojis = ['🎸', '🎤', '🥁', '🎹', '🎺', '🎻', '🎪', '🎭'];
 
 function UserProfileContent({ route, navigation }) {
   const { colors } = useTheme();
@@ -132,6 +124,7 @@ function UserProfileContent({ route, navigation }) {
 
   const handleFollowToggle = () => {
     if (followBusy.current) return;
+    hapticLight();
     if (followStatus === 'ACCEPTED') {
       runFollowAction(() => API.delete(`/users/${userId}/follow?followerId=${session.userId}`), 'NONE');
     } else if (followStatus === 'PENDING') {
@@ -198,15 +191,14 @@ function UserProfileContent({ route, navigation }) {
       showsVerticalScrollIndicator={false}
     >
       {/* ── HERO ──────────────────────────────────────────────────────────── */}
-      <LinearGradient colors={colors.headerGradient} style={styles.hero}>
-        <View style={styles.heroBgCircle} />
+      <View style={styles.hero}>
 
         <View style={styles.topBar}>
-          <TouchableOpacity style={styles.backButton} onPress={() => goBackOrFallback(navigation)}>
+          <TouchableOpacity style={styles.backButton} onPress={() => goBackOrFallback(navigation)} accessibilityRole="button">
             <Text style={styles.backText}>{t('back')}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={handleModeration} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel={t('mod_options_title')}>
-            <Text style={styles.moreText}>⋯</Text>
+            <Ionicons name="ellipsis-horizontal" size={24} color={colors.text} style={styles.moreText} />
           </TouchableOpacity>
         </View>
 
@@ -217,14 +209,11 @@ function UserProfileContent({ route, navigation }) {
             {profile?.profileImageUrl ? (
               <Image source={{ uri: profile.profileImageUrl }} style={styles.avatar} />
             ) : (
-              <LinearGradient
-                colors={['#E94560', '#7C3AED']}
-                style={styles.avatarPlaceholder}
-              >
+              <View style={styles.avatarPlaceholder}>
                 <Text style={styles.avatarLetter}>
                   {profile?.username?.charAt(0).toUpperCase() || '?'}
                 </Text>
-              </LinearGradient>
+              </View>
             )}
           </View>
 
@@ -244,6 +233,8 @@ function UserProfileContent({ route, navigation }) {
                 disabled={followLoading}
                 style={styles.followButtonWrapper}
                 activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityState={{ selected: followStatus !== 'NONE', busy: followLoading }}
               >
                 {followStatus !== 'NONE' ? (
                   <View style={styles.followingButton}>
@@ -255,19 +246,14 @@ function UserProfileContent({ route, navigation }) {
                     }
                   </View>
                 ) : (
-                  <LinearGradient
-                    colors={['#E94560', '#7C3AED']}
-                    style={styles.followButton}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                  >
+                  <View style={[styles.followButton, { backgroundColor: colors.primary }]}>
                     {followLoading
-                      ? <ActivityIndicator size="small" color={colors.text} />
+                      ? <ActivityIndicator size="small" color="#fff" />
                       : <Text style={styles.followText}>
                           {profile?.isPrivate ? t('user_profile_follow_request') : t('user_profile_follow')}
                         </Text>
                     }
-                  </LinearGradient>
+                  </View>
                 )}
               </TouchableOpacity>
 
@@ -279,15 +265,13 @@ function UserProfileContent({ route, navigation }) {
                 })}
                 style={styles.messageButtonWrapper}
                 activeOpacity={0.85}
+                accessibilityRole="button"
               >
-                <LinearGradient
-                  colors={['#3B82F6', '#00D4AA']}
-                  style={styles.followButton}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                >
-                  <Text style={styles.followText}>{t('profile_message_btn')}</Text>
-                </LinearGradient>
+                {/* İkincil eylem: düz kart + kenarlık */}
+                <View style={[styles.followButton, styles.messageButton]}>
+                  <Ionicons name="chatbubble-outline" size={15} color={colors.text} />
+                  <Text style={[styles.followText, { color: colors.text }]}>{t('profile_message_btn')}</Text>
+                </View>
               </TouchableOpacity>
             </View>
           </View>
@@ -305,6 +289,8 @@ function UserProfileContent({ route, navigation }) {
             style={styles.stat}
             onPress={() => navigation.navigate('FollowList', { userId, type: 'followers' })}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={`${profile?.followerCount || 0} ${t('profile_followers')}`}
           >
             <Text style={styles.statNumber}>{profile?.followerCount || 0}</Text>
             <Text style={styles.statLabel}>{tu('profile_followers')}</Text>
@@ -314,6 +300,8 @@ function UserProfileContent({ route, navigation }) {
             style={styles.stat}
             onPress={() => navigation.navigate('FollowList', { userId, type: 'following' })}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={`${profile?.followingCount || 0} ${t('profile_following')}`}
           >
             <Text style={styles.statNumber}>{profile?.followingCount || 0}</Text>
             <Text style={styles.statLabel}>{tu('profile_following')}</Text>
@@ -324,7 +312,7 @@ function UserProfileContent({ route, navigation }) {
             <Text style={styles.statLabel}>{tu('profile_event_count')}</Text>
           </View>
         </View>
-      </LinearGradient>
+      </View>
 
       {/* ── TAKİP ETTİĞİ SANATÇILAR ──────────────────────────────────────── */}
       {followedArtists.length > 0 && (
@@ -341,6 +329,8 @@ function UserProfileContent({ route, navigation }) {
                 style={styles.followedItem}
                 onPress={() => navigation.navigate('ArtistProfile', { artistId: a.id, artistName: a.name })}
                 activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel={a.name}
               >
                 {a.imageUrl ? (
                   <Image source={{ uri: a.imageUrl }} style={styles.followedAvatar} />
@@ -360,24 +350,27 @@ function UserProfileContent({ route, navigation }) {
 
       {locked ? (
         <View style={styles.lockCard}>
-          <Text style={styles.lockEmoji}>🔒</Text>
+          <Ionicons name="lock-closed-outline" size={40} color={colors.textSecondary} style={styles.lockEmoji} />
           <Text style={styles.lockTitle}>{t('private_account_locked_title')}</Text>
           <Text style={styles.lockText}>{t('private_account_locked_msg')}</Text>
         </View>
       ) : (<>
-      {/* ── SEKMELER (emoji + sayı) ──────────────────────────────────────── */}
+      {/* ── SEKMELER (ikon + sayı) ──────────────────────────────────────── */}
       <View style={styles.tabs}>
         {[
-          { key: 'posts',  icon: '📝', count: posts.length },
-          { key: 'events', icon: '🎫', count: events.length },
+          { key: 'posts',  icon: 'document-text-outline', label: t('profile_tab_posts'), count: posts.length },
+          { key: 'events', icon: 'ticket-outline', label: t('profile_tab_events'), count: events.length },
         ].map(tab => (
           <TouchableOpacity
             key={tab.key}
             style={[styles.tab, activeTab === tab.key && styles.tabActive]}
             onPress={() => setActiveTab(tab.key)}
             activeOpacity={0.7}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: activeTab === tab.key }}
+            accessibilityLabel={`${tab.label}: ${tab.count}`}
           >
-            <Text style={styles.tabIcon}>{tab.icon}</Text>
+            <Ionicons name={tab.icon} size={20} color={activeTab === tab.key ? colors.primary : colors.textSecondary} />
             <Text style={[styles.tabCount, activeTab === tab.key && styles.tabCountActive]}>
               {tab.count}
             </Text>
@@ -391,7 +384,7 @@ function UserProfileContent({ route, navigation }) {
         {activeTab === 'posts' ? (
           posts.length === 0 ? (
             <View style={styles.empty}>
-              <Text style={styles.emptyEmoji}>📭</Text>
+              <Ionicons name="document-text-outline" size={52} color={colors.textSecondary} style={styles.emptyEmoji} />
               <Text style={styles.emptyText}>{t('userprofile_no_posts')}</Text>
             </View>
           ) : (
@@ -408,14 +401,11 @@ function UserProfileContent({ route, navigation }) {
               >
                 {/* POST BAŞLIĞI */}
                 <View style={styles.postHeader}>
-                  <LinearGradient
-                    colors={gradientSets[index % gradientSets.length]}
-                    style={styles.postAvatar}
-                  >
+                  <View style={styles.postAvatar}>
                     <Text style={styles.postAvatarText}>
                       {profile?.username?.charAt(0).toUpperCase() || '?'}
                     </Text>
-                  </LinearGradient>
+                  </View>
                   <View style={styles.postHeaderInfo}>
                     {/* Etkinlik satırı yalnızca konsere bağlı gönderide; ayrıca tıklanır */}
                     {item.eventId ? (
@@ -424,9 +414,12 @@ function UserProfileContent({ route, navigation }) {
                         hitSlop={{ top: 6, bottom: 6, left: 0, right: 0 }}
                         activeOpacity={0.7}
                       >
-                        <Text style={styles.postEventName} numberOfLines={1}>
-                          🎵 {item.eventName || 'Etkinlik'}
-                        </Text>
+                        <View style={styles.inlineRow}>
+                          <Ionicons name="musical-notes-outline" size={12} color={colors.primary} />
+                          <Text style={[styles.postEventName, { flexShrink: 1 }]} numberOfLines={1}>
+                            {item.eventName || t('event_generic')}
+                          </Text>
+                        </View>
                       </TouchableOpacity>
                     ) : null}
                     <Text style={styles.postDate}>
@@ -442,8 +435,14 @@ function UserProfileContent({ route, navigation }) {
 
                 {/* ALT KISIM */}
                 <View style={styles.postFooter}>
-                  <Text style={styles.postStat}>❤️ {item.likeCount || 0}</Text>
-                  <Text style={styles.postStat}>💬 {item.commentCount || 0}</Text>
+                  <View style={styles.inlineRow}>
+                    <Ionicons name="heart-outline" size={14} color={colors.textSecondary} />
+                    <Text style={styles.postStat}>{item.likeCount || 0}</Text>
+                  </View>
+                  <View style={styles.inlineRow}>
+                    <Ionicons name="chatbubble-outline" size={14} color={colors.textSecondary} />
+                    <Text style={styles.postStat}>{item.commentCount || 0}</Text>
+                  </View>
                 </View>
               </TouchableOpacity>
             ))
@@ -451,7 +450,7 @@ function UserProfileContent({ route, navigation }) {
         ) : (
           events.length === 0 ? (
             <View style={styles.empty}>
-              <Text style={styles.emptyEmoji}>🎭</Text>
+              <Ionicons name="calendar-outline" size={52} color={colors.textSecondary} style={styles.emptyEmoji} />
               <Text style={styles.emptyText}>{t('userprofile_no_events')}</Text>
             </View>
           ) : (
@@ -485,21 +484,20 @@ function createStyles(colors) {
 
     // HERO — ArtistProfile ile aynı dizayn
     hero: { paddingTop: 56, paddingBottom: 32, paddingHorizontal: 24, overflow: 'hidden', position: 'relative' },
-    heroBgCircle: {
-      position: 'absolute', width: 300, height: 300, borderRadius: 150,
-      backgroundColor: colors.primary + '15', top: -80, right: -80,
-    },
     topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
     backButton: {},
     backText: { color: colors.textSecondary, fontSize: 15, fontWeight: '600' },
-    moreText: { color: colors.text, fontSize: 26, fontWeight: '700', letterSpacing: 1, paddingHorizontal: 4 },
+    moreText: { paddingHorizontal: 4 },
     heroInner: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 20, gap: 16 },
     avatarCol: { alignItems: 'center' },
     infoCol: { flex: 1, paddingTop: 2 },
 
     avatar: { width: 100, height: 100, borderRadius: 50, borderWidth: 3, borderColor: colors.border },
-    avatarPlaceholder: { width: 100, height: 100, borderRadius: 50, justifyContent: 'center', alignItems: 'center' },
-    avatarLetter: { fontSize: 44, fontWeight: '900', color: 'rgba(255,255,255,0.95)' },
+    avatarPlaceholder: {
+      width: 100, height: 100, borderRadius: 50, justifyContent: 'center', alignItems: 'center',
+      backgroundColor: colors.cardAlt, borderWidth: 3, borderColor: colors.border,
+    },
+    avatarLetter: { fontSize: 44, fontWeight: '900', color: colors.text },
 
     username: { fontSize: 22, fontWeight: 'bold', color: colors.text, marginBottom: 6, lineHeight: 27 },
     bio: { fontSize: 13, color: colors.textSecondary, lineHeight: 18, marginBottom: 8 },
@@ -522,6 +520,11 @@ function createStyles(colors) {
     followButtonWrapper: { flex: 1 },
     messageButtonWrapper: { flex: 1 },
     followButton: { paddingVertical: 10, borderRadius: 12, alignItems: 'center' },
+    messageButton: {
+      flexDirection: 'row', justifyContent: 'center', gap: 6,
+      backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.border,
+    },
+    inlineRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     followText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
     followingButton: {
       paddingVertical: 10, borderRadius: 12, alignItems: 'center',
@@ -553,7 +556,6 @@ function createStyles(colors) {
     tabs: { flexDirection: 'row', backgroundColor: colors.background, borderBottomWidth: 1, borderBottomColor: colors.border },
     tab: { flex: 1, paddingVertical: 12, alignItems: 'center', gap: 3, borderBottomWidth: 3, borderBottomColor: 'transparent' },
     tabActive: { borderBottomColor: colors.primary },
-    tabIcon: { fontSize: 20 },
     tabCount: { fontSize: 12, fontWeight: '700', color: colors.textSecondary },
     tabCountActive: { color: colors.text },
 
@@ -562,7 +564,7 @@ function createStyles(colors) {
       alignItems: 'center', margin: 16, padding: 28, borderRadius: 16,
       backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
     },
-    lockEmoji: { fontSize: 40, marginBottom: 10 },
+    lockEmoji: { marginBottom: 10 },
     lockTitle: { fontSize: 16, fontWeight: '700', color: colors.text, marginBottom: 6 },
     lockText: { fontSize: 14, color: colors.textSecondary, textAlign: 'center', lineHeight: 20 },
 
@@ -582,6 +584,7 @@ function createStyles(colors) {
     postAvatar: {
       width: 40, height: 40, borderRadius: 20,
       justifyContent: 'center', alignItems: 'center',
+      backgroundColor: colors.cardAlt, borderWidth: 1, borderColor: colors.border,
     },
     postAvatarText: { color: colors.text, fontWeight: 'bold', fontSize: 16 },
     postHeaderInfo: { flex: 1 },
@@ -617,7 +620,7 @@ function createStyles(colors) {
 
     // BOŞ
     empty: { alignItems: 'center', paddingVertical: 48 },
-    emptyEmoji: { fontSize: 52, marginBottom: 14 },
+    emptyEmoji: { marginBottom: 14 },
     emptyText: { color: colors.textSecondary, fontSize: 15 },
   });
 }

@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   ActivityIndicator, Alert, Image,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
@@ -12,6 +12,16 @@ import API from '../services/api';
 import { goBackOrFallback, backToCommunities } from '../navigation/navHelpers';
 import { communityErrorMessage } from '../utils/communityErrors';
 import DeepLinkLoader from '../components/DeepLinkLoader';
+
+// İkon + metin buton etiketi (eski emoji önekleri yerine)
+function IconLabel({ icon, color, style, children }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+      <Ionicons name={icon} size={15} color={color} />
+      <Text style={style}>{children}</Text>
+    </View>
+  );
+}
 
 export default function CommunityManageScreen({ route, navigation }) {
   const { communityId } = route.params;
@@ -167,13 +177,13 @@ export default function CommunityManageScreen({ route, navigation }) {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 48 }}>
-      <LinearGradient colors={colors.headerGradient} style={styles.header}>
-        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.backButton}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.backButton} accessibilityRole="button">
           <Text style={styles.backText}>{t('back')}</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('community_manage_title')}</Text>
         <Text style={styles.headerSub} numberOfLines={1}>{community?.emoji} {community?.name}</Text>
-      </LinearGradient>
+      </View>
 
       {/* DAVET KODU */}
       <Text style={styles.sectionTitle}>{tu('community_manage_invite_link')}</Text>
@@ -182,12 +192,12 @@ export default function CommunityManageScreen({ route, navigation }) {
         <Text style={styles.inviteHint}>{t(community?.archived ? 'community_archived_info' : 'community_manage_invite_hint')}</Text>
         {!community?.archived && (
         <View style={styles.inviteBtnRow}>
-          <TouchableOpacity onPress={shareInvite} style={[styles.inviteBtn, styles.inviteBtnPrimary]} activeOpacity={0.85}>
-            <Text style={styles.inviteBtnPrimaryText}>↗ {t('community_manage_share')}</Text>
+          <TouchableOpacity onPress={shareInvite} style={[styles.inviteBtn, styles.inviteBtnPrimary]} activeOpacity={0.85} accessibilityRole="button">
+            <IconLabel icon="share-outline" color="#fff" style={styles.inviteBtnPrimaryText}>{t('community_manage_share')}</IconLabel>
           </TouchableOpacity>
           {!!community?.canManage && (
-            <TouchableOpacity onPress={regenerate} disabled={busy} style={styles.inviteBtn} activeOpacity={0.85}>
-              <Text style={styles.inviteBtnText}>🔄 {t('community_manage_regenerate')}</Text>
+            <TouchableOpacity onPress={regenerate} disabled={busy} style={styles.inviteBtn} activeOpacity={0.85} accessibilityRole="button">
+              <IconLabel icon="refresh" color={colors.text} style={styles.inviteBtnText}>{t('community_manage_regenerate')}</IconLabel>
             </TouchableOpacity>
           )}
         </View>
@@ -265,7 +275,7 @@ export default function CommunityManageScreen({ route, navigation }) {
           disabled={busy}
           accessibilityRole="button"
         >
-          <Text style={styles.inviteBtnText}>✏️ {t('community_edit_entry')}</Text>
+          <IconLabel icon="create-outline" color={colors.text} style={styles.inviteBtnText}>{t('community_edit_entry')}</IconLabel>
         </TouchableOpacity>
       )}
 
@@ -276,20 +286,21 @@ export default function CommunityManageScreen({ route, navigation }) {
           style={styles.inviteBtn2}
           activeOpacity={0.85}
           disabled={busy}
+          accessibilityRole="button"
         >
-          <Text style={styles.inviteBtnText}>👑 {t('community_transfer_entry')}</Text>
+          <IconLabel icon="swap-horizontal" color={colors.text} style={styles.inviteBtnText}>{t('community_transfer_entry')}</IconLabel>
         </TouchableOpacity>
       )}
 
       {/* SİL (yalnız sahip) */}
       {isOwner && (
-        <TouchableOpacity onPress={deleteCommunity} style={styles.deleteBtn} activeOpacity={0.85}>
-          <Text style={styles.deleteText}>🗑 {t('community_manage_delete')}</Text>
+        <TouchableOpacity onPress={deleteCommunity} style={styles.deleteBtn} activeOpacity={0.85} accessibilityRole="button">
+          <IconLabel icon="trash-outline" color={colors.primary} style={styles.deleteText}>{t('community_manage_delete')}</IconLabel>
         </TouchableOpacity>
       )}
       {isModerator && (
-        <TouchableOpacity onPress={leaveCommunity} style={styles.deleteBtn} activeOpacity={0.85} disabled={busy}>
-          <Text style={styles.deleteText}>🚪 {t('community_leave')}</Text>
+        <TouchableOpacity onPress={leaveCommunity} style={styles.deleteBtn} activeOpacity={0.85} disabled={busy} accessibilityRole="button">
+          <IconLabel icon="exit-outline" color={colors.primary} style={styles.deleteText}>{t('community_leave')}</IconLabel>
         </TouchableOpacity>
       )}
     </ScrollView>

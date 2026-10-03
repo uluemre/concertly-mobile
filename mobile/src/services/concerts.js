@@ -140,8 +140,8 @@ function ablativeSuffix(word) {
  */
 export function ticketButtonLabel(link, lang, fallback) {
   if (!link || !link.label) return fallback;
-  if (lang === 'en') return `🎟 Buy on ${link.label}`;
-  return `🎟 ${link.label}'${ablativeSuffix(link.label)} Al`;
+  if (lang === 'en') return `Buy on ${link.label}`;
+  return `${link.label}'${ablativeSuffix(link.label)} Al`;
 }
 
 /** Bilet adresinin sitesi: "https://www.biletix.com/..." → "biletix.com". */

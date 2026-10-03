@@ -4,10 +4,12 @@ import {
   TouchableOpacity, TextInput, ActivityIndicator, Image, Alert
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../theme';
+import { hapticLight } from '../utils/haptics';
 import { useLanguage } from '../context/LanguageContext';
 import { communityTypeLabel } from '../utils/communityType';
 import API, { getErrorMessage, uploadImage } from '../services/api';
@@ -232,6 +234,7 @@ export default function CommunityDetailScreen({ route, navigation }) {
 
   const toggleLike = async (post) => {
     if (likeInFlight.current.has(post.id)) return;
+    hapticLight();
     likeInFlight.current.add(post.id);
     try {
       if (post.isLikedByCurrentUser) {
@@ -367,13 +370,14 @@ export default function CommunityDetailScreen({ route, navigation }) {
   if (!community && fetchError) {
     return (
       <View style={[styles.container, styles.loadingContainer, { paddingHorizontal: 40 }]}>
-        <Text style={{ fontSize: 46, marginBottom: 12 }}>📡</Text>
+        <Ionicons name="cloud-offline-outline" size={46} color={colors.textSecondary} style={{ marginBottom: 12 }} />
         <Text style={{ color: colors.text, fontSize: 16, fontWeight: '800', marginBottom: 6 }}>{t('load_failed')}</Text>
         <Text style={{ color: colors.textSecondary, fontSize: 14, textAlign: 'center', lineHeight: 20, marginBottom: 18 }}>{fetchError}</Text>
         <TouchableOpacity
           onPress={() => { setLoading(true); fetchData(); }}
           activeOpacity={0.85}
           style={{ backgroundColor: colors.primary, paddingHorizontal: 28, paddingVertical: 12, borderRadius: 14 }}
+          accessibilityRole="button"
         >
           <Text style={{ color: '#fff', fontSize: 14, fontWeight: '800' }}>{t('retry')}</Text>
         </TouchableOpacity>
@@ -397,11 +401,12 @@ export default function CommunityDetailScreen({ route, navigation }) {
       keyboardDismissMode="interactive"
       automaticallyAdjustKeyboardInsets
     >
+      {/* Topluluğu kuranın seçtiği tema renkleri — topluluk kimliği olduğu için gradyan kalır */}
       <LinearGradient
         colors={[community.gradientStart, community.gradientEnd]}
         style={styles.hero}
       >
-        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.backButton}>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.backButton} accessibilityRole="button">
           <Text style={styles.backText}>{t('back')}</Text>
         </TouchableOpacity>
 
@@ -412,24 +417,39 @@ export default function CommunityDetailScreen({ route, navigation }) {
           <View style={styles.heroTitleCol}>
             <Text style={styles.heroTitle} numberOfLines={2}>{community.name}</Text>
             <View style={styles.heroChips}>
-              <View style={styles.heroChip}>
+              <View style={[styles.heroChip, styles.heroChipRow]}>
+                <Ionicons
+                  name={community.visibility === 'PRIVATE' ? 'lock-closed'
+                    : community.visibility === 'SECRET' ? 'eye-off' : 'globe-outline'}
+                  size={11}
+                  color="#fff"
+                />
                 <Text style={styles.heroChipText}>
-                  {community.visibility === 'PRIVATE' ? `🔒 ${t('community_visibility_private')}`
-                    : community.visibility === 'SECRET' ? `🕵️ ${t('community_visibility_secret')}`
-                    : `🌍 ${t('community_visibility_public')}`}
+                  {community.visibility === 'PRIVATE' ? t('community_visibility_private')
+                    : community.visibility === 'SECRET' ? t('community_visibility_secret')
+                    : t('community_visibility_public')}
                 </Text>
               </View>
               {community.archived ? (
-                <View style={styles.heroChip}><Text style={styles.heroChipText}>📦 {t('community_archived_badge')}</Text></View>
+                <View style={[styles.heroChip, styles.heroChipRow]}>
+                  <Ionicons name="archive-outline" size={11} color="#fff" />
+                  <Text style={styles.heroChipText}>{t('community_archived_badge')}</Text>
+                </View>
               ) : null}
               {community.approvalStatus === 'PENDING' ? (
                 <View style={styles.heroChip}><Text style={styles.heroChipText}>{t('community_pending_badge')}</Text></View>
               ) : null}
               {!!community.type && (
-                <View style={styles.heroChip}><Text style={styles.heroChipText}>🎵 {communityTypeLabel(community.type, t)}</Text></View>
+                <View style={[styles.heroChip, styles.heroChipRow]}>
+                  <Ionicons name="musical-notes-outline" size={11} color="#fff" />
+                  <Text style={styles.heroChipText}>{communityTypeLabel(community.type, t)}</Text>
+                </View>
               )}
               {!!community.city && (
-                <View style={styles.heroChip}><Text style={styles.heroChipText}>📍 {community.city}</Text></View>
+                <View style={[styles.heroChip, styles.heroChipRow]}>
+                  <Ionicons name="location-outline" size={11} color="#fff" />
+                  <Text style={styles.heroChipText}>{community.city}</Text>
+                </View>
               )}
             </View>
           </View>
@@ -455,6 +475,7 @@ export default function CommunityDetailScreen({ route, navigation }) {
           <TouchableOpacity
             onPress={() => navigation.navigate('CommunityManage', { communityId })}
             style={[styles.heroJoinButton, styles.heroJoinButtonActive]}
+            accessibilityRole="button"
           >
             <Text style={styles.heroJoinTextActive}>
               {t('community_manage')}
@@ -470,6 +491,8 @@ export default function CommunityDetailScreen({ route, navigation }) {
             onPress={handleJoinPress}
             disabled={joinButton.disabled || acting}
             style={[styles.heroJoinButton, joinButton.active && styles.heroJoinButtonActive, (joinButton.disabled || acting) && { opacity: 0.7 }]}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: joinButton.disabled || acting, busy: acting }}
           >
             {acting
               ? <ActivityIndicator color={joinButton.active ? '#fff' : colors.primary} />
@@ -483,12 +506,18 @@ export default function CommunityDetailScreen({ route, navigation }) {
       {/* ONAY DURUMU BANNER'I */}
       {community.approvalStatus === 'PENDING' && (
         <View style={[styles.banner, styles.bannerReview]}>
-          <Text style={styles.bannerText}>🕒 {t('community_review_banner')}</Text>
+          <View style={styles.bannerRow}>
+            <Ionicons name="time-outline" size={16} color="#F5A623" />
+            <Text style={[styles.bannerText, styles.bannerTextFlex]}>{t('community_review_banner')}</Text>
+          </View>
         </View>
       )}
       {community.approvalStatus === 'REJECTED' && (
         <View style={[styles.banner, styles.bannerRejected]}>
-          <Text style={styles.bannerText}>⚠️ {t('community_rejected_banner')}</Text>
+          <View style={styles.bannerRow}>
+            <Ionicons name="alert-circle-outline" size={16} color={colors.primary} />
+            <Text style={[styles.bannerText, styles.bannerTextFlex]}>{t('community_rejected_banner')}</Text>
+          </View>
         </View>
       )}
 
@@ -496,12 +525,9 @@ export default function CommunityDetailScreen({ route, navigation }) {
       {!!community.nextEvent && (
         <View style={styles.section}>
           <View style={styles.pinnedCard}>
-            <LinearGradient
-              colors={[community.gradientStart || '#7C3AED', community.gradientEnd || '#E94560']}
-              style={styles.pinnedIcon}
-            >
-              <Text style={styles.pinnedIconText}>📌</Text>
-            </LinearGradient>
+            <View style={[styles.pinnedIcon, { backgroundColor: community.gradientStart || colors.primary }]}>
+              <Ionicons name="pin" size={20} color="#fff" />
+            </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.pinnedLabel}>{tu('communities_next_event')}</Text>
               <Text style={styles.pinnedTitle} numberOfLines={2}>{community.nextEvent}</Text>
@@ -515,12 +541,9 @@ export default function CommunityDetailScreen({ route, navigation }) {
         <View style={styles.section}>
           <View style={styles.composer}>
             <View style={styles.composerTop}>
-              <LinearGradient
-                colors={[community.gradientStart || '#7C3AED', community.gradientEnd || '#E94560']}
-                style={styles.composerAvatar}
-              >
-                <Text style={styles.composerAvatarText}>✏️</Text>
-              </LinearGradient>
+              <View style={styles.composerAvatar}>
+                <Ionicons name="create-outline" size={18} color={colors.textSecondary} />
+              </View>
               <TextInput
                 value={draft}
                 onChangeText={setDraft}
@@ -537,7 +560,7 @@ export default function CommunityDetailScreen({ route, navigation }) {
               <View style={styles.imagePreviewWrap}>
                 <Image source={{ uri: imageUri }} style={styles.imagePreview} />
                 <TouchableOpacity onPress={() => { setImageUri(null); setComposerType('TEXT'); }} style={styles.imageRemove} accessibilityRole="button" accessibilityLabel={t('delete')}>
-                  <Text style={styles.imageRemoveText}>✕</Text>
+                  <Ionicons name="close" size={16} color="#fff" />
                 </TouchableOpacity>
               </View>
             )}
@@ -557,14 +580,15 @@ export default function CommunityDetailScreen({ route, navigation }) {
                     />
                     {pollOpts.length > 2 && (
                       <TouchableOpacity onPress={() => removePollOpt(i)} style={styles.pollOptRemove} accessibilityRole="button" accessibilityLabel={t('delete')}>
-                        <Text style={styles.pollOptRemoveText}>✕</Text>
+                        <Ionicons name="close" size={16} color={colors.primary} />
                       </TouchableOpacity>
                     )}
                   </View>
                 ))}
                 {pollOpts.length < 4 && (
-                  <TouchableOpacity onPress={addPollOpt} style={styles.pollAddBtn}>
-                    <Text style={styles.pollAddText}>＋ {t('post_poll_add')}</Text>
+                  <TouchableOpacity onPress={addPollOpt} style={[styles.pollAddBtn, styles.inlineRow]} accessibilityRole="button">
+                    <Ionicons name="add" size={16} color={colors.primary} />
+                    <Text style={styles.pollAddText}>{t('post_poll_add')}</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -572,14 +596,23 @@ export default function CommunityDetailScreen({ route, navigation }) {
 
             <View style={styles.composerBar}>
               <View style={styles.composerTools}>
-                <TouchableOpacity onPress={pickImage} style={[styles.toolBtn, composerType === 'IMAGE' && styles.toolBtnActive]}>
-                  <Text style={styles.toolIcon}>🖼️</Text>
+                <TouchableOpacity
+                  onPress={pickImage}
+                  style={[styles.toolBtn, composerType === 'IMAGE' && styles.toolBtnActive]}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('post_type_image')}
+                  accessibilityState={{ selected: composerType === 'IMAGE' }}
+                >
+                  <Ionicons name="image-outline" size={20} color={composerType === 'IMAGE' ? colors.primary : colors.textSecondary} />
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => selectType(composerType === 'POLL' ? 'TEXT' : 'POLL')}
                   style={[styles.toolBtn, composerType === 'POLL' && styles.toolBtnActive]}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('post_type_poll')}
+                  accessibilityState={{ selected: composerType === 'POLL' }}
                 >
-                  <Text style={styles.toolIcon}>📊</Text>
+                  <Ionicons name="stats-chart-outline" size={19} color={composerType === 'POLL' ? colors.primary : colors.textSecondary} />
                 </TouchableOpacity>
               </View>
               <TouchableOpacity
@@ -587,8 +620,17 @@ export default function CommunityDetailScreen({ route, navigation }) {
                 disabled={publishing}
                 activeOpacity={0.9}
                 style={[styles.publishButton, publishing && styles.publishButtonDisabled]}
+                accessibilityRole="button"
+                accessibilityState={{ busy: publishing }}
               >
-                <Text style={styles.publishText}>{publishing ? '...' : `${t('communities_publish')} ➤`}</Text>
+                {publishing ? (
+                  <Text style={styles.publishText}>...</Text>
+                ) : (
+                  <View style={styles.inlineRow}>
+                    <Text style={styles.publishText}>{t('communities_publish')}</Text>
+                    <Ionicons name="send" size={13} color="#fff" />
+                  </View>
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -606,7 +648,7 @@ export default function CommunityDetailScreen({ route, navigation }) {
         </View>
         {postsLocked && (
           <View style={styles.lockedCard}>
-            <Text style={styles.lockedEmoji}>🔒</Text>
+            <Ionicons name="lock-closed-outline" size={36} color={colors.textSecondary} style={styles.lockedEmoji} />
             <Text style={styles.lockedText}>{t(lockedByReview ? 'community_posts_locked_review' : 'community_posts_locked')}</Text>
           </View>
         )}
@@ -616,8 +658,7 @@ export default function CommunityDetailScreen({ route, navigation }) {
           return (
             <View key={post.id} style={[styles.postCard, post.isHidden && styles.hiddenItem]}>
               <View style={styles.postHeader}>
-                <Avatar uri={post.userProfileImageUrl} name={post.username} styles={styles}
-                        gradient={[community.gradientStart, community.gradientEnd]} />
+                <Avatar uri={post.userProfileImageUrl} name={post.username} styles={styles} />
                 <View style={styles.postHeaderText}>
                   <Text style={styles.username}>@{post.username}</Text>
                   <Text style={styles.postTime}>
@@ -626,8 +667,8 @@ export default function CommunityDetailScreen({ route, navigation }) {
                   </Text>
                 </View>
                 {canOpenMenu(post) && (
-                  <TouchableOpacity onPress={() => openItemMenu(post)} style={styles.menuBtn} hitSlop={8} accessibilityRole="button">
-                    <Text style={styles.menuBtnText}>⋯</Text>
+                  <TouchableOpacity onPress={() => openItemMenu(post)} style={styles.menuBtn} hitSlop={8} accessibilityRole="button" accessibilityLabel={t('mod_options_title')}>
+                    <Ionicons name="ellipsis-horizontal" size={20} color={colors.textSecondary} />
                   </TouchableOpacity>
                 )}
               </View>
@@ -642,16 +683,31 @@ export default function CommunityDetailScreen({ route, navigation }) {
               )}
 
               <View style={styles.postFooter}>
-                <TouchableOpacity onPress={() => toggleLike(post)} style={styles.actionBtn} activeOpacity={0.7}>
-                  <Text style={[styles.actionIcon, post.isLikedByCurrentUser && styles.actionIconLiked]}>
-                    {post.isLikedByCurrentUser ? '♥' : '♡'}
-                  </Text>
+                <TouchableOpacity
+                  onPress={() => toggleLike(post)}
+                  style={styles.actionBtn}
+                  activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: !!post.isLikedByCurrentUser }}
+                  accessibilityLabel={`${t('a11y_like')}, ${post.likeCount}`}
+                >
+                  <Ionicons
+                    name={post.isLikedByCurrentUser ? 'heart' : 'heart-outline'}
+                    size={17}
+                    color={post.isLikedByCurrentUser ? colors.primary : colors.textSecondary}
+                  />
                   <Text style={[styles.actionLabel, post.isLikedByCurrentUser && styles.actionLabelLiked]}>
                     {post.likeCount}
                   </Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => toggleComments(post)} style={styles.actionBtn} activeOpacity={0.7}>
-                  <Text style={[styles.actionIcon, open && styles.actionLabelActive]}>💬</Text>
+                <TouchableOpacity
+                  onPress={() => toggleComments(post)}
+                  style={styles.actionBtn}
+                  activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: open }}
+                >
+                  <Ionicons name="chatbubble-outline" size={16} color={open ? colors.primary : colors.textSecondary} />
                   <Text style={[styles.actionLabel, open && styles.actionLabelActive]}>
                     {post.commentCount || 0} {t('communities_reply')}
                   </Text>
@@ -667,8 +723,7 @@ export default function CommunityDetailScreen({ route, navigation }) {
                     <>
                       {comments.map(c => (
                         <View key={c.id} style={[styles.commentRow, c.isHidden && styles.hiddenItem]}>
-                          <Avatar uri={c.userProfileImageUrl} name={c.username} styles={styles} small
-                                  gradient={[community.gradientStart, community.gradientEnd]} />
+                          <Avatar uri={c.userProfileImageUrl} name={c.username} styles={styles} small />
                           <View style={styles.commentBubble}>
                             <Text style={styles.commentUser}>
                               @{c.username}{c.isHidden ? ` · ${t('community_item_hidden')}` : ''}
@@ -676,8 +731,8 @@ export default function CommunityDetailScreen({ route, navigation }) {
                             <Text style={styles.commentText}>{c.content}</Text>
                           </View>
                           {canOpenMenu(c) && (
-                            <TouchableOpacity onPress={() => openItemMenu(post, c)} style={styles.menuBtn} hitSlop={8} accessibilityRole="button">
-                              <Text style={styles.menuBtnText}>⋯</Text>
+                            <TouchableOpacity onPress={() => openItemMenu(post, c)} style={styles.menuBtn} hitSlop={8} accessibilityRole="button" accessibilityLabel={t('mod_options_title')}>
+                              <Ionicons name="ellipsis-horizontal" size={18} color={colors.textSecondary} />
                             </TouchableOpacity>
                           )}
                         </View>
@@ -703,8 +758,10 @@ export default function CommunityDetailScreen({ route, navigation }) {
                         onPress={() => sendComment(post)}
                         disabled={!(commentDrafts[post.id] || '').trim() || sendingComment}
                         style={[styles.commentSend, (!(commentDrafts[post.id] || '').trim() || sendingComment) && { opacity: 0.4 }]}
+                        accessibilityRole="button"
+                        accessibilityLabel={t('send')}
                       >
-                        <Text style={styles.commentSendText}>➤</Text>
+                        <Ionicons name="send" size={15} color="#fff" />
                       </TouchableOpacity>
                     </View>
                   )}
@@ -715,7 +772,7 @@ export default function CommunityDetailScreen({ route, navigation }) {
         })}
         {!postsLocked && posts.length === 0 && (
           <View style={styles.emptyCard}>
-            <Text style={styles.emptyEmoji}>💬</Text>
+            <Ionicons name="chatbubbles-outline" size={42} color={colors.textSecondary} style={styles.emptyEmoji} />
             <Text style={styles.emptyTitle}>{t('communities_empty')}</Text>
           </View>
         )}
@@ -741,8 +798,9 @@ function Poll({ post, onVote, styles, colors, t }) {
           >
             {hasVoted && <View style={[styles.pollFill, { width: `${pct}%` }, o.voted && styles.pollFillVoted]} />}
             <View style={styles.pollBarContent}>
+              {o.voted && <Ionicons name="checkmark" size={15} color={colors.primary} style={{ marginRight: 4 }} />}
               <Text style={[styles.pollOptText, o.voted && styles.pollOptTextVoted]} numberOfLines={1}>
-                {o.voted ? '✓ ' : ''}{o.optionText}
+                {o.optionText}
               </Text>
               {hasVoted && <Text style={styles.pollPct}>{pct}%</Text>}
             </View>
@@ -754,14 +812,13 @@ function Poll({ post, onVote, styles, colors, t }) {
   );
 }
 
-function Avatar({ uri, name, styles, small, gradient }) {
+function Avatar({ uri, name, styles, small }) {
   const st = small ? styles.avatarSmall : styles.avatar;
   if (uri) return <Image source={{ uri }} style={st} />;
-  const colors2 = gradient && gradient.length === 2 ? gradient : ['#7C3AED', '#E94560'];
   return (
-    <LinearGradient colors={colors2} style={st}>
+    <View style={st}>
       <Text style={styles.avatarText}>{(name || '?').charAt(0).toUpperCase()}</Text>
-    </LinearGradient>
+    </View>
   );
 }
 
@@ -775,6 +832,9 @@ function createStyles(colors) {
     bannerReview: { backgroundColor: '#F5A62318', borderColor: '#F5A623' },
     bannerRejected: { backgroundColor: '#E9456018', borderColor: '#E94560' },
     bannerText: { color: colors.text, fontSize: 12, lineHeight: 17, fontWeight: '600' },
+    bannerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+    bannerTextFlex: { flex: 1 },
+    inlineRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
     hero: {
       paddingTop: 54,
       paddingBottom: 22,
@@ -797,6 +857,7 @@ function createStyles(colors) {
       backgroundColor: 'rgba(255,255,255,0.18)',
       borderRadius: 9, paddingHorizontal: 9, paddingVertical: 4,
     },
+    heroChipRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     heroChipText: { color: '#fff', fontSize: 11, fontWeight: '800' },
     heroSub: {
       color: 'rgba(255,255,255,0.92)',
@@ -835,7 +896,6 @@ function createStyles(colors) {
       borderRadius: 18, padding: 14,
     },
     pinnedIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-    pinnedIconText: { fontSize: 20 },
     pinnedLabel: {
       color: colors.textSecondary, fontSize: 11, fontWeight: '800',
       letterSpacing: 0.8, marginBottom: 3,
@@ -851,8 +911,10 @@ function createStyles(colors) {
       padding: 14,
     },
     composerTop: { flexDirection: 'row', gap: 11 },
-    composerAvatar: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
-    composerAvatarText: { fontSize: 17 },
+    composerAvatar: {
+      width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center',
+      backgroundColor: colors.cardAlt, borderWidth: 1, borderColor: colors.border,
+    },
     composerInput: {
       flex: 1,
       minHeight: 44,
@@ -874,7 +936,6 @@ function createStyles(colors) {
       backgroundColor: colors.cardAlt, borderWidth: 1, borderColor: colors.border,
     },
     toolBtnActive: { borderColor: colors.primary, backgroundColor: colors.primary + '22' },
-    toolIcon: { fontSize: 18 },
     publishButton: {
       backgroundColor: colors.primary,
       borderRadius: 22,
@@ -892,7 +953,6 @@ function createStyles(colors) {
       width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(0,0,0,0.6)',
       alignItems: 'center', justifyContent: 'center',
     },
-    imageRemoveText: { color: '#fff', fontSize: 14, fontWeight: '900' },
 
     // ANKET EDİTÖRÜ (composer)
     pollEditor: { marginTop: 12, gap: 8 },
@@ -902,7 +962,6 @@ function createStyles(colors) {
       borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9, color: colors.text, fontSize: 14,
     },
     pollOptRemove: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.cardAlt },
-    pollOptRemoveText: { color: '#E94560', fontSize: 14, fontWeight: '900' },
     pollAddBtn: { alignSelf: 'flex-start', paddingVertical: 6, paddingHorizontal: 4 },
     pollAddText: { color: colors.primary, fontSize: 13, fontWeight: '800' },
 
@@ -937,10 +996,10 @@ function createStyles(colors) {
       alignItems: 'center', backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
       borderRadius: 18, paddingVertical: 32, paddingHorizontal: 24,
     },
-    lockedEmoji: { fontSize: 36, marginBottom: 10 },
+    lockedEmoji: { marginBottom: 10 },
     lockedText: { color: colors.textSecondary, fontSize: 13.5, textAlign: 'center', lineHeight: 19 },
     emptyCard: { alignItems: 'center', paddingVertical: 36 },
-    emptyEmoji: { fontSize: 42, marginBottom: 12, opacity: 0.85 },
+    emptyEmoji: { marginBottom: 12, opacity: 0.85 },
     emptyTitle: { color: colors.textSecondary, fontSize: 13.5, textAlign: 'center', lineHeight: 20, paddingHorizontal: 30 },
     postCard: {
       backgroundColor: colors.card,
@@ -977,7 +1036,6 @@ function createStyles(colors) {
     postHeaderText: { flex: 1 },
     hiddenItem: { opacity: 0.5 },
     menuBtn: { paddingHorizontal: 8, paddingVertical: 2 },
-    menuBtnText: { color: colors.textSecondary, fontSize: 20, fontWeight: '900' },
     username: { color: colors.text, fontSize: 14, fontWeight: '800' },
     postTime: { color: colors.textSecondary, fontSize: 11, marginTop: 2 },
     postContent: { color: colors.text, fontSize: 14.5, lineHeight: 21 },
@@ -991,8 +1049,6 @@ function createStyles(colors) {
       paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20,
       backgroundColor: colors.cardAlt,
     },
-    actionIcon: { color: colors.textSecondary, fontSize: 15, fontWeight: '800' },
-    actionIconLiked: { color: '#E94560' },
     actionLabel: { color: colors.textSecondary, fontSize: 12, fontWeight: '800' },
     actionLabelLiked: { color: '#E94560' },
     actionLabelActive: { color: colors.primary },
@@ -1018,7 +1074,6 @@ function createStyles(colors) {
       width: 38, height: 38, borderRadius: 19,
       backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center',
     },
-    commentSendText: { color: '#fff', fontSize: 15, fontWeight: '900' },
 
     emptyText: { color: colors.textSecondary, fontSize: 13, textAlign: 'center', marginTop: 20 },
   });

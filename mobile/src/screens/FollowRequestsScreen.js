@@ -4,6 +4,7 @@ import {
   StyleSheet, ActivityIndicator, Image, Alert,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
@@ -68,7 +69,7 @@ export default function FollowRequestsScreen({ navigation }) {
             <Image source={{ uri: item.profileImageUrl }} style={styles.avatar} />
           ) : (
             <View style={styles.avatarPlaceholder}>
-              <Text style={styles.avatarEmoji}>👤</Text>
+              <Ionicons name="person" size={22} color={colors.textSecondary} />
             </View>
           )}
           <Text style={styles.username} numberOfLines={1}>@{item.username}</Text>
@@ -92,8 +93,8 @@ export default function FollowRequestsScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.backBtn}>
-          <Text style={styles.backText}>←</Text>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.backBtn} accessibilityRole="button" accessibilityLabel={t('back')}>
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('follow_requests_title')}</Text>
         <View style={styles.backBtn} />
@@ -111,7 +112,7 @@ export default function FollowRequestsScreen({ navigation }) {
           contentContainerStyle={requests.length === 0 && styles.emptyContainer}
           ListEmptyComponent={
             <View style={styles.empty}>
-              <Text style={styles.emptyEmoji}>🙋</Text>
+              <Ionicons name="person-add-outline" size={48} color={colors.textSecondary} style={styles.emptyEmoji} />
               <Text style={styles.emptyText}>{t('follow_requests_empty')}</Text>
             </View>
           }
@@ -132,7 +133,6 @@ function createStyles(colors) {
       backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.border,
     },
     backBtn: { width: 40, alignItems: 'center' },
-    backText: { fontSize: 24, color: colors.text },
     headerTitle: { fontSize: 18, fontWeight: '700', color: colors.text },
 
     row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
@@ -142,7 +142,6 @@ function createStyles(colors) {
       width: 48, height: 48, borderRadius: 24, backgroundColor: colors.card,
       borderWidth: 1, borderColor: colors.border, justifyContent: 'center', alignItems: 'center',
     },
-    avatarEmoji: { fontSize: 22 },
     username: { flex: 1, marginLeft: 12, fontSize: 15, fontWeight: '700', color: colors.text },
     actions: { flexDirection: 'row', gap: 8 },
     busy: { paddingHorizontal: 24 },
@@ -157,7 +156,7 @@ function createStyles(colors) {
     separator: { height: 1, backgroundColor: colors.border, marginLeft: 76 },
     emptyContainer: { flex: 1, justifyContent: 'center' },
     empty: { alignItems: 'center', paddingVertical: 60 },
-    emptyEmoji: { fontSize: 48, marginBottom: 12 },
+    emptyEmoji: { marginBottom: 12 },
     emptyText: { fontSize: 15, color: colors.textSecondary },
   });
 }

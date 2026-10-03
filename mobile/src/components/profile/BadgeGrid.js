@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../theme';
 import { useLanguage } from '../../context/LanguageContext';
 import { dateLocale } from '../../utils/time';
@@ -25,16 +26,21 @@ export default function BadgeGrid({ badges }) {
     <View style={styles.grid}>
       {badges.map(item => (
         <View key={item.id} style={[styles.card, !item.earned && styles.cardLocked]}>
-          <LinearGradient
-            colors={item.earned ? ['#7C3AED', '#E94560'] : ['#444', '#333']}
-            style={styles.iconBg}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-          >
-            <Text style={[styles.icon, !item.earned && styles.iconLocked]}>
-              {item.earned ? item.icon : '🔒'}
-            </Text>
-          </LinearGradient>
+          {item.earned ? (
+            // Kazanılan rozet: kutlama rengi kalır; rozet sanatı sunucudan gelir
+            <LinearGradient
+              colors={['#7C3AED', '#E94560']}
+              style={styles.iconBg}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <Text style={styles.icon}>{item.icon}</Text>
+            </LinearGradient>
+          ) : (
+            <View style={[styles.iconBg, styles.iconBgLocked]} accessibilityLabel={lockedText(item)}>
+              <Ionicons name="lock-closed" size={22} color={colors.textSecondary} />
+            </View>
+          )}
           <Text style={[styles.name, !item.earned && styles.textLocked]} numberOfLines={1}>
             {item.name}
           </Text>
@@ -68,6 +74,7 @@ function createStyles(colors) {
       borderWidth: 1, borderColor: colors.border,
     },
     cardLocked: { opacity: 0.55 },
+    iconBgLocked: { backgroundColor: colors.cardAlt, borderWidth: 1, borderColor: colors.border },
     iconBg: {
       width: 56, height: 56, borderRadius: 28,
       justifyContent: 'center', alignItems: 'center', marginBottom: 8,

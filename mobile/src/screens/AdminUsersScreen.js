@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, FlatList,
   Alert, ActivityIndicator, TextInput, RefreshControl,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
@@ -117,14 +117,11 @@ export default function AdminUsersScreen({ navigation }) {
         <View style={styles.cardBody}>
           <View style={styles.cardTop}>
             {/* Avatar */}
-            <LinearGradient
-              colors={item.isAdmin ? ['#7C3AED', '#5B21B6'] : isBanned ? ['#E94560', '#BE123C'] : ['#00D4AA', '#059669']}
-              style={styles.avatar}
-            >
+            <View style={[styles.avatar, { backgroundColor: item.isAdmin ? '#7C3AED' : isBanned ? '#E94560' : '#00A383' }]}>
               <Text style={styles.avatarText}>
                 {item.username?.charAt(0).toUpperCase() || '?'}
               </Text>
-            </LinearGradient>
+            </View>
 
             {/* Bilgiler */}
             <View style={styles.userInfo}>
@@ -147,7 +144,12 @@ export default function AdminUsersScreen({ navigation }) {
               </View>
               <Text style={[styles.email, { color: colors.textSecondary }]}>{item.email}</Text>
               <View style={styles.metaRow}>
-                {item.city && <Text style={[styles.meta, { color: colors.textSecondary }]}>📍 {item.city}</Text>}
+                {item.city && (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                    <Ionicons name="location-outline" size={12} color={colors.textSecondary} />
+                    <Text style={[styles.meta, { color: colors.textSecondary }]}>{item.city}</Text>
+                  </View>
+                )}
                 {item.postCount != null && (
                   <Text style={[styles.meta, { color: colors.textSecondary }]}>{t('admin_post_count', { count: item.postCount })}</Text>
                 )}
@@ -192,8 +194,8 @@ export default function AdminUsersScreen({ navigation }) {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* HEADER */}
-      <LinearGradient colors={colors.headerGradient} style={styles.header}>
-        <TouchableOpacity onPress={() => goBackOrFallback(navigation, 'Admin')}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation, 'Admin')} accessibilityRole="button">
           <Text style={[styles.backText, { color: colors.primary }]}>{t('back')}</Text>
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>{t('admin_users_title')}</Text>
@@ -203,7 +205,7 @@ export default function AdminUsersScreen({ navigation }) {
 
         {/* SEARCH */}
         <View style={[styles.searchBar, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Text style={{ color: colors.textSecondary, fontSize: 16 }}>⌕</Text>
+          <Ionicons name="search" size={17} color={colors.textSecondary} />
           <TextInput
             style={[styles.searchInput, { color: colors.text }]}
             placeholder={t('admin_users_search')}
@@ -212,12 +214,12 @@ export default function AdminUsersScreen({ navigation }) {
             onChangeText={setSearch}
           />
           {search.length > 0 && (
-            <TouchableOpacity onPress={() => setSearch('')}>
-              <Text style={{ color: colors.textSecondary }}>✕</Text>
+            <TouchableOpacity onPress={() => setSearch('')} accessibilityRole="button" accessibilityLabel={t('close')} hitSlop={8}>
+              <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
             </TouchableOpacity>
           )}
         </View>
-      </LinearGradient>
+      </View>
 
       {/* FILTERS */}
       <View style={[styles.filtersWrap, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
@@ -225,6 +227,8 @@ export default function AdminUsersScreen({ navigation }) {
           <TouchableOpacity
             key={f.key}
             onPress={() => setActiveFilter(f.key)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: activeFilter === f.key }}
             style={[
               styles.filterBtn,
               activeFilter === f.key && { backgroundColor: colors.primary + '22', borderColor: colors.primary },
@@ -251,7 +255,7 @@ export default function AdminUsersScreen({ navigation }) {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchUsers(); }} tintColor={colors.primary} />}
           ListEmptyComponent={
             <View style={styles.empty}>
-              <Text style={styles.emptyEmoji}>👥</Text>
+              <Ionicons name="people-outline" size={48} color={colors.textSecondary} style={styles.emptyEmoji} />
               <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t('admin_users_empty')}</Text>
             </View>
           }
@@ -312,7 +316,7 @@ function createStyles(colors) {
     actionBtnText: { fontSize: 12, fontWeight: '700' },
 
     empty: { alignItems: 'center', paddingVertical: 80 },
-    emptyEmoji: { fontSize: 48, marginBottom: 12 },
+    emptyEmoji: { marginBottom: 12 },
     emptyText: { fontSize: 15 },
   });
 }

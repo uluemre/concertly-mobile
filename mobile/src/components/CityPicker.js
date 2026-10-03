@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity,
   Modal, TextInput, FlatList,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { TURKISH_CITIES, LAUNCH_CITIES, isLaunchCity } from '../constants/cities';
 
 // Türkçe-duyarlı normalleştirme: "ist" → "İstanbul" eşleşsin.
@@ -10,7 +11,7 @@ const norm = (s) => (s || '').toLocaleLowerCase('tr-TR').trim();
 
 /**
  * Şehir seçici. İlk yayın kapsamındaki şehirler chip olarak öne çıkar; geri
- * kalan iller "＋ Diğer" ile açılan aranabilir modaldan seçilebilir.
+ * kalan iller "+ Diğer" ile açılan aranabilir modaldan seçilebilir.
  *
  * Kapsam dışı şehirleri de seçilebilir tutuyoruz: onboarding şehir seçmeden
  * ilerlemeye izin vermiyor (canContinue), dolayısıyla listeyi 4 şehre kısmak
@@ -55,13 +56,15 @@ export default function CityPicker({ value, onChange, colors, t }) {
           );
         })}
 
-        {/* ＋ Diğer — tüm illeri arama modalı */}
+        {/* + Diğer — tüm illeri arama modalı */}
         <TouchableOpacity
           onPress={() => setModalOpen(true)}
           activeOpacity={0.8}
-          style={[styles.chip, styles.chipMore]}
+          style={[styles.chip, styles.chipMore, { flexDirection: 'row', alignItems: 'center', gap: 4 }]}
+          accessibilityRole="button"
         >
-          <Text style={styles.chipMoreText}>＋ {t('city_more')}</Text>
+          <Ionicons name="add" size={15} color="#E94560" />
+          <Text style={styles.chipMoreText}>{t('city_more')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -78,8 +81,13 @@ export default function CityPicker({ value, onChange, colors, t }) {
           <View style={styles.modalSheet}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{t('city_pick_title')}</Text>
-              <TouchableOpacity onPress={() => setModalOpen(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <Text style={styles.modalClose}>✕</Text>
+              <TouchableOpacity
+                onPress={() => setModalOpen(false)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                accessibilityRole="button"
+                accessibilityLabel={t('close')}
+              >
+                <Ionicons name="close" size={22} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
@@ -114,7 +122,7 @@ export default function CityPicker({ value, onChange, colors, t }) {
                       {item}
                     </Text>
                     {active
-                      ? <Text style={styles.listCheck}>✓</Text>
+                      ? <Ionicons name="checkmark" size={18} color={colors.primary} />
                       : !launch && <Text style={styles.listSoon}>{t('city_soon_badge')}</Text>}
                   </TouchableOpacity>
                 );

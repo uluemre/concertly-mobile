@@ -401,10 +401,17 @@ export default function HomeScreen({ navigation }) {
                   onPress={() => handleCitySelect(city === 'Tümü' ? null : city)}
                   style={[styles.cityOption, active && { backgroundColor: colors.primary + '22' }]}
                 >
-                  <Text style={[styles.cityOptionText, { color: active ? colors.primary : colors.text }]}>
-                    {city === 'Tümü' ? t('home_all_turkey') : `📍 ${city}`}
-                  </Text>
-                  {active && <Text style={{ color: colors.primary, fontWeight: '700' }}>✓</Text>}
+                  <View style={styles.cityOptionLead}>
+                    <Ionicons
+                      name={city === 'Tümü' ? 'globe-outline' : 'location-outline'}
+                      size={16}
+                      color={active ? colors.primary : colors.textSecondary}
+                    />
+                    <Text style={[styles.cityOptionText, { color: active ? colors.primary : colors.text }]}>
+                      {city === 'Tümü' ? t('home_all_turkey') : city}
+                    </Text>
+                  </View>
+                  {active && <Ionicons name="checkmark" size={18} color={colors.primary} />}
                 </TouchableOpacity>
               );
             })}
@@ -492,5 +499,6 @@ function createStyles(colors) {
     cityModalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 16 },
     cityOption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, paddingHorizontal: 12, borderRadius: 10, marginBottom: 4 },
     cityOptionText: { fontSize: 15 },
+    cityOptionLead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   });
 }

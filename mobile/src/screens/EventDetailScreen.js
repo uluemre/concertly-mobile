@@ -19,11 +19,24 @@ import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { displayGenre, displayCountry } from '../utils/text';
-import { getGenreGradient } from '../utils/gradients';
+import { genreAccent } from '../utils/gradients';
 import { detailImageCandidates } from '../utils/eventImage';
 import { formatTimeAgo, parseEventDate, dateLocale } from '../utils/time';
 import ConfettiOverlay from '../components/ConfettiOverlay';
 import { goBackOrFallback } from '../navigation/navHelpers';
+import { hapticLight, hapticSuccess } from '../utils/haptics';
+
+// Metin yıldızları (★☆) yerine ikon; boş yıldız temaya uyar
+function Stars({ value, size = 14, color = '#F5A623', emptyColor }) {
+  const full = Math.round(value || 0);
+  return (
+    <View style={{ flexDirection: 'row', gap: 1 }} accessibilityLabel={`${full}/5`}>
+      {[1, 2, 3, 4, 5].map(i => (
+        <Ionicons key={i} name={i <= full ? 'star' : 'star-outline'} size={size} color={i <= full ? color : (emptyColor || color)} />
+      ))}
+    </View>
+  );
+}
 
 function getInitials(name) {
   if (!name) return '?';
@@ -254,6 +267,7 @@ function EventDetailContent({ route, navigation }) {
   // ── Katılım ──────────────────────────────────────────────────────────────
   const handleAttend = async (status) => {
     if (attendLoading) return;
+    hapticLight();
     setAttendLoading(true);
 
     if (attendance === status) {
@@ -306,6 +320,7 @@ function EventDetailContent({ route, navigation }) {
         navigation.navigate('CreatePost', { event, verified: true });
 
       const celebrate = (meters) => {
+        hapticSuccess();
         setIsVerified(true);
         confettiRef.current?.fire();
         Alert.alert(
@@ -547,19 +562,15 @@ function EventDetailContent({ route, navigation }) {
             <Text style={heroTitleStyle} numberOfLines={2} ellipsizeMode="tail">{event.name}</Text>
             {event.genre && (
               <View style={styles.genreBadge}>
-                <Text style={styles.genreText}>🎵 {displayGenre(event.genre, t)}</Text>
+                <Ionicons name="musical-notes" size={13} color="#fff" />
+                <Text style={styles.genreText}>{displayGenre(event.genre, t)}</Text>
               </View>
             )}
             {verifiedBadge}
           </LinearGradient>
         </View>
       ) : (
-        <LinearGradient
-          colors={getGenreGradient(event.genre)}
-          style={styles.heroSection}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
+        <View style={[styles.heroSection, { backgroundColor: genreAccent(event.genre) }]}>
           {heroActions}
           <Text style={styles.heroPlaceholderInitials}>
             {getInitials(event.artistName || event.name)}
@@ -567,11 +578,12 @@ function EventDetailContent({ route, navigation }) {
           <Text style={heroTitleStyle} numberOfLines={2} ellipsizeMode="tail">{event.name}</Text>
           {event.genre && (
             <View style={styles.genreBadge}>
-              <Text style={styles.genreText}>🎵 {displayGenre(event.genre, t)}</Text>
+              <Ionicons name="musical-notes" size={13} color="#fff" />
+              <Text style={styles.genreText}>{displayGenre(event.genre, t)}</Text>
             </View>
           )}
           {verifiedBadge}
-        </LinearGradient>
+        </View>
       )}
 
       <View style={styles.content}>
@@ -584,8 +596,14 @@ function EventDetailContent({ route, navigation }) {
             onPress={() => { bounceBtn(goingScale); handleAttend('GOING'); }}
             disabled={attendLoading || isExpired}
             activeOpacity={1}
+            accessibilityRole="button"
+            accessibilityState={{ selected: attendance === 'GOING', disabled: attendLoading || isExpired }}
           >
-            <Text style={styles.attendBtnEmoji}>✅</Text>
+            <Ionicons
+              name={attendance === 'GOING' ? 'checkmark-circle' : 'checkmark-circle-outline'}
+              size={20}
+              color={attendance === 'GOING' ? colors.accent : colors.textSecondary}
+            />
             <View>
               <Text style={[styles.attendBtnText, attendance === 'GOING' && styles.attendBtnTextActive]}>
                 {t('events_going')}
@@ -605,8 +623,14 @@ function EventDetailContent({ route, navigation }) {
             onPress={() => { bounceBtn(interestedScale); handleAttend('INTERESTED'); }}
             disabled={attendLoading || isExpired}
             activeOpacity={1}
+            accessibilityRole="button"
+            accessibilityState={{ selected: attendance === 'INTERESTED', disabled: attendLoading || isExpired }}
           >
-            <Text style={styles.attendBtnEmoji}>⭐</Text>
+            <Ionicons
+              name={attendance === 'INTERESTED' ? 'star' : 'star-outline'}
+              size={20}
+              color={attendance === 'INTERESTED' ? colors.secondary : colors.textSecondary}
+            />
             <View>
               <Text style={[styles.attendBtnText, attendance === 'INTERESTED' && styles.attendBtnTextActiveYellow]}>
                 {t('events_interested')}
@@ -627,30 +651,31 @@ function EventDetailContent({ route, navigation }) {
             onPress={() => navigation.navigate('ConcertPrep', { eventId: event.id })}
             activeOpacity={0.85}
             style={styles.prepBtnWrap}
+            accessibilityRole="button"
+            accessibilityHint={t('cday_prepare_btn_sub')}
           >
-            <LinearGradient colors={['#7C3AED', '#E94560']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.prepBtn}>
-              <Text style={styles.prepBtnText}>🎒 {t('cday_prepare_btn')}</Text>
+            <View style={styles.prepBtn}>
+              <View style={styles.prepBtnRow}>
+                <Ionicons name="bag-handle-outline" size={18} color={colors.primary} />
+                <Text style={styles.prepBtnText}>{t('cday_prepare_btn')}</Text>
+              </View>
               <Text style={styles.prepBtnSub}>{t('cday_prepare_btn_sub')}</Text>
-            </LinearGradient>
+            </View>
           </TouchableOpacity>
         )}
 
         {/* BİLET AL — tek ana CTA; birden fazla site varsa seçim menüsü açar */}
         {!isExpired && ticketLinks.length > 0 && (
           <>
-            <TouchableOpacity onPress={onTicketPress} activeOpacity={0.85} style={styles.ticketCtaWrap}>
-              <LinearGradient
-                colors={['#F5A623', '#E94560']}
-                style={styles.ticketCta}
-                start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-              >
+            <TouchableOpacity onPress={onTicketPress} activeOpacity={0.85} style={styles.ticketCtaWrap} accessibilityRole="button">
+              <View style={styles.ticketCta}>
                 <Text style={styles.ticketCtaText}>{t('events_ticket')}</Text>
                 <Ionicons
                   name={ticketLinks.length > 1 ? 'chevron-down' : 'arrow-forward'}
                   size={19}
                   color="#fff"
                 />
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
             {ticketLinks.length > 1 && (
               <Text style={styles.ticketSitesHint} numberOfLines={1}>
@@ -736,11 +761,16 @@ function EventDetailContent({ route, navigation }) {
                         @{b.username}
                         {b.userId === session.userId && <Text style={{ color: colors.primary }}> {t('detail_you')}</Text>}
                       </Text>
-                      {b.city ? <Text style={[styles.buddyCity, { color: colors.textSecondary }]}>📍 {b.city}</Text> : null}
+                      {b.city ? (
+                        <View style={styles.inlineIconRow}>
+                          <Ionicons name="location-outline" size={11} color={colors.textSecondary} />
+                          <Text style={[styles.buddyCity, { color: colors.textSecondary }]}>{b.city}</Text>
+                        </View>
+                      ) : null}
                       {b.message ? <Text style={[styles.buddyMessage, { color: colors.textSecondary }]}>"{b.message}"</Text> : null}
                     </View>
                     {b.userId !== session.userId && (
-                      <Text style={[styles.buddyChevron, { color: colors.textSecondary }]}>›</Text>
+                      <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
                     )}
                   </TouchableOpacity>
                 ))}
@@ -796,11 +826,14 @@ function EventDetailContent({ route, navigation }) {
               weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
             })}
           </Text>
-          <Text style={styles.infoValueSub}>
-            🕐 {parseEventDate(event.eventDate).toLocaleTimeString(dateLocale(lang), {
-              hour: '2-digit', minute: '2-digit',
-            })}
-          </Text>
+          <View style={[styles.inlineIconRow, { marginTop: 6 }]}>
+            <Ionicons name="time-outline" size={15} color={colors.textSecondary} />
+            <Text style={[styles.infoValueSub, { marginTop: 0 }]}>
+              {parseEventDate(event.eventDate).toLocaleTimeString(dateLocale(lang), {
+                hour: '2-digit', minute: '2-digit',
+              })}
+            </Text>
+          </View>
         </View>
 
         {/* SANATÇI */}
@@ -812,11 +845,13 @@ function EventDetailContent({ route, navigation }) {
               artistName: event.artistName,
             })}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={`${t('events_artist')}: ${event.artistName}`}
           >
             <Text style={styles.sectionTitle}>{t('events_artist')}</Text>
             <View style={styles.artistRow}>
               <Text style={styles.infoValue}>{event.artistName}</Text>
-              <Text style={styles.chevron}>›</Text>
+              <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
             </View>
           </TouchableOpacity>
         )}
@@ -832,7 +867,7 @@ function EventDetailContent({ route, navigation }) {
               {/* Sanatçı satırıyla aynı dil: ad + › (eski altı çizili kırmızı web linki gibiydi) */}
               <View style={styles.artistRow}>
                 <Text style={[styles.infoValue, { flex: 1 }]}>{event.venueName}</Text>
-                {!!event.venueId && <Text style={styles.chevron}>›</Text>}
+                {!!event.venueId && <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />}
               </View>
             </TouchableOpacity>
             {event.venueCity && event.venueCountry && (
@@ -889,7 +924,7 @@ function EventDetailContent({ route, navigation }) {
         {/* KONUM DOĞRULAMA BİLGİSİ */}
         {hasCoordinates && !isExpired && (
           <View style={styles.verifyInfoCard}>
-            <Text style={styles.verifyInfoEmoji}>📍</Text>
+            <Ionicons name="location" size={30} color={colors.accent} />
             <View style={styles.verifyInfoText}>
               <Text style={styles.verifyInfoTitle}>{t('events_verify_active')}</Text>
               <Text style={styles.verifyInfoSub}>{t('events_verify_sub')}</Text>
@@ -899,7 +934,7 @@ function EventDetailContent({ route, navigation }) {
 
         {isExpired && (
           <View style={[styles.verifyInfoCard, { backgroundColor: colors.card }]}>
-            <Text style={styles.verifyInfoEmoji}>🗓️</Text>
+            <Ionicons name="calendar-outline" size={30} color={colors.textSecondary} />
             <View style={styles.verifyInfoText}>
               <Text style={[styles.verifyInfoTitle, { color: colors.textSecondary }]}>{t('events_expired')}</Text>
               <Text style={styles.verifyInfoSub}>{t('events_expired_sub')}</Text>
@@ -921,11 +956,17 @@ function EventDetailContent({ route, navigation }) {
             style={styles.reviewPill}
             onPress={() => scrollViewRef.current?.scrollTo({ y: reviewsOffsetY.current, animated: true })}
             activeOpacity={0.8}
+            accessibilityRole="button"
           >
-            <Text style={styles.reviewPillText}>
-              ⭐ {reviews.length > 0 ? `${reviews.length} yorum · ${avgRating} puan` : 'Değerlendir'}
-            </Text>
-            <Text style={styles.reviewPillChevron}>↓</Text>
+            <View style={styles.inlineIconRow}>
+              <Ionicons name="star" size={16} color="#F5A623" />
+              <Text style={styles.reviewPillText}>
+                {reviews.length > 0
+                  ? t('detail_review_summary', { count: reviews.length, avg: avgRating })
+                  : t('detail_review_cta')}
+              </Text>
+            </View>
+            <Ionicons name="arrow-down" size={18} color="#F5A623" />
           </TouchableOpacity>
         )}
 
@@ -937,17 +978,12 @@ function EventDetailContent({ route, navigation }) {
               <Text style={styles.verifyingText}>{t('detail_verifying')}</Text>
             </View>
           ) : (
-            <TouchableOpacity onPress={handlePostAt} activeOpacity={0.85}>
-              <LinearGradient
-                colors={isVerified ? ['#00D4AA', '#00A896'] : ['#F5A623', '#E94560']}
-                style={styles.actionButton}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-              >
+            <TouchableOpacity onPress={handlePostAt} activeOpacity={0.85} accessibilityRole="button">
+              <View style={[styles.actionButton, { backgroundColor: isVerified ? colors.accent : colors.primary }]}>
                 <Text style={styles.actionButtonText}>
                   {isVerified ? t('events_post_verified') : t('events_post')}
                 </Text>
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
           )
         )}
@@ -964,7 +1000,7 @@ function EventDetailContent({ route, navigation }) {
               {avgRating && (
                 <View style={styles.avgBadge}>
                   <Text style={styles.avgRatingText}>{avgRating}</Text>
-                  <Text style={styles.avgRatingStars}>{'★'.repeat(Math.round(avgRating))}{'☆'.repeat(5 - Math.round(avgRating))}</Text>
+                  <Stars value={avgRating} size={13} />
                   <Text style={styles.avgCount}>({reviews.length})</Text>
                 </View>
               )}
@@ -974,7 +1010,7 @@ function EventDetailContent({ route, navigation }) {
             {!(attendance === 'GOING' || isVerified) ? (
               // Geçmiş etkinlikte "Gidiyorum işaretle" yönlendirmesi anlamsız (buton pasif): ipucu gizli (N-60)
               isExpired ? null : <View style={[styles.reviewLockedCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                <Text style={styles.reviewLockedEmoji}>🎟️</Text>
+                <Ionicons name="ticket-outline" size={26} color={colors.textSecondary} />
                 <Text style={[styles.reviewLockedText, { color: colors.textSecondary }]}>
                   {t('review_need_attendance')}
                 </Text>
@@ -989,16 +1025,31 @@ function EventDetailContent({ route, navigation }) {
                   onPress={() => navigation.navigate('ArtistProfile', { artistId: event.artistId, artistName: event.artistName })}
                   activeOpacity={0.7}
                   style={styles.artistHintBtn}
+                  accessibilityRole="link"
                 >
-                  <Text style={[styles.artistHintText, { color: colors.primary }]}>
-                    🎤 {event.artistName} profilini değerlendirmek için buraya dokun
-                  </Text>
+                  <View style={styles.inlineIconRow}>
+                    <Ionicons name="mic-outline" size={13} color={colors.primary} />
+                    <Text style={[styles.artistHintText, { color: colors.primary, flexShrink: 1 }]}>
+                      {t('detail_rate_artist_hint', { name: event.artistName })}
+                    </Text>
+                  </View>
                 </TouchableOpacity>
               )}
               <View style={styles.starsRow}>
                 {[1, 2, 3, 4, 5].map(star => (
-                  <TouchableOpacity key={star} onPress={() => setMyRating(star)} activeOpacity={0.7}>
-                    <Text style={[styles.star, myRating >= star && styles.starActive]}>★</Text>
+                  <TouchableOpacity
+                    key={star}
+                    onPress={() => setMyRating(star)}
+                    activeOpacity={0.7}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${star}/5`}
+                    accessibilityState={{ selected: myRating >= star }}
+                  >
+                    <Ionicons
+                      name={myRating >= star ? 'star' : 'star-outline'}
+                      size={32}
+                      color={myRating >= star ? '#F5A623' : colors.border}
+                    />
                   </TouchableOpacity>
                 ))}
               </View>
@@ -1053,7 +1104,7 @@ function EventDetailContent({ route, navigation }) {
                         <Text style={[styles.reviewTime, { color: colors.textSecondary }]}>{formatTimeAgo(r.createdAt, lang)}</Text>
                       </View>
                     </View>
-                    <Text style={styles.reviewStars}>{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</Text>
+                    <Stars value={r.rating} size={14} />
                   </View>
                   {r.comment && (
                     <Text style={[styles.reviewComment, { color: colors.text }]}>{r.comment}</Text>
@@ -1126,7 +1177,7 @@ function EventDetailContent({ route, navigation }) {
                 )}
               </View>
               <Text style={styles.friendRowUsername}>{item.username}</Text>
-              <Text style={styles.friendRowChevron}>›</Text>
+              <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
             </TouchableOpacity>
           )}
         />
@@ -1164,6 +1215,7 @@ function createStyles(colors) {
     },
     iconBtnText: { fontSize: 18 },
     genreBadge: {
+      flexDirection: 'row', alignItems: 'center', gap: 6,
       backgroundColor: 'rgba(255,255,255,0.15)',
       paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16, marginTop: 10,
       borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)',
@@ -1210,18 +1262,22 @@ function createStyles(colors) {
     // KATILIM
     attendanceRow: { flexDirection: 'row', gap: 12, alignItems: 'stretch' },
     prepBtnWrap: { marginTop: 12, borderRadius: 14, overflow: 'hidden' },
-    prepBtn: { paddingVertical: 12, paddingHorizontal: 16, alignItems: 'center' },
-    prepBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
-    prepBtnSub: { color: 'rgba(255,255,255,0.85)', fontSize: 12, marginTop: 2 },
+    prepBtn: {
+      paddingVertical: 12, paddingHorizontal: 16, alignItems: 'center', borderRadius: 14,
+      backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.primary,
+    },
+    prepBtnRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    prepBtnText: { color: colors.primary, fontSize: 16, fontWeight: '800' },
+    prepBtnSub: { color: colors.textSecondary, fontSize: 12, marginTop: 2 },
+    // İkon + metin satırı (şehir, saat, ipuçları)
+    inlineIconRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
     ticketCtaWrap: {
       marginTop: 14,
       borderRadius: 16,
-      shadowColor: '#E94560', shadowOpacity: 0.35,
-      shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 5,
     },
     ticketCta: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
-      paddingVertical: 17, borderRadius: 16,
+      paddingVertical: 17, borderRadius: 16, backgroundColor: colors.primary,
     },
     ticketSitesHint: {
       color: colors.textSecondary, fontSize: 12.5, fontWeight: '600',
@@ -1260,7 +1316,6 @@ function createStyles(colors) {
     attendBtnActive: { backgroundColor: colors.accent + '26', borderColor: colors.accent },
     attendBtnActiveYellow: { backgroundColor: colors.secondary + '26', borderColor: colors.secondary },
     attendBtnDisabled: { opacity: 0.4 },
-    attendBtnEmoji: { fontSize: 18 },
     attendBtnText: { fontSize: 14, fontWeight: '800', color: colors.textSecondary },
     attendBtnCount: { fontSize: 11, fontWeight: '600', color: colors.textSecondary, marginTop: 2 },
     attendBtnTextActive: { color: colors.accent },
@@ -1314,14 +1369,12 @@ function createStyles(colors) {
     buddyUsername: { fontSize: 13, fontWeight: '800' },
     buddyCity: { fontSize: 11, marginTop: 1 },
     buddyMessage: { fontSize: 12, fontStyle: 'italic', marginTop: 2 },
-    buddyChevron: { fontSize: 22, fontWeight: '300' },
 
     // ── DEĞERLENDİRME STİLLERİ ──
     reviewSection: { marginTop: 8, paddingBottom: 8 },
     reviewHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
     avgBadge: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     avgRatingText: { fontSize: 18, fontWeight: '900', color: colors.text },
-    avgRatingStars: { fontSize: 13, color: '#F5A623' },
     avgCount: { fontSize: 12, color: colors.textSecondary },
     myReviewCard: {
       borderRadius: 16, borderWidth: 1, padding: 16, marginBottom: 16,
@@ -1330,7 +1383,6 @@ function createStyles(colors) {
       borderRadius: 16, borderWidth: 1, padding: 16, marginBottom: 16,
       flexDirection: 'row', alignItems: 'center', gap: 12,
     },
-    reviewLockedEmoji: { fontSize: 26 },
     reviewLockedText: { flex: 1, fontSize: 13, lineHeight: 19 },
     reviewNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     attendedBadge: {
@@ -1342,8 +1394,6 @@ function createStyles(colors) {
     artistHintBtn: { marginBottom: 12 },
     artistHintText: { fontSize: 12, fontWeight: '600' },
     starsRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
-    star: { fontSize: 32, color: colors.border },
-    starActive: { color: '#F5A623' },
     reviewInput: {
       borderWidth: 1, borderRadius: 12, padding: 12,
       fontSize: 14, minHeight: 72, textAlignVertical: 'top', marginBottom: 12,
@@ -1360,7 +1410,6 @@ function createStyles(colors) {
     reviewAvatarText: { color: '#fff', fontWeight: '800', fontSize: 14 },
     reviewUsername: { fontSize: 13, fontWeight: '800' },
     reviewTime: { fontSize: 11, marginTop: 1 },
-    reviewStars: { fontSize: 14, color: '#F5A623' },
     reviewComment: { fontSize: 14, lineHeight: 20 },
     noReviews: { textAlign: 'center', paddingVertical: 24, fontSize: 13 },
 
@@ -1429,7 +1478,6 @@ function createStyles(colors) {
 
     // SANATÇI SATIRI
     artistRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    chevron: { fontSize: 24, color: colors.textSecondary },
 
     // ── INLINE HARİTA ──
     mapWrapper: {
@@ -1473,7 +1521,6 @@ function createStyles(colors) {
       flexDirection: 'row', alignItems: 'center', gap: 14,
       borderWidth: 1, borderColor: colors.accent + '4D',
     },
-    verifyInfoEmoji: { fontSize: 32 },
     verifyInfoText: { flex: 1 },
     verifyInfoTitle: { color: colors.accent, fontWeight: '800', fontSize: 15, marginBottom: 6 },
     verifyInfoSub: { color: colors.textSecondary, fontSize: 13, lineHeight: 20 },
@@ -1495,8 +1542,6 @@ function createStyles(colors) {
     actionButton: {
       padding: 16, borderRadius: 16, alignItems: 'center',
       marginTop: 12, marginBottom: 36,
-      shadowColor: colors.primary, shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.4, shadowRadius: 12, elevation: 8,
     },
     actionButtonText: { color: '#fff', fontSize: 17, fontWeight: '900', letterSpacing: 0.5 },
 
@@ -1508,7 +1553,6 @@ function createStyles(colors) {
       marginTop: 12,
     },
     reviewPillText: { color: '#F5A623', fontSize: 15, fontWeight: '800' },
-    reviewPillChevron: { color: '#F5A623', fontSize: 18, fontWeight: '700' },
 
     imageLoadingOverlay: {
       position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,

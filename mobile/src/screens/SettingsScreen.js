@@ -4,7 +4,8 @@ import {
   TouchableOpacity, ScrollView, Alert,
   ActivityIndicator, Modal, FlatList, Switch
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+// Spotify logosu Ionicons'ta yok: yalnızca o ikon FontAwesome
+import { Ionicons, FontAwesome } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import API from '../services/api';
 import { useTheme } from '../theme';
@@ -426,7 +427,7 @@ export default function SettingsScreen({ navigation, route }) {
             <Text style={formData.city ? styles.inputText : styles.inputPlaceholder}>
               {formData.city ? formData.city : t('settings_city_placeholder')}
             </Text>
-            <Text style={styles.chevron}>›</Text>
+            <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
 
@@ -514,7 +515,7 @@ export default function SettingsScreen({ navigation, route }) {
               <Text style={styles.prefLinkText}>
                 {t('follow_requests_title')}{pendingRequestCount > 0 ? ` (${pendingRequestCount})` : ''}
               </Text>
-              <Text style={styles.prefLinkArrow}>›</Text>
+              <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
             </TouchableOpacity>
           ) : null}
         </View>
@@ -550,7 +551,7 @@ export default function SettingsScreen({ navigation, route }) {
             activeOpacity={0.8}
           >
             <Text style={styles.prefLinkText}>{t('settings_blocked_users')}</Text>
-            <Text style={styles.prefLinkArrow}>›</Text>
+            <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
 
@@ -558,16 +559,20 @@ export default function SettingsScreen({ navigation, route }) {
           style={[styles.privacyRow, { marginTop: 12 }]}
           onPress={() => navigation.navigate('ChangePassword')}
           activeOpacity={0.8}
+          accessibilityRole="button"
         >
-          <Text style={styles.privacyRowText}>🔒  {t('settings_change_password')}</Text>
-          <Text style={styles.chevron}>›</Text>
+          <View style={styles.rowLead}>
+            <Ionicons name="lock-closed-outline" size={18} color={colors.textSecondary} />
+            <Text style={styles.privacyRowText}>{t('settings_change_password')}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
         </TouchableOpacity>
 
         <Text style={styles.sectionTitle}>{tu('settings_spotify')}</Text>
         <View style={styles.spotifyCard}>
           <View style={styles.spotifyRow}>
             <View style={styles.spotifyIconWrap}>
-              <Text style={{ fontSize: 28 }}>🎵</Text>
+              <FontAwesome name="spotify" size={28} color="#1DB954" />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.spotifyTitle, { color: colors.text }]}>
@@ -581,7 +586,7 @@ export default function SettingsScreen({ navigation, route }) {
             </View>
             {spotifyStatus?.connected ? (
               <View style={styles.connectedBadge}>
-                <Text style={styles.connectedBadgeText}>✓</Text>
+                <Ionicons name="checkmark" size={16} color="#fff" />
               </View>
             ) : null}
           </View>
@@ -608,17 +613,15 @@ export default function SettingsScreen({ navigation, route }) {
               onPress={handleSpotifyConnect}
               disabled={spotifyLoading}
               activeOpacity={0.85}
+              accessibilityRole="button"
             >
-              <LinearGradient
-                colors={['#1DB954', '#158a3e']}
-                style={styles.spotifyConnectBtn}
-                start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-              >
+              {/* Spotify marka yeşili, düz */}
+              <View style={[styles.spotifyConnectBtn, { backgroundColor: '#1DB954' }]}>
                 {spotifyLoading
                   ? <ActivityIndicator color="#fff" />
                   : <Text style={styles.spotifyConnectBtnText}>{t('settings_spotify_connect_btn')}</Text>
                 }
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
           )}
         </View>
@@ -628,32 +631,41 @@ export default function SettingsScreen({ navigation, route }) {
           style={[styles.privacyRow, { marginBottom: 12 }]}
           onPress={() => navigation.navigate('Legal', { doc: 'privacy' })}
           activeOpacity={0.8}
+          accessibilityRole="button"
         >
-          <Text style={styles.privacyRowText}>📄  {t('settings_privacy_policy')}</Text>
-          <Text style={styles.chevron}>›</Text>
+          <View style={styles.rowLead}>
+            <Ionicons name="shield-checkmark-outline" size={18} color={colors.textSecondary} />
+            <Text style={styles.privacyRowText}>{t('settings_privacy_policy')}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.privacyRow}
           onPress={() => navigation.navigate('Legal', { doc: 'terms' })}
           activeOpacity={0.8}
+          accessibilityRole="button"
         >
-          <Text style={styles.privacyRowText}>📜  {t('settings_terms')}</Text>
-          <Text style={styles.chevron}>›</Text>
+          <View style={styles.rowLead}>
+            <Ionicons name="document-text-outline" size={18} color={colors.textSecondary} />
+            <Text style={styles.privacyRowText}>{t('settings_terms')}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={handleSave} disabled={saving} activeOpacity={0.85}>
-          <LinearGradient
-            colors={['#E94560', '#7C3AED']}
-            style={styles.saveButton}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-          >
+        <TouchableOpacity
+          onPress={handleSave}
+          disabled={saving}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityState={{ busy: saving, disabled: saving }}
+        >
+          <View style={[styles.saveButton, { backgroundColor: colors.primary }]}>
             {saving ? (
               <ActivityIndicator color="#fff" />
             ) : (
               <Text style={styles.saveButtonText}>{t('settings_save_btn')}</Text>
             )}
-          </LinearGradient>
+          </View>
         </TouchableOpacity>
 
         <Text style={[styles.sectionTitle, styles.dangerSectionTitle]}>{tu('settings_danger_section')}</Text>
@@ -700,7 +712,7 @@ export default function SettingsScreen({ navigation, route }) {
                     styles.cityListText,
                     formData.city === item && styles.cityListTextActive
                   ]}>{item}</Text>
-                  {formData.city === item && <Text style={styles.checkIcon}>✓</Text>}
+                  {formData.city === item && <Ionicons name="checkmark" size={20} color={colors.primary} />}
                 </TouchableOpacity>
               )}
             />
@@ -731,7 +743,7 @@ export default function SettingsScreen({ navigation, route }) {
                     styles.cityListText,
                     deleteReason === r.code && styles.cityListTextActive,
                   ]}>{t(r.key)}</Text>
-                  {deleteReason === r.code && <Text style={styles.checkIcon}>✓</Text>}
+                  {deleteReason === r.code && <Ionicons name="checkmark" size={20} color={colors.primary} />}
                 </TouchableOpacity>
               ))}
               <TextInput
@@ -824,7 +836,6 @@ function createStyles(colors) {
       paddingTop: 14,
     },
     prefLinkText: { color: colors.text, fontSize: 15, fontWeight: '700' },
-    prefLinkArrow: { color: colors.textSecondary, fontSize: 22, fontWeight: '700' },
     sectionTitle: {
       fontSize: 16,
       fontWeight: 'bold',
@@ -879,7 +890,7 @@ function createStyles(colors) {
     },
     inputText: { color: colors.text, fontSize: 15 },
     inputPlaceholder: { color: colors.textSecondary, fontSize: 15 },
-    chevron: { color: colors.textSecondary, fontSize: 20 },
+    rowLead: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
     privacyRow: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -929,7 +940,6 @@ function createStyles(colors) {
       width: 28, height: 28, borderRadius: 14,
       backgroundColor: '#1DB954', justifyContent: 'center', alignItems: 'center',
     },
-    connectedBadgeText: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
     spotifyActions: { flexDirection: 'row', gap: 10 },
     spotifySecondaryBtn: {
       flex: 1, paddingVertical: 10, borderRadius: 10,
@@ -973,6 +983,5 @@ function createStyles(colors) {
     },
     cityListText: { fontSize: 16, color: colors.text },
     cityListTextActive: { fontWeight: 'bold', color: colors.primary },
-    checkIcon: { fontSize: 18, color: colors.primary, fontWeight: 'bold' },
   });
 }

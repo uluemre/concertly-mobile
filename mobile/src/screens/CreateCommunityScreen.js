@@ -4,6 +4,7 @@ import {
   TextInput, ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import { communityTypeLabel } from '../utils/communityType';
@@ -31,9 +32,9 @@ const THEMES = [
 const DESCRIPTION_MAX = 255;
 
 const VISIBILITIES = [
-  { value: 'PUBLIC',  labelKey: 'community_visibility_public',  descKey: 'community_visibility_public_desc',  icon: '🌍' },
-  { value: 'PRIVATE', labelKey: 'community_visibility_private', descKey: 'community_visibility_private_desc', icon: '🔒' },
-  { value: 'SECRET',  labelKey: 'community_visibility_secret',  descKey: 'community_visibility_secret_desc',  icon: '🕵️' },
+  { value: 'PUBLIC',  labelKey: 'community_visibility_public',  descKey: 'community_visibility_public_desc',  icon: 'globe-outline' },
+  { value: 'PRIVATE', labelKey: 'community_visibility_private', descKey: 'community_visibility_private_desc', icon: 'lock-closed-outline' },
+  { value: 'SECRET',  labelKey: 'community_visibility_secret',  descKey: 'community_visibility_secret_desc',  icon: 'eye-off-outline' },
 ];
 
 const normalizeVisibility = (v) => {
@@ -188,7 +189,7 @@ export default function CreateCommunityScreen({ navigation, route }) {
     >
       <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <LinearGradient colors={[hero.start, hero.end]} style={styles.hero}>
-          <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.backButton}>
+          <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.backButton} accessibilityRole="button">
             <Text style={styles.backText}>{t('back')}</Text>
           </TouchableOpacity>
           <Text style={styles.heroEmoji}>{hero.emoji}</Text>
@@ -264,8 +265,10 @@ export default function CreateCommunityScreen({ navigation, route }) {
             onPress={() => setVisibility(v.value)}
             activeOpacity={0.85}
             style={[styles.visCard, visibility === v.value && styles.visCardActive]}
+            accessibilityRole="radio"
+            accessibilityState={{ checked: visibility === v.value }}
           >
-            <Text style={styles.visIcon}>{v.icon}</Text>
+            <Ionicons name={v.icon} size={22} color={visibility === v.value ? colors.primary : colors.textSecondary} />
             <View style={styles.visTextCol}>
               <Text style={[styles.visLabel, visibility === v.value && styles.visLabelActive]}>{t(v.labelKey)}</Text>
               <Text style={styles.visDesc}>{t(v.descKey)}</Text>
@@ -278,7 +281,10 @@ export default function CreateCommunityScreen({ navigation, route }) {
 
         {/* Onay bilgilendirmesi */}
         <View style={styles.infoBox}>
-          <Text style={styles.infoText}>ℹ️ {t(isEdit ? 'community_edit_info' : 'community_create_info')}</Text>
+          <View style={styles.infoRow}>
+            <Ionicons name="information-circle-outline" size={16} color={colors.textSecondary} />
+            <Text style={[styles.infoText, { flex: 1 }]}>{t(isEdit ? 'community_edit_info' : 'community_create_info')}</Text>
+          </View>
         </View>
 
         <TouchableOpacity
@@ -286,6 +292,8 @@ export default function CreateCommunityScreen({ navigation, route }) {
           disabled={submitting || !name.trim()}
           activeOpacity={0.9}
           style={[styles.submitBtn, (submitting || !name.trim()) && styles.submitBtnDisabled]}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: submitting || !name.trim(), busy: submitting }}
         >
           {submitting
             ? <ActivityIndicator color="#fff" />
@@ -340,7 +348,6 @@ function createStyles(colors) {
       backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: 14,
     },
     visCardActive: { borderColor: '#E94560', backgroundColor: '#E9456012' },
-    visIcon: { fontSize: 22 },
     visTextCol: { flex: 1 },
     visLabel: { color: colors.text, fontSize: 14, fontWeight: '800' },
     visLabelActive: { color: '#E94560' },
@@ -357,6 +364,7 @@ function createStyles(colors) {
       backgroundColor: colors.cardAlt || colors.card,
       borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12,
     },
+    infoRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
     infoText: { color: colors.textSecondary, fontSize: 12, lineHeight: 18 },
     submitBtn: {
       marginHorizontal: 16, marginTop: 22,

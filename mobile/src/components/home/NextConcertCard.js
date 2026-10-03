@@ -6,6 +6,8 @@ import {
   View, Text, StyleSheet, TouchableOpacity, ImageBackground, Animated, Image, LayoutAnimation,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../../theme';
 import { useFocusEffect } from '@react-navigation/native';
 import API from '../../services/api';
 import { useLanguage } from '../../context/LanguageContext';
@@ -40,6 +42,7 @@ export default function NextConcertCard({ navigation }) {
 }
 
 function Card({ data, receivedAt, t, onPress }) {
+  const { colors } = useTheme();
   const cd = useCountdown(data.secondsUntilStart, receivedAt);
   const live = data.happeningNow || cd.total === 0;
   const pulse = useRef(new Animated.Value(1)).current;
@@ -75,39 +78,48 @@ function Card({ data, receivedAt, t, onPress }) {
       ? `${cd.days}${t('cday_short_days')} ${pad(cd.hours)}:${pad(cd.minutes)}:${pad(cd.seconds)}`
       : `${pad(cd.hours)}:${pad(cd.minutes)}:${pad(cd.seconds)}`;
     return (
-      <TouchableOpacity activeOpacity={0.85} onPress={toggle} style={styles.stripWrap}>
-        <LinearGradient
-          colors={['rgba(124,58,237,0.35)', 'rgba(233,69,96,0.18)']}
-          start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-          style={styles.strip}
-        >
+      <TouchableOpacity
+        activeOpacity={0.85}
+        onPress={toggle}
+        style={styles.stripWrap}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: false }}
+        accessibilityLabel={`${live ? t('cday_live') : t('cday_next_title')}: ${data.artistName || data.eventName}${live ? '' : `, ${clock}`}`}
+      >
+        {/* Ekran zemininde duran şerit: tema renkleri (açık temada da okunur) */}
+        <View style={[styles.strip, { backgroundColor: colors.card, borderColor: colors.border }]}>
           {data.imageUrl
             ? <Image source={{ uri: data.imageUrl }} style={styles.stripThumb} />
-            : <View style={[styles.stripThumb, styles.avatarFallback]}><Text>🎟️</Text></View>}
+            : (
+              <View style={[styles.stripThumb, styles.avatarFallback]}>
+                <Ionicons name="ticket" size={18} color="#fff" />
+              </View>
+            )}
           <View style={styles.stripText}>
-            <Text style={styles.stripKicker} numberOfLines={1}>{live ? t('cday_live') : t('cday_next_title')}</Text>
-            <Text style={styles.stripTitle} numberOfLines={1}>{data.artistName || data.eventName}</Text>
+            <Text style={[styles.stripKicker, { color: colors.primary }]} numberOfLines={1}>{live ? t('cday_live') : t('cday_next_title')}</Text>
+            <Text style={[styles.stripTitle, { color: colors.text }]} numberOfLines={1}>{data.artistName || data.eventName}</Text>
           </View>
           {live ? (
             <Animated.View style={[styles.stripLiveDot, { opacity: pulse }]} />
           ) : (
-            <Text style={styles.stripClock}>{clock}</Text>
+            <Text style={[styles.stripClock, { color: colors.text }]}>{clock}</Text>
           )}
-          <Text style={styles.stripChevron}>▾</Text>
-        </LinearGradient>
+          <Ionicons name="chevron-down" size={16} color={colors.textSecondary} style={styles.stripChevron} />
+        </View>
       </TouchableOpacity>
     );
   }
 
   return (
-    <TouchableOpacity activeOpacity={0.9} onPress={onPress} style={styles.wrap}>
+    <TouchableOpacity activeOpacity={0.9} onPress={onPress} style={styles.wrap} accessibilityRole="button" accessibilityLabel={`${t('cday_next_title')}: ${data.artistName || data.eventName}`}>
       <ImageBackground
         source={data.imageUrl ? { uri: data.imageUrl } : undefined}
         style={styles.card}
         imageStyle={styles.image}
       >
+        {/* Fotoğraf karartması: yazı okunsun diye (nötr koyu, mor tonu yok) */}
         <LinearGradient
-          colors={['rgba(124,58,237,0.55)', 'rgba(10,10,20,0.92)']}
+          colors={['rgba(10,10,20,0.45)', 'rgba(10,10,20,0.92)']}
           start={{ x: 0, y: 0 }} end={{ x: 0.4, y: 1 }}
           style={styles.overlay}
         >
@@ -122,18 +134,28 @@ function Card({ data, receivedAt, t, onPress }) {
             )}
             <View style={styles.topRight}>
               {wx && (
-                <View style={styles.wxChip}>
-                  <Text style={styles.wxText}>{wx.emoji} {Math.round(data.weather.temperature)}°</Text>
+                <View style={[styles.wxChip, styles.wxRow]} accessibilityLabel={`${t(wx.key)} ${Math.round(data.weather.temperature)}°`}>
+                  <Ionicons name={wx.icon} size={14} color="#fff" />
+                  <Text style={styles.wxText}>{Math.round(data.weather.temperature)}°</Text>
                 </View>
               )}
-              <TouchableOpacity onPress={toggle} hitSlop={12} style={styles.collapseBtn}>
-                <Text style={styles.collapseText}>▴</Text>
+              <TouchableOpacity
+                onPress={toggle}
+                hitSlop={12}
+                style={styles.collapseBtn}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: true }}
+              >
+                <Ionicons name="chevron-up" size={16} color="#fff" />
               </TouchableOpacity>
             </View>
           </View>
 
           <Text style={styles.title} numberOfLines={1}>{data.artistName || data.eventName}</Text>
-          <Text style={styles.venue} numberOfLines={1}>📍 {[data.venueName, data.venueCity].filter(Boolean).join(' · ')}</Text>
+          <View style={styles.venueRow}>
+            <Ionicons name="location-outline" size={13} color="rgba(255,255,255,0.8)" />
+            <Text style={styles.venue} numberOfLines={1}>{[data.venueName, data.venueCity].filter(Boolean).join(' · ')}</Text>
+          </View>
 
           {!live && (
             <View style={styles.countRow}>
@@ -162,7 +184,8 @@ function Card({ data, receivedAt, t, onPress }) {
               </View>
             ) : <View />}
             <View style={styles.cta}>
-              <Text style={styles.ctaText}>{t('cday_prepare')} →</Text>
+              <Text style={styles.ctaText}>{t('cday_prepare')}</Text>
+              <Ionicons name="arrow-forward" size={14} color="#0F0F1A" />
             </View>
           </View>
         </LinearGradient>
@@ -176,40 +199,42 @@ const styles = StyleSheet.create({
   stripWrap: { marginHorizontal: 20, marginTop: 12, borderRadius: 16, overflow: 'hidden' },
   strip: {
     flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, paddingHorizontal: 10,
-    borderRadius: 16, borderWidth: 1, borderColor: 'rgba(167,139,250,0.35)',
+    borderRadius: 16, borderWidth: 1,
   },
   stripThumb: { width: 36, height: 36, borderRadius: 10 },
   stripText: { flex: 1 },
-  stripKicker: { color: '#C4B5FD', fontSize: 9, fontWeight: '800', letterSpacing: 1.2 },
-  stripTitle: { color: '#fff', fontSize: 14, fontWeight: '800', marginTop: 1 },
-  stripClock: { color: '#fff', fontSize: 14, fontWeight: '800', fontVariant: ['tabular-nums'] },
+  stripKicker: { fontSize: 9, fontWeight: '800', letterSpacing: 1.2 },
+  stripTitle: { fontSize: 14, fontWeight: '800', marginTop: 1 },
+  stripClock: { fontSize: 14, fontWeight: '800', fontVariant: ['tabular-nums'] },
   stripLiveDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#E94560' },
-  stripChevron: { color: 'rgba(255,255,255,0.7)', fontSize: 14, marginLeft: 2 },
+  stripChevron: { marginLeft: 2 },
   topRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   collapseBtn: { width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.16)', alignItems: 'center', justifyContent: 'center' },
-  collapseText: { color: '#fff', fontSize: 14, fontWeight: '900' },
-  card: { minHeight: 200, backgroundColor: '#1a0a2e' },
+  // Fotoğraflı kart her iki temada da koyu yüzey (beyaz yazı)
+  card: { minHeight: 200, backgroundColor: '#14141F' },
   image: { borderRadius: 22 },
   overlay: { flex: 1, padding: 18, justifyContent: 'space-between' },
   topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  kicker: { color: '#E9D5FF', fontSize: 11, fontWeight: '800', letterSpacing: 1.6 },
+  kicker: { color: 'rgba(255,255,255,0.8)', fontSize: 11, fontWeight: '800', letterSpacing: 1.6 },
   liveChip: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(233,69,96,0.9)', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
   liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#fff', marginRight: 6 },
   liveText: { color: '#fff', fontSize: 11, fontWeight: '900', letterSpacing: 1 },
   wxChip: { backgroundColor: 'rgba(255,255,255,0.16)', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
+  wxRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   wxText: { color: '#fff', fontSize: 13, fontWeight: '700' },
   title: { color: '#fff', fontSize: 26, fontWeight: '900', marginTop: 10 },
-  venue: { color: 'rgba(255,255,255,0.8)', fontSize: 13, marginTop: 2 },
+  venueRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
+  venue: { color: 'rgba(255,255,255,0.8)', fontSize: 13, flexShrink: 1 },
   countRow: { flexDirection: 'row', gap: 8, marginTop: 14 },
   countBox: { flex: 1, backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 12, paddingVertical: 8, alignItems: 'center' },
   countNum: { color: '#fff', fontSize: 22, fontWeight: '900', fontVariant: ['tabular-nums'] },
   countLbl: { color: 'rgba(255,255,255,0.7)', fontSize: 10, fontWeight: '700', marginTop: 1 },
   footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14 },
   friends: { flexDirection: 'row', alignItems: 'center', flexShrink: 1 },
-  avatar: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: '#1a0a2e' },
-  avatarFallback: { backgroundColor: '#7C3AED', alignItems: 'center', justifyContent: 'center' },
+  avatar: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: '#14141F' },
+  avatarFallback: { backgroundColor: '#E94560', alignItems: 'center', justifyContent: 'center' },
   avatarLetter: { color: '#fff', fontSize: 11, fontWeight: '800' },
   friendsText: { color: '#fff', fontSize: 12, fontWeight: '600', marginLeft: 6, flexShrink: 1 },
-  cta: { backgroundColor: '#fff', borderRadius: 999, paddingHorizontal: 14, paddingVertical: 7 },
-  ctaText: { color: '#1a0a2e', fontSize: 13, fontWeight: '800' },
+  cta: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#fff', borderRadius: 999, paddingHorizontal: 14, paddingVertical: 7 },
+  ctaText: { color: '#0F0F1A', fontSize: 13, fontWeight: '800' },
 });

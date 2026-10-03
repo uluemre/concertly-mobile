@@ -7,11 +7,13 @@ import {
   ActivityIndicator, Linking, Platform, ImageBackground,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import API from '../services/api';
 import { useTheme } from '../theme';
+import { hapticSelection } from '../utils/haptics';
 import { useLanguage } from '../context/LanguageContext';
 import { stopPlayer } from '../utils/audio';
 import { parseEventDate } from '../utils/time';
@@ -45,6 +47,7 @@ export default function ConcertPrepScreen({ navigation, route }) {
   }, [eventId]);
 
   const toggle = (id) => {
+    hapticSelection();
     setChecked(prev => {
       const next = { ...prev, [id]: !prev[id] };
       AsyncStorage.setItem(checklistKey(eventId), JSON.stringify(next)).catch(() => {});
@@ -62,9 +65,9 @@ export default function ConcertPrepScreen({ navigation, route }) {
   if (failed || !data) {
     return (
       <View style={[styles.screen, styles.center]}>
-        <Text style={styles.emptyEmoji}>🎫</Text>
+        <Ionicons name="ticket-outline" size={48} color={colors.textSecondary} style={styles.emptyEmoji} />
         <Text style={styles.emptyText}>{t('cday_load_error')}</Text>
-        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.emptyBtn}>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.emptyBtn} accessibilityRole="button">
           <Text style={styles.emptyBtnText}>{t('back')}</Text>
         </TouchableOpacity>
       </View>
@@ -80,9 +83,9 @@ export default function ConcertPrepScreen({ navigation, route }) {
         <Hero data={data} receivedAt={receivedAt} t={t} lang={lang} styles={styles} navigation={navigation} />
 
         <View style={styles.body}>
-          <WeatherCard weather={data.weather} t={t} styles={styles} />
+          <WeatherCard weather={data.weather} t={t} styles={styles} colors={colors} />
 
-          <Directions data={data} t={t} styles={styles} />
+          <Directions data={data} t={t} styles={styles} colors={colors} />
 
           {data.friendsGoing?.length > 0 && (
             <Section title={t('cday_friends_title', { count: data.friendsGoing.length })} styles={styles}>
@@ -92,6 +95,8 @@ export default function ConcertPrepScreen({ navigation, route }) {
                     key={f.userId}
                     style={styles.friend}
                     onPress={() => navigation.navigate('UserProfile', { userId: f.userId })}
+                    accessibilityRole="button"
+                    accessibilityLabel={`@${f.username}`}
                   >
                     {f.profileImageUrl
                       ? <Image source={{ uri: f.profileImageUrl }} style={styles.friendAvatar} />
@@ -118,11 +123,19 @@ export default function ConcertPrepScreen({ navigation, route }) {
               <View style={[styles.progressFill, { width: `${(done / items.length) * 100}%` }]} />
             </View>
             {items.map(item => (
-              <TouchableOpacity key={item.id} style={styles.checkRow} onPress={() => toggle(item.id)} activeOpacity={0.7}>
+              <TouchableOpacity
+                key={item.id}
+                style={styles.checkRow}
+                onPress={() => toggle(item.id)}
+                activeOpacity={0.7}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: !!checked[item.id] }}
+                accessibilityLabel={t(item.key)}
+              >
                 <View style={[styles.checkBox, checked[item.id] && styles.checkBoxOn]}>
-                  {checked[item.id] && <Text style={styles.checkMark}>✓</Text>}
+                  {checked[item.id] && <Ionicons name="checkmark" size={16} color="#fff" />}
                 </View>
-                <Text style={styles.checkEmoji}>{item.emoji}</Text>
+                <Ionicons name={item.icon} size={18} color={colors.textSecondary} />
                 <Text style={[styles.checkText, checked[item.id] && styles.checkTextDone]}>{t(item.key)}</Text>
                 {item.weather && <Text style={styles.checkTag}>{t('cday_weather_tag')}</Text>}
               </TouchableOpacity>
@@ -132,11 +145,11 @@ export default function ConcertPrepScreen({ navigation, route }) {
 
           <Section title={t('cday_extras_title')} styles={styles}>
             <View style={styles.extrasRow}>
-              <Extra emoji="🔮" label={t('cday_extra_setlist')} styles={styles}
+              <Extra icon="list-outline" label={t('cday_extra_setlist')} styles={styles} colors={colors}
                 onPress={() => navigation.navigate('SetlistPrediction', { eventId: data.eventId })} />
-              <Extra emoji="🎯" label={t('cday_extra_bingo')} styles={styles}
+              <Extra icon="grid-outline" label={t('cday_extra_bingo')} styles={styles} colors={colors}
                 onPress={() => navigation.navigate('ConcertBingo', { eventId: data.eventId, eventName: data.eventName })} />
-              <Extra emoji="🎫" label={t('cday_extra_detail')} styles={styles}
+              <Extra icon="information-circle-outline" label={t('cday_extra_detail')} styles={styles} colors={colors}
                 onPress={() => openEvent(navigation, data.eventId)} />
             </View>
           </Section>
@@ -167,14 +180,18 @@ function Hero({ data, receivedAt, t, lang, styles, navigation }) {
 
   return (
     <ImageBackground source={data.imageUrl ? { uri: data.imageUrl } : undefined} style={styles.hero}>
-      <LinearGradient colors={['rgba(10,10,20,0.35)', 'rgba(26,10,46,0.85)', '#0A0A14']} style={styles.heroOverlay}>
-        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.back}>
-          <Text style={styles.backText}>‹</Text>
+      {/* Fotoğraf karartması (yazı okunsun diye) — nötr koyu */}
+      <LinearGradient colors={['rgba(10,10,20,0.35)', 'rgba(10,10,20,0.85)', '#0A0A14']} style={styles.heroOverlay}>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.back} accessibilityRole="button" accessibilityLabel={t('back')}>
+          <Ionicons name="chevron-back" size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.heroKicker}>{headline}</Text>
         <Text style={styles.heroTitle} numberOfLines={2}>{data.artistName || data.eventName}</Text>
         <Text style={styles.heroMeta}>{when}</Text>
-        <Text style={styles.heroMeta}>📍 {[data.venueName, data.venueCity].filter(Boolean).join(' · ')}</Text>
+        <View style={styles.heroMetaRow}>
+          <Ionicons name="location-outline" size={14} color="rgba(255,255,255,0.82)" />
+          <Text style={[styles.heroMeta, { marginTop: 0, flexShrink: 1 }]}>{[data.venueName, data.venueCity].filter(Boolean).join(' · ')}</Text>
+        </View>
         {!live && (
           <View style={styles.bigCount}>
             {[
@@ -193,11 +210,11 @@ function Hero({ data, receivedAt, t, lang, styles, navigation }) {
   );
 }
 
-function WeatherCard({ weather, t, styles }) {
+function WeatherCard({ weather, t, styles, colors }) {
   if (!weather) {
     return (
       <View style={styles.wxCard}>
-        <Text style={styles.wxEmoji}>🔭</Text>
+        <Ionicons name="telescope-outline" size={38} color={colors.textSecondary} />
         <Text style={styles.wxMuted}>{t('cday_weather_later')}</Text>
       </View>
     );
@@ -205,25 +222,31 @@ function WeatherCard({ weather, t, styles }) {
   const look = weatherLook(weather.weatherCode);
   const advice = weatherAdviceKey(weather);
   return (
-    <LinearGradient colors={['#1E1B4B', '#312E81']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.wxCard}>
-      <Text style={styles.wxEmoji}>{look.emoji}</Text>
+    <View style={styles.wxCard} accessible accessibilityLabel={`${Math.round(weather.temperature)}° ${t(look.key)}`}>
+      <Ionicons name={look.icon} size={42} color={colors.secondary} />
       <View style={{ flex: 1 }}>
         <Text style={styles.wxLabel}>{t('cday_weather_title', { hour: String(weather.hour).padStart(2, '0') })}</Text>
         <Text style={styles.wxMain}>
           {Math.round(weather.temperature)}° · {t(look.key)}
         </Text>
-        <Text style={styles.wxSub}>
-          {t('cday_weather_feels', { temp: Math.round(weather.apparentTemperature) })}
-          {'  ·  '}☔ %{weather.precipitationProbability}
-          {'  ·  '}💨 {Math.round(weather.windKmh)} {t('cday_wind_unit')}
-        </Text>
+        <View style={styles.wxSubRow}>
+          <Text style={styles.wxSub}>{t('cday_weather_feels', { temp: Math.round(weather.apparentTemperature) })}</Text>
+          <View style={styles.wxSubItem}>
+            <Ionicons name="umbrella-outline" size={12} color={colors.textSecondary} />
+            <Text style={styles.wxSub}>%{weather.precipitationProbability}</Text>
+          </View>
+          <View style={styles.wxSubItem}>
+            <Ionicons name="speedometer-outline" size={12} color={colors.textSecondary} />
+            <Text style={styles.wxSub}>{Math.round(weather.windKmh)} {t('cday_wind_unit')}</Text>
+          </View>
+        </View>
         {advice && <Text style={styles.wxAdvice}>{t(advice)}</Text>}
       </View>
-    </LinearGradient>
+    </View>
   );
 }
 
-function Directions({ data, t, styles }) {
+function Directions({ data, t, styles, colors }) {
   const hasCoords = data.latitude != null && data.longitude != null;
   const label = [data.venueName, data.venueCity].filter(Boolean).join(', ');
   if (!hasCoords && !label) return null;
@@ -237,13 +260,13 @@ function Directions({ data, t, styles }) {
   };
 
   return (
-    <TouchableOpacity onPress={open} activeOpacity={0.85} style={styles.dirBtn}>
-      <Text style={styles.dirEmoji}>🧭</Text>
+    <TouchableOpacity onPress={open} activeOpacity={0.85} style={styles.dirBtn} accessibilityRole="button">
+      <Ionicons name="navigate-outline" size={26} color={colors.accent} />
       <View style={{ flex: 1 }}>
         <Text style={styles.dirTitle}>{t('cday_directions')}</Text>
         <Text style={styles.dirSub} numberOfLines={1}>{data.venueAddress || label}</Text>
       </View>
-      <Text style={styles.dirArrow}>›</Text>
+      <Ionicons name="chevron-forward" size={22} color={colors.textSecondary} />
     </TouchableOpacity>
   );
 }
@@ -299,8 +322,10 @@ function Warmup({ tracks, artistName, t, styles, colors }) {
         <TouchableOpacity
           onPress={() => (playingIndex >= 0 ? stop() : play(0))}
           style={[styles.playAll, { backgroundColor: colors.primary }]}
+          accessibilityRole="button"
+          accessibilityState={{ selected: playingIndex >= 0 }}
         >
-          <Text style={styles.playAllText}>{playingIndex >= 0 ? '■' : '▶'}</Text>
+          <Ionicons name={playingIndex >= 0 ? 'stop' : 'play'} size={18} color="#fff" />
         </TouchableOpacity>
       }
       styles={styles}
@@ -313,11 +338,14 @@ function Warmup({ tracks, artistName, t, styles, colors }) {
             style={[styles.track, active && styles.trackActive]}
             onPress={() => (active ? stop() : play(i))}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityState={{ selected: active }}
+            accessibilityLabel={track.title}
           >
             <Text style={styles.trackNo}>{i + 1}</Text>
             {track.coverUrl ? <Image source={{ uri: track.coverUrl }} style={styles.trackCover} /> : null}
             <Text style={[styles.trackTitle, active && { color: colors.primary }]} numberOfLines={1}>{track.title}</Text>
-            <Text style={[styles.trackIcon, active && { color: colors.primary }]}>{active ? '❚❚' : '▶'}</Text>
+            <Ionicons name={active ? 'pause' : 'play'} size={16} color={active ? colors.primary : colors.textSecondary} style={styles.trackIcon} />
           </TouchableOpacity>
         );
       })}
@@ -341,10 +369,10 @@ function Section({ title, subtitle, right, children, styles }) {
   );
 }
 
-function Extra({ emoji, label, onPress, styles }) {
+function Extra({ icon, label, onPress, styles, colors }) {
   return (
-    <TouchableOpacity onPress={onPress} style={styles.extra} activeOpacity={0.8}>
-      <Text style={styles.extraEmoji}>{emoji}</Text>
+    <TouchableOpacity onPress={onPress} style={styles.extra} activeOpacity={0.8} accessibilityRole="button">
+      <Ionicons name={icon} size={24} color={colors.primary} style={styles.extraEmoji} />
       <Text style={styles.extraLabel} numberOfLines={2}>{label}</Text>
     </TouchableOpacity>
   );
@@ -354,18 +382,18 @@ function createStyles(colors) {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: colors.background },
     center: { alignItems: 'center', justifyContent: 'center', padding: 24 },
-    emptyEmoji: { fontSize: 48, marginBottom: 12 },
+    emptyEmoji: { marginBottom: 12 },
     emptyText: { color: colors.textSecondary, fontSize: 15, textAlign: 'center' },
     emptyBtn: { marginTop: 20, padding: 10 },
     emptyBtnText: { color: colors.primary, fontSize: 16, fontWeight: '700' },
 
-    hero: { minHeight: 360, backgroundColor: '#1a0a2e' },
+    hero: { minHeight: 360, backgroundColor: '#14141F' },
     heroOverlay: { flex: 1, paddingHorizontal: 20, paddingTop: 56, paddingBottom: 24, justifyContent: 'flex-end' },
     back: { position: 'absolute', top: 48, left: 16, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center' },
-    backText: { color: '#fff', fontSize: 28, fontWeight: '700', marginTop: -3 },
     heroKicker: { color: '#F5A623', fontSize: 13, fontWeight: '900', letterSpacing: 1.4, marginBottom: 6 },
     heroTitle: { color: '#fff', fontSize: 34, fontWeight: '900' },
     heroMeta: { color: 'rgba(255,255,255,0.82)', fontSize: 14, marginTop: 4 },
+    heroMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
     bigCount: { flexDirection: 'row', gap: 10, marginTop: 18 },
     bigBox: { flex: 1, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 14, paddingVertical: 12, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' },
     bigNum: { color: '#fff', fontSize: 30, fontWeight: '900', fontVariant: ['tabular-nums'] },
@@ -373,19 +401,21 @@ function createStyles(colors) {
 
     body: { paddingHorizontal: 16, gap: 14, marginTop: 4 },
 
-    wxCard: { flexDirection: 'row', alignItems: 'center', gap: 14, borderRadius: 18, padding: 16, backgroundColor: colors.card },
-    wxEmoji: { fontSize: 42 },
-    wxLabel: { color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: '700' },
-    wxMain: { color: '#fff', fontSize: 20, fontWeight: '900', marginTop: 2 },
-    wxSub: { color: 'rgba(255,255,255,0.75)', fontSize: 12, marginTop: 4 },
-    wxAdvice: { color: '#FDE68A', fontSize: 13, fontWeight: '700', marginTop: 8 },
+    wxCard: {
+      flexDirection: 'row', alignItems: 'center', gap: 14, borderRadius: 18, padding: 16,
+      backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
+    },
+    wxLabel: { color: colors.textSecondary, fontSize: 12, fontWeight: '700' },
+    wxMain: { color: colors.text, fontSize: 20, fontWeight: '900', marginTop: 2 },
+    wxSubRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 10, rowGap: 2, marginTop: 4 },
+    wxSubItem: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+    wxSub: { color: colors.textSecondary, fontSize: 12 },
+    wxAdvice: { color: colors.secondary, fontSize: 13, fontWeight: '700', marginTop: 8 },
     wxMuted: { color: colors.textSecondary, fontSize: 13, flex: 1, lineHeight: 19 },
 
     dirBtn: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.card, borderRadius: 18, padding: 16, borderWidth: 1, borderColor: colors.border },
-    dirEmoji: { fontSize: 28 },
     dirTitle: { color: colors.text, fontSize: 16, fontWeight: '800' },
     dirSub: { color: colors.textSecondary, fontSize: 12, marginTop: 2 },
-    dirArrow: { color: colors.textSecondary, fontSize: 28 },
 
     section: { backgroundColor: colors.card, borderRadius: 18, padding: 16, borderWidth: 1, borderColor: colors.border },
     sectionHead: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
@@ -394,18 +424,17 @@ function createStyles(colors) {
 
     friend: { alignItems: 'center', width: 64 },
     friendAvatar: { width: 52, height: 52, borderRadius: 26 },
-    friendFallback: { backgroundColor: '#7C3AED', alignItems: 'center', justifyContent: 'center' },
+    friendFallback: { backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
     friendLetter: { color: '#fff', fontSize: 20, fontWeight: '800' },
     friendName: { color: colors.textSecondary, fontSize: 11, marginTop: 6 },
 
     playAll: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-    playAllText: { color: '#fff', fontSize: 16, fontWeight: '900' },
     track: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, paddingHorizontal: 6, borderRadius: 12 },
     trackActive: { backgroundColor: colors.cardAlt },
     trackNo: { color: colors.textSecondary, width: 18, textAlign: 'center', fontSize: 13, fontWeight: '700' },
     trackCover: { width: 40, height: 40, borderRadius: 8 },
     trackTitle: { flex: 1, color: colors.text, fontSize: 14, fontWeight: '600' },
-    trackIcon: { color: colors.textSecondary, fontSize: 13, width: 24, textAlign: 'center' },
+    trackIcon: { width: 24, textAlign: 'center' },
     credit: { color: colors.textSecondary, fontSize: 10, marginTop: 8, textAlign: 'right' },
 
     progressText: { color: colors.primary, fontSize: 15, fontWeight: '900' },
@@ -414,8 +443,6 @@ function createStyles(colors) {
     checkRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: 10 },
     checkBox: { width: 24, height: 24, borderRadius: 7, borderWidth: 2, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
     checkBoxOn: { backgroundColor: colors.primary, borderColor: colors.primary },
-    checkMark: { color: '#fff', fontSize: 14, fontWeight: '900' },
-    checkEmoji: { fontSize: 18 },
     checkText: { flex: 1, color: colors.text, fontSize: 15 },
     checkTextDone: { color: colors.textSecondary, textDecorationLine: 'line-through' },
     checkTag: { color: '#60A5FA', fontSize: 10, fontWeight: '800', borderWidth: 1, borderColor: '#60A5FA', borderRadius: 6, paddingHorizontal: 5, paddingVertical: 1 },
@@ -423,7 +450,7 @@ function createStyles(colors) {
 
     extrasRow: { flexDirection: 'row', gap: 10 },
     extra: { flex: 1, backgroundColor: colors.cardAlt, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 8, alignItems: 'center' },
-    extraEmoji: { fontSize: 26, marginBottom: 6 },
+    extraEmoji: { marginBottom: 6 },
     extraLabel: { color: colors.text, fontSize: 12, fontWeight: '700', textAlign: 'center' },
   });
 }

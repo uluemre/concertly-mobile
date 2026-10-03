@@ -4,7 +4,6 @@ import {
   TouchableOpacity, RefreshControl, FlatList,
   TextInput, ScrollView, Modal,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { fetchAllConcerts } from '../services/concerts';
 import { useTheme } from '../theme';
@@ -226,9 +225,9 @@ export default function EventsScreen({ navigation, route }) {
   return (
     <View style={styles.container}>
       {/* HEADER */}
-      <LinearGradient colors={colors.headerGradient} style={styles.header}>
+      <View style={styles.header}>
         {pickForSetlist && (
-          <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.pickerBack} activeOpacity={0.7}>
+          <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.pickerBack} activeOpacity={0.7} accessibilityRole="button">
             <Text style={styles.pickerBackText}>{t('back')}</Text>
           </TouchableOpacity>
         )}
@@ -238,15 +237,22 @@ export default function EventsScreen({ navigation, route }) {
             <Text style={styles.headerSub}>{t('events_count', { count: filtered.length })}</Text>
           </View>
           <View style={styles.headerBtns}>
-            <TouchableOpacity onPress={() => setCityModalVisible(true)} style={[styles.headerBtn, { borderColor: colors.primary + '60' }]} activeOpacity={0.8}>
-              <Text style={styles.headerBtnIcon}>📍</Text>
-              <Text style={[styles.headerBtnText, { color: colors.primary }]} numberOfLines={1}>{selectedCity || 'Tümü'}</Text>
-              <Text style={[styles.headerBtnChevron, { color: colors.primary }]}>▾</Text>
+            <TouchableOpacity
+              onPress={() => setCityModalVisible(true)}
+              style={[styles.headerBtn, { borderColor: colors.primary + '60' }]}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel={`${t('events_city_select')}: ${selectedCity || t('events_all')}`}
+            >
+              <Ionicons name="location-outline" size={14} color={colors.primary} />
+              <Text style={[styles.headerBtnText, { color: colors.primary }]} numberOfLines={1}>{selectedCity || t('events_all')}</Text>
+              <Ionicons name="chevron-down" size={12} color={colors.primary} />
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => setFilterModalVisible(true)}
               style={[styles.headerBtn, { borderColor: (selectedGenre || sortKey !== 'date_asc') ? colors.primary : colors.border }]}
               activeOpacity={0.8}
+              accessibilityRole="button"
             >
               <Ionicons name="options-outline" size={17} color={(selectedGenre || sortKey !== 'date_asc') ? colors.primary : colors.textSecondary} />
               <Text style={[styles.headerBtnText, { color: (selectedGenre || sortKey !== 'date_asc') ? colors.primary : colors.textSecondary }]}>{t('events_filter')}</Text>
@@ -266,8 +272,8 @@ export default function EventsScreen({ navigation, route }) {
             onChangeText={setSearch}
           />
           {search.length > 0 && (
-            <TouchableOpacity onPress={() => setSearch('')}>
-              <Text style={{ color: colors.textSecondary, fontSize: 15 }}>✕</Text>
+            <TouchableOpacity onPress={() => setSearch('')} accessibilityRole="button" accessibilityLabel={t('close')} hitSlop={8}>
+              <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
             </TouchableOpacity>
           )}
         </View>
@@ -278,6 +284,8 @@ export default function EventsScreen({ navigation, route }) {
             onPress={() => setShowPast(false)}
             style={[styles.togglePill, !showPast && { backgroundColor: colors.primary }]}
             activeOpacity={0.8}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: !showPast }}
           >
             <Ionicons name="calendar-outline" size={15} color={!showPast ? '#fff' : colors.textSecondary} />
             <Text style={[styles.toggleText, { color: !showPast ? '#fff' : colors.textSecondary }]}>
@@ -288,6 +296,8 @@ export default function EventsScreen({ navigation, route }) {
             onPress={() => setShowPast(true)}
             style={[styles.togglePill, showPast && { backgroundColor: colors.primary }]}
             activeOpacity={0.8}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: showPast }}
           >
             <Ionicons name="time-outline" size={15} color={showPast ? '#fff' : colors.textSecondary} />
             <Text style={[styles.toggleText, { color: showPast ? '#fff' : colors.textSecondary }]}>
@@ -304,6 +314,8 @@ export default function EventsScreen({ navigation, route }) {
                   onPress={() => chooseLayout(l.key)}
                   style={[styles.layoutBtn, active && { backgroundColor: colors.primary }]}
                   accessibilityLabel={t(l.label)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
                   activeOpacity={0.8}
                 >
                   <Ionicons name={l.icon} size={16} color={active ? '#fff' : colors.textSecondary} />
@@ -312,7 +324,7 @@ export default function EventsScreen({ navigation, route }) {
             })}
           </View>
         </View>
-      </LinearGradient>
+      </View>
 
       {pickForSetlist && (
         <View style={styles.setlistBanner}>
@@ -337,7 +349,7 @@ export default function EventsScreen({ navigation, route }) {
           loadError ? (
             // Hata ile "sonuç yok" ayrı durumlar: kullanıcı tekrar deneyebilmeli.
             <View style={styles.empty}>
-              <Text style={styles.emptyEmoji}>📡</Text>
+              <Ionicons name="cloud-offline-outline" size={52} color={colors.textSecondary} style={styles.emptyEmoji} />
               <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
                 {t('events_load_error')}
               </Text>
@@ -351,7 +363,7 @@ export default function EventsScreen({ navigation, route }) {
             </View>
           ) : (
             <View style={styles.empty}>
-              <Text style={styles.emptyEmoji}>🎭</Text>
+              <Ionicons name="calendar-outline" size={52} color={colors.textSecondary} style={styles.emptyEmoji} />
               <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t('events_empty')}</Text>
             </View>
           )
@@ -457,10 +469,17 @@ export default function EventsScreen({ navigation, route }) {
                   onPress={() => handleCitySelect(city)}
                   style={[styles.cityOption, active && { backgroundColor: colors.primary + '22' }]}
                 >
-                  <Text style={[styles.cityOptionText, { color: active ? colors.primary : colors.text }]}>
-                    {city === 'Tümü' ? t('events_all_turkey') : `📍 ${city}`}
-                  </Text>
-                  {active && <Text style={{ color: colors.primary, fontWeight: '700' }}>✓</Text>}
+                  <View style={styles.cityOptionLead}>
+                    <Ionicons
+                      name={city === 'Tümü' ? 'globe-outline' : 'location-outline'}
+                      size={16}
+                      color={active ? colors.primary : colors.textSecondary}
+                    />
+                    <Text style={[styles.cityOptionText, { color: active ? colors.primary : colors.text }]}>
+                      {city === 'Tümü' ? t('events_all_turkey') : city}
+                    </Text>
+                  </View>
+                  {active && <Ionicons name="checkmark" size={18} color={colors.primary} />}
                 </TouchableOpacity>
               );
             })}
@@ -488,9 +507,7 @@ function createStyles(colors) {
 
     headerBtns: { flexDirection: 'row', gap: 8 },
     headerBtn: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 8, gap: 4, backgroundColor: colors.card },
-    headerBtnIcon: { fontSize: 12 },
     headerBtnText: { fontSize: 12, fontWeight: '700', maxWidth: 60 },
-    headerBtnChevron: { fontSize: 10 },
     filterDot: { width: 6, height: 6, borderRadius: 3, marginLeft: 2 },
 
     searchBar: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 11, gap: 8 },
@@ -529,7 +546,8 @@ function createStyles(colors) {
     layoutBtn: { width: 34, height: 30, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
 
     empty: { alignItems: 'center', marginTop: 80 },
-    emptyEmoji: { fontSize: 56, marginBottom: 12 },
+    emptyEmoji: { marginBottom: 12 },
+    cityOptionLead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     emptyText: { fontSize: 15, textAlign: 'center' },
     retryBtn: { marginTop: 18, paddingHorizontal: 22, paddingVertical: 11, borderRadius: 12 },
     retryBtnText: { color: '#fff', fontWeight: '800', fontSize: 14.5 },

@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import MapView, { Marker, Circle } from 'react-native-maps';
 import * as Location from 'expo-location';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import API from '../services/api';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
@@ -160,7 +160,7 @@ export default function MapScreen({ navigation }) {
     <View style={styles.container}>
 
       {/* HEADER */}
-      <LinearGradient colors={colors.headerGradient} style={styles.header}>
+      <View style={styles.header}>
         <View style={styles.headerRow}>
           <View>
             <Text style={styles.headerTitle}>{t('map_title')}</Text>
@@ -170,7 +170,7 @@ export default function MapScreen({ navigation }) {
             </Text>
           </View>
           {userLocation && (
-            <TouchableOpacity style={styles.locateBtn} onPress={goToUserLocation} activeOpacity={0.8}>
+            <TouchableOpacity style={styles.locateBtn} onPress={goToUserLocation} activeOpacity={0.8} accessibilityRole="button">
               <Text style={styles.locateBtnText}>{t('map_go_location')}</Text>
             </TouchableOpacity>
           )}
@@ -187,6 +187,8 @@ export default function MapScreen({ navigation }) {
                 style={[styles.filterChip, active && styles.filterChipActive, disabled && styles.filterChipDisabled]}
                 onPress={() => !disabled && setSelectedRadius(opt.value)}
                 activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active, disabled }}
               >
                 <Text style={[styles.filterChipText, active && styles.filterChipTextActive]}>
                   {opt.label}
@@ -195,7 +197,7 @@ export default function MapScreen({ navigation }) {
             );
           })}
         </ScrollView>
-      </LinearGradient>
+      </View>
 
       {/* HARİTA */}
       <MapView
@@ -228,7 +230,7 @@ export default function MapScreen({ navigation }) {
               onPress={() => handleMarkerPress(event)}
             >
               <View style={[styles.marker, isSelected && styles.markerSelected, { borderColor: color }]}>
-                <Text style={styles.markerEmoji}>🎵</Text>
+                <Ionicons name="musical-notes" size={18} color={color} />
               </View>
             </Marker>
           );
@@ -245,18 +247,30 @@ export default function MapScreen({ navigation }) {
             <View style={{ flex: 1 }}>
               <Text style={styles.bottomCardTitle} numberOfLines={2}>{selectedEvent.name}</Text>
               {selectedEvent.artistName && (
-                <Text style={styles.bottomCardSub}>🎤 {selectedEvent.artistName}</Text>
+                <View style={styles.subRow}>
+                  <Ionicons name="mic-outline" size={13} color={colors.textSecondary} />
+                  <Text style={[styles.bottomCardSub, styles.subText]}>{selectedEvent.artistName}</Text>
+                </View>
               )}
-              <Text style={styles.bottomCardSub}>
-                📅 {parseEventDate(selectedEvent.eventDate).toLocaleDateString(dateLocale(lang), { day: 'numeric', month: 'long', year: 'numeric' })}
-              </Text>
+              <View style={styles.subRow}>
+                <Ionicons name="calendar-clear-outline" size={13} color={colors.textSecondary} />
+                <Text style={[styles.bottomCardSub, styles.subText]}>
+                  {parseEventDate(selectedEvent.eventDate).toLocaleDateString(dateLocale(lang), { day: 'numeric', month: 'long', year: 'numeric' })}
+                </Text>
+              </View>
               {selectedEvent.venueName && (
-                <Text style={styles.bottomCardSub}>🏟️ {selectedEvent.venueName}</Text>
+                <View style={styles.subRow}>
+                  <Ionicons name="business-outline" size={13} color={colors.textSecondary} />
+                  <Text style={[styles.bottomCardSub, styles.subText]}>{selectedEvent.venueName}</Text>
+                </View>
               )}
               {selectedEvent.distanceKm !== null && (
-                <Text style={styles.bottomCardDistance}>
-                  📍 {formatDistance(selectedEvent.distanceKm)} {t('map_away')}
-                </Text>
+                <View style={[styles.subRow, { marginTop: 4 }]}>
+                  <Ionicons name="location" size={13} color={colors.primary} />
+                  <Text style={[styles.bottomCardDistance, { marginTop: 0 }]}>
+                    {formatDistance(selectedEvent.distanceKm)} {t('map_away')}
+                  </Text>
+                </View>
               )}
             </View>
           </View>
@@ -360,7 +374,8 @@ function createStyles(colors) {
       borderRadius: 24,
       borderWidth: 3,
     },
-    markerEmoji: { fontSize: 18 },
+    subRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 3 },
+    subText: { marginBottom: 0, flexShrink: 1 },
 
     bottomCard: {
       position: 'absolute',

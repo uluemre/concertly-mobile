@@ -4,8 +4,10 @@ import {
   ActivityIndicator, Image, Animated, ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import { useTheme } from '../theme';
+import { hapticSuccess, hapticError } from '../utils/haptics';
 import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
 import { stopPlayer } from '../utils/audio';
@@ -137,6 +139,8 @@ export default function DailySongScreen({ navigation }) {
     try {
       const res = await API.post('/daily-song/guess', skip ? { skip: true } : { guess: title });
       const r = res.data;
+      if (r.correct) hapticSuccess();
+      else if (!skip) hapticError();
       if (!r.correct && !skip) {
         setWrongGuesses(prev => [...prev, title]);
       }
@@ -172,9 +176,9 @@ export default function DailySongScreen({ navigation }) {
   if (!game) {
     return (
       <View style={[styles.container, styles.centered, { backgroundColor: colors.background }]}>
-        <Text style={{ fontSize: 48, marginBottom: 12 }}>😞</Text>
+        <Ionicons name="cloud-offline-outline" size={48} color={colors.textSecondary} style={{ marginBottom: 12 }} />
         <Text style={[styles.errorText, { color: colors.textSecondary }]}>{t('daily_load_error')}</Text>
-        <TouchableOpacity onPress={() => { setLoading(true); fetchToday(); }} style={[styles.retryBtn, { backgroundColor: colors.primary }]}>
+        <TouchableOpacity onPress={() => { setLoading(true); fetchToday(); }} style={[styles.retryBtn, { backgroundColor: colors.primary }]} accessibilityRole="button">
           <Text style={styles.retryBtnText}>{t('retry')}</Text>
         </TouchableOpacity>
       </View>
@@ -225,9 +229,8 @@ export default function DailySongScreen({ navigation }) {
               s === 'solved' && { backgroundColor: '#00D4AA30', borderColor: '#00D4AA' },
             ]}
           >
-            <Text style={styles.attemptBoxText}>
-              {s === 'wrong' ? '✗' : s === 'solved' ? '✓' : ''}
-            </Text>
+            {s === 'wrong' ? <Ionicons name="close" size={16} color="#E94560" />
+              : s === 'solved' ? <Ionicons name="checkmark" size={16} color="#00D4AA" /> : null}
           </View>
         ))}
       </View>
@@ -237,9 +240,14 @@ export default function DailySongScreen({ navigation }) {
           {/* DİNLE */}
           <View style={styles.playArea}>
             <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-              <TouchableOpacity onPress={playSnippet} activeOpacity={0.85}>
+              <TouchableOpacity
+                onPress={playSnippet}
+                activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel={playing ? t('daily_listening') : t('daily_listen', { sec: allowedMs / 1000 })}
+              >
                 <LinearGradient colors={['#E94560', '#7C3AED']} style={styles.playBtn}>
-                  <Text style={styles.playBtnIcon}>{playing ? '⏸' : '▶'}</Text>
+                  <Ionicons name={playing ? 'pause' : 'play'} size={40} color="#fff" />
                 </LinearGradient>
               </TouchableOpacity>
             </Animated.View>
@@ -254,7 +262,7 @@ export default function DailySongScreen({ navigation }) {
           {/* TAHMİN */}
           <View style={styles.guessArea}>
             <View style={[styles.searchBar, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              <Text style={{ color: colors.textSecondary, fontSize: 16 }}>⌕</Text>
+              <Ionicons name="search" size={17} color={colors.textSecondary} />
               <TextInput
                 style={[styles.searchInput, { color: colors.text }]}
                 placeholder={t('daily_guess_placeholder')}
@@ -270,6 +278,7 @@ export default function DailySongScreen({ navigation }) {
                 style={[styles.suggestion, { backgroundColor: colors.card, borderColor: colors.border }]}
                 onPress={() => submitGuess(sug.title)}
                 activeOpacity={0.8}
+                accessibilityRole="button"
               >
                 <Text style={[styles.suggestionTitle, { color: colors.text }]} numberOfLines={1}>
                   {sug.title}
@@ -283,7 +292,10 @@ export default function DailySongScreen({ navigation }) {
             {/* Yanlış tahminler */}
             {wrongGuesses.map((w, i) => (
               <View key={i} style={[styles.wrongRow, { backgroundColor: '#E9456015', borderColor: '#E9456040' }]}>
-                <Text style={[styles.wrongText, { color: '#E94560' }]} numberOfLines={1}>❌ {w}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Ionicons name="close-circle" size={15} color="#E94560" />
+                  <Text style={[styles.wrongText, { color: '#E94560', flexShrink: 1 }]} numberOfLines={1}>{w}</Text>
+                </View>
               </View>
             ))}
 
@@ -291,6 +303,7 @@ export default function DailySongScreen({ navigation }) {
               onPress={() => submitGuess(null, true)}
               style={[styles.skipBtn, { borderColor: colors.border }]}
               disabled={submitting}
+              accessibilityRole="button"
             >
               <Text style={[styles.skipBtnText, { color: colors.textSecondary }]}>{t('daily_skip')}</Text>
             </TouchableOpacity>
@@ -315,7 +328,7 @@ export default function DailySongScreen({ navigation }) {
               <Image source={{ uri: game.answer.coverUrl }} style={styles.answerCover} />
             ) : (
               <View style={[styles.answerCover, styles.answerCoverFallback]}>
-                <Text style={{ fontSize: 30 }}>🎵</Text>
+                <Ionicons name="musical-notes" size={30} color={colors.textSecondary} />
               </View>
             )}
             <View style={styles.answerInfo}>
@@ -325,9 +338,12 @@ export default function DailySongScreen({ navigation }) {
             </View>
           </View>
 
-          <TouchableOpacity onPress={playSnippet} activeOpacity={0.85} style={{ width: '100%' }}>
+          <TouchableOpacity onPress={playSnippet} activeOpacity={0.85} style={{ width: '100%' }} accessibilityRole="button">
             <LinearGradient colors={['#E94560', '#7C3AED']} style={styles.fullPlayBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-              <Text style={styles.fullPlayBtnText}>{playing ? '⏸ ' + t('daily_listening') : t('daily_play_full')}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                <Ionicons name={playing ? 'pause' : 'play'} size={15} color="#fff" />
+                <Text style={styles.fullPlayBtnText}>{playing ? t('daily_listening') : t('daily_play_full')}</Text>
+              </View>
             </LinearGradient>
           </TouchableOpacity>
 
@@ -373,7 +389,6 @@ function createStyles(colors) {
       shadowColor: '#E94560', shadowOffset: { width: 0, height: 6 },
       shadowOpacity: 0.4, shadowRadius: 14, elevation: 8,
     },
-    playBtnIcon: { fontSize: 40, color: '#fff' },
     playHint: { fontSize: 14, fontWeight: '600' },
 
     guessArea: { paddingHorizontal: 20, marginTop: 26, gap: 10 },

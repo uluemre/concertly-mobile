@@ -135,7 +135,7 @@ export default function ConcertPassportScreen({ navigation, route }) {
         <View style={styles.iconBtn} />
       </View>
       <View style={[styles.centered, { flex: 1 }]}>
-        <Text style={{ fontSize: 40, marginBottom: 10 }}>🔒</Text>
+        <Ionicons name="lock-closed-outline" size={40} color={colors.textSecondary} style={{ marginBottom: 10 }} />
         <Text style={{ fontSize: 16, fontWeight: '700', color: colors.text, marginBottom: 6 }}>
           {t('private_account_locked_title')}
         </Text>

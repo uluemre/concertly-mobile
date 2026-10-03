@@ -4,8 +4,9 @@ import {
   TextInput, ActivityIndicator, KeyboardAvoidingView,
   Platform, Alert, Image, Animated,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../theme';
+import { hapticLight } from '../utils/haptics';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { apiErrorMessage } from '../utils/communityErrors';
@@ -14,13 +15,6 @@ import DeepLinkLoader from '../components/DeepLinkLoader';
 import { publishPostUpdate } from '../services/postUpdates';
 import { formatTimeAgo } from '../utils/time';
 import { goBackOrFallback, openEvent } from '../navigation/navHelpers';
-
-const GRADIENTS = [
-  ['#E94560', '#7C3AED'],
-  ['#F5A623', '#E94560'],
-  ['#00D4AA', '#7C3AED'],
-  ['#7C3AED', '#F5A623'],
-];
 
 function PostDetailContent({ route, navigation }) {
   const { post: initialPost } = route.params;
@@ -65,6 +59,7 @@ function PostDetailContent({ route, navigation }) {
 
   const handleLike = async () => {
     if (likeLoading) return;
+    hapticLight();
     setLikeLoading(true);
     Animated.sequence([
       Animated.spring(scaleAnim, { toValue: 1.4, useNativeDriver: true, tension: 200 }),
@@ -135,11 +130,8 @@ function PostDetailContent({ route, navigation }) {
 
   const renderComment = useCallback(({ item, index }) => (
     <View style={styles.commentItem}>
-      <TouchableOpacity onPress={() => goToUser(item.userId)} activeOpacity={0.8}>
-        <LinearGradient
-          colors={GRADIENTS[index % GRADIENTS.length]}
-          style={styles.commentAvatar}
-        >
+      <TouchableOpacity onPress={() => goToUser(item.userId)} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={`@${item.username}`}>
+        <View style={styles.commentAvatar}>
           {item.userProfileImageUrl ? (
             <Image source={{ uri: item.userProfileImageUrl }} style={styles.commentAvatarImg} />
           ) : (
@@ -147,7 +139,7 @@ function PostDetailContent({ route, navigation }) {
               {item.username?.charAt(0).toUpperCase() || '?'}
             </Text>
           )}
-        </LinearGradient>
+        </View>
       </TouchableOpacity>
 
       <View style={styles.commentBubble}>
@@ -163,6 +155,7 @@ function PostDetailContent({ route, navigation }) {
             onPress={() => handleDeleteComment(item.id)}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             style={styles.deleteCommentBtn}
+            accessibilityRole="button"
           >
             <Text style={styles.deleteCommentText}>{t('delete')}</Text>
           </TouchableOpacity>
@@ -179,7 +172,7 @@ function PostDetailContent({ route, navigation }) {
         onPress={() => goToUser(post.userId)}
         activeOpacity={0.8}
       >
-        <LinearGradient colors={GRADIENTS[0]} style={styles.postAvatar}>
+        <View style={styles.postAvatar}>
           {post.userProfileImageUrl ? (
             <Image source={{ uri: post.userProfileImageUrl }} style={styles.postAvatarImg} />
           ) : (
@@ -187,7 +180,7 @@ function PostDetailContent({ route, navigation }) {
               {post.username?.charAt(0).toUpperCase() || '?'}
             </Text>
           )}
-        </LinearGradient>
+        </View>
         <View>
           <Text style={styles.postUsername}>@{post.username}</Text>
           <Text style={styles.postTime}>{formatTimeAgo(post.createdAt, lang)}</Text>
@@ -205,23 +198,40 @@ function PostDetailContent({ route, navigation }) {
           style={styles.eventTag}
           onPress={() => openEvent(navigation, post.eventId)}
           activeOpacity={0.8}
+          accessibilityRole="link"
         >
-          <Text style={styles.eventTagText}>🎵 {post.eventName}</Text>
+          <View style={styles.eventTagRow}>
+            <Ionicons name="musical-notes" size={13} color={colors.primary} />
+            <Text style={styles.eventTagText}>{post.eventName}</Text>
+          </View>
         </TouchableOpacity>
       )}
 
       {/* Aksiyonlar */}
       <View style={styles.actions}>
-        <TouchableOpacity style={styles.actionBtn} onPress={handleLike} activeOpacity={0.7}>
-          <Animated.Text style={[styles.actionIcon, { transform: [{ scale: scaleAnim }] }]}>
-            {liked ? '❤️' : '🤍'}
-          </Animated.Text>
+        <TouchableOpacity
+          style={styles.actionBtn}
+          onPress={handleLike}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityState={{ selected: liked }}
+          accessibilityLabel={`${t('a11y_like')}, ${likeCount}`}
+        >
+          <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+            <Ionicons name={liked ? 'heart' : 'heart-outline'} size={24} color={liked ? colors.primary : colors.textSecondary} />
+          </Animated.View>
           <Text style={[styles.actionCount, liked && { color: colors.primary }]}>
             {likeCount}
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionBtn} onPress={() => inputRef.current?.focus()} activeOpacity={0.7}>
-          <Text style={styles.actionIcon}>💬</Text>
+        <TouchableOpacity
+          style={styles.actionBtn}
+          onPress={() => inputRef.current?.focus()}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={t('a11y_comments')}
+        >
+          <Ionicons name="chatbubble-outline" size={22} color={colors.textSecondary} />
           <Text style={styles.actionCount}>{post.commentCount || comments.length}</Text>
         </TouchableOpacity>
       </View>
@@ -238,12 +248,12 @@ function PostDetailContent({ route, navigation }) {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <LinearGradient colors={colors.headerGradient} style={styles.header}>
-        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.backBtn}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.backBtn} accessibilityRole="button">
           <Text style={[styles.backText, { color: colors.primary }]}>{t('back')}</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t('postdetail_title')}</Text>
-      </LinearGradient>
+        <Text style={styles.headerTitle} accessibilityRole="header">{t('postdetail_title')}</Text>
+      </View>
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -263,7 +273,7 @@ function PostDetailContent({ route, navigation }) {
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
               <View style={styles.emptyComments}>
-                <Text style={styles.emptyEmoji}>💭</Text>
+                <Ionicons name="chatbubbles-outline" size={40} color={colors.textSecondary} style={styles.emptyEmoji} />
                 <Text style={styles.emptyText}>{t('postdetail_empty')}</Text>
               </View>
             }
@@ -287,10 +297,12 @@ function PostDetailContent({ route, navigation }) {
             disabled={sending || !text.trim()}
             style={[styles.sendBtn, { backgroundColor: text.trim() ? colors.primary : colors.border }]}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={t('send')}
           >
             {sending
               ? <ActivityIndicator size="small" color="#fff" />
-              : <Text style={styles.sendIcon}>→</Text>
+              : <Ionicons name="arrow-up" size={20} color="#fff" />
             }
           </TouchableOpacity>
         </View>
@@ -327,6 +339,7 @@ function createStyles(colors) {
     postAvatar: {
       width: 46, height: 46, borderRadius: 23,
       justifyContent: 'center', alignItems: 'center', overflow: 'hidden',
+      backgroundColor: colors.cardAlt, borderWidth: 1, borderColor: colors.border,
     },
     postAvatarImg: { width: 46, height: 46, borderRadius: 23 },
     postAvatarText: { color: '#fff', fontWeight: '800', fontSize: 18 },
@@ -345,6 +358,7 @@ function createStyles(colors) {
       borderWidth: 1, borderColor: colors.primary + '40',
       paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10,
     },
+    eventTagRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
     eventTagText: { color: colors.primary, fontSize: 13, fontWeight: '700' },
 
     actions: {
@@ -353,7 +367,6 @@ function createStyles(colors) {
       borderTopWidth: 1, borderTopColor: colors.border,
     },
     actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    actionIcon: { fontSize: 22 },
     actionCount: { fontSize: 14, color: colors.textSecondary, fontWeight: '600' },
 
     commentsDivider: {
@@ -371,6 +384,7 @@ function createStyles(colors) {
     commentAvatar: {
       width: 36, height: 36, borderRadius: 18,
       justifyContent: 'center', alignItems: 'center', overflow: 'hidden',
+      backgroundColor: colors.cardAlt, borderWidth: 1, borderColor: colors.border,
     },
     commentAvatarImg: { width: 36, height: 36, borderRadius: 18 },
     commentAvatarText: { color: '#fff', fontWeight: '800', fontSize: 14 },
@@ -391,7 +405,7 @@ function createStyles(colors) {
 
     // Boş durum
     emptyComments: { alignItems: 'center', paddingVertical: 40 },
-    emptyEmoji: { fontSize: 40, marginBottom: 10 },
+    emptyEmoji: { marginBottom: 10 },
     emptyText: { color: colors.textSecondary, fontSize: 14, textAlign: 'center' },
 
     // Input
@@ -410,7 +424,6 @@ function createStyles(colors) {
       width: 44, height: 44, borderRadius: 22,
       justifyContent: 'center', alignItems: 'center',
     },
-    sendIcon: { color: '#fff', fontSize: 20, fontWeight: '800' },
   });
 }
 

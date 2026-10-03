@@ -4,6 +4,7 @@ import {
   KeyboardAvoidingView, Platform, StyleSheet, ActivityIndicator, Animated, Alert,
 } from 'react-native';
 import API from '../../services/api';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../theme';
 import { formatTimeAgo } from '../../utils/time';
 import { useLanguage } from '../../context/LanguageContext';
@@ -60,9 +61,9 @@ export default function CommentModal({ visible, postId, currentUserId, onClose }
       <Animated.View style={[styles.sheet, { transform: [{ translateY: slideAnim }] }]}>
         <View style={styles.handle} />
         <View style={styles.header}>
-          <Text style={styles.title}>💬 Yorumlar</Text>
-          <TouchableOpacity onPress={onClose}>
-            <Text style={styles.close}>✕</Text>
+          <Text style={styles.title} accessibilityRole="header">{t('postdetail_comments_label')}</Text>
+          <TouchableOpacity onPress={onClose} accessibilityRole="button" accessibilityLabel={t('close')} hitSlop={10}>
+            <Ionicons name="close" size={22} color={colors.textSecondary} style={styles.close} />
           </TouchableOpacity>
         </View>
 
@@ -70,8 +71,8 @@ export default function CommentModal({ visible, postId, currentUserId, onClose }
           <ActivityIndicator color={colors.primary} style={{ marginTop: 24 }} />
         ) : comments.length === 0 ? (
           <View style={styles.empty}>
-            <Text style={styles.emptyEmoji}>💭</Text>
-            <Text style={styles.emptyText}>İlk yorumu sen yap!</Text>
+            <Ionicons name="chatbubbles-outline" size={40} color={colors.textSecondary} style={styles.emptyEmoji} />
+            <Text style={styles.emptyText}>{t('feed_first_comment')}</Text>
           </View>
         ) : (
           <FlatList
@@ -98,7 +99,7 @@ export default function CommentModal({ visible, postId, currentUserId, onClose }
           <View style={styles.inputRow}>
             <TextInput
               style={styles.input}
-              placeholder="Bir şeyler yaz... 🎸"
+              placeholder={t('feed_comment')}
               placeholderTextColor={colors.textSecondary}
               value={text}
               onChangeText={setText}
@@ -109,10 +110,12 @@ export default function CommentModal({ visible, postId, currentUserId, onClose }
               onPress={handleSend}
               disabled={sending || !text.trim()}
               style={[styles.sendBtn, !text.trim() && styles.sendBtnDisabled]}
+              accessibilityRole="button"
+              accessibilityLabel={t('send')}
             >
               {sending
                 ? <ActivityIndicator size="small" color={colors.text} />
-                : <Text style={styles.sendBtnText}>→</Text>}
+                : <Ionicons name="arrow-up" size={20} color={colors.text} />}
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
@@ -142,9 +145,9 @@ function createStyles(colors) {
       borderBottomWidth: 1, borderBottomColor: colors.border,
     },
     title: { fontSize: 16, fontWeight: 'bold', color: colors.text },
-    close: { fontSize: 18, color: colors.textSecondary, padding: 4 },
+    close: { padding: 4 },
     empty: { alignItems: 'center', paddingVertical: 40 },
-    emptyEmoji: { fontSize: 40, marginBottom: 10 },
+    emptyEmoji: { marginBottom: 10 },
     emptyText: { color: colors.textSecondary, fontSize: 14 },
     list: { maxHeight: 320, paddingHorizontal: 16 },
     commentItem: {

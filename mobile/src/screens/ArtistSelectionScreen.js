@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity,
   TextInput, FlatList, Alert
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { CommonActions } from '@react-navigation/native';
 import { useTheme } from '../theme';
 import API from '../services/api';
@@ -129,7 +129,7 @@ function ArtistSelectionContent({ route, navigation }) {
         <Text style={styles.subtitle}>{loading ? t('artsel_loading') : t('artsel_subtitle', { count: artists.length })}</Text>
 
         <View style={styles.searchBox}>
-          <Text style={styles.searchIcon}>⌕</Text>
+          <Ionicons name="search" size={17} color={colors.textSecondary} />
           <TextInput
             style={styles.searchInput}
             placeholder={t('artsel_search')}
@@ -138,8 +138,8 @@ function ArtistSelectionContent({ route, navigation }) {
             onChangeText={setSearch}
           />
           {search ? (
-            <TouchableOpacity onPress={() => setSearch('')}>
-              <Text style={styles.clearBtn}>✕</Text>
+            <TouchableOpacity onPress={() => setSearch('')} accessibilityRole="button" accessibilityLabel={t('close')} hitSlop={8}>
+              <Ionicons name="close-circle" size={18} color={colors.textSecondary} style={styles.clearBtn} />
             </TouchableOpacity>
           ) : null}
         </View>
@@ -148,7 +148,7 @@ function ArtistSelectionContent({ route, navigation }) {
           <ArtistGridSkeleton />
         ) : filteredArtists.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emoji}>🎵</Text>
+            <Ionicons name="musical-notes-outline" size={48} color={colors.textSecondary} style={styles.emoji} />
             <Text style={styles.emptyTitle}>{t('artsel_not_found_title')}</Text>
             <Text style={styles.emptyText}>{t('artsel_not_found_sub')}</Text>
           </View>
@@ -185,17 +185,14 @@ function ArtistSelectionContent({ route, navigation }) {
           disabled={completing}
           onPress={handleComplete}
           style={{ width: '100%' }}
+          accessibilityRole="button"
+          accessibilityState={{ busy: completing }}
         >
-          <LinearGradient
-            colors={['#E94560', '#7C3AED']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.button}
-          >
+          <View style={[styles.button, { backgroundColor: colors.primary }]}>
             <Text style={styles.buttonText}>
               {completing ? t('artsel_saving') : editMode ? t('artsel_save') : t('artsel_complete')}
             </Text>
-          </LinearGradient>
+          </View>
         </TouchableOpacity>
       </View>
     </View>
@@ -225,12 +222,11 @@ function createStyles(colors) {
       gap: 8,
       marginBottom: 16,
     },
-    searchIcon: { color: colors.textSecondary, fontSize: 17 },
     searchInput: { flex: 1, color: colors.text, fontSize: 14 },
-    clearBtn: { color: colors.textSecondary, fontSize: 16, padding: 4 },
+    clearBtn: { padding: 4 },
     artistRow: { gap: 10, justifyContent: 'space-between' },
     emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 60 },
-    emoji: { fontSize: 48, marginBottom: 12 },
+    emoji: { marginBottom: 12 },
     emptyTitle: { color: colors.text, fontSize: 16, fontWeight: '800', marginBottom: 6 },
     emptyText: { color: colors.textSecondary, fontSize: 13, textAlign: 'center', lineHeight: 20 },
     bottomBar: {

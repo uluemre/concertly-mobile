@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import EventImage from '../EventImage';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../theme';
 import { useLanguage, upperLocale } from '../../context/LanguageContext';
 import { showArtistLine, displayGenre } from '../../utils/text';
@@ -55,13 +56,17 @@ export default React.memo(function FeaturedCard({ item, index, cardWidth, cardHe
           )}
           <View style={styles.content}>
             {showArtistLine(item.artistName, item.name) && (
-              <Text style={styles.artist} numberOfLines={1}>🎤 {item.artistName}</Text>
+              <View style={styles.artistRow}>
+                <Ionicons name="mic-outline" size={12} color="rgba(255,255,255,0.7)" />
+                <Text style={styles.artist} numberOfLines={1}>{item.artistName}</Text>
+              </View>
             )}
             <Text style={styles.title} numberOfLines={2}>{item.name}</Text>
             <View style={styles.meta}>
               {item.venueCity && (
-                <View style={styles.pill}>
-                  <Text style={styles.pillText}>📍 {item.venueCity}</Text>
+                <View style={[styles.pill, styles.pillRow]}>
+                  <Ionicons name="location-outline" size={11} color="rgba(255,255,255,0.8)" />
+                  <Text style={styles.pillText}>{item.venueCity}</Text>
                 </View>
               )}
               {item.isVerified && (
@@ -115,9 +120,11 @@ function createStyles(colors, cardWidth, cardHeight) {
     },
     followedBadgeText: { color: '#04141a', fontSize: 11, fontWeight: '800' },
     content: { position: 'absolute', bottom: 14, left: 14, right: 14 },
-    artist: { fontSize: 12, color: '#fff', opacity: 0.7, marginBottom: 4, fontWeight: '600' },
+    artistRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 },
+    artist: { fontSize: 12, color: '#fff', opacity: 0.7, fontWeight: '600', flexShrink: 1 },
     title: { fontSize: 18, fontWeight: '900', color: '#fff', lineHeight: 22, marginBottom: 10 },
     meta: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
+    pillRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
     pill: {
       paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8,
       backgroundColor: 'rgba(255,255,255,0.1)',

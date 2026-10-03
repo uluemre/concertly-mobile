@@ -5,6 +5,7 @@ import {
   KeyboardAvoidingView, Platform
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import API from '../services/api';
 import { useTheme } from '../theme';
 import { ProfileSkeletonPage } from '../components/SkeletonLoader';
@@ -20,12 +21,25 @@ import { venueCoords, openMapsAt, openMapsSearch } from '../utils/maps';
 const { width } = Dimensions.get('window');
 const DAY_SIZE = Math.floor((width - 32) / 7);
 
+// Boş yıldız iki temada da görünen nötr gri
 function StarRating({ value, onChange, size = 28 }) {
   return (
-    <View style={{ flexDirection: 'row', gap: 4 }}>
+    <View style={{ flexDirection: 'row', gap: 4 }} accessibilityLabel={onChange ? undefined : `${value}/5`}>
       {[1,2,3,4,5].map(star => (
-        <TouchableOpacity key={star} onPress={() => onChange && onChange(star)} activeOpacity={0.7}>
-          <Text style={{ fontSize: size, color: star <= value ? '#F5A623' : '#444' }}>★</Text>
+        <TouchableOpacity
+          key={star}
+          onPress={() => onChange && onChange(star)}
+          activeOpacity={0.7}
+          disabled={!onChange}
+          accessibilityRole={onChange ? 'button' : undefined}
+          accessibilityLabel={onChange ? `${star}/5` : undefined}
+          accessibilityState={onChange ? { selected: star <= value } : undefined}
+        >
+          <Ionicons
+            name={star <= value ? 'star' : 'star-outline'}
+            size={size}
+            color={star <= value ? '#F5A623' : '#8A8FA3'}
+          />
         </TouchableOpacity>
       ))}
     </View>
@@ -200,15 +214,19 @@ function VenueProfileContent({ route, navigation }) {
           {venue?.imageUrl ? (
             <Image source={{ uri: venue.imageUrl }} style={styles.headerImage} />
           ) : (
-            <LinearGradient colors={['#1A1A2E', '#7C3AED']} style={styles.headerImage} />
+            // Görselsiz mekân: düz koyu yüzey (üstteki beyaz yazı her temada okunur)
+            <View style={[styles.headerImage, { backgroundColor: '#22223A' }]} />
           )}
           <LinearGradient colors={['transparent', 'rgba(0,0,0,0.85)']} style={styles.headerGradient} />
-          <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.backBtn}>
-            <Text style={styles.backBtnText}>←</Text>
+          <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.backBtn} accessibilityRole="button" accessibilityLabel={t('back')}>
+            <Ionicons name="arrow-back" size={20} color="#fff" />
           </TouchableOpacity>
           <View style={styles.headerInfo}>
             <Text style={styles.venueName}>{venue?.name}</Text>
-            <Text style={styles.venueLocation}>📍 {[venue?.city, displayCountry(venue?.country)].filter(Boolean).join(', ')}</Text>
+            <View style={styles.inlineRow}>
+              <Ionicons name="location-outline" size={13} color="rgba(255,255,255,0.85)" />
+              <Text style={styles.venueLocation}>{[venue?.city, displayCountry(venue?.country)].filter(Boolean).join(', ')}</Text>
+            </View>
             {venue?.address ? <Text style={styles.venueAddress}>{venue.address}</Text> : null}
           </View>
         </View>
@@ -246,7 +264,10 @@ function VenueProfileContent({ route, navigation }) {
             onPress={() => openMapsSearch(mapQuery)}
             accessibilityRole="button"
           >
-            <Text style={styles.mapLinkText}>📍 {t('detail_open_map')}</Text>
+            <View style={styles.inlineRow}>
+              <Ionicons name="map-outline" size={16} color={colors.text} />
+              <Text style={styles.mapLinkText}>{t('detail_open_map')}</Text>
+            </View>
           </TouchableOpacity>
         ) : null}
 
@@ -256,7 +277,10 @@ function VenueProfileContent({ route, navigation }) {
             <Text style={styles.statValue}>
               {venue?.avgRating > 0 ? venue.avgRating.toFixed(1) : '—'}
             </Text>
-            <Text style={styles.statLabel}>⭐ {tu('venue_stat_rating')}</Text>
+            <View style={[styles.inlineRow, { marginTop: 3 }]}>
+              <Ionicons name="star" size={10} color="#F5A623" />
+              <Text style={[styles.statLabel, { marginTop: 0 }]}>{tu('venue_stat_rating')}</Text>
+            </View>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statBox}>
@@ -273,12 +297,12 @@ function VenueProfileContent({ route, navigation }) {
         {/* TAKVİM */}
         <View style={styles.section}>
           <View style={styles.calHeader}>
-            <TouchableOpacity onPress={prevMonth} style={styles.calNavBtn}>
-              <Text style={styles.calNavText}>‹</Text>
+            <TouchableOpacity onPress={prevMonth} style={styles.calNavBtn} accessibilityRole="button">
+              <Ionicons name="chevron-back" size={24} color={colors.primary} />
             </TouchableOpacity>
             <Text style={styles.calTitle}>{MONTHS[calMonth]} {calYear}</Text>
-            <TouchableOpacity onPress={nextMonth} style={styles.calNavBtn}>
-              <Text style={styles.calNavText}>›</Text>
+            <TouchableOpacity onPress={nextMonth} style={styles.calNavBtn} accessibilityRole="button">
+              <Ionicons name="chevron-forward" size={24} color={colors.primary} />
             </TouchableOpacity>
           </View>
 
@@ -364,18 +388,27 @@ function VenueProfileContent({ route, navigation }) {
           <TouchableOpacity
             onPress={() => setReviewModal(true)}
             activeOpacity={0.85}
+            accessibilityRole="button"
           >
-            <LinearGradient colors={['#E94560', '#7C3AED']} style={styles.rateBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-              <Text style={styles.rateBtnText}>
-                {venue?.myRating ? `${t('venue_rate_update')}  ★${venue.myRating}` : t('venue_rate_btn')}
-              </Text>
-            </LinearGradient>
+            <View style={[styles.rateBtn, { backgroundColor: colors.primary }]}>
+              <View style={styles.inlineRow}>
+                <Text style={styles.rateBtnText}>
+                  {venue?.myRating ? t('venue_rate_update') : t('venue_rate_btn')}
+                </Text>
+                {venue?.myRating ? (
+                  <>
+                    <Ionicons name="star" size={14} color="#fff" />
+                    <Text style={styles.rateBtnText}>{venue.myRating}</Text>
+                  </>
+                ) : null}
+              </View>
+            </View>
           </TouchableOpacity>
         </View>
 
         {/* YORUMLAR */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Yorumlar ({reviews.length})</Text>
+          <Text style={styles.sectionTitle}>{t('postdetail_comments_label')} ({reviews.length})</Text>
           {reviews.length === 0 ? (
             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t('venue_no_reviews')}</Text>
           ) : (
@@ -387,7 +420,7 @@ function VenueProfileContent({ route, navigation }) {
                       <Image source={{ uri: r.profileImageUrl }} style={styles.reviewAvatar} />
                     ) : (
                       <View style={[styles.reviewAvatar, styles.reviewAvatarPlaceholder, { backgroundColor: colors.border }]}>
-                        <Text style={{ fontSize: 14 }}>👤</Text>
+                        <Ionicons name="person" size={14} color={colors.textSecondary} />
                       </View>
                     )}
                     <View>
@@ -434,7 +467,7 @@ function createStyles(colors) {
       backgroundColor: 'rgba(0,0,0,0.5)',
       justifyContent: 'center', alignItems: 'center',
     },
-    backBtnText: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
+    inlineRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
     headerInfo: { position: 'absolute', bottom: 16, left: 16, right: 16 },
     venueName: { fontSize: 22, fontWeight: '900', color: '#fff', marginBottom: 4 },
     venueLocation: { fontSize: 13, color: 'rgba(255,255,255,0.85)', marginBottom: 2 },
@@ -478,7 +511,6 @@ function createStyles(colors) {
     // TAKVİM
     calHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
     calNavBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
-    calNavText: { fontSize: 28, color: colors.primary, fontWeight: '300' },
     calTitle: { fontSize: 16, fontWeight: '800', color: colors.text },
     calWeekRow: { flexDirection: 'row', marginBottom: 4 },
     calWeekDay: { textAlign: 'center', fontSize: 11, color: colors.textSecondary, fontWeight: '700', paddingVertical: 4 },

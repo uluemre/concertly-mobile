@@ -221,6 +221,7 @@ export default function ProfileScreen({ navigation, route }) {
                 style={styles.avatarWrapper}
                 disabled={uploadingPhoto}
                 accessibilityRole="imagebutton"
+                accessibilityLabel={t('a11y_change_photo')}
                 accessibilityState={{ disabled: uploadingPhoto, busy: uploadingPhoto }}
               >
                 {profile?.profileImageUrl ? (
@@ -292,13 +293,13 @@ export default function ProfileScreen({ navigation, route }) {
             onPress={handleInviteFriends}
             activeOpacity={0.85}
             accessibilityRole="button"
-            accessibilityLabel={`Arkadaşını Davet Et, ${t('share')}`}
+            accessibilityLabel={`${t('profile_invite_title')}, ${t('share')}`}
           >
             <View style={styles.inviteCard}>
               <Ionicons name="gift-outline" size={26} color={colors.primary} />
               <View style={styles.inviteInfo}>
-                <Text style={styles.inviteTitle}>Arkadaşını Davet Et</Text>
-                <Text style={styles.inviteSub}>Concertly'yi arkadaşlarınla paylaş, birlikte konserlere gidin!</Text>
+                <Text style={styles.inviteTitle}>{t('profile_invite_title')}</Text>
+                <Text style={styles.inviteSub}>{t('profile_invite_sub')}</Text>
               </View>
               <View style={styles.inviteBadge}>
                 <Ionicons name="share-social-outline" size={14} color="#fff" />
@@ -448,7 +449,7 @@ export default function ProfileScreen({ navigation, route }) {
                     {item.eventId ? (
                       // Konsere bağlı gönderide etkinlik adı ayrıca etkinliği açar
                       <TouchableOpacity onPress={() => openEvent(navigation, item.eventId)} activeOpacity={0.7}>
-                        <Text style={styles.postEventName}>{item.eventName || 'Etkinlik'}</Text>
+                        <Text style={styles.postEventName}>{item.eventName || t('event_generic')}</Text>
                       </TouchableOpacity>
                     ) : item.eventName ? (
                       <Text style={styles.postEventName}>{item.eventName}</Text>

@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, Alert, RefreshControl,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import API from '../services/api';
 import { useTheme } from '../theme';
@@ -148,8 +148,8 @@ export default function AdminReportsScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={colors.headerGradient} style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => goBackOrFallback(navigation, 'Admin')}>
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={() => goBackOrFallback(navigation, 'Admin')} accessibilityRole="button">
           <Text style={styles.backText}>{t('back')}</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('admin_reports_title')}</Text>
@@ -173,7 +173,7 @@ export default function AdminReportsScreen({ navigation }) {
             </Text>
           </TouchableOpacity>
         </View>
-      </LinearGradient>
+      </View>
 
       {loading ? (
         <View style={styles.centered}>
@@ -194,7 +194,7 @@ export default function AdminReportsScreen({ navigation }) {
           }
           ListEmptyComponent={
             <View style={styles.empty}>
-              <Text style={styles.emptyEmoji}>🛡️</Text>
+              <Ionicons name="shield-checkmark-outline" size={44} color={colors.textSecondary} style={styles.emptyEmoji} />
               <Text style={styles.emptyText}>{t('admin_reports_empty')}</Text>
             </View>
           }
@@ -211,12 +211,12 @@ const createStyles = (colors) =>
     header: { paddingTop: 56, paddingBottom: 20, paddingHorizontal: 20 },
     backButton: {
       alignSelf: 'flex-start',
-      backgroundColor: 'rgba(255,255,255,0.15)',
+      backgroundColor: colors.card,
       paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20,
-      borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
+      borderWidth: 1, borderColor: colors.border,
       marginBottom: 16,
     },
-    backText: { fontSize: 14, color: '#fff', fontWeight: '700' },
+    backText: { fontSize: 14, color: colors.text, fontWeight: '700' },
     headerTitle: { fontSize: 24, fontWeight: '900', color: '#fff' },
     headerSub: { fontSize: 13, color: 'rgba(255,255,255,0.85)', marginTop: 4 },
     filterRow: { flexDirection: 'row', gap: 8, marginTop: 16 },
@@ -264,6 +264,6 @@ const createStyles = (colors) =>
     actionText: { color: '#fff', fontWeight: '800', fontSize: 13.5 },
     actionGhostText: { color: colors.text },
     empty: { alignItems: 'center', paddingTop: 70 },
-    emptyEmoji: { fontSize: 44, marginBottom: 12 },
+    emptyEmoji: { marginBottom: 12 },
     emptyText: { color: colors.textSecondary, fontSize: 15 },
   });

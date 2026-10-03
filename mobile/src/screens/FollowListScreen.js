@@ -3,6 +3,7 @@ import {
   View, Text, FlatList, TouchableOpacity,
   StyleSheet, ActivityIndicator, Image, Alert,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -97,7 +98,7 @@ export default function FollowListScreen({ route, navigation }) {
           <Image source={{ uri: item.profileImageUrl }} style={styles.avatar} />
         ) : (
           <View style={styles.avatarPlaceholder}>
-            <Text style={styles.avatarEmoji}>👤</Text>
+            <Ionicons name="person" size={22} color={colors.textSecondary} />
           </View>
         )}
         <View style={styles.info}>
@@ -139,8 +140,8 @@ export default function FollowListScreen({ route, navigation }) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.backBtn}>
-          <Text style={styles.backText}>←</Text>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.backBtn} accessibilityRole="button" accessibilityLabel={t('back')}>
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{title}</Text>
         <View style={styles.backBtn} />
@@ -153,7 +154,7 @@ export default function FollowListScreen({ route, navigation }) {
         contentContainerStyle={users.length === 0 && styles.emptyContainer}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text style={styles.emptyEmoji}>{locked ? '🔒' : '👥'}</Text>
+            <Ionicons name={locked ? 'lock-closed-outline' : 'people-outline'} size={48} color={colors.textSecondary} style={styles.emptyEmoji} />
             <Text style={styles.emptyText}>
               {locked ? t('private_account_list_locked')
                 : type === 'followers' ? t('follow_no_followers') : t('follow_no_following')}
@@ -183,7 +184,6 @@ function createStyles(colors) {
       borderBottomColor: colors.border,
     },
     backBtn: { width: 40, alignItems: 'center' },
-    backText: { fontSize: 24, color: colors.text },
     headerTitle: { fontSize: 18, fontWeight: '700', color: colors.text },
 
     row: {
@@ -199,7 +199,6 @@ function createStyles(colors) {
       borderWidth: 1, borderColor: colors.border,
       justifyContent: 'center', alignItems: 'center',
     },
-    avatarEmoji: { fontSize: 22 },
     info: { flex: 1, marginLeft: 12 },
     username: { fontSize: 15, fontWeight: '700', color: colors.text },
     city: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
@@ -220,7 +219,7 @@ function createStyles(colors) {
     separator: { height: 1, backgroundColor: colors.border, marginLeft: 76 },
     emptyContainer: { flex: 1, justifyContent: 'center' },
     empty: { alignItems: 'center', paddingVertical: 60 },
-    emptyEmoji: { fontSize: 48, marginBottom: 12 },
+    emptyEmoji: { marginBottom: 12 },
     emptyText: { fontSize: 15, color: colors.textSecondary },
   });
 }

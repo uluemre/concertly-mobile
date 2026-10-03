@@ -4,6 +4,7 @@ import {
     Dimensions, Animated, FlatList, StatusBar, Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -12,12 +13,12 @@ const { width, height } = Dimensions.get('window');
 // Her slayt app'in bir özellik kümesini tanıtır. `visual` alanı, o slaytta
 // emoji yerine gösterilecek kod-mockup'ı (app UI'ını taklit eden kart) seçer.
 const SLIDE_DEFS = [
-    { key: '1', visual: 'welcome',  titleKey: 'onb_slide1_title', subKey: 'onb_slide1_sub', gradient: ['#0F0F1A', '#1A1A2E'], accent: '#E94560' },
-    { key: '2', visual: 'discover', titleKey: 'onb_slide2_title', subKey: 'onb_slide2_sub', gradient: ['#0F0F1A', '#16213E'], accent: '#00D4AA' },
-    { key: '3', visual: 'verify',   titleKey: 'onb_slide3_title', subKey: 'onb_slide3_sub', gradient: ['#0F0F1A', '#1A1A2E'], accent: '#7C3AED' },
-    { key: '4', visual: 'social',   titleKey: 'onb_slide4_title', subKey: 'onb_slide4_sub', gradient: ['#0F0F1A', '#16213E'], accent: '#F5A623' },
-    { key: '5', visual: 'passport', titleKey: 'onb_slide5_title', subKey: 'onb_slide5_sub', gradient: ['#0F0F1A', '#1A1A2E'], accent: '#3B82F6' },
-    { key: '6', visual: 'games',    titleKey: 'onb_slide6_title', subKey: 'onb_slide6_sub', gradient: ['#0F0F1A', '#16213E'], accent: '#E94560', isLast: true },
+    { key: '1', visual: 'welcome',  titleKey: 'onb_slide1_title', subKey: 'onb_slide1_sub', accent: '#E94560' },
+    { key: '2', visual: 'discover', titleKey: 'onb_slide2_title', subKey: 'onb_slide2_sub', accent: '#00D4AA' },
+    { key: '3', visual: 'verify',   titleKey: 'onb_slide3_title', subKey: 'onb_slide3_sub', accent: '#7C3AED' },
+    { key: '4', visual: 'social',   titleKey: 'onb_slide4_title', subKey: 'onb_slide4_sub', accent: '#F5A623' },
+    { key: '5', visual: 'passport', titleKey: 'onb_slide5_title', subKey: 'onb_slide5_sub', accent: '#3B82F6' },
+    { key: '6', visual: 'games',    titleKey: 'onb_slide6_title', subKey: 'onb_slide6_sub', accent: '#E94560', isLast: true },
 ];
 
 /* ----------------------- Kod-mockup görselleri ----------------------- */
@@ -38,19 +39,18 @@ function MockWelcome({ accent }) {
 function MockEventCard({ accent, t }) {
     return (
         <View style={styles.mockCard}>
-            <LinearGradient
-                colors={[accent, '#1A1A2E']}
-                start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-                style={styles.mockPoster}
-            >
-                <Text style={styles.mockPosterEmoji}>🎶</Text>
+            <View style={[styles.mockPoster, { backgroundColor: accent + '55' }]}>
+                <Ionicons name="musical-notes" size={52} color="rgba(255,255,255,0.9)" />
                 <View style={[styles.mockDatePill, { backgroundColor: accent }]}>
                     <Text style={styles.mockDatePillText}>{t('onb_m_date')}</Text>
                 </View>
-            </LinearGradient>
+            </View>
             <View style={styles.mockCardBody}>
                 <Text style={styles.mockCardTitle} numberOfLines={1}>{t('onb_m_event')}</Text>
-                <Text style={styles.mockCardSub}>📍 {t('onb_m_city')}</Text>
+                <View style={styles.mockIconRow}>
+                    <Ionicons name="location-outline" size={13} color="rgba(255,255,255,0.55)" />
+                    <Text style={[styles.mockCardSub, { marginTop: 0 }]}>{t('onb_m_city')}</Text>
+                </View>
             </View>
         </View>
     );
@@ -60,14 +60,23 @@ function MockVerify({ accent, t }) {
     return (
         <View style={styles.mockStack}>
             <View style={[styles.mockBadge, { borderColor: accent + '55', backgroundColor: accent + '18' }]}>
-                <Text style={[styles.mockBadgeCheck, { color: accent }]}>✅</Text>
+                <Ionicons name="checkmark-circle" size={18} color={accent} />
                 <Text style={styles.mockBadgeText}>{t('onb_m_verified')}</Text>
             </View>
             <View style={styles.mockPost}>
                 <View style={[styles.mockAvatar, { backgroundColor: accent }]} />
                 <View style={{ flex: 1 }}>
                     <Text style={styles.mockPostText} numberOfLines={1}>{t('onb_m_post')}</Text>
-                    <Text style={styles.mockPostMeta}>❤️ 248   💬 31</Text>
+                    <View style={[styles.mockIconRow, { marginTop: 4, gap: 10 }]}>
+                        <View style={styles.mockIconRow}>
+                            <Ionicons name="heart" size={12} color="#E94560" />
+                            <Text style={[styles.mockPostMeta, { marginTop: 0 }]}>248</Text>
+                        </View>
+                        <View style={styles.mockIconRow}>
+                            <Ionicons name="chatbubble-outline" size={12} color="rgba(255,255,255,0.5)" />
+                            <Text style={[styles.mockPostMeta, { marginTop: 0 }]}>31</Text>
+                        </View>
+                    </View>
                 </View>
             </View>
         </View>
@@ -78,22 +87,25 @@ function MockSocial({ accent, t }) {
     return (
         <View style={styles.mockStack}>
             <View style={styles.mockRow}>
-                <LinearGradient
-                    colors={[accent, '#7C3AED']}
-                    style={styles.mockArtistAvatar}
-                >
-                    <Text style={styles.mockArtistEmoji}>🎤</Text>
-                </LinearGradient>
+                <View style={[styles.mockArtistAvatar, { backgroundColor: accent }]}>
+                    <Ionicons name="mic" size={22} color="#fff" />
+                </View>
                 <View style={{ flex: 1 }}>
                     <Text style={styles.mockCardTitle}>Hadise</Text>
                     <Text style={styles.mockCardSub}>1.2M</Text>
                 </View>
                 <View style={[styles.mockFollow, { backgroundColor: accent }]}>
-                    <Text style={styles.mockFollowText}>🔔 {t('onb_m_following')}</Text>
+                    <View style={styles.mockIconRow}>
+                        <Ionicons name="notifications" size={12} color="#fff" />
+                        <Text style={styles.mockFollowText}>{t('onb_m_following')}</Text>
+                    </View>
                 </View>
             </View>
             <View style={[styles.mockCommunity, { borderColor: accent + '40' }]}>
-                <Text style={styles.mockCommunityText}>🎸 {t('onb_m_community')}</Text>
+                <View style={[styles.mockIconRow, { gap: 8 }]}>
+                    <Ionicons name="people" size={16} color={accent} />
+                    <Text style={styles.mockCommunityText}>{t('onb_m_community')}</Text>
+                </View>
                 <Text style={styles.mockCardSub}>3.4k</Text>
             </View>
         </View>
@@ -112,10 +124,10 @@ function MockPassport({ accent, t }) {
                 <Text style={styles.mockPassportLabel}>{t('onb_m_thisyear')}</Text>
                 <Text style={styles.mockPassportBig}>{t('onb_m_concerts')}</Text>
                 <View style={styles.mockStamps}>
-                    <Text style={styles.mockStamp}>🎫</Text>
-                    <Text style={styles.mockStamp}>🎫</Text>
-                    <Text style={styles.mockStamp}>🎫</Text>
-                    <Text style={styles.mockStamp}>＋</Text>
+                    <Ionicons name="ticket" size={22} color="#fff" />
+                    <Ionicons name="ticket" size={22} color="#fff" />
+                    <Ionicons name="ticket" size={22} color="#fff" />
+                    <Ionicons name="add" size={22} color="#fff" />
                 </View>
             </LinearGradient>
             <View style={styles.mockWrapped}>
@@ -135,16 +147,16 @@ function MockGames({ accent, t }) {
         <View style={styles.mockStack}>
             <View style={styles.mockTilesRow}>
                 <View style={[styles.mockTile, { borderColor: accent + '40' }]}>
-                    <Text style={styles.mockTileEmoji}>🎯</Text>
+                    <Ionicons name="mic" size={28} color={accent} />
                     <Text style={styles.mockTileText}>{t('onb_m_quiz')}</Text>
                 </View>
                 <View style={[styles.mockTile, { borderColor: accent + '40' }]}>
-                    <Text style={styles.mockTileEmoji}>🎵</Text>
+                    <Ionicons name="calendar" size={28} color={accent} />
                     <Text style={styles.mockTileText} numberOfLines={1}>{t('onb_m_dailysong')}</Text>
                 </View>
             </View>
             <View style={[styles.mockBuddy, { backgroundColor: accent + '18', borderColor: accent + '40' }]}>
-                <Text style={styles.mockTileEmoji}>🤝</Text>
+                <Ionicons name="people" size={26} color={accent} />
                 <Text style={styles.mockBuddyText}>{t('onb_m_buddy')}</Text>
             </View>
         </View>
@@ -182,7 +194,7 @@ function Slide({ item, index, scrollX, t }) {
     });
 
     return (
-        <LinearGradient colors={item.gradient} style={styles.slide}>
+        <View style={styles.slide}>
             {/* Dekoratif arka plan daireleri */}
             <View style={[styles.bgCircle, styles.bgCircle1, { borderColor: item.accent + '20' }]} />
             <View style={[styles.bgCircle, styles.bgCircle2, { borderColor: item.accent + '15' }]} />
@@ -205,7 +217,7 @@ function Slide({ item, index, scrollX, t }) {
                 <View style={[styles.accentLine, { backgroundColor: item.accent }]} />
                 <Text style={styles.subtitle}>{t(item.subKey)}</Text>
             </Animated.View>
-        </LinearGradient>
+        </View>
     );
 }
 
@@ -340,6 +352,7 @@ const styles = StyleSheet.create({
     slide: {
         width,
         height,
+        backgroundColor: '#0F0F1A',
         alignItems: 'center',
         justifyContent: 'center',
         paddingHorizontal: 32,
@@ -387,7 +400,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
-    mockPosterEmoji: { fontSize: 52, opacity: 0.9 },
+    mockIconRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
     mockDatePill: {
         position: 'absolute', top: 12, left: 12,
         paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10,
@@ -404,7 +417,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 14, paddingVertical: 10,
         borderRadius: 14, borderWidth: 1,
     },
-    mockBadgeCheck: { fontSize: 16 },
     mockBadgeText: { color: '#fff', fontWeight: '800', fontSize: 14 },
     mockPost: {
         flexDirection: 'row', alignItems: 'center', gap: 12,
@@ -427,7 +439,6 @@ const styles = StyleSheet.create({
         width: 46, height: 46, borderRadius: 23,
         alignItems: 'center', justifyContent: 'center',
     },
-    mockArtistEmoji: { fontSize: 22 },
     mockFollow: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12 },
     mockFollowText: { color: '#fff', fontWeight: '800', fontSize: 12 },
     mockCommunity: {
@@ -442,7 +453,6 @@ const styles = StyleSheet.create({
     mockPassportLabel: { color: 'rgba(255,255,255,0.75)', fontSize: 12, fontWeight: '700' },
     mockPassportBig: { color: '#fff', fontSize: 26, fontWeight: '900', marginTop: 2 },
     mockStamps: { flexDirection: 'row', gap: 8, marginTop: 12 },
-    mockStamp: { fontSize: 22 },
     mockWrapped: {
         backgroundColor: '#181B23',
         borderRadius: 16, borderWidth: 1, borderColor: '#262A33',
@@ -460,7 +470,6 @@ const styles = StyleSheet.create({
         borderRadius: 16, borderWidth: 1,
         paddingVertical: 18, alignItems: 'center', gap: 8,
     },
-    mockTileEmoji: { fontSize: 28 },
     mockTileText: { color: '#fff', fontSize: 13, fontWeight: '700' },
     mockBuddy: {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,

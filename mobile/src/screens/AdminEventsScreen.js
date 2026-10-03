@@ -4,7 +4,7 @@ import {
   Alert, ActivityIndicator, Modal, TextInput, ScrollView,
   RefreshControl, KeyboardAvoidingView, Platform, Animated,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
@@ -211,9 +211,12 @@ export default function AdminEventsScreen({ navigation, route }) {
         </View>
 
         <View style={styles.cardDetails}>
-          <Text style={[styles.cardDetail, { color: colors.textSecondary }]}>
-            📅 {formatDate(item.eventDate, lang)}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Ionicons name="calendar-clear-outline" size={13} color={colors.textSecondary} />
+            <Text style={[styles.cardDetail, { color: colors.textSecondary }]}>
+              {formatDate(item.eventDate, lang)}
+            </Text>
+          </View>
           {item.genre && (
             <View style={[styles.genrePill, { backgroundColor: colors.primary + '22' }]}>
               <Text style={[styles.genrePillText, { color: colors.primary }]}>{item.genre}</Text>
@@ -250,8 +253,8 @@ export default function AdminEventsScreen({ navigation, route }) {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* HEADER */}
-      <LinearGradient colors={colors.headerGradient} style={styles.header}>
-        <TouchableOpacity onPress={() => goBackOrFallback(navigation, 'Admin')}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation, 'Admin')} accessibilityRole="button">
           <Text style={[styles.backText, { color: colors.primary }]}>{t('back')}</Text>
         </TouchableOpacity>
         <View style={styles.headerRow}>
@@ -259,16 +262,16 @@ export default function AdminEventsScreen({ navigation, route }) {
             <Text style={[styles.headerTitle, { color: colors.text }]}>{t('admin_events_title')}</Text>
             <Text style={[styles.headerSub, { color: colors.textSecondary }]}>{t('admin_events_count', { count: filtered.length })}</Text>
           </View>
-          <TouchableOpacity onPress={openCreate} activeOpacity={0.85}>
-            <LinearGradient colors={['#E94560', '#7C3AED']} style={styles.addBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+          <TouchableOpacity onPress={openCreate} activeOpacity={0.85} accessibilityRole="button">
+            <View style={[styles.addBtn, { backgroundColor: colors.primary }]}>
               <Text style={styles.addBtnText}>{t('admin_add_btn')}</Text>
-            </LinearGradient>
+            </View>
           </TouchableOpacity>
         </View>
 
         {/* SEARCH */}
         <View style={[styles.searchBar, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Text style={{ color: colors.textSecondary, fontSize: 16 }}>⌕</Text>
+          <Ionicons name="search" size={17} color={colors.textSecondary} />
           <TextInput
             style={[styles.searchInput, { color: colors.text }]}
             placeholder={t('admin_events_search')}
@@ -277,18 +280,18 @@ export default function AdminEventsScreen({ navigation, route }) {
             onChangeText={setSearch}
           />
           {search.length > 0 && (
-            <TouchableOpacity onPress={() => setSearch('')}>
-              <Text style={{ color: colors.textSecondary }}>✕</Text>
+            <TouchableOpacity onPress={() => setSearch('')} accessibilityRole="button" accessibilityLabel={t('close')} hitSlop={8}>
+              <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
             </TouchableOpacity>
           )}
         </View>
-      </LinearGradient>
+      </View>
 
       {/* TABS */}
       <View style={[styles.tabsWrap, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
         <Animated.View style={[styles.tabIndicatorLine, { left: indicatorLeft, backgroundColor: colors.primary }]} />
         {TABS.map((tab, idx) => (
-          <TouchableOpacity key={tab.key} style={styles.tab} onPress={() => switchTab(tab.key, idx)}>
+          <TouchableOpacity key={tab.key} style={styles.tab} onPress={() => switchTab(tab.key, idx)} accessibilityRole="tab" accessibilityState={{ selected: activeTab === tab.key }}>
             <Text style={[styles.tabText, { color: activeTab === tab.key ? colors.primary : colors.textSecondary }]}>
               {t(tab.labelKey)}
             </Text>
@@ -307,7 +310,7 @@ export default function AdminEventsScreen({ navigation, route }) {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchEvents(); }} tintColor={colors.primary} />}
           ListEmptyComponent={
             <View style={styles.empty}>
-              <Text style={styles.emptyEmoji}>🎭</Text>
+              <Ionicons name="calendar-outline" size={48} color={colors.textSecondary} style={styles.emptyEmoji} />
               <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
                 {search ? t('admin_no_search_results') : t('admin_events_empty')}
               </Text>
@@ -325,8 +328,8 @@ export default function AdminEventsScreen({ navigation, route }) {
                 <Text style={[styles.modalTitle, { color: colors.text }]}>
                   {editingEvent ? t('admin_modal_edit') : t('admin_modal_new')}
                 </Text>
-                <TouchableOpacity onPress={() => setModalVisible(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                  <Text style={{ color: colors.textSecondary, fontSize: 22 }}>✕</Text>
+                <TouchableOpacity onPress={() => setModalVisible(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel={t('close')}>
+                  <Ionicons name="close" size={24} color={colors.textSecondary} />
                 </TouchableOpacity>
               </View>
 
@@ -357,16 +360,12 @@ export default function AdminEventsScreen({ navigation, route }) {
                   >
                     <Text style={[styles.cancelBtnText, { color: colors.textSecondary }]}>{t('cancel')}</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={handleSave} disabled={saving} style={{ flex: 1 }}>
-                    <LinearGradient
-                      colors={['#E94560', '#7C3AED']}
-                      style={styles.saveBtn}
-                      start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                    >
+                  <TouchableOpacity onPress={handleSave} disabled={saving} style={{ flex: 1 }} accessibilityRole="button" accessibilityState={{ busy: saving }}>
+                    <View style={[styles.saveBtn, { backgroundColor: colors.primary }]}>
                       {saving
                         ? <ActivityIndicator size="small" color="#fff" />
                         : <Text style={styles.saveBtnText}>{t('admin_save_btn')}</Text>}
-                    </LinearGradient>
+                    </View>
                   </TouchableOpacity>
                 </View>
               </ScrollView>
@@ -426,7 +425,7 @@ function createStyles(colors) {
     actionBtnText: { fontSize: 12, fontWeight: '700' },
 
     empty: { alignItems: 'center', paddingVertical: 80 },
-    emptyEmoji: { fontSize: 48, marginBottom: 12 },
+    emptyEmoji: { marginBottom: 12 },
     emptyText: { fontSize: 15 },
 
     // MODAL

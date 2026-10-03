@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function GenreChip({ genre, emoji, selected, onToggle, index, accentColor }) {
   const scale = useRef(new Animated.Value(0)).current;
@@ -30,20 +30,19 @@ export default function GenreChip({ genre, emoji, selected, onToggle, index, acc
       <TouchableOpacity
         activeOpacity={0.8}
         onPress={() => onToggle(genre)}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: !!selected }}
+        accessibilityLabel={genre}
       >
+        {/* emoji prop'u geriye dönük uyumluluk için alınır ama çizilmez */}
         {selected ? (
-          <LinearGradient
-            colors={[accentColor, accentColor + 'CC']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[styles.chip, styles.chipSelected]}
-          >
-            <Text style={styles.emoji}>{emoji}</Text>
+          <Animated.View style={[styles.chip, styles.chipSelected, { backgroundColor: accentColor }]}>
+            <Ionicons name="checkmark" size={16} color="#fff" />
             <Text style={styles.label}>{genre}</Text>
-          </LinearGradient>
+          </Animated.View>
         ) : (
           <Animated.View style={[styles.chip, styles.chipUnselected]}>
-            <Text style={styles.emoji}>{emoji}</Text>
+            <Ionicons name="add" size={16} color="#A0A0B0" />
             <Text style={[styles.label, styles.labelMuted]}>{genre}</Text>
           </Animated.View>
         )}
@@ -69,13 +68,7 @@ const styles = StyleSheet.create({
   },
   chipSelected: {
     borderColor: 'rgba(255,255,255,0.2)',
-    shadowColor: '#E94560',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
   },
-  emoji: { fontSize: 18 },
   label: { color: '#fff', fontSize: 14, fontWeight: '700' },
   labelMuted: { color: '#A0A0B0' },
 });

@@ -3,7 +3,6 @@ import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   Alert, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import API, { getErrorMessage } from '../services/api';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
@@ -104,17 +103,13 @@ export default function ChangePasswordScreen({ navigation }) {
             />
           </View>
 
-          <TouchableOpacity onPress={handleSubmit} disabled={saving} activeOpacity={0.85}>
-            <LinearGradient
-              colors={['#E94560', '#7C3AED']}
-              style={styles.saveButton}
-              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-            >
+          <TouchableOpacity onPress={handleSubmit} disabled={saving} activeOpacity={0.85} accessibilityRole="button" accessibilityState={{ busy: saving }}>
+            <View style={[styles.saveButton, { backgroundColor: colors.primary }]}>
               {saving
                 ? <ActivityIndicator color="#fff" />
                 : <Text style={styles.saveButtonText}>{t('change_pw_btn')}</Text>
               }
-            </LinearGradient>
+            </View>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>

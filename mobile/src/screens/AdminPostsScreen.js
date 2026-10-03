@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, FlatList,
   Alert, ActivityIndicator, TextInput, RefreshControl,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
@@ -11,9 +11,9 @@ import { formatTimeAgo } from '../utils/time';
 import { goBackOrFallback } from '../navigation/navHelpers';
 
 const POST_TYPE_CONFIG = {
-  TEXT:  { icon: '💬', labelKey: 'admin_type_text', color: '#7C3AED' },
-  IMAGE: { icon: '🖼️', labelKey: 'admin_type_image', color: '#3B82F6' },
-  POLL:  { icon: '📊', labelKey: 'admin_type_poll', color: '#F5A623' },
+  TEXT:  { icon: 'chatbubble-outline', labelKey: 'admin_type_text', color: '#7C3AED' },
+  IMAGE: { icon: 'image-outline', labelKey: 'admin_type_image', color: '#3B82F6' },
+  POLL:  { icon: 'stats-chart-outline', labelKey: 'admin_type_poll', color: '#F5A623' },
 };
 
 export default function AdminPostsScreen({ navigation }) {
@@ -83,15 +83,19 @@ export default function AdminPostsScreen({ navigation }) {
             <View style={styles.headerRow}>
               <Text style={[styles.username, { color: colors.text }]}>@{item.username}</Text>
               <View style={[styles.typeBadge, { backgroundColor: typeConfig.color + '22' }]}>
-                <Text style={[styles.typeBadgeText, { color: typeConfig.color }]}>
-                  {typeConfig.icon} {t(typeConfig.labelKey)}
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Ionicons name={typeConfig.icon} size={12} color={typeConfig.color} />
+                  <Text style={[styles.typeBadgeText, { color: typeConfig.color }]}>{t(typeConfig.labelKey)}</Text>
+                </View>
               </View>
             </View>
             {item.eventName && (
-              <Text style={[styles.eventName, { color: colors.primary }]} numberOfLines={1}>
-                🎵 {item.eventName}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Ionicons name="musical-notes-outline" size={12} color={colors.primary} />
+                <Text style={[styles.eventName, { color: colors.primary, flexShrink: 1 }]} numberOfLines={1}>
+                  {item.eventName}
+                </Text>
+              </View>
             )}
             <Text style={[styles.postTime, { color: colors.textSecondary }]}>
               {formatTimeAgo(item.createdAt, lang)}
@@ -109,13 +113,20 @@ export default function AdminPostsScreen({ navigation }) {
         {/* FOOTER */}
         <View style={styles.cardFooter}>
           <View style={styles.stats}>
-            <Text style={[styles.stat, { color: colors.textSecondary }]}>❤️ {item.likeCount ?? 0}</Text>
-            <Text style={[styles.stat, { color: colors.textSecondary }]}>💬 {item.commentCount ?? 0}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+              <Ionicons name="heart-outline" size={13} color={colors.textSecondary} />
+              <Text style={[styles.stat, { color: colors.textSecondary }]}>{item.likeCount ?? 0}</Text>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+              <Ionicons name="chatbubble-outline" size={13} color={colors.textSecondary} />
+              <Text style={[styles.stat, { color: colors.textSecondary }]}>{item.commentCount ?? 0}</Text>
+            </View>
             <Text style={[styles.stat, { color: colors.textSecondary }]}>#{item.id}</Text>
           </View>
           <TouchableOpacity
             onPress={() => handleDelete(item)}
             style={[styles.deleteBtn, { backgroundColor: '#E9456018', borderColor: '#E9456050' }]}
+            accessibilityRole="button"
           >
             <Text style={[styles.deleteBtnText, { color: '#E94560' }]}>{t('admin_action_delete')}</Text>
           </TouchableOpacity>
@@ -127,8 +138,8 @@ export default function AdminPostsScreen({ navigation }) {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* HEADER */}
-      <LinearGradient colors={colors.headerGradient} style={styles.header}>
-        <TouchableOpacity onPress={() => goBackOrFallback(navigation, 'Admin')}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation, 'Admin')} accessibilityRole="button">
           <Text style={[styles.backText, { color: colors.primary }]}>{t('back')}</Text>
         </TouchableOpacity>
         <View style={styles.headerTop}>
@@ -139,15 +150,16 @@ export default function AdminPostsScreen({ navigation }) {
             </Text>
           </View>
           <View style={[styles.totalBadge, { backgroundColor: colors.primary + '22', borderColor: colors.primary + '50' }]}>
-            <Text style={[styles.totalBadgeText, { color: colors.primary }]}>
-              📝 {posts.length}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Ionicons name="document-text-outline" size={14} color={colors.primary} />
+              <Text style={[styles.totalBadgeText, { color: colors.primary }]}>{posts.length}</Text>
+            </View>
           </View>
         </View>
 
         {/* SEARCH */}
         <View style={[styles.searchBar, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Text style={{ color: colors.textSecondary, fontSize: 16 }}>⌕</Text>
+          <Ionicons name="search" size={17} color={colors.textSecondary} />
           <TextInput
             style={[styles.searchInput, { color: colors.text }]}
             placeholder={t('admin_posts_search')}
@@ -156,8 +168,8 @@ export default function AdminPostsScreen({ navigation }) {
             onChangeText={setSearch}
           />
           {search.length > 0 && (
-            <TouchableOpacity onPress={() => setSearch('')}>
-              <Text style={{ color: colors.textSecondary }}>✕</Text>
+            <TouchableOpacity onPress={() => setSearch('')} accessibilityRole="button" accessibilityLabel={t('close')} hitSlop={8}>
+              <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
             </TouchableOpacity>
           )}
         </View>
@@ -168,14 +180,14 @@ export default function AdminPostsScreen({ navigation }) {
             const count = posts.filter(p => p.postType === type).length;
             return (
               <View key={type} style={[styles.typeStat, { backgroundColor: cfg.color + '18', borderColor: cfg.color + '40' }]}>
-                <Text style={styles.typeStatIcon}>{cfg.icon}</Text>
+                <Ionicons name={cfg.icon} size={18} color={cfg.color} />
                 <Text style={[styles.typeStatNum, { color: cfg.color }]}>{count}</Text>
                 <Text style={[styles.typeStatLabel, { color: cfg.color }]}>{t(cfg.labelKey)}</Text>
               </View>
             );
           })}
         </View>
-      </LinearGradient>
+      </View>
 
       {loading ? (
         <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 48 }} />
@@ -188,7 +200,7 @@ export default function AdminPostsScreen({ navigation }) {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchPosts(); }} tintColor={colors.primary} />}
           ListEmptyComponent={
             <View style={styles.empty}>
-              <Text style={styles.emptyEmoji}>📭</Text>
+              <Ionicons name="file-tray-outline" size={48} color={colors.textSecondary} style={styles.emptyEmoji} />
               <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
                 {search ? t('admin_no_search_results') : t('admin_posts_empty')}
               </Text>
@@ -223,7 +235,6 @@ function createStyles(colors) {
       flex: 1, borderRadius: 12, borderWidth: 1,
       paddingVertical: 8, alignItems: 'center', gap: 2,
     },
-    typeStatIcon: { fontSize: 18 },
     typeStatNum: { fontSize: 15, fontWeight: '800' },
     typeStatLabel: { fontSize: 10, fontWeight: '700' },
 
@@ -250,7 +261,7 @@ function createStyles(colors) {
     deleteBtnText: { fontSize: 13, fontWeight: '800' },
 
     empty: { alignItems: 'center', paddingVertical: 80 },
-    emptyEmoji: { fontSize: 48, marginBottom: 12 },
+    emptyEmoji: { marginBottom: 12 },
     emptyText: { fontSize: 15 },
   });
 }

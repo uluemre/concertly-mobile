@@ -1,14 +1,13 @@
 import React, { memo, useMemo, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { getGenreGradient } from '../utils/gradients';
+import { genreAccent } from '../utils/gradients';
 import { eventImageCandidates, initialsOf } from '../utils/eventImage';
 
 /**
  * Etkinlik görseli: etkinlik ve sanatçı görsellerini sırayla dener, hiçbiri
- * yüklenemezse boş/kırık kutu yerine türe göre renklenmiş bir yer tutucu
+ * yüklenemezse boş/kırık kutu yerine türe göre tek renkli bir yer tutucu
  * (sanatçının baş harfleri) gösterir.
  *
  * Kullanan listelerde `key` olarak etkinlik id'si verilmeli; böylece geri
@@ -31,19 +30,14 @@ function EventImage({ item, style, genericImages, initialsSize = 26, showInitial
           onError={() => setAttempt(a => a + 1)}
         />
       ) : (
-        <LinearGradient
-          colors={getGenreGradient(item?.genre)}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[StyleSheet.absoluteFill, styles.placeholder]}
-        >
+        <View style={[StyleSheet.absoluteFill, styles.placeholder, { backgroundColor: genreAccent(item?.genre) }]}>
           <Ionicons name="musical-notes" size={initialsSize * 0.7} color="rgba(255,255,255,0.35)" style={styles.note} />
           {showInitials ? (
             <Text style={[styles.initials, { fontSize: initialsSize }]} numberOfLines={1}>
               {initialsOf(item?.artistName || item?.name)}
             </Text>
           ) : null}
-        </LinearGradient>
+        </View>
       )}
       {children}
     </View>

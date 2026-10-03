@@ -4,8 +4,10 @@ import {
   ActivityIndicator, Image, Animated, Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import { useTheme } from '../theme';
+import { hapticSuccess, hapticError } from '../utils/haptics';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
@@ -186,6 +188,7 @@ export default function SongQuizScreen({ navigation }) {
       : 0;
 
     if (isCorrect) setScore(prev => prev + points);
+    if (isCorrect) hapticSuccess(); else hapticError();
     setAnswers(prev => [...prev, { correct: isCorrect, elapsed, points,
       title: q.options[q.correctIndex] }]);
     setFeedback({ picked, correctIndex: q.correctIndex });
@@ -252,7 +255,7 @@ export default function SongQuizScreen({ navigation }) {
           <Text style={[styles.headerSub, { color: colors.textSecondary }]}>{t('quiz_subtitle')}</Text>
 
           <View style={[styles.searchBar, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={{ color: colors.textSecondary, fontSize: 16 }}>⌕</Text>
+            <Ionicons name="search" size={17} color={colors.textSecondary} />
             <TextInput
               style={[styles.searchInput, { color: colors.text }]}
               placeholder={t('quiz_search_placeholder')}
@@ -276,27 +279,29 @@ export default function SongQuizScreen({ navigation }) {
                 style={[styles.artistRow, { backgroundColor: colors.card, borderColor: colors.border }]}
                 onPress={() => startQuiz(item)}
                 activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel={item.name}
               >
                 {item.imageUrl ? (
                   <Image source={{ uri: item.imageUrl }} style={styles.artistImg} />
                 ) : (
                   <View style={[styles.artistImg, styles.artistImgFallback]}>
-                    <Text style={{ fontSize: 22 }}>🎤</Text>
+                    <Ionicons name="mic-outline" size={22} color={colors.primary} />
                   </View>
                 )}
                 <Text style={[styles.artistName, { color: colors.text }]}>{item.name}</Text>
-                <Text style={[styles.artistChevron, { color: colors.textSecondary }]}>›</Text>
+                <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
               </TouchableOpacity>
             )}
             ListEmptyComponent={
               query.trim().length >= 2 ? (
                 <View style={styles.empty}>
-                  <Text style={styles.emptyEmoji}>🎤</Text>
+                  <Ionicons name="mic-outline" size={48} color={colors.textSecondary} style={styles.emptyEmoji} />
                   <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t('quiz_no_artists')}</Text>
                 </View>
               ) : (
                 <View style={styles.empty}>
-                  <Text style={styles.emptyEmoji}>🎧</Text>
+                  <Ionicons name="headset-outline" size={48} color={colors.textSecondary} style={styles.emptyEmoji} />
                   <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t('quiz_search_hint')}</Text>
                 </View>
               )
@@ -311,7 +316,7 @@ export default function SongQuizScreen({ navigation }) {
   if (phase === 'loading') {
     return (
       <View style={[styles.container, styles.centered, { backgroundColor: colors.background }]}>
-        <Text style={{ fontSize: 56, marginBottom: 16 }}>🎧</Text>
+        <Ionicons name="headset-outline" size={56} color={colors.textSecondary} style={{ marginBottom: 16 }} />
         <ActivityIndicator size="large" color={colors.primary} />
         <Text style={[styles.loadingText, { color: colors.textSecondary }]}>{t('quiz_loading')}</Text>
       </View>
@@ -331,7 +336,10 @@ export default function SongQuizScreen({ navigation }) {
               {t('quiz_question', { current: qIndex + 1, total: questions.length })}
             </Text>
             <View style={[styles.scorePill, { backgroundColor: colors.primary + '22', borderColor: colors.primary + '60' }]}>
-              <Text style={[styles.scorePillText, { color: colors.primary }]}>⭐ {score}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Ionicons name="star" size={13} color={colors.primary} />
+                <Text style={[styles.scorePillText, { color: colors.primary }]}>{score}</Text>
+              </View>
             </View>
           </View>
 
@@ -346,7 +354,7 @@ export default function SongQuizScreen({ navigation }) {
             ]} />
           </View>
           <Text style={[styles.timeText, { color: colors.textSecondary }]}>
-            {(remaining / 1000).toFixed(1)} sn
+            {(remaining / 1000).toFixed(1)} {t('unit_seconds_short')}
           </Text>
         </LinearGradient>
 
@@ -354,7 +362,7 @@ export default function SongQuizScreen({ navigation }) {
         <View style={styles.discArea}>
           <Animated.View style={[styles.disc, { transform: [{ scale: pulseAnim }] }]}>
             <LinearGradient colors={['#E94560', '#7C3AED']} style={styles.discGrad}>
-              <Text style={styles.discEmoji}>🎵</Text>
+              <Ionicons name="musical-notes" size={52} color="#fff" />
             </LinearGradient>
           </Animated.View>
           <Text style={[styles.whichSong, { color: colors.text }]}>{t('quiz_which_song')}</Text>
@@ -378,9 +386,12 @@ export default function SongQuizScreen({ navigation }) {
               >
                 {bg ? (
                   <View style={[styles.option, { backgroundColor: bg }]}>
-                    <Text style={styles.optionText}>
-                      {i === feedback.correctIndex ? '✓ ' : i === feedback.picked ? '✗ ' : ''}{opt}
-                    </Text>
+                    <View style={styles.optionRow}>
+                      {i === feedback.correctIndex
+                        ? <Ionicons name="checkmark" size={18} color="#fff" />
+                        : i === feedback.picked ? <Ionicons name="close" size={18} color="#fff" /> : null}
+                      <Text style={styles.optionText}>{opt}</Text>
+                    </View>
                   </View>
                 ) : (
                   <LinearGradient
@@ -511,10 +522,9 @@ function createStyles(colors) {
     artistImg: { width: 52, height: 52, borderRadius: 26 },
     artistImgFallback: { backgroundColor: '#7C3AED33', justifyContent: 'center', alignItems: 'center' },
     artistName: { flex: 1, fontSize: 16, fontWeight: '700' },
-    artistChevron: { fontSize: 24, fontWeight: '300' },
 
     empty: { alignItems: 'center', paddingVertical: 60, paddingHorizontal: 32 },
-    emptyEmoji: { fontSize: 48, marginBottom: 12 },
+    emptyEmoji: { marginBottom: 12 },
     emptyText: { fontSize: 14, textAlign: 'center', lineHeight: 20 },
 
     // OYUN
@@ -531,13 +541,13 @@ function createStyles(colors) {
     disc: { width: 140, height: 140, borderRadius: 70, overflow: 'hidden', elevation: 8,
       shadowColor: '#E94560', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 14 },
     discGrad: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    discEmoji: { fontSize: 56 },
     whichSong: { fontSize: 17, fontWeight: '800' },
 
     options: { padding: 20, gap: 12, paddingBottom: 36 },
     optionWrap: { borderRadius: 16, overflow: 'hidden' },
     option: { paddingVertical: 18, paddingHorizontal: 20, borderRadius: 16, alignItems: 'center' },
     optionText: { color: '#fff', fontSize: 16, fontWeight: '800', textAlign: 'center' },
+    optionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
 
     // SONUÇ
     resultHeader: { paddingTop: 70, paddingBottom: 26, paddingHorizontal: 24, alignItems: 'center' },

@@ -17,6 +17,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { buildShareUrl, shareWithLink } from '../services/shareLinks';
 import { formatTimeAgo, parseEventDate, dateLocale } from '../utils/time';
 import { goBackOrFallback, openEvent } from '../navigation/navHelpers';
+import { hapticLight } from '../utils/haptics';
 
 function getInitials(name) {
   if (!name) return '?';
@@ -168,6 +169,7 @@ export default function ArtistProfileScreen({ route, navigation }) {
 
   const handleFollowToggle = async () => {
     if (followLoading) return;
+    hapticLight();
     setFollowLoading(true);
     const wasFollowing = following;
     setFollowing(!wasFollowing);
@@ -306,7 +308,7 @@ export default function ArtistProfileScreen({ route, navigation }) {
               <View style={styles.metaRow}>
                 <Ionicons name="headset-outline" size={13} color={colors.textSecondary} />
                 <Text style={[styles.spotifyFollowersText, styles.metaText]}>
-                  {formatFollowers(artist.spotifyFollowers)} Spotify takipçi
+                  {t('artist_spotify_followers', { count: formatFollowers(artist.spotifyFollowers) })}
                 </Text>
               </View>
             )}
@@ -507,12 +509,12 @@ export default function ArtistProfileScreen({ route, navigation }) {
                         <>
                           <StarDisplay value={item.avgRating} size={13} colors={colors} />
                           <Text style={[styles.pastCardRating, { color: colors.textSecondary }]}>
-                            {Number(item.avgRating).toFixed(1)} · {item.reviewCount} yorum
+                            {Number(item.avgRating).toFixed(1)} · {t('artist_review_count', { count: item.reviewCount })}
                           </Text>
                         </>
                       ) : (
                         <Text style={[styles.pastCardNoRating, { color: colors.textSecondary }]}>
-                          Henüz puan yok
+                          {t('artist_no_rating')}
                         </Text>
                       )}
                     </View>

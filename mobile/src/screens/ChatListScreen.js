@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, FlatList,
   ActivityIndicator, RefreshControl, Image, AppState,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../theme';
 import { ListSkeletonPage } from '../components/SkeletonLoader';
@@ -11,13 +11,6 @@ import { useLanguage } from '../context/LanguageContext';
 import API, { getErrorMessage } from '../services/api';
 import { formatTimeAgo } from '../utils/time';
 import { goBackOrFallback } from '../navigation/navHelpers';
-
-const AVATAR_GRADIENTS = [
-  ['#E94560', '#7C3AED'],
-  ['#00D4AA', '#3B82F6'],
-  ['#F5A623', '#E94560'],
-  ['#7C3AED', '#00D4AA'],
-];
 
 export default function ChatListScreen({ navigation }) {
   const { colors } = useTheme();
@@ -72,17 +65,16 @@ export default function ChatListScreen({ navigation }) {
       style={[styles.row, { backgroundColor: colors.card, borderColor: colors.border }]}
       onPress={() => openChat(item)}
       activeOpacity={0.8}
+      accessibilityRole="button"
+      accessibilityLabel={`@${item.username}${item.unreadCount > 0 ? ` (${item.unreadCount})` : ''}`}
     >
-      <LinearGradient
-        colors={AVATAR_GRADIENTS[item.userId % AVATAR_GRADIENTS.length]}
-        style={styles.avatar}
-      >
+      <View style={styles.avatar}>
         {item.profileImageUrl ? (
           <Image source={{ uri: item.profileImageUrl }} style={styles.avatarImg} />
         ) : (
           <Text style={styles.avatarText}>{item.username?.charAt(0).toUpperCase()}</Text>
         )}
-      </LinearGradient>
+      </View>
 
       <View style={styles.rowInfo}>
         <View style={styles.rowTop}>
@@ -114,25 +106,25 @@ export default function ChatListScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <LinearGradient colors={colors.headerGradient} style={styles.header}>
-        <TouchableOpacity onPress={() => goBackOrFallback(navigation)}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} accessibilityRole="button">
           <Text style={[styles.backText, { color: colors.primary }]}>{t('back')}</Text>
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>{t('messages_title')}</Text>
         <Text style={[styles.headerSub, { color: colors.textSecondary }]}>{t('messages_subtitle')}</Text>
-      </LinearGradient>
+      </View>
 
       {loading ? (
         <ListSkeletonPage />
       ) : (error && conversations.length === 0) ? (
         <View style={styles.empty}>
-          <Text style={styles.emptyEmoji}>📡</Text>
+          <Ionicons name="cloud-offline-outline" size={56} color={colors.textSecondary} style={styles.emptyEmoji} />
           <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('load_failed')}</Text>
           <Text style={[styles.emptySub, { color: colors.textSecondary }]}>{error}</Text>
-          <TouchableOpacity onPress={() => { setError(null); setLoading(true); fetchConversations(); }} activeOpacity={0.85}>
-            <LinearGradient colors={['#E94560', '#7C3AED']} style={styles.buddyBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+          <TouchableOpacity onPress={() => { setError(null); setLoading(true); fetchConversations(); }} activeOpacity={0.85} accessibilityRole="button">
+            <View style={styles.buddyBtn}>
               <Text style={styles.buddyBtnText}>{t('retry')}</Text>
-            </LinearGradient>
+            </View>
           </TouchableOpacity>
         </View>
       ) : (
@@ -150,20 +142,17 @@ export default function ChatListScreen({ navigation }) {
           }
           ListEmptyComponent={
             <View style={styles.empty}>
-              <Text style={styles.emptyEmoji}>💬</Text>
+              <Ionicons name="chatbubbles-outline" size={56} color={colors.textSecondary} style={styles.emptyEmoji} />
               <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('messages_empty_title')}</Text>
               <Text style={[styles.emptySub, { color: colors.textSecondary }]}>{t('messages_empty_sub')}</Text>
               <TouchableOpacity
                 onPress={() => navigation.navigate('ConcertBuddyMatch')}
                 activeOpacity={0.85}
+                accessibilityRole="button"
               >
-                <LinearGradient
-                  colors={['#E94560', '#7C3AED']}
-                  style={styles.buddyBtn}
-                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                >
+                <View style={styles.buddyBtn}>
                   <Text style={styles.buddyBtnText}>{t('messages_find_buddy')}</Text>
-                </LinearGradient>
+                </View>
               </TouchableOpacity>
             </View>
           }
@@ -188,9 +177,10 @@ function createStyles(colors) {
     avatar: {
       width: 52, height: 52, borderRadius: 26,
       justifyContent: 'center', alignItems: 'center', overflow: 'hidden',
+      backgroundColor: colors.cardAlt, borderWidth: 1, borderColor: colors.border,
     },
     avatarImg: { width: 52, height: 52, borderRadius: 26 },
-    avatarText: { color: '#fff', fontSize: 20, fontWeight: '900' },
+    avatarText: { color: colors.text, fontSize: 20, fontWeight: '900' },
     rowInfo: { flex: 1 },
     rowTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
     username: { fontSize: 15, fontWeight: '800' },
@@ -205,10 +195,10 @@ function createStyles(colors) {
     unreadBadgeText: { color: '#fff', fontSize: 11, fontWeight: '800' },
 
     empty: { alignItems: 'center', paddingVertical: 70, paddingHorizontal: 32 },
-    emptyEmoji: { fontSize: 56, marginBottom: 16 },
+    emptyEmoji: { marginBottom: 16 },
     emptyTitle: { fontSize: 19, fontWeight: '900', marginBottom: 8, textAlign: 'center' },
     emptySub: { fontSize: 14, textAlign: 'center', lineHeight: 20, marginBottom: 24 },
-    buddyBtn: { paddingHorizontal: 24, paddingVertical: 14, borderRadius: 16 },
+    buddyBtn: { paddingHorizontal: 24, paddingVertical: 14, borderRadius: 16, backgroundColor: colors.primary },
     buddyBtnText: { color: '#fff', fontSize: 15, fontWeight: '800' },
   });
 }

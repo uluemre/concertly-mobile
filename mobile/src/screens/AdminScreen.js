@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity,
   ScrollView, ActivityIndicator, RefreshControl, Dimensions, Alert,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
@@ -12,72 +12,73 @@ import API from '../services/api';
 
 const { width } = Dimensions.get('window');
 
+// tint: tema rengi anahtarı — kartlar düz, rengi ikon taşır
 const STAT_CARDS = [
-  { key: 'totalUsers',       labelKey: 'admin_stat_total_users',    icon: '👥', gradient: ['#7C3AED', '#5B21B6'] },
-  { key: 'activeUsers',      labelKey: 'admin_stat_active_users',   icon: '✅', gradient: ['#00D4AA', '#059669'] },
-  { key: 'bannedUsers',      labelKey: 'admin_stat_banned_users',   icon: '🚫', gradient: ['#E94560', '#BE123C'] },
-  { key: 'newUsersThisWeek', labelKey: 'admin_stat_new_week',       icon: '🌱', gradient: ['#3B82F6', '#1D4ED8'] },
-  { key: 'totalEvents',      labelKey: 'admin_stat_total_events',   icon: '🎵', gradient: ['#F5A623', '#D97706'] },
-  { key: 'pendingEvents',    labelKey: 'admin_stat_pending_events', icon: '⏳', gradient: ['#EC4899', '#BE185D'] },
-  { key: 'totalPosts',       labelKey: 'admin_stat_total_posts',    icon: '📝', gradient: ['#8B5CF6', '#6D28D9'] },
-  { key: 'totalAttendance',  labelKey: 'admin_stat_attendance',     icon: '🎟️', gradient: ['#06B6D4', '#0E7490'] },
+  { key: 'totalUsers',       labelKey: 'admin_stat_total_users',    icon: 'people',           tint: 'accent' },
+  { key: 'activeUsers',      labelKey: 'admin_stat_active_users',   icon: 'checkmark-circle', tint: 'accent' },
+  { key: 'bannedUsers',      labelKey: 'admin_stat_banned_users',   icon: 'ban',              tint: 'primary' },
+  { key: 'newUsersThisWeek', labelKey: 'admin_stat_new_week',       icon: 'person-add',       tint: 'accent' },
+  { key: 'totalEvents',      labelKey: 'admin_stat_total_events',   icon: 'musical-notes',    tint: 'secondary' },
+  { key: 'pendingEvents',    labelKey: 'admin_stat_pending_events', icon: 'hourglass',        tint: 'secondary' },
+  { key: 'totalPosts',       labelKey: 'admin_stat_total_posts',    icon: 'document-text',    tint: 'purple' },
+  { key: 'totalAttendance',  labelKey: 'admin_stat_attendance',     icon: 'ticket',           tint: 'primary' },
 ];
 
 const NAV_ITEMS = [
   {
     titleKey: 'admin_nav_events_title',
     subtitleKey: 'admin_nav_events_sub',
-    icon: '🎵',
+    icon: 'musical-notes',
+    tint: 'primary',
     screen: 'AdminEvents',
-    gradient: ['#E94560', '#7C3AED'],
     badge: 'pendingEvents',
     badgeLabelKey: 'admin_badge_pending',
   },
   {
     titleKey: 'admin_nav_users_title',
     subtitleKey: 'admin_nav_users_sub',
-    icon: '👥',
+    icon: 'people',
+    tint: 'accent',
     screen: 'AdminUsers',
-    gradient: ['#00D4AA', '#3B82F6'],
     badge: 'bannedUsers',
     badgeLabelKey: 'admin_badge_banned',
   },
   {
     titleKey: 'admin_nav_posts_title',
     subtitleKey: 'admin_nav_posts_sub',
-    icon: '📝',
+    icon: 'document-text',
+    tint: 'secondary',
     screen: 'AdminPosts',
-    gradient: ['#F5A623', '#E94560'],
     badge: 'totalPosts',
     badgeLabelKey: 'admin_badge_posts',
   },
   {
     titleKey: 'admin_nav_communities_title',
     subtitleKey: 'admin_nav_communities_sub',
-    icon: '👥',
+    icon: 'people-circle',
+    tint: 'purple',
     screen: 'AdminCommunities',
-    gradient: ['#7C3AED', '#EC4899'],
   },
   {
     titleKey: 'admin_nav_reports_title',
     subtitleKey: 'admin_nav_reports_sub',
-    icon: '🛡️',
+    icon: 'shield-checkmark',
+    tint: 'primary',
     screen: 'AdminReports',
-    gradient: ['#EF4444', '#7C3AED'],
   },
   {
     titleKey: 'admin_nav_organizer_title',
     subtitleKey: 'admin_nav_organizer_sub',
-    icon: '🎪',
+    icon: 'business',
+    tint: 'accent',
     screen: 'AdminOrganizerRequests',
-    gradient: ['#00D4AA', '#7C3AED'],
   },
   {
     titleKey: 'admin_nav_deletion_title',
     subtitleKey: 'admin_nav_deletion_sub',
-    icon: '📭',
+    icon: 'file-tray',
+    tint: 'textSecondary',
     screen: 'AdminDeletionFeedback',
-    gradient: ['#64748B', '#334155'],
   },
 ];
 
@@ -200,9 +201,10 @@ export default function AdminScreen({ navigation }) {
       }
     >
       {/* HEADER */}
-      <LinearGradient colors={colors.screenGradient} style={styles.header}>
-        <View style={styles.headerBadge}>
-          <Text style={styles.headerBadgeText}>⚡ ADMIN</Text>
+      <View style={styles.header}>
+        <View style={[styles.headerBadge, styles.inlineRow]}>
+          <Ionicons name="flash" size={11} color={colors.primary} />
+          <Text style={styles.headerBadgeText}>ADMIN</Text>
         </View>
         <Text style={styles.headerTitle}>{t('admin_panel_title')}</Text>
         <Text style={styles.headerSub}>{t('admin_panel_sub')}</Text>
@@ -211,16 +213,17 @@ export default function AdminScreen({ navigation }) {
           onPress={() => navigation.navigate('MainApp')}
           style={styles.appBtn}
           activeOpacity={0.8}
+          accessibilityRole="button"
         >
           <Text style={styles.appBtnText}>{t('admin_back_to_app')}</Text>
         </TouchableOpacity>
-      </LinearGradient>
+      </View>
 
       {loading ? (
         <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 60 }} />
       ) : error ? (
         <View style={styles.errorWrap}>
-          <Text style={styles.errorEmoji}>⚠️</Text>
+          <Ionicons name="alert-circle-outline" size={48} color={colors.textSecondary} style={styles.errorEmoji} />
           <Text style={[styles.errorText, { color: colors.text }]}>{error}</Text>
           <TouchableOpacity onPress={fetchStats} style={[styles.retryBtn, { backgroundColor: colors.primary }]}>
             <Text style={styles.retryBtnText}>{t('retry')}</Text>
@@ -232,17 +235,11 @@ export default function AdminScreen({ navigation }) {
           <Text style={styles.sectionTitle}>{t('admin_overview')}</Text>
           <View style={styles.statsGrid}>
             {STAT_CARDS.map(card => (
-              <LinearGradient
-                key={card.key}
-                colors={card.gradient}
-                style={styles.statCard}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                <Text style={styles.statIcon}>{card.icon}</Text>
+              <View key={card.key} style={styles.statCard} accessible accessibilityLabel={`${t(card.labelKey)}: ${stats?.[card.key] ?? 0}`}>
+                <Ionicons name={card.icon} size={22} color={colors[card.tint] || colors.primary} style={styles.statIcon} />
                 <Text style={styles.statValue}>{stats?.[card.key] ?? 0}</Text>
                 <Text style={styles.statLabel}>{t(card.labelKey)}</Text>
-              </LinearGradient>
+              </View>
             ))}
           </View>
 
@@ -253,43 +250,48 @@ export default function AdminScreen({ navigation }) {
               style={styles.quickBtn}
               onPress={() => navigation.navigate('AdminEvents', { openCreate: true })}
               activeOpacity={0.8}
+              accessibilityRole="button"
             >
-              <LinearGradient colors={['#E94560', '#7C3AED']} style={styles.quickBtnGrad}>
-                <Text style={styles.quickBtnIcon}>➕</Text>
+              {/* Ana eylem: düz marka rengi */}
+              <View style={[styles.quickBtnGrad, { backgroundColor: colors.primary }]}>
+                <Ionicons name="add-circle" size={22} color="#fff" style={styles.quickBtnIcon} />
                 <Text style={styles.quickBtnText}>{t('admin_add_event')}</Text>
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.quickBtn}
               onPress={() => navigation.navigate('AdminEvents', { filter: 'pending' })}
               activeOpacity={0.8}
+              accessibilityRole="button"
             >
-              <LinearGradient colors={['#F5A623', '#E94560']} style={styles.quickBtnGrad}>
-                <Text style={styles.quickBtnIcon}>✅</Text>
-                <Text style={styles.quickBtnText}>{t('admin_pending_btn')}</Text>
+              <View style={[styles.quickBtnGrad, styles.quickBtnSecondary]}>
+                <Ionicons name="checkmark-done" size={22} color={colors.secondary} style={styles.quickBtnIcon} />
+                <Text style={[styles.quickBtnText, { color: colors.text }]}>{t('admin_pending_btn')}</Text>
                 {(stats?.pendingEvents ?? 0) > 0 && (
                   <View style={styles.quickBtnBadge}>
                     <Text style={styles.quickBtnBadgeText}>{stats.pendingEvents}</Text>
                   </View>
                 )}
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.quickBtn}
               onPress={handleSync}
               disabled={syncing}
               activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityState={{ busy: syncing }}
             >
-              <LinearGradient colors={['#3B82F6', '#00D4AA']} style={styles.quickBtnGrad}>
+              <View style={[styles.quickBtnGrad, styles.quickBtnSecondary]}>
                 {syncing ? (
-                  <ActivityIndicator size="small" color="#fff" style={{ marginBottom: 6 }} />
+                  <ActivityIndicator size="small" color={colors.accent} style={{ marginBottom: 6 }} />
                 ) : (
-                  <Text style={styles.quickBtnIcon}>🔄</Text>
+                  <Ionicons name="sync" size={22} color={colors.accent} style={styles.quickBtnIcon} />
                 )}
-                <Text style={styles.quickBtnText}>
+                <Text style={[styles.quickBtnText, { color: colors.text }]}>
                   {syncing ? t('admin_syncing') : t('admin_sync_btn')}
                 </Text>
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
           </View>
 
@@ -299,17 +301,19 @@ export default function AdminScreen({ navigation }) {
             onPress={handleEnrich}
             disabled={enriching}
             activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityState={{ busy: enriching }}
           >
-            <LinearGradient colors={['#7C3AED', '#EC4899']} style={styles.quickBtnGrad}>
+            <View style={[styles.quickBtnGrad, styles.quickBtnSecondary]}>
               {enriching ? (
-                <ActivityIndicator size="small" color="#fff" style={{ marginBottom: 6 }} />
+                <ActivityIndicator size="small" color={colors.purple} style={{ marginBottom: 6 }} />
               ) : (
-                <Text style={styles.quickBtnIcon}>🎨</Text>
+                <Ionicons name="color-palette" size={22} color={colors.purple} style={styles.quickBtnIcon} />
               )}
-              <Text style={styles.quickBtnText}>
+              <Text style={[styles.quickBtnText, { color: colors.text }]}>
                 {enriching ? t('admin_enriching') : t('admin_enrich_btn')}
               </Text>
-            </LinearGradient>
+            </View>
           </TouchableOpacity>
 
           {/* TEST: ŞEHRİMDE SAHTE KONSER */}
@@ -318,17 +322,19 @@ export default function AdminScreen({ navigation }) {
             onPress={handleCreateTestConcert}
             disabled={creatingConcert}
             activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityState={{ busy: creatingConcert }}
           >
-            <LinearGradient colors={['#00A8FF', '#7C3AED']} style={styles.quickBtnGrad}>
+            <View style={[styles.quickBtnGrad, styles.quickBtnSecondary]}>
               {creatingConcert ? (
-                <ActivityIndicator size="small" color="#fff" style={{ marginBottom: 6 }} />
+                <ActivityIndicator size="small" color={colors.accent} style={{ marginBottom: 6 }} />
               ) : (
-                <Text style={styles.quickBtnIcon}>🎤</Text>
+                <Ionicons name="mic" size={22} color={colors.accent} style={styles.quickBtnIcon} />
               )}
-              <Text style={styles.quickBtnText}>
+              <Text style={[styles.quickBtnText, { color: colors.text }]}>
                 {creatingConcert ? t('admin_test_concert_creating') : t('admin_test_concert_btn')}
               </Text>
-            </LinearGradient>
+            </View>
           </TouchableOpacity>
 
           {/* NAV CARDS */}
@@ -339,15 +345,12 @@ export default function AdminScreen({ navigation }) {
               onPress={() => navigation.navigate(item.screen)}
               activeOpacity={0.85}
               style={styles.navCard}
+              accessibilityRole="button"
+              accessibilityLabel={`${t(item.titleKey)}, ${t(item.subtitleKey)}`}
             >
-              <LinearGradient
-                colors={item.gradient}
-                style={styles.navCardGrad}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-              >
-                <View style={styles.navIconWrap}>
-                  <Text style={styles.navIcon}>{item.icon}</Text>
+              <View style={styles.navCardGrad}>
+                <View style={[styles.navIconWrap, { backgroundColor: (colors[item.tint] || colors.primary) + '22' }]}>
+                  <Ionicons name={item.icon} size={24} color={colors[item.tint] || colors.primary} />
                 </View>
                 <View style={styles.navInfo}>
                   <Text style={styles.navTitle}>{t(item.titleKey)}</Text>
@@ -359,9 +362,9 @@ export default function AdminScreen({ navigation }) {
                       <Text style={styles.navBadgeText}>{stats[item.badge]} {t(item.badgeLabelKey)}</Text>
                     </View>
                   )}
-                  <Text style={styles.navArrow}>›</Text>
+                  <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
                 </View>
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
           ))}
 
@@ -407,15 +410,16 @@ function createStyles(colors) {
     headerBadgeText: { color: colors.primary, fontSize: 11, fontWeight: '800', letterSpacing: 1.5 },
     headerTitle: { fontSize: 30, fontWeight: '900', color: colors.text, letterSpacing: -0.5, marginTop: 10 },
     headerSub: { fontSize: 13, color: colors.textSecondary, marginTop: 6 },
+    inlineRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     appBtn: {
       marginTop: 16, alignSelf: 'flex-start',
-      backgroundColor: 'rgba(255,255,255,0.08)',
-      borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+      backgroundColor: colors.card,
+      borderWidth: 1, borderColor: colors.border,
       paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12,
     },
     appBtnText: { color: colors.textSecondary, fontSize: 13, fontWeight: '600' },
     errorWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-    errorEmoji: { fontSize: 48, marginBottom: 16 },
+    errorEmoji: { marginBottom: 16 },
     errorText: { fontSize: 16, textAlign: 'center', marginBottom: 24, lineHeight: 24 },
     retryBtn: { paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
     retryBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
@@ -435,12 +439,11 @@ function createStyles(colors) {
       width: (width - 48) / 2,
       borderRadius: 18, padding: 16,
       alignItems: 'flex-start',
-      shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.2, shadowRadius: 8, elevation: 5,
+      backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
     },
-    statIcon: { fontSize: 24, marginBottom: 8 },
-    statValue: { fontSize: 28, fontWeight: '900', color: '#fff', lineHeight: 32 },
-    statLabel: { fontSize: 11, color: 'rgba(255,255,255,0.8)', marginTop: 4, lineHeight: 15 },
+    statIcon: { marginBottom: 8 },
+    statValue: { fontSize: 28, fontWeight: '900', color: colors.text, lineHeight: 32 },
+    statLabel: { fontSize: 11, color: colors.textSecondary, marginTop: 4, lineHeight: 15 },
 
     // QUICK ACTIONS
     quickActions: { flexDirection: 'row', paddingHorizontal: 16, gap: 12 },
@@ -450,7 +453,8 @@ function createStyles(colors) {
       paddingVertical: 16, paddingHorizontal: 14,
       alignItems: 'center', position: 'relative',
     },
-    quickBtnIcon: { fontSize: 22, marginBottom: 6 },
+    quickBtnIcon: { marginBottom: 6 },
+    quickBtnSecondary: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: 16 },
     quickBtnText: { color: '#fff', fontWeight: '800', fontSize: 13 },
     quickBtnBadge: {
       position: 'absolute', top: 8, right: 8,
@@ -460,24 +464,21 @@ function createStyles(colors) {
     quickBtnBadgeText: { fontSize: 11, fontWeight: '800', color: '#E94560' },
 
     // NAV CARDS
-    navCard: { marginHorizontal: 16, marginBottom: 12, borderRadius: 18, overflow: 'hidden' },
+    navCard: { marginHorizontal: 16, marginBottom: 12, borderRadius: 18, overflow: 'hidden', backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
     navCardGrad: { flexDirection: 'row', alignItems: 'center', padding: 18, gap: 14 },
     navIconWrap: {
       width: 50, height: 50, borderRadius: 25,
-      backgroundColor: 'rgba(255,255,255,0.2)',
       alignItems: 'center', justifyContent: 'center',
     },
-    navIcon: { fontSize: 24 },
     navInfo: { flex: 1 },
-    navTitle: { fontSize: 16, fontWeight: '800', color: '#fff', marginBottom: 3 },
-    navSubtitle: { fontSize: 12, color: 'rgba(255,255,255,0.8)' },
+    navTitle: { fontSize: 16, fontWeight: '800', color: colors.text, marginBottom: 3 },
+    navSubtitle: { fontSize: 12, color: colors.textSecondary },
     navRight: { alignItems: 'flex-end', gap: 6 },
     navBadge: {
-      backgroundColor: 'rgba(255,255,255,0.25)',
+      backgroundColor: colors.primary + '22',
       paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8,
     },
-    navBadgeText: { color: '#fff', fontSize: 11, fontWeight: '700' },
-    navArrow: { color: 'rgba(255,255,255,0.8)', fontSize: 26, fontWeight: '300' },
+    navBadgeText: { color: colors.primary, fontSize: 11, fontWeight: '700' },
 
     // SUMMARY
     summaryCard: {

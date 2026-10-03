@@ -5,7 +5,6 @@ import {
     Dimensions, Image, KeyboardAvoidingView, Platform, ScrollView
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import API from '../services/api';
 import { useTheme } from '../theme';
@@ -19,13 +18,6 @@ const RECENT_KEY = 'recentSearches';
 const RECENT_MAX = 8;
 
 const { width, height } = Dimensions.get('window');
-
-const gradientSets = [
-    ['#E94560', '#7C3AED'],
-    ['#F5A623', '#E94560'],
-    ['#00D4AA', '#7C3AED'],
-    ['#7C3AED', '#F5A623'],
-];
 
 // ── Debounce hook ────────────────────────────────────────────────────────────
 function useDebounce(fn, delay) {
@@ -209,26 +201,37 @@ export default function SearchModal({ visible, onClose, navigation }) {
                 openEvent(navigation, item);
             }}
             activeOpacity={0.8}
+            accessibilityRole="button"
         >
-            <LinearGradient
-                colors={gradientSets[index % gradientSets.length]}
-                style={styles.resultIcon}
-            >
-                <Text style={styles.resultIconEmoji}>🎪</Text>
-            </LinearGradient>
+            <View style={styles.resultIcon}>
+                <Ionicons name="calendar-outline" size={22} color={colors.primary} />
+            </View>
             <View style={styles.resultInfo}>
                 <Text style={styles.resultTitle} numberOfLines={1}>{item.name}</Text>
-                <Text style={styles.resultSub} numberOfLines={1}>
-                    {item.artistName ? `🎤 ${item.artistName}` : ''}
-                    {item.venueCity ? `  📍 ${item.venueCity}` : ''}
-                </Text>
-                <Text style={styles.resultDate}>
-                    📅 {parseEventDate(item.eventDate).toLocaleDateString(dateLocale(lang), {
-                        day: 'numeric', month: 'short', year: 'numeric',
-                    })}
-                </Text>
+                <View style={styles.metaRow}>
+                    {item.artistName ? (
+                        <>
+                            <Ionicons name="mic-outline" size={12} color={colors.textSecondary} />
+                            <Text style={[styles.resultSub, styles.metaText]} numberOfLines={1}>{item.artistName}</Text>
+                        </>
+                    ) : null}
+                    {item.venueCity ? (
+                        <>
+                            <Ionicons name="location-outline" size={12} color={colors.textSecondary} />
+                            <Text style={[styles.resultSub, styles.metaText]} numberOfLines={1}>{item.venueCity}</Text>
+                        </>
+                    ) : null}
+                </View>
+                <View style={styles.metaRow}>
+                    <Ionicons name="calendar-clear-outline" size={11} color={colors.textSecondary} />
+                    <Text style={styles.resultDate}>
+                        {parseEventDate(item.eventDate).toLocaleDateString(dateLocale(lang), {
+                            day: 'numeric', month: 'short', year: 'numeric',
+                        })}
+                    </Text>
+                </View>
             </View>
-            <Text style={styles.chevron}>›</Text>
+            <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
         </TouchableOpacity>
     );
 
@@ -244,16 +247,14 @@ export default function SearchModal({ visible, onClose, navigation }) {
                 });
             }}
             activeOpacity={0.8}
+            accessibilityRole="button"
         >
             {item.imageUrl ? (
                 <Image source={{ uri: item.imageUrl }} style={styles.artistAvatar} />
             ) : (
-                <LinearGradient
-                    colors={gradientSets[index % gradientSets.length]}
-                    style={styles.resultIcon}
-                >
-                    <Text style={styles.resultIconEmoji}>🎤</Text>
-                </LinearGradient>
+                <View style={styles.resultIcon}>
+                    <Ionicons name="mic-outline" size={22} color={colors.primary} />
+                </View>
             )}
             <View style={styles.resultInfo}>
                 <Text style={styles.resultTitle} numberOfLines={1}>{item.name}</Text>
@@ -261,7 +262,7 @@ export default function SearchModal({ visible, onClose, navigation }) {
                     {item.followerCount || 0} {t('search_followers')}
                 </Text>
             </View>
-            <Text style={styles.chevron}>›</Text>
+            <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
         </TouchableOpacity>
     );
 
@@ -274,20 +275,23 @@ export default function SearchModal({ visible, onClose, navigation }) {
                 navigation.navigate('UserProfile', { userId: item.id });
             }}
             activeOpacity={0.8}
+            accessibilityRole="button"
         >
-            <LinearGradient
-                colors={gradientSets[index % gradientSets.length]}
-                style={styles.resultIcon}
-            >
+            <View style={styles.resultIcon}>
                 <Text style={styles.resultIconText}>
                     {item.username?.charAt(0).toUpperCase() || '?'}
                 </Text>
-            </LinearGradient>
+            </View>
             <View style={styles.resultInfo}>
                 <Text style={styles.resultTitle}>@{item.username}</Text>
-                {!!item.city && <Text style={styles.resultSub}>📍 {item.city}</Text>}
+                {!!item.city && (
+                    <View style={styles.metaRow}>
+                        <Ionicons name="location-outline" size={12} color={colors.textSecondary} />
+                        <Text style={[styles.resultSub, styles.metaText]}>{item.city}</Text>
+                    </View>
+                )}
             </View>
-            <Text style={styles.chevron}>›</Text>
+            <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
         </TouchableOpacity>
     );
 
@@ -300,18 +304,16 @@ export default function SearchModal({ visible, onClose, navigation }) {
                 navigation.navigate('VenueProfile', { venueId: v.id, venueName: v.name });
             }}
             activeOpacity={0.8}
+            accessibilityRole="button"
         >
-            <LinearGradient
-                colors={gradientSets[(index + 2) % gradientSets.length]}
-                style={styles.resultIcon}
-            >
-                <Text style={styles.resultIconEmoji}>📍</Text>
-            </LinearGradient>
+            <View style={styles.resultIcon}>
+                <Ionicons name="location-outline" size={22} color={colors.primary} />
+            </View>
             <View style={styles.resultInfo}>
                 <Text style={styles.resultTitle} numberOfLines={1}>{v.name}</Text>
                 {!!v.city && <Text style={styles.resultSub} numberOfLines={1}>{v.city}</Text>}
             </View>
-            <Text style={styles.chevron}>›</Text>
+            <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
         </TouchableOpacity>
     );
 
@@ -363,12 +365,12 @@ export default function SearchModal({ visible, onClose, navigation }) {
                                     setQuery('');
                                     setResults({ events: [], artists: [], users: [], venues: [] });
                                     setSearched(false);
-                                }}>
-                                    <Text style={styles.clearBtn}>✕</Text>
+                                }} accessibilityRole="button" accessibilityLabel={t('close')} hitSlop={8}>
+                                    <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
                                 </TouchableOpacity>
                             )}
                         </View>
-                        <TouchableOpacity onPress={onClose} style={styles.cancelBtn}>
+                        <TouchableOpacity onPress={onClose} style={styles.cancelBtn} accessibilityRole="button">
                             <Text style={styles.cancelText}>{t('cancel')}</Text>
                         </TouchableOpacity>
                     </View>
@@ -386,10 +388,10 @@ export default function SearchModal({ visible, onClose, navigation }) {
                             >
                                 <Animated.View style={[styles.tabIndicator, { left: indicatorX, width: indicatorW }]} />
                                 {[
-                                    { key: 'events', label: `🎪 ${t('search_events')} (${results.events.length})`, index: 0 },
-                                    { key: 'artists', label: `🎤 ${t('search_artists')} (${results.artists.length})`, index: 1 },
-                                    { key: 'users', label: `👤 ${t('search_users')} (${results.users.length})`, index: 2 },
-                                    { key: 'venues', label: `📍 ${t('search_venues')} (${venues.length})`, index: 3 },
+                                    { key: 'events', label: `${t('search_events')} (${results.events.length})`, index: 0 },
+                                    { key: 'artists', label: `${t('search_artists')} (${results.artists.length})`, index: 1 },
+                                    { key: 'users', label: `${t('search_users')} (${results.users.length})`, index: 2 },
+                                    { key: 'venues', label: `${t('search_venues')} (${venues.length})`, index: 3 },
                                 ].map(tab => (
                                     <TouchableOpacity
                                         key={tab.key}
@@ -432,11 +434,11 @@ export default function SearchModal({ visible, onClose, navigation }) {
                                         </TouchableOpacity>
                                     </View>
                                     {recent.map(q => (
-                                        <TouchableOpacity key={q} style={styles.recentRow} onPress={() => runRecent(q)} activeOpacity={0.7}>
-                                            <Text style={styles.recentIcon}>🕘</Text>
+                                        <TouchableOpacity key={q} style={styles.recentRow} onPress={() => runRecent(q)} activeOpacity={0.7} accessibilityRole="button">
+                                            <Ionicons name="time-outline" size={16} color={colors.textSecondary} />
                                             <Text style={styles.recentText} numberOfLines={1}>{q}</Text>
-                                            <TouchableOpacity onPress={() => removeRecent(q)} hitSlop={10}>
-                                                <Text style={styles.recentRemove}>✕</Text>
+                                            <TouchableOpacity onPress={() => removeRecent(q)} hitSlop={10} accessibilityRole="button" accessibilityLabel={t('delete')}>
+                                                <Ionicons name="close" size={16} color={colors.textSecondary} style={styles.recentRemove} />
                                             </TouchableOpacity>
                                         </TouchableOpacity>
                                     ))}
@@ -457,6 +459,8 @@ export default function SearchModal({ visible, onClose, navigation }) {
                                                 key={a.id}
                                                 style={styles.popularItem}
                                                 activeOpacity={0.8}
+                                                accessibilityRole="button"
+                                                accessibilityLabel={a.name}
                                                 onPress={() => {
                                                     onClose();
                                                     navigation.navigate('ArtistProfile', { artistId: a.id, artistName: a.name });
@@ -474,11 +478,11 @@ export default function SearchModal({ visible, onClose, navigation }) {
                                 <Text style={styles.discoverTitle}>{t('search_by_genre')}</Text>
                                 <View style={styles.genreGrid}>
                                     {GENRE_SHORTCUTS.map(g => (
-                                        <TouchableOpacity key={g.name} style={styles.genreTileWrap} onPress={() => openGenre(g.name)} activeOpacity={0.85}>
-                                            <LinearGradient colors={g.colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.genreTile}>
+                                        <TouchableOpacity key={g.name} style={styles.genreTileWrap} onPress={() => openGenre(g.name)} activeOpacity={0.85} accessibilityRole="button">
+                                            <View style={[styles.genreTile, { backgroundColor: g.color }]}>
                                                 <Text style={styles.genreTileName}>{g.name}</Text>
-                                                <Text style={styles.genreTileEmoji}>{g.emoji}</Text>
-                                            </LinearGradient>
+                                                <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.85)" />
+                                            </View>
                                         </TouchableOpacity>
                                     ))}
                                 </View>
@@ -488,7 +492,7 @@ export default function SearchModal({ visible, onClose, navigation }) {
                         </ScrollView>
                     ) : totalResults === 0 ? (
                         <View style={styles.center}>
-                            <Text style={styles.hintEmoji}>😕</Text>
+                            <Ionicons name="search-outline" size={48} color={colors.textSecondary} style={styles.hintEmoji} />
                             <Text style={styles.hintText}>"{query}" {t('search_no_results_for')}</Text>
                         </View>
                     ) : (
@@ -501,7 +505,7 @@ export default function SearchModal({ visible, onClose, navigation }) {
                             showsVerticalScrollIndicator={false}
                             ListEmptyComponent={(
                                 <View style={styles.center}>
-                                    <Text style={styles.hintEmoji}>📭</Text>
+                                    <Ionicons name="file-tray-outline" size={48} color={colors.textSecondary} style={styles.hintEmoji} />
                                     <Text style={styles.hintText}>{t('search_category_empty')}</Text>
                                 </View>
                             )}
@@ -545,7 +549,6 @@ function createStyles(colors) {
         },
         searchIcon: { fontSize: 16 },
         searchInput: { flex: 1, color: colors.text, fontSize: 15 },
-        clearBtn: { color: colors.textSecondary, fontSize: 16, padding: 2 },
         cancelBtn: { paddingVertical: 8, paddingHorizontal: 4 },
         cancelText: { color: colors.primary, fontSize: 15, fontWeight: '600' },
 
@@ -594,8 +597,8 @@ function createStyles(colors) {
         resultIcon: {
             width: 48, height: 48, borderRadius: 14,
             justifyContent: 'center', alignItems: 'center',
+            backgroundColor: colors.cardAlt, borderWidth: 1, borderColor: colors.border,
         },
-        resultIconEmoji: { fontSize: 22 },
         resultIconText: { fontSize: 20, fontWeight: 'bold', color: colors.text },
         artistAvatar: { width: 48, height: 48, borderRadius: 24 },
         resultInfo: { flex: 1 },
@@ -604,15 +607,16 @@ function createStyles(colors) {
             color: colors.text, marginBottom: 3,
         },
         resultSub: { fontSize: 12, color: colors.textSecondary, marginBottom: 2 },
+        metaRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+        metaText: { marginBottom: 0, flexShrink: 1, marginRight: 6 },
         resultDate: { fontSize: 11, color: colors.textSecondary },
-        chevron: { fontSize: 22, color: colors.textSecondary },
 
         // BOŞ / HINT
         center: {
             flex: 1, justifyContent: 'center',
             alignItems: 'center', paddingTop: 80,
         },
-        hintEmoji: { fontSize: 48, marginBottom: 14 },
+        hintEmoji: { marginBottom: 14 },
 
         // KEŞİF (boş arama)
         discover: { padding: 16, paddingBottom: 48, gap: 22 },
@@ -624,9 +628,8 @@ function createStyles(colors) {
             flexDirection: 'row', alignItems: 'center', gap: 10,
             paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border,
         },
-        recentIcon: { fontSize: 14, opacity: 0.7 },
         recentText: { flex: 1, color: colors.text, fontSize: 15 },
-        recentRemove: { color: colors.textSecondary, fontSize: 14, paddingHorizontal: 4 },
+        recentRemove: { paddingHorizontal: 4 },
         popularRow: { gap: 14, paddingRight: 8 },
         popularItem: { width: 72, alignItems: 'center' },
         popularAvatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.card },
@@ -635,7 +638,6 @@ function createStyles(colors) {
         genreTileWrap: { width: '48%', flexGrow: 1, borderRadius: 14, overflow: 'hidden' },
         genreTile: { height: 64, borderRadius: 14, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
         genreTileName: { color: '#fff', fontSize: 16, fontWeight: '800' },
-        genreTileEmoji: { fontSize: 28 },
         discoverHint: { color: colors.textSecondary, fontSize: 12, textAlign: 'center' },
         hintText: { color: colors.textSecondary, fontSize: 15, textAlign: 'center' },
     });

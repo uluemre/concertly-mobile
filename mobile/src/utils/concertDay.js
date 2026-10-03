@@ -1,4 +1,4 @@
-// "Konser Günü" yardımcıları: canlı geri sayım, hava kodu → emoji/metin,
+// "Konser Günü" yardımcıları: canlı geri sayım, hava kodu → ikon/metin,
 // havaya göre akıllı hazırlık listesi.
 import { useEffect, useState } from 'react';
 
@@ -32,17 +32,17 @@ export function useCountdown(secondsUntilStart, receivedAt) {
   };
 }
 
-// WMO hava kodları (Open-Meteo) → emoji + çeviri anahtarı
+// WMO hava kodları (Open-Meteo) → Ionicons adı + çeviri anahtarı
 export function weatherLook(code) {
-  if (code === 0) return { emoji: '☀️', key: 'cday_wx_clear' };
-  if (code <= 2) return { emoji: '🌤️', key: 'cday_wx_partly' };
-  if (code === 3) return { emoji: '☁️', key: 'cday_wx_cloudy' };
-  if (code === 45 || code === 48) return { emoji: '🌫️', key: 'cday_wx_fog' };
-  if (code >= 51 && code <= 57) return { emoji: '🌦️', key: 'cday_wx_drizzle' };
-  if ((code >= 61 && code <= 67) || (code >= 80 && code <= 82)) return { emoji: '🌧️', key: 'cday_wx_rain' };
-  if ((code >= 71 && code <= 77) || code === 85 || code === 86) return { emoji: '❄️', key: 'cday_wx_snow' };
-  if (code >= 95) return { emoji: '⛈️', key: 'cday_wx_storm' };
-  return { emoji: '🌡️', key: 'cday_wx_unknown' };
+  if (code === 0) return { icon: 'sunny', key: 'cday_wx_clear' };
+  if (code <= 2) return { icon: 'partly-sunny', key: 'cday_wx_partly' };
+  if (code === 3) return { icon: 'cloudy', key: 'cday_wx_cloudy' };
+  if (code === 45 || code === 48) return { icon: 'cloud-outline', key: 'cday_wx_fog' };
+  if (code >= 51 && code <= 57) return { icon: 'rainy', key: 'cday_wx_drizzle' };
+  if ((code >= 61 && code <= 67) || (code >= 80 && code <= 82)) return { icon: 'rainy', key: 'cday_wx_rain' };
+  if ((code >= 71 && code <= 77) || code === 85 || code === 86) return { icon: 'snow', key: 'cday_wx_snow' };
+  if (code >= 95) return { icon: 'thunderstorm', key: 'cday_wx_storm' };
+  return { icon: 'thermometer', key: 'cday_wx_unknown' };
 }
 
 const isWet = (w) => w && (w.precipitationProbability >= 40
@@ -63,14 +63,14 @@ export function weatherAdviceKey(w) {
 /** Konsere götürülecekler — temel liste + havaya göre eklenenler. */
 export function prepChecklist(w) {
   const items = [
-    { id: 'ticket', emoji: '🎟️', key: 'cday_item_ticket' },
-    { id: 'id', emoji: '🪪', key: 'cday_item_id' },
-    { id: 'power', emoji: '🔋', key: 'cday_item_power' },
-    { id: 'earplugs', emoji: '🎧', key: 'cday_item_earplugs' },
-    { id: 'route', emoji: '🚇', key: 'cday_item_route' },
+    { id: 'ticket', icon: 'ticket', key: 'cday_item_ticket' },
+    { id: 'id', icon: 'id-card', key: 'cday_item_id' },
+    { id: 'power', icon: 'battery-charging', key: 'cday_item_power' },
+    { id: 'earplugs', icon: 'headset', key: 'cday_item_earplugs' },
+    { id: 'route', icon: 'subway', key: 'cday_item_route' },
   ];
-  if (isWet(w)) items.push({ id: 'rain', emoji: '🧥', key: 'cday_item_raincoat', weather: true });
-  if (w && w.apparentTemperature <= 16) items.push({ id: 'warm', emoji: '🧣', key: 'cday_item_warm', weather: true });
-  if (w && w.apparentTemperature >= 26) items.push({ id: 'water', emoji: '💧', key: 'cday_item_water', weather: true });
+  if (isWet(w)) items.push({ id: 'rain', icon: 'umbrella', key: 'cday_item_raincoat', weather: true });
+  if (w && w.apparentTemperature <= 16) items.push({ id: 'warm', icon: 'shirt', key: 'cday_item_warm', weather: true });
+  if (w && w.apparentTemperature >= 26) items.push({ id: 'water', icon: 'water', key: 'cday_item_water', weather: true });
   return items;
 }

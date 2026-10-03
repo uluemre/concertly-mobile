@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Animated, ScrollView
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { prefetchRecommendedArtists } from '../services/artists';
 import { useTheme } from '../theme';
 import GenreChip from '../components/GenreChip';
@@ -12,20 +11,20 @@ import CityPicker from '../components/CityPicker';
 import { goBackOrFallback } from '../navigation/navHelpers';
 
 const GENRES = [
-  { name: 'Rock', emoji: '🎸', accent: '#E94560' },
-  { name: 'Pop', emoji: '🎤', accent: '#F5A623' },
-  { name: 'Rap', emoji: '🎯', accent: '#00D4AA' },
-  { name: 'Arabesk', emoji: '🎻', accent: '#7C3AED' },
-  { name: 'Metal', emoji: '🤘', accent: '#E94560' },
-  { name: 'Indie', emoji: '🎸', accent: '#00D4AA' },
-  { name: 'Jazz', emoji: '🎷', accent: '#F5A623' },
-  { name: 'Techno', emoji: '🎛️', accent: '#00D4AA' },
-  { name: 'Electronic', emoji: '🎧', accent: '#7C3AED' },
-  { name: 'K-Pop', emoji: '🌟', accent: '#E94560' },
-  { name: 'Alternatif Rock', emoji: '🎸', accent: '#F5A623' },
-  { name: 'Türkçe Rock', emoji: '🎸', accent: '#E94560' },
-  { name: 'Lo-fi', emoji: '🎵', accent: '#00D4AA' },
-  { name: 'Classical', emoji: '🎻', accent: '#7C3AED' },
+  { name: 'Rock', accent: '#E94560' },
+  { name: 'Pop', accent: '#F5A623' },
+  { name: 'Rap', accent: '#00D4AA' },
+  { name: 'Arabesk', accent: '#7C3AED' },
+  { name: 'Metal', accent: '#E94560' },
+  { name: 'Indie', accent: '#00D4AA' },
+  { name: 'Jazz', accent: '#F5A623' },
+  { name: 'Techno', accent: '#00D4AA' },
+  { name: 'Electronic', accent: '#7C3AED' },
+  { name: 'K-Pop', accent: '#E94560' },
+  { name: 'Alternatif Rock', accent: '#F5A623' },
+  { name: 'Türkçe Rock', accent: '#E94560' },
+  { name: 'Lo-fi', accent: '#00D4AA' },
+  { name: 'Classical', accent: '#7C3AED' },
 ];
 
 export default function GenreSelectionScreen({ navigation, route }) {
@@ -104,7 +103,6 @@ export default function GenreSelectionScreen({ navigation, route }) {
             <GenreChip
               key={g.name}
               genre={g.name}
-              emoji={g.emoji}
               selected={selectedGenres.includes(g.name)}
               onToggle={toggleGenre}
               index={i}
@@ -125,6 +123,8 @@ export default function GenreSelectionScreen({ navigation, route }) {
         <Animated.View style={{ transform: [{ scale: buttonPulse }], width: '100%' }}>
           <TouchableOpacity
             disabled={!canContinue}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: !canContinue }}
             onPress={() => {
               // Sanatçı listesi ekran geçişi sırasında yüklenmeye başlasın
               prefetchRecommendedArtists(selectedGenres).catch(() => {});
@@ -135,16 +135,11 @@ export default function GenreSelectionScreen({ navigation, route }) {
               });
             }}
           >
-            <LinearGradient
-              colors={canContinue ? ['#E94560', '#7C3AED'] : ['#2A2A3E', '#2A2A3E']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={[styles.button, !canContinue && styles.buttonDisabled]}
-            >
+            <View style={[styles.button, { backgroundColor: canContinue ? '#E94560' : '#2A2A3E' }, !canContinue && styles.buttonDisabled]}>
               <Text style={[styles.buttonText, !canContinue && styles.buttonTextDisabled]}>
                 {canContinue ? t('genre_continue') : t('genre_need_more')}
               </Text>
-            </LinearGradient>
+            </View>
           </TouchableOpacity>
         </Animated.View>
       </View>

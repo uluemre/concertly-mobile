@@ -1,12 +1,13 @@
 // Tür kısayolları (arama ekranı ve ana sayfa). Adlar, etkinlik kayıtlarındaki
 // genre değerleri ve Etkinlikler ekranının tür filtresiyle birebir aynı olmalı.
+// Her türün tek düz rengi (kutucuk zemini; üstündeki yazı beyaz).
 export const GENRE_SHORTCUTS = [
-  { name: 'Pop', emoji: '🎤', colors: ['#F5A623', '#E94560'] },
-  { name: 'Rock', emoji: '🎸', colors: ['#E94560', '#7C3AED'] },
-  { name: 'Rap', emoji: '🎧', colors: ['#00D4AA', '#0EA5E9'] },
-  { name: 'Elektronik', emoji: '🎛️', colors: ['#7C3AED', '#0EA5E9'] },
-  { name: 'Jazz', emoji: '🎷', colors: ['#F59E0B', '#B45309'] },
-  { name: 'Klasik', emoji: '🎻', colors: ['#6D28D9', '#DB2777'] },
-  { name: 'Folk', emoji: '🪕', colors: ['#16A34A', '#CA8A04'] },
-  { name: 'R&B', emoji: '💜', colors: ['#DB2777', '#7C3AED'] },
+  { name: 'Pop', color: '#E0901A' },
+  { name: 'Rock', color: '#E94560' },
+  { name: 'Rap', color: '#0E9F84' },
+  { name: 'Elektronik', color: '#0EA5E9' },
+  { name: 'Jazz', color: '#B45309' },
+  { name: 'Klasik', color: '#6D28D9' },
+  { name: 'Folk', color: '#16A34A' },
+  { name: 'R&B', color: '#DB2777' },
 ];

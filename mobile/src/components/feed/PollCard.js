@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import API from '../../services/api';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../theme';
 
 export default function PollCard({ postId, options: initialOptions }) {
@@ -37,8 +38,9 @@ export default function PollCard({ postId, options: initialOptions }) {
             disabled={hasVoted || voting}
           >
             {hasVoted && <View style={[styles.pollBar, { width: `${pct}%` }]} />}
+            {opt.voted && <Ionicons name="checkmark" size={16} color={colors.primary} style={styles.pollCheck} />}
             <Text style={[styles.pollOptionText, opt.voted && styles.pollOptionTextVoted]}>
-              {opt.voted ? '✓ ' : ''}{opt.optionText}
+              {opt.optionText}
             </Text>
             {hasVoted && <Text style={styles.pollPct}>{pct}%</Text>}
           </TouchableOpacity>
@@ -62,6 +64,7 @@ function createStyles(colors) {
       position: 'absolute', left: 0, top: 0, bottom: 0,
       backgroundColor: colors.primary + '22', borderRadius: 12,
     },
+    pollCheck: { marginRight: 6 },
     pollOptionText: { flex: 1, fontSize: 14, color: colors.text, fontWeight: '600' },
     pollOptionTextVoted: { color: colors.primary },
     pollPct: { fontSize: 13, fontWeight: '800', color: colors.primary },

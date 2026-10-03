@@ -4,6 +4,7 @@ import {
   ActivityIndicator, Image, Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -132,7 +133,7 @@ export default function SetlistPredictionScreen({ navigation, route }) {
             >
               {c.title}
             </Text>
-            {isOn && <Text style={[styles.chipCheck, { color: colors.primary }]}>✓</Text>}
+            {isOn && <Ionicons name="checkmark" size={16} color={colors.primary} />}
           </TouchableOpacity>
         );
       })}
@@ -151,7 +152,7 @@ export default function SetlistPredictionScreen({ navigation, route }) {
   if (mode === 'unsupported') {
     return (
       <View style={[styles.container, styles.centered, { backgroundColor: colors.background }]}>
-        <Text style={{ fontSize: 48, marginBottom: 12 }}>🎭</Text>
+        <Ionicons name="musical-notes-outline" size={48} color={colors.textSecondary} style={{ marginBottom: 12 }} />
         <Text style={[styles.errorText, { color: colors.textSecondary }]}>{t('setlist_unsupported')}</Text>
         <TouchableOpacity
           onPress={() => goBackOrFallback(navigation)}
@@ -166,7 +167,7 @@ export default function SetlistPredictionScreen({ navigation, route }) {
   if (mode === 'error') {
     return (
       <View style={[styles.container, styles.centered, { backgroundColor: colors.background }]}>
-        <Text style={{ fontSize: 48, marginBottom: 12 }}>🎯</Text>
+        <Ionicons name="cloud-offline-outline" size={48} color={colors.textSecondary} style={{ marginBottom: 12 }} />
         <Text style={[styles.errorText, { color: colors.textSecondary }]}>{t('setlist_load_error')}</Text>
         <TouchableOpacity
           onPress={() => { setMode('loading'); fetchState(); }}
@@ -298,7 +299,10 @@ export default function SetlistPredictionScreen({ navigation, route }) {
             <View style={styles.playedWrap}>
               {board.playedSetlist.map(titleItem => (
                 <View key={titleItem} style={[styles.playedChip, { backgroundColor: '#00D4AA18', borderColor: '#00D4AA50' }]}>
-                  <Text style={[styles.playedChipText, { color: '#00D4AA' }]}>🎵 {titleItem}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <Ionicons name="musical-notes" size={12} color="#00D4AA" />
+                    <Text style={[styles.playedChipText, { color: '#00D4AA' }]}>{titleItem}</Text>
+                  </View>
                 </View>
               ))}
             </View>
@@ -367,7 +371,6 @@ function createStyles(colors) {
     },
     chipCover: { width: 34, height: 34, borderRadius: 8 },
     chipText: { flex: 1, fontSize: 14, fontWeight: '700' },
-    chipCheck: { fontSize: 16, fontWeight: '900' },
 
     bottomBar: {
       position: 'absolute', bottom: 0, left: 0, right: 0,

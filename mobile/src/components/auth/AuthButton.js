@@ -1,8 +1,7 @@
-// Kimlik doğrulama butonları: ana (marka degradesi) ve ikincil (çerçeveli) / bağlantı.
+// Kimlik doğrulama butonları: ana (düz marka rengi) ve ikincil (çerçeveli) / bağlantı.
 // Yüklenirken buton yerinde kalır, içinde spinner döner ve basılamaz.
 import React, { useMemo } from 'react';
 import { Text, TouchableOpacity, ActivityIndicator, StyleSheet, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../theme';
 
 export default function AuthButton({
@@ -57,16 +56,11 @@ export default function AuthButton({
       style={[inactive && styles.dim, style]}
       {...a11y}
     >
-      <LinearGradient
-        colors={['#E94560', '#7C3AED']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.base}
-      >
+      <View style={[styles.base, styles.primary]}>
         <View style={styles.row}>
           {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.text}>{title}</Text>}
         </View>
-      </LinearGradient>
+      </View>
     </TouchableOpacity>
   );
 }
@@ -77,6 +71,7 @@ function createStyles(colors) {
       minHeight: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center',
       paddingHorizontal: 20,
     },
+    primary: { backgroundColor: colors.primary },
     row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
     text: { color: '#fff', fontSize: 16, fontWeight: '700' },
     secondary: { borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.card },

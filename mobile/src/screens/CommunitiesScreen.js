@@ -4,6 +4,7 @@ import {
   TouchableOpacity, TextInput, ActivityIndicator, Alert
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../theme';
 import { ListSkeletonPage } from '../components/SkeletonLoader';
@@ -16,15 +17,15 @@ import { goBackOrFallback } from '../navigation/navHelpers';
 
 // key: i18n key, apiValue: backend'e gönderilecek değer (null = hepsi), emoji: chip görseli
 const FILTERS = [
-  { key: 'all',        labelKey: 'community_filter_all',        apiValue: null,         emoji: '✨' },
-  { key: 'Rock',       labelKey: 'community_filter_rock',       apiValue: 'Rock',       emoji: '🎸' },
-  { key: 'Festival',   labelKey: 'community_filter_festival',   apiValue: 'Festival',   emoji: '🎪' },
-  { key: 'Elektronik', labelKey: 'community_filter_electronic', apiValue: 'Elektronik', emoji: '🎧' },
-  { key: 'Şehir',      labelKey: 'community_filter_city',       apiValue: 'Şehir',      emoji: '📍' },
-  { key: 'Caz',        labelKey: 'community_filter_jazz',       apiValue: 'Caz',        emoji: '🎷' },
-  { key: 'Pop',        labelKey: 'community_filter_pop',        apiValue: 'Pop',        emoji: '🎤' },
-  { key: 'Rap',        labelKey: 'community_filter_rap',        apiValue: 'Rap',        emoji: '🎯' },
-  { key: 'Diğer',      labelKey: 'community_filter_other',      apiValue: 'Diğer',      emoji: '🎵' },
+  { key: 'all',        labelKey: 'community_filter_all',        apiValue: null },
+  { key: 'Rock',       labelKey: 'community_filter_rock',       apiValue: 'Rock' },
+  { key: 'Festival',   labelKey: 'community_filter_festival',   apiValue: 'Festival' },
+  { key: 'Elektronik', labelKey: 'community_filter_electronic', apiValue: 'Elektronik' },
+  { key: 'Şehir',      labelKey: 'community_filter_city',       apiValue: 'Şehir' },
+  { key: 'Caz',        labelKey: 'community_filter_jazz',       apiValue: 'Caz' },
+  { key: 'Pop',        labelKey: 'community_filter_pop',        apiValue: 'Pop' },
+  { key: 'Rap',        labelKey: 'community_filter_rap',        apiValue: 'Rap' },
+  { key: 'Diğer',      labelKey: 'community_filter_other',      apiValue: 'Diğer' },
 ];
 
 export default function CommunitiesScreen({ navigation }) {
@@ -192,10 +193,14 @@ export default function CommunitiesScreen({ navigation }) {
         onPress={() => toggleJoin(community)}
         disabled={pending}
         activeOpacity={0.85}
-        style={[styles.joinButton, active && styles.joinButtonActive]}
+        style={[styles.joinButton, active && styles.joinButtonActive, styles.joinRow]}
+        accessibilityRole="button"
+        accessibilityState={{ selected: joined, disabled: pending }}
       >
+        {pending ? <Ionicons name="time-outline" size={14} color={colors.textSecondary} />
+          : joined ? <Ionicons name="checkmark" size={14} color={colors.textSecondary} /> : null}
         <Text style={[styles.joinText, active && styles.joinTextActive]}>
-          {pending ? `🕒 ${t('community_request_pending')}` : joined ? `✓ ${t('communities_joined')}` : t('communities_join')}
+          {pending ? t('community_request_pending') : joined ? t('communities_joined') : t('communities_join')}
         </Text>
       </TouchableOpacity>
     );
@@ -204,11 +209,11 @@ export default function CommunitiesScreen({ navigation }) {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
       {/* HEADER */}
-      <LinearGradient colors={colors.headerGradient} style={styles.header}>
-        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.backButton}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.backButton} accessibilityRole="button">
           <Text style={styles.backText}>{t('back')}</Text>
         </TouchableOpacity>
-        <Text style={styles.headerLabel}>👥 CONCERTLY</Text>
+        <Text style={styles.headerLabel}>CONCERTLY</Text>
         <Text style={styles.headerTitle}>{t('communities_title')}</Text>
         <Text style={styles.headerSub}>{t('communities_header_sub')}</Text>
 
@@ -222,27 +227,24 @@ export default function CommunitiesScreen({ navigation }) {
             <Text style={styles.statLabel}>{t('communities_stat_joined')}</Text>
           </View>
         </View>
-      </LinearGradient>
+      </View>
 
       {/* KUR BUTONU */}
       <TouchableOpacity
         style={styles.createBtn}
         activeOpacity={0.9}
         onPress={() => navigation.navigate('CreateCommunity')}
+        accessibilityRole="button"
       >
-        <LinearGradient
-          colors={['#E94560', '#7C3AED']}
-          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={styles.createBtnGrad}
-        >
-          <View style={styles.createIconCircle}><Text style={styles.createIcon}>＋</Text></View>
+        <View style={styles.createBtnGrad}>
+          <View style={styles.createIconCircle}><Ionicons name="add" size={18} color="#fff" /></View>
           <Text style={styles.createBtnText}>{t('community_create_title')}</Text>
-        </LinearGradient>
+        </View>
       </TouchableOpacity>
 
       {/* ARAMA */}
       <View style={styles.searchBox}>
-        <Text style={styles.searchIcon}>⌕</Text>
+        <Ionicons name="search" size={18} color={colors.textSecondary} />
         <TextInput
           style={styles.searchInput}
           placeholder={t('communities_search')}
@@ -269,8 +271,9 @@ export default function CommunitiesScreen({ navigation }) {
           </TouchableOpacity>
         </View>
       ) : (
-        <TouchableOpacity onPress={() => setShowCode(true)} style={styles.codeLink} activeOpacity={0.7}>
-          <Text style={styles.codeLinkText}>🔑 {t('community_join_by_code')}</Text>
+        <TouchableOpacity onPress={() => setShowCode(true)} style={[styles.codeLink, styles.joinRow]} activeOpacity={0.7} accessibilityRole="button">
+          <Ionicons name="key-outline" size={14} color={colors.primary} />
+          <Text style={styles.codeLinkText}>{t('community_join_by_code')}</Text>
         </TouchableOpacity>
       )}
 
@@ -284,8 +287,9 @@ export default function CommunitiesScreen({ navigation }) {
               onPress={() => setActiveFilter(filter.key)}
               activeOpacity={0.8}
               style={[styles.filterChip, on && styles.filterChipActive]}
+              accessibilityRole="button"
+              accessibilityState={{ selected: on }}
             >
-              <Text style={styles.filterEmoji}>{filter.emoji}</Text>
               <Text style={[styles.filterText, on && styles.filterTextActive]}>{t(filter.labelKey)}</Text>
             </TouchableOpacity>
           );
@@ -298,7 +302,7 @@ export default function CommunitiesScreen({ navigation }) {
         <ListSkeletonPage rows={5} avatar="square" />
       ) : (error && communities.length === 0) ? (
         <View style={styles.errorBox}>
-          <Text style={styles.errorEmoji}>📡</Text>
+          <Ionicons name="cloud-offline-outline" size={46} color={colors.textSecondary} style={styles.errorEmoji} />
           <Text style={[styles.errorTitle, { color: colors.text }]}>{t('load_failed')}</Text>
           <Text style={[styles.errorSub, { color: colors.textSecondary }]}>{error}</Text>
           <TouchableOpacity onPress={() => fetchCommunities(activeFilter, query)} style={styles.retryBtn} activeOpacity={0.85}>
@@ -307,13 +311,13 @@ export default function CommunitiesScreen({ navigation }) {
         </View>
       ) : communities.length === 0 ? (
         <View style={styles.errorBox}>
-          <Text style={styles.errorEmoji}>🫧</Text>
+          <Ionicons name="people-outline" size={46} color={colors.textSecondary} style={styles.errorEmoji} />
           <Text style={[styles.errorSub, { color: colors.textSecondary }]}>{t('communities_empty_list')}</Text>
         </View>
       ) : (
         <View style={styles.list}>
           {communities.map((community) => {
-            const visIcon = community.visibility === 'PRIVATE' ? '🔒' : community.visibility === 'SECRET' ? '🕵️' : null;
+            const visIcon = community.visibility === 'PRIVATE' ? 'lock-closed' : community.visibility === 'SECRET' ? 'eye-off' : null;
             const pending = community.approvalStatus === 'PENDING';
             return (
               <TouchableOpacity
@@ -322,14 +326,11 @@ export default function CommunitiesScreen({ navigation }) {
                 onPress={() => navigation.navigate('CommunityDetail', { communityId: community.id })}
                 style={styles.card}
               >
-                {/* renkli üst şerit */}
-                <LinearGradient
-                  colors={[community.gradientStart || '#7C3AED', community.gradientEnd || '#E94560']}
-                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                  style={styles.cardStripe}
-                />
+                {/* topluluğun kendi renginde üst şerit (düz) */}
+                <View style={[styles.cardStripe, { backgroundColor: community.gradientStart || colors.primary }]} />
 
                 <View style={styles.cardTop}>
+                  {/* Topluluk logosu: kurucunun seçtiği emoji + renkler (kimlik, kalır) */}
                   <LinearGradient
                     colors={[community.gradientStart || '#7C3AED', community.gradientEnd || '#E94560']}
                     start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
@@ -339,9 +340,10 @@ export default function CommunitiesScreen({ navigation }) {
                   </LinearGradient>
 
                   <View style={styles.cardInfo}>
-                    <Text style={styles.cardName} numberOfLines={1}>
-                      {visIcon ? `${visIcon} ` : ''}{community.name}
-                    </Text>
+                    <View style={styles.cardNameRow}>
+                      {visIcon ? <Ionicons name={visIcon} size={13} color={colors.textSecondary} /> : null}
+                      <Text style={[styles.cardName, styles.cardNameText]} numberOfLines={1}>{community.name}</Text>
+                    </View>
                     <Text style={styles.cardMeta} numberOfLines={1}>
                       {community.city ? `${community.city} · ` : ''}{communityTypeLabel(community.type, t)}
                     </Text>
@@ -370,9 +372,15 @@ export default function CommunitiesScreen({ navigation }) {
 
                 <View style={styles.cardFooter}>
                   <View style={styles.metrics}>
-                    <Text style={styles.metric}>👥 {community.memberCount.toLocaleString(locale)}</Text>
+                    <View style={styles.metricItem}>
+                      <Ionicons name="people-outline" size={14} color={colors.textSecondary} />
+                      <Text style={styles.metric}>{community.memberCount.toLocaleString(locale)}</Text>
+                    </View>
                     <Text style={styles.metricDot}>·</Text>
-                    <Text style={styles.metric}>📝 {community.postCount}</Text>
+                    <View style={styles.metricItem}>
+                      <Ionicons name="document-text-outline" size={14} color={colors.textSecondary} />
+                      <Text style={styles.metric}>{community.postCount}</Text>
+                    </View>
                   </View>
                   {renderJoinButton(community)}
                 </View>
@@ -412,12 +420,14 @@ function createStyles(colors) {
 
     // CREATE
     createBtn: { marginHorizontal: 16, marginTop: 18, borderRadius: 16, overflow: 'hidden' },
-    createBtnGrad: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 15 },
+    createBtnGrad: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 15,
+      backgroundColor: colors.primary,
+    },
     createIconCircle: {
       width: 24, height: 24, borderRadius: 12,
       backgroundColor: 'rgba(255,255,255,0.25)', alignItems: 'center', justifyContent: 'center',
     },
-    createIcon: { color: '#fff', fontSize: 16, fontWeight: '900', marginTop: -1 },
     createBtnText: { color: '#fff', fontSize: 15, fontWeight: '900' },
 
     // SEARCH
@@ -428,7 +438,6 @@ function createStyles(colors) {
       borderWidth: 1, borderColor: colors.border,
       borderRadius: 16, paddingHorizontal: 14, paddingVertical: 12, gap: 8,
     },
-    searchIcon: { color: colors.textSecondary, fontSize: 19 },
     searchInput: { flex: 1, color: colors.text, fontSize: 14 },
 
     // CODE
@@ -451,7 +460,6 @@ function createStyles(colors) {
       backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
     },
     filterChipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
-    filterEmoji: { fontSize: 13 },
     filterText: { color: colors.textSecondary, fontSize: 13, fontWeight: '800' },
     filterTextActive: { color: '#fff' },
 
@@ -464,7 +472,7 @@ function createStyles(colors) {
     // STATES
     loadingContainer: { paddingVertical: 60, alignItems: 'center' },
     errorBox: { paddingVertical: 50, paddingHorizontal: 40, alignItems: 'center' },
-    errorEmoji: { fontSize: 46, marginBottom: 12 },
+    errorEmoji: { marginBottom: 12 },
     errorTitle: { fontSize: 16, fontWeight: '800', marginBottom: 6 },
     errorSub: { fontSize: 14, textAlign: 'center', lineHeight: 20, marginBottom: 18 },
     retryBtn: { backgroundColor: colors.primary, paddingHorizontal: 28, paddingVertical: 12, borderRadius: 14 },
@@ -489,6 +497,8 @@ function createStyles(colors) {
     avatarEmoji: { fontSize: 28 },
     cardInfo: { flex: 1 },
     cardName: { color: colors.text, fontSize: 16, fontWeight: '900' },
+    cardNameRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+    cardNameText: { flexShrink: 1 },
     cardMeta: { color: colors.textSecondary, fontSize: 12.5, marginTop: 3, fontWeight: '600' },
     tagRow: { flexDirection: 'row', marginTop: 7 },
     statusChip: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
@@ -504,6 +514,7 @@ function createStyles(colors) {
       marginTop: 15, paddingTop: 14, borderTopWidth: 1, borderTopColor: colors.border,
     },
     metrics: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+    metricItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     metric: { color: colors.text, fontSize: 12.5, fontWeight: '700' },
     metricDot: { color: colors.textSecondary, fontSize: 14 },
     joinButton: {
@@ -511,6 +522,7 @@ function createStyles(colors) {
       backgroundColor: colors.primary,
     },
     joinButtonActive: { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: colors.border },
+    joinRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
     joinText: { color: '#fff', fontSize: 13, fontWeight: '800' },
     joinTextActive: { color: colors.textSecondary },
     archivedBadge: {

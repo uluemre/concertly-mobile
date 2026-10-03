@@ -4,8 +4,10 @@ import {
   Animated, ActivityIndicator, Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../theme';
+import { hapticSelection, hapticSuccess } from '../utils/haptics';
 import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
 import { goBackOrFallback } from '../navigation/navHelpers';
@@ -71,11 +73,12 @@ export default function ConcertBingoScreen({ navigation, route }) {
 
   const toggle = async (index) => {
     if (!card || toggling !== null) return;
+    hapticSelection();
     setToggling(index);
     try {
       const res = await API.put(`/bingo/card/${card.id}/toggle`, { index });
       const updated = res.data;
-      if (!card.hasBingo && updated.hasBingo) showBingo();
+      if (!card.hasBingo && updated.hasBingo) { hapticSuccess(); showBingo(); }
       setCard(updated);
     } catch {}
     setToggling(null);
@@ -151,10 +154,13 @@ export default function ConcertBingoScreen({ navigation, route }) {
               onPress={() => toggle(index)}
               activeOpacity={0.8}
               style={styles.squareWrap}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: isMarked, busy: isLoading }}
+              accessibilityLabel={t(`bingo_sq_${key}`)}
             >
               {isMarked ? (
                 <LinearGradient colors={gradient} style={styles.square} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-                  <Text style={styles.squareCheckmark}>✓</Text>
+                  <Ionicons name="checkmark-circle" size={14} color="#fff" style={styles.squareCheckmark} />
                   <Text style={styles.squareEmoji}>{SQUARE_EMOJIS[index]}</Text>
                   <Text style={styles.squareTextMarked} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.7}>
                     {t(`bingo_sq_${key}`)}

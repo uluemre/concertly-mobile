@@ -4,6 +4,7 @@ import {
   ActivityIndicator, Alert, RefreshControl,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
@@ -62,12 +63,12 @@ export default function AdminCommunitiesScreen({ navigation }) {
         <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchPending(); }} tintColor={colors.primary} />
       }
     >
-      <LinearGradient colors={colors.screenGradient} style={styles.header}>
-        <TouchableOpacity onPress={() => goBackOrFallback(navigation, 'Admin')} style={styles.backButton}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation, 'Admin')} style={styles.backButton} accessibilityRole="button">
           <Text style={styles.backText}>{t('back')}</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('admin_communities_title')}</Text>
-      </LinearGradient>
+      </View>
 
       {loading ? (
         <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 60 }} />
@@ -98,16 +99,24 @@ export default function AdminCommunitiesScreen({ navigation }) {
               disabled={busyId === c.id}
               style={[styles.btn, styles.approveBtn]}
               activeOpacity={0.85}
+              accessibilityRole="button"
             >
-              <Text style={styles.approveText}>✓ {t('admin_communities_approve')}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                <Ionicons name="checkmark" size={15} color={colors.accent} />
+                <Text style={styles.approveText}>{t('admin_communities_approve')}</Text>
+              </View>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => review(c.id, 'reject')}
               disabled={busyId === c.id}
               style={[styles.btn, styles.rejectBtn]}
               activeOpacity={0.85}
+              accessibilityRole="button"
             >
-              <Text style={styles.rejectText}>✕ {t('admin_communities_reject')}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                <Ionicons name="close" size={15} color={colors.primary} />
+                <Text style={styles.rejectText}>{t('admin_communities_reject')}</Text>
+              </View>
             </TouchableOpacity>
           </View>
         </View>

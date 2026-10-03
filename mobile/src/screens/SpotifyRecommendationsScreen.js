@@ -3,7 +3,8 @@ import {
   View, Text, StyleSheet, FlatList, Image,
   TouchableOpacity, ActivityIndicator, Alert, Dimensions
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+// Spotify logosu Ionicons'ta yok: o ikon FontAwesome
+import { Ionicons, FontAwesome } from '@expo/vector-icons';
 import API from '../services/api';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
@@ -89,7 +90,7 @@ export default function SpotifyRecommendationsScreen({ navigation }) {
           <Image source={{ uri: item.imageUrl }} style={styles.artistImg} />
         ) : (
           <View style={[styles.artistImg, styles.artistImgPlaceholder]}>
-            <Text style={{ fontSize: 22 }}>🎤</Text>
+            <Ionicons name="mic-outline" size={22} color={colors.textSecondary} />
           </View>
         )}
         <View style={styles.artistInfo}>
@@ -110,6 +111,9 @@ export default function SpotifyRecommendationsScreen({ navigation }) {
             style={[styles.followBtn, isFollowed && styles.followBtnActive]}
             onPress={() => handleFollow(item)}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityState={{ selected: isFollowed }}
+            accessibilityLabel={`${item.name}: ${isFollowed ? t('artist_following') : t('artist_follow')}`}
           >
             <Text style={[styles.followBtnText, isFollowed && styles.followBtnTextActive]}>
               {isFollowed ? t('artist_following') : t('artist_follow')}
@@ -127,7 +131,7 @@ export default function SpotifyRecommendationsScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.backBtn}>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.backBtn} accessibilityRole="button">
           <Text style={styles.backBtnText}>{t('back')}</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('spotify_title')}</Text>
@@ -138,12 +142,12 @@ export default function SpotifyRecommendationsScreen({ navigation }) {
         <View style={styles.center}>
           <ActivityIndicator size="large" color="#1DB954" />
           <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
-            Spotify'dan getiriliyor...
+            {t('spotify_loading')}
           </Text>
         </View>
       ) : artists.length === 0 ? (
         <View style={styles.center}>
-          <Text style={{ fontSize: 52 }}>🎧</Text>
+          <Ionicons name="headset-outline" size={52} color={colors.textSecondary} />
           <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('spotify_no_data')}</Text>
           <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>{t('spotify_no_data_sub')}</Text>
         </View>
@@ -154,30 +158,29 @@ export default function SpotifyRecommendationsScreen({ navigation }) {
           renderItem={renderArtist}
           ListHeaderComponent={() => (
             <View style={styles.listHeader}>
-              <LinearGradient colors={['#1DB954', '#191414']} style={styles.heroBanner} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-                <Text style={styles.heroIcon}>🎵</Text>
+              {/* Spotify marka yeşili, düz */}
+              <View style={[styles.heroBanner, { backgroundColor: '#1DB954' }]}>
+                <FontAwesome name="spotify" size={40} color="#fff" />
                 <Text style={styles.heroTitle}>{t('spotify_hero_title')}</Text>
                 <Text style={styles.heroSubtitle}>
                   {appMatchCount} {t('spotify_in_app')}
                 </Text>
-              </LinearGradient>
+              </View>
               {appMatchCount > 0 && (
                 <TouchableOpacity
                   style={styles.bulkBtn}
                   onPress={handleBulkFollow}
                   disabled={bulkFollowing}
                   activeOpacity={0.85}
+                  accessibilityRole="button"
+                  accessibilityState={{ busy: bulkFollowing }}
                 >
-                  <LinearGradient
-                    colors={['#1DB954', '#158a3e']}
-                    style={styles.bulkBtnGradient}
-                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                  >
+                  <View style={[styles.bulkBtnGradient, { backgroundColor: '#1DB954' }]}>
                     {bulkFollowing
                       ? <ActivityIndicator color="#fff" />
                       : <Text style={styles.bulkBtnText}>{t('spotify_follow_all', { count: appMatchCount })}</Text>
                     }
-                  </LinearGradient>
+                  </View>
                 </TouchableOpacity>
               )}
             </View>
@@ -210,7 +213,6 @@ function createStyles(colors) {
     heroBanner: {
       borderRadius: 16, padding: 20, alignItems: 'center', gap: 6,
     },
-    heroIcon: { fontSize: 40 },
     heroTitle: { fontSize: 18, fontWeight: '800', color: '#fff' },
     heroSubtitle: { fontSize: 13, color: 'rgba(255,255,255,0.8)' },
     bulkBtn: { borderRadius: 14, overflow: 'hidden' },

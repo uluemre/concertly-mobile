@@ -8,6 +8,7 @@ import React, { useRef, useState } from 'react';
 import { View, Text, PanResponder, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../theme';
+import { hapticSelection } from '../utils/haptics';
 
 const LONG_PRESS_MS = 180;   // bu süre basılı tutunca kaydırma modu açılır
 const DRAG_THRESHOLD = 12;   // ya da bu kadar yatay kayınca hemen açılır
@@ -50,7 +51,10 @@ export default function SlideTabBar({ state, descriptors, navigation }) {
     if (!route) return;
     const isFocused = st.index === index;
     const event = navRef.current.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
-    if (!isFocused && !event.defaultPrevented) navRef.current.navigate(route.name);
+    if (!isFocused && !event.defaultPrevented) {
+      hapticSelection();
+      navRef.current.navigate(route.name);
+    }
   };
 
   const panResponder = useRef(

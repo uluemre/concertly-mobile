@@ -5,9 +5,10 @@ import {
   Alert,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import API from '../../services/api';
 import { useTheme } from '../../theme';
+import { hapticLight } from '../../utils/haptics';
 import { useLanguage } from '../../context/LanguageContext';
 import { formatTimeAgo } from '../../utils/time';
 import PollCard from './PollCard';
@@ -15,13 +16,6 @@ import CommentModal from './CommentModal';
 import { openEvent } from '../../navigation/navHelpers';
 import { publishPostUpdate } from '../../services/postUpdates';
 import { buildShareUrl, shareWithLink } from '../../services/shareLinks';
-
-const GRADIENTS = [
-  ['#E94560', '#7C3AED'],
-  ['#F5A623', '#E94560'],
-  ['#00D4AA', '#7C3AED'],
-  ['#7C3AED', '#F5A623'],
-];
 
 export default React.memo(function PostCard({
   item, index, currentUserId, navigation, onDelete, onEdit,
@@ -74,6 +68,7 @@ export default React.memo(function PostCard({
 
   const handleLike = async () => {
     if (likeLoading) return;
+    hapticLight();
     setLikeLoading(true);
     Animated.sequence([
       Animated.spring(scaleAnim, { toValue: 1.35, useNativeDriver: true, tension: 200 }),
@@ -206,41 +201,40 @@ export default React.memo(function PostCard({
     <View style={styles.card}>
       {/* Animasyon kalpleri dokunmayı yakalamasın: saydamken bile içeriğin üstünde
           duruyor ve gönderi metnine dokunmak PostDetail yerine bunlara gidiyordu (web) */}
-      <Animated.Text
+      <Animated.View
         pointerEvents="none"
         style={[styles.floatingHeart, { opacity: heartOpacity, transform: [{ scale: heartScale }] }]}
       >
-        ❤️
-      </Animated.Text>
+        <Ionicons name="heart" size={48} color={colors.primary} />
+      </Animated.View>
 
       {/* Yükselen kalpler */}
       {floatAnims.map((a, i) => (
-        <Animated.Text
+        <Animated.View
           key={i}
           pointerEvents="none"
           style={{
             position: 'absolute',
             bottom: 44,
             left: 20 + i * 14,
-            fontSize: 14 + i * 2,
             opacity: a.opacity,
             transform: [{ translateY: a.y }, { translateX: a.x }],
             zIndex: 10,
             pointerEvents: 'none',
           }}
         >
-          ❤️
-        </Animated.Text>
+          <Ionicons name="heart" size={14 + i * 2} color={colors.primary} />
+        </Animated.View>
       ))}
 
       {/* BAŞLIK */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.headerLeft} onPress={goToUserProfile} activeOpacity={0.75}>
-          <LinearGradient colors={GRADIENTS[index % GRADIENTS.length]} style={styles.avatar}>
+          <View style={styles.avatar}>
             {item.userProfileImageUrl
               ? <Image source={{ uri: item.userProfileImageUrl }} style={styles.avatarImage} />
               : <Text style={styles.avatarText}>{item.username?.charAt(0).toUpperCase() || '?'}</Text>}
-          </LinearGradient>
+          </View>
           <View style={styles.headerInfo}>
             <Text style={styles.username}>@{item.username}</Text>
             {item.eventName && item.eventId ? (
@@ -250,17 +244,23 @@ export default React.memo(function PostCard({
                 hitSlop={{ top: 6, bottom: 6, left: 0, right: 0 }}
                 activeOpacity={0.7}
               >
-                <Text style={styles.eventTag} numberOfLines={1}>📍 {item.eventName}</Text>
+                <View style={styles.eventTagRow}>
+                  <Ionicons name="musical-notes-outline" size={12} color={colors.textSecondary} />
+                  <Text style={styles.eventTag} numberOfLines={1}>{item.eventName}</Text>
+                </View>
               </TouchableOpacity>
             ) : item.eventName ? (
-              <Text style={styles.eventTag} numberOfLines={1}>📍 {item.eventName}</Text>
+              <View style={styles.eventTagRow}>
+                <Ionicons name="musical-notes-outline" size={12} color={colors.textSecondary} />
+                <Text style={styles.eventTag} numberOfLines={1}>{item.eventName}</Text>
+              </View>
             ) : null}
           </View>
         </TouchableOpacity>
         <View style={styles.headerRight}>
           <Text style={styles.postTime}>{formatTimeAgo(item.createdAt, lang)}</Text>
           <TouchableOpacity onPress={handleOptions} style={styles.optionsBtn} accessibilityRole="button" accessibilityLabel={t('mod_options_title')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Text style={styles.optionsIcon}>⋯</Text>
+            <Ionicons name="ellipsis-horizontal" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -310,22 +310,31 @@ export default React.memo(function PostCard({
 
       {/* AKSİYONLAR */}
       <View style={styles.actions}>
-        <TouchableOpacity style={styles.actionBtn} onPress={handleLike} activeOpacity={0.7}>
-          <Animated.Text style={[styles.actionIcon, { transform: [{ scale: scaleAnim }] }]}>
-            {liked ? '❤️' : '🤍'}
-          </Animated.Text>
+        <TouchableOpacity
+          style={styles.actionBtn}
+          onPress={handleLike}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityState={{ selected: liked }}
+          accessibilityLabel={`${t('a11y_like')}, ${likeCount}`}
+        >
+          <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+            <Ionicons name={liked ? 'heart' : 'heart-outline'} size={22} color={liked ? colors.primary : colors.textSecondary} />
+          </Animated.View>
           <Text style={[styles.actionCount, liked && styles.actionCountActive]}>{likeCount}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.actionBtn}
           onPress={() => navigation.navigate('PostDetail', { postId: item.id })}
           activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={`${t('a11y_comments')}, ${item.commentCount || 0}`}
         >
-          <Text style={styles.actionIcon}>💬</Text>
+          <Ionicons name="chatbubble-outline" size={21} color={colors.textSecondary} />
           <Text style={styles.actionCount}>{item.commentCount || 0}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionBtn} onPress={handleShare} activeOpacity={0.7}>
-          <Text style={styles.actionIcon}>🔗</Text>
+        <TouchableOpacity style={styles.actionBtn} onPress={handleShare} activeOpacity={0.7} accessibilityRole="button">
+          <Ionicons name="share-outline" size={21} color={colors.textSecondary} />
           <Text style={styles.actionCount}>{t('share')}</Text>
         </TouchableOpacity>
       </View>
@@ -348,23 +357,24 @@ function createStyles(colors) {
       position: 'relative', overflow: 'hidden',
     },
     floatingHeart: {
-      position: 'absolute', top: '40%', alignSelf: 'center', fontSize: 48, zIndex: 10,
+      position: 'absolute', top: '40%', alignSelf: 'center', zIndex: 10,
       pointerEvents: 'none',
     },
     header: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 10 },
     headerLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
     headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     optionsBtn: { padding: 4 },
-    optionsIcon: { fontSize: 20, color: colors.textSecondary, letterSpacing: 1 },
     avatar: {
       width: 44, height: 44, borderRadius: 22,
       justifyContent: 'center', alignItems: 'center', overflow: 'hidden',
+      backgroundColor: colors.cardAlt, borderWidth: 1, borderColor: colors.border,
     },
     avatarImage: { width: 44, height: 44, borderRadius: 22 },
     avatarText: { color: colors.text, fontWeight: 'bold', fontSize: 18 },
     headerInfo: { flex: 1 },
     username: { fontSize: 14, fontWeight: 'bold', color: colors.text },
-    eventTag: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
+    eventTagRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
+    eventTag: { fontSize: 12, color: colors.textSecondary, flexShrink: 1 },
     postTime: { fontSize: 11, color: colors.textSecondary },
     editOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' },
     editSheetWrapper: { position: 'absolute', bottom: 0, left: 0, right: 0 },
@@ -384,7 +394,6 @@ function createStyles(colors) {
       borderTopWidth: 1, borderTopColor: colors.border,
     },
     actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    actionIcon: { fontSize: 20 },
     actionCount: { fontSize: 13, color: colors.textSecondary, fontWeight: '600' },
     actionCountActive: { color: colors.primary },
   });

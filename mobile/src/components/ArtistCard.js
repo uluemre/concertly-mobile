@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function ArtistCard({ artist, selected, onToggle, index }) {
   const translateY = useRef(new Animated.Value(20)).current;
@@ -57,12 +57,9 @@ export default function ArtistCard({ artist, selected, onToggle, index }) {
               onError={() => setImageFailed(true)}
             />
           ) : (
-            <LinearGradient
-              colors={['#1A1A2E', '#2A2A3E']}
-              style={styles.avatar}
-            >
+            <View style={[styles.avatar, styles.avatarFlat]}>
               <Text style={styles.avatarText}>{firstLetter}</Text>
-            </LinearGradient>
+            </View>
           )}
 
           <Text style={styles.name} numberOfLines={1}>{artist.name}</Text>
@@ -75,7 +72,7 @@ export default function ArtistCard({ artist, selected, onToggle, index }) {
 
           {selected && (
             <View style={styles.checkOverlay}>
-              <Text style={styles.checkmark}>✓</Text>
+              <Ionicons name="checkmark" size={16} color="#fff" />
             </View>
           )}
         </View>
@@ -118,6 +115,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 8,
   },
+  avatarFlat: { backgroundColor: '#22223A' },
   avatarText: {
     color: '#E94560',
     fontSize: 28,
