@@ -40,7 +40,7 @@ public class ConcertGrouping {
 
     /** Kopyalarin saat farki bu kadar olabilir; pencere sorgusu icin. */
     public long toleranceMinutes() {
-        return matcher.getToleranceMinutes();
+        return Math.max(matcher.getToleranceMinutes(), ARTIST_CITY_WINDOW_MINUTES);
     }
 
     /**
@@ -66,7 +66,7 @@ public class ConcertGrouping {
         }
         // Sehir icinde tarihe gore sirala; yalnizca tolerans penceresindeki ciftler
         // karsilastirilir (tam liste ~1000 kayit, her cifti denemek gereksiz).
-        long window = Math.max(matcher.getToleranceMinutes(), LISTING_MAX_MINUTES);
+        long window = Math.max(toleranceMinutes(), LISTING_MAX_MINUTES);
         for (List<Event> sameCity : byCity.values()) {
             List<Event> dated = sameCity.stream()
                     .filter(e -> e.getEventDate() != null)
@@ -88,7 +88,7 @@ public class ConcertGrouping {
         Map<Long, Group> byEvent = new HashMap<>();
         for (List<Event> list : members.values()) {
             Event canonical = list.get(0);
-            for (int i = 1; i < list.size(); i++) canonical = mergeService.chooseCanonical(canonical, list.get(i));
+            for (int i = 1; i < list.size(); i++) canonical = chooseForListing(canonical, list.get(i));
             Group g = new Group(canonical, List.copyOf(list));
             for (Event e : list) byEvent.put(e.getId(), g);
         }
@@ -116,7 +116,7 @@ public class ConcertGrouping {
             if (!inList.contains(keep.getId())) {
                 keep = null;
                 for (Event m : g.members()) {
-                    if (inList.contains(m.getId())) keep = keep == null ? m : mergeService.chooseCanonical(keep, m);
+                    if (inList.contains(m.getId())) keep = keep == null ? m : chooseForListing(keep, m);
                 }
             }
             // Grubun ilk gorundugu siraya temsilciyi koy, digerlerini atla
@@ -128,6 +128,12 @@ public class ConcertGrouping {
 
     /** Liste icin gosterim esigi (bkz. sameConcertForListing). */
     static final long LISTING_MAX_MINUTES = 30;
+    /**
+     * Urun kurali: ayni sanatci ayni sehirde 6 saat icinde tek konser verir.
+     * Kaynaklar ayni konseri farkli saatle yazabiliyor (Gulsen, Oran Acikhava:
+     * Biletinial'da hem 21:00 hem saati bilinmeyen 00:00 kaydi).
+     */
+    static final long ARTIST_CITY_WINDOW_MINUTES = 6 * 60;
     static final double LISTING_MAX_VENUE_METERS = 400;
     private static final java.util.Set<String> GENERIC_VENUE_WORDS = java.util.Set.of(
             "sahne", "sahnesi", "salon", "salonu", "arena", "hall", "stage", "club", "open", "acik", "hava",
@@ -156,16 +162,44 @@ public class ConcertGrouping {
         if (r.isStrong()) return true;
         if (a.getEventDate() == null || b.getEventDate() == null) return false;
         long minutes = Math.abs(java.time.Duration.between(a.getEventDate(), b.getEventDate()).toMinutes());
-        if (minutes > LISTING_MAX_MINUTES) return false;
+        if (minutes > ARTIST_CITY_WINDOW_MINUTES) return false;
         String artist = EventMatcher.artistKey(a);
         if (artist.isEmpty() || !artist.equals(EventMatcher.artistKey(b))) return false;
         if (a.getVenue() == null || b.getVenue() == null) return false;
         String city = EventMatcher.normalize(a.getVenue().getCity());
         if (city.isEmpty() || !city.equals(EventMatcher.normalize(b.getVenue().getCity()))) return false;
-        if (sameVenueName(a, b, city)) return true;
-        Double meters = distance(a, b);
-        if (meters != null && meters > LISTING_MAX_VENUE_METERS) return false;
-        return shareDistinctiveVenueWord(a, b);
+
+        if (minutes <= LISTING_MAX_MINUTES) {
+            if (sameVenueName(a, b, city)) return true;
+            Double meters = distance(a, b);
+            if ((meters == null || meters <= LISTING_MAX_VENUE_METERS) && shareDistinctiveVenueWord(a, b)) return true;
+        }
+        // Ayni sanatci + ayni sehir + 6 saat icinde: tek konser (urun kurali). Istisna:
+        // ayni kaynagin iki gercek seansi (14:00 matine / 17:00 aksam, ek gosteri) ayri kalir.
+        return !distinctSessionsOfOneSource(a, b);
+    }
+
+    /** Ayni kaynak iki kaydi da gercek saatle veriyorsa bunlar ayri seanslardir. */
+    static boolean distinctSessionsOfOneSource(Event a, Event b) {
+        return a.getSource() != null && a.getSource() == b.getSource()
+                && !isUnknownTime(a) && !isUnknownTime(b);
+    }
+
+    /** Kaynaklar saati bilinmeyen konseri gece yarisina yazar; 00:00 "saat yok" sayilir. */
+    static boolean isUnknownTime(Event e) {
+        return e.getEventDate() != null && e.getEventDate().toLocalTime().equals(java.time.LocalTime.MIDNIGHT);
+    }
+
+    /**
+     * Listede gosterilecek kaydi secer: saati bilinen kayit, gece yarisina yazilmis
+     * (saati bilinmeyen) kopyadan once gelir; gerisi birlestirme kuraliyla ayni.
+     */
+    Event chooseForListing(Event a, Event b) {
+        boolean aUnknown = isUnknownTime(a);
+        boolean bUnknown = isUnknownTime(b);
+        if (aUnknown && !bUnknown) return b;
+        if (bUnknown && !aUnknown) return a;
+        return mergeService.chooseCanonical(a, b);
     }
 
     /** Mekan adinda yeri belirtmeyen dolgu kelimeler (tur kelimeleri "acikhava", "arena" gibi KALIR). */

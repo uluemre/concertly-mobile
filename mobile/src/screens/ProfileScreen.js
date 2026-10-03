@@ -8,7 +8,6 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
-import { DOWNLOAD_URL, buildShareUrl, shareWithLink } from '../services/shareLinks';
 import EventCard from '../components/EventCard';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -135,11 +134,6 @@ export default function ProfileScreen({ navigation, route }) {
     }
   };
 
-  const handleInviteFriends = () => {
-    const msg = t('profile_invite_message');
-    // Davet linki profilime gider; uygulama yüklü değilse indirme sayfası açılır.
-    shareWithLink(msg, session.username ? buildShareUrl('user', session.username) : DOWNLOAD_URL);
-  };
 
   const handleLogout = () => {
     Alert.alert(t('profile_logout'), t('profile_logout_confirm'), [
@@ -285,28 +279,6 @@ export default function ProfileScreen({ navigation, route }) {
               </View>
             </View>
           </View>
-        </View>
-
-        {/* ARKADAŞINI DAVET ET */}
-        <View style={styles.inviteSection}>
-          <TouchableOpacity
-            onPress={handleInviteFriends}
-            activeOpacity={0.85}
-            accessibilityRole="button"
-            accessibilityLabel={`${t('profile_invite_title')}, ${t('share')}`}
-          >
-            <View style={styles.inviteCard}>
-              <Ionicons name="gift-outline" size={26} color={colors.primary} />
-              <View style={styles.inviteInfo}>
-                <Text style={styles.inviteTitle}>{t('profile_invite_title')}</Text>
-                <Text style={styles.inviteSub}>{t('profile_invite_sub')}</Text>
-              </View>
-              <View style={styles.inviteBadge}>
-                <Ionicons name="share-social-outline" size={14} color="#fff" />
-                <Text style={styles.inviteBadgeText}>{t('share')}</Text>
-              </View>
-            </View>
-          </TouchableOpacity>
         </View>
 
         {/* OYUN BAŞARILARI */}
@@ -833,24 +805,6 @@ function createStyles(colors) {
     shortcutGradient: { padding: 16, minHeight: 96, justifyContent: 'space-between' },
     shortcutEmoji: { fontSize: 26, marginBottom: 8 },
     shortcutTitle: { color: '#fff', fontSize: 14, fontWeight: '800' },
-
-    // ARKADAŞINI DAVET ET
-    inviteSection: { paddingHorizontal: 16, marginTop: 12 },
-    inviteCard: {
-      borderRadius: 16, padding: 14, flexDirection: 'row',
-      alignItems: 'center', justifyContent: 'space-between', gap: 12,
-      backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
-    },
-    inviteInfo: { flex: 1 },
-    inviteTitle: { color: colors.text, fontSize: 14, fontWeight: '800', marginBottom: 2 },
-    inviteSub: { color: colors.textSecondary, fontSize: 11, lineHeight: 15 },
-    // Marka renginin üstündeki yazı/ikon her iki temada da beyaz
-    inviteBadge: {
-      flexDirection: 'row', alignItems: 'center', gap: 6,
-      backgroundColor: colors.primary,
-      paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12,
-    },
-    inviteBadgeText: { color: '#fff', fontSize: 12, fontWeight: '800' },
 
     // LOGOUT
     logoutArea: { padding: 16, paddingBottom: 32 },

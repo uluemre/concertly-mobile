@@ -116,6 +116,40 @@ export default function MapScreen({ navigation }) {
     return eventsWithDistance.filter(e => e.distanceKm !== null && e.distanceKm <= selectedRadius);
   }, [eventsWithDistance, selectedRadius]);
 
+  // Mekân başına TEK işaretçi. Eskiden her etkinlik ayrı, özel görünümlü bir işaretçiydi:
+  // ~1300 etkinlik / ~300 mekânda iOS her karede hepsini yeniden çizip haritayı donduruyordu.
+  const venueGroups = useMemo(() => {
+    const byVenue = new Map();
+    for (const e of filteredEvents) {
+      const key = `${Number(e.venueLatitude).toFixed(5)},${Number(e.venueLongitude).toFixed(5)}`;
+      let g = byVenue.get(key);
+      if (!g) {
+        g = { key, latitude: e.venueLatitude, longitude: e.venueLongitude, events: [] };
+        byVenue.set(key, g);
+      }
+      g.events.push(e);
+    }
+    for (const g of byVenue.values()) {
+      g.events.sort((a, b) => parseEventDate(a.eventDate) - parseEventDate(b.eventDate));
+    }
+    return [...byVenue.values()];
+  }, [filteredEvents]);
+
+  // Özel işaretçiler ilk çizimde birkaç an izlenir (ikon yazı tipi otursun), sonra
+  // donmuş görüntü olarak kalır — kaydırma/yakınlaştırma akıcı olur.
+  const [trackMarkers, setTrackMarkers] = useState(true);
+  useEffect(() => {
+    setTrackMarkers(true);
+    const timer = setTimeout(() => setTrackMarkers(false), 800);
+    return () => clearTimeout(timer);
+  }, [venueGroups]);
+
+  const venueKeyOf = (e) => e && `${Number(e.venueLatitude).toFixed(5)},${Number(e.venueLongitude).toFixed(5)}`;
+  const selectedVenueKey = venueKeyOf(selectedEvent);
+  const selectedVenueCount = selectedEvent
+    ? (venueGroups.find(g => g.key === selectedVenueKey)?.events.length || 1)
+    : 0;
+
   const nearbySorted = useMemo(() => {
     if (!userLocation) return filteredEvents;
     return [...filteredEvents].sort((a, b) => (a.distanceKm ?? 9999) - (b.distanceKm ?? 9999));
@@ -220,17 +254,30 @@ export default function MapScreen({ navigation }) {
           />
         )}
 
-        {filteredEvents.map(event => {
-          const color = getMarkerColor(event.genre);
-          const isSelected = selectedEvent?.id === event.id;
+        {venueGroups.map(group => {
+          const first = group.events[0];
+          const color = getMarkerColor(first.genre);
+          const isSelected = selectedVenueKey === group.key;
           return (
             <Marker
-              key={event.id}
-              coordinate={{ latitude: event.venueLatitude, longitude: event.venueLongitude }}
-              onPress={() => handleMarkerPress(event)}
+              // Seçim değişince işaretçi yeniden çizilsin (izleme kapalıyken stil güncellenmez)
+              key={isSelected ? `${group.key}-sel` : group.key}
+              coordinate={{ latitude: group.latitude, longitude: group.longitude }}
+              onPress={() => handleMarkerPress(first)}
+              tracksViewChanges={trackMarkers || isSelected}
             >
-              <View style={[styles.marker, isSelected && styles.markerSelected, { borderColor: color }]}>
-                <Ionicons name="musical-notes" size={18} color={color} />
+              {/* Dış kutu sayı rozetini de kapsar: işaretçi görüntüsü kutu sınırında kırpılır */}
+              <View style={styles.markerWrap}>
+                <View style={[styles.marker, isSelected && styles.markerSelected, { borderColor: color }]}>
+                  <Ionicons name="musical-notes" size={18} color={color} />
+                </View>
+                {group.events.length > 1 && (
+                  <View style={[styles.markerCount, { backgroundColor: color }]}>
+                    <Text style={styles.markerCountText}>
+                      {group.events.length > 99 ? '99+' : group.events.length}
+                    </Text>
+                  </View>
+                )}
               </View>
             </Marker>
           );
@@ -272,6 +319,19 @@ export default function MapScreen({ navigation }) {
                   </Text>
                 </View>
               )}
+              {selectedVenueCount > 1 && !!selectedEvent.venueId && (
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('VenueProfile', { venueId: selectedEvent.venueId, venueName: selectedEvent.venueName })}
+                  style={[styles.subRow, { marginTop: 6 }]}
+                  accessibilityRole="link"
+                >
+                  <Ionicons name="calendar-outline" size={13} color={colors.primary} />
+                  <Text style={[styles.bottomCardDistance, { marginTop: 0 }]}>
+                    {t('map_venue_events', { count: selectedVenueCount })}
+                  </Text>
+                  <Ionicons name="chevron-forward" size={13} color={colors.primary} />
+                </TouchableOpacity>
+              )}
             </View>
           </View>
 
@@ -279,6 +339,7 @@ export default function MapScreen({ navigation }) {
             style={[styles.bottomCardBtn, { backgroundColor: getMarkerColor(selectedEvent.genre) }]}
             onPress={() => openEvent(navigation, selectedEvent)}
             activeOpacity={0.85}
+            accessibilityRole="button"
           >
             <Text style={styles.bottomCardBtnText}>{t('map_details')}</Text>
           </TouchableOpacity>
@@ -375,6 +436,14 @@ function createStyles(colors) {
       borderWidth: 3,
     },
     subRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 3 },
+    markerWrap: { width: 58, height: 54, alignItems: 'center', justifyContent: 'center' },
+    markerCount: {
+      position: 'absolute', top: 0, right: 0,
+      minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 4,
+      alignItems: 'center', justifyContent: 'center',
+      borderWidth: 1.5, borderColor: '#fff',
+    },
+    markerCountText: { color: '#fff', fontSize: 10, fontWeight: '800' },
     subText: { marginBottom: 0, flexShrink: 1 },
 
     bottomCard: {

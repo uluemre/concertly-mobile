@@ -13,6 +13,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { LAUNCH_CITIES } from '../constants/cities';
 import { goBackOrFallback } from '../navigation/navHelpers';
+import { DOWNLOAD_URL, buildShareUrl, shareWithLink } from '../services/shareLinks';
 import { isValidUsername, normalizeUsername } from '../utils/username';
 import { isValidEmail } from '../utils/email';
 
@@ -625,6 +626,25 @@ export default function SettingsScreen({ navigation, route }) {
             </TouchableOpacity>
           )}
         </View>
+
+        {/* Arkadaşını davet et: eskiden profilin üstünde büyük bir karttı; burada sade bir satır */}
+        <TouchableOpacity
+          style={[styles.privacyRow, { marginTop: 12 }]}
+          onPress={() => shareWithLink(
+            t('profile_invite_message'),
+            // Davet linki profilime gider; uygulama yüklü değilse indirme sayfası açılır
+            session.username ? buildShareUrl('user', session.username) : DOWNLOAD_URL,
+          )}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityHint={t('profile_invite_sub')}
+        >
+          <View style={styles.rowLead}>
+            <Ionicons name="gift-outline" size={18} color={colors.textSecondary} />
+            <Text style={styles.privacyRowText}>{t('profile_invite_title')}</Text>
+          </View>
+          <Ionicons name="share-outline" size={18} color={colors.textSecondary} />
+        </TouchableOpacity>
 
         <Text style={styles.sectionTitle}>{tu('settings_legal_section')}</Text>
         <TouchableOpacity

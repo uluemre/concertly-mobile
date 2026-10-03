@@ -149,22 +149,6 @@ export default function HomeScreen({ navigation }) {
   }, [events, search, followedArtistIds]);
 
   // Bu hafta sonu: Cuma 00:00 – Pazar 23:59 (hafta sonundaysak bugünden itibaren)
-  const weekendEvents = useMemo(() => {
-    const now = new Date();
-    const day = now.getDay();                       // 0 Pazar … 5 Cuma, 6 Cumartesi
-    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    if (day >= 1 && day <= 4) start.setDate(start.getDate() + (5 - day));
-    const end = new Date(start);
-    end.setDate(end.getDate() + ((7 - start.getDay()) % 7));
-    end.setHours(23, 59, 59, 999);
-    return filteredEvents
-      .filter(e => {
-        const d = parseEventDate(e.eventDate);
-        return d >= now && d >= start && d <= end;
-      })
-      .sort((a, b) => parseEventDate(a.eventDate) - parseEventDate(b.eventDate))
-      .slice(0, 12);
-  }, [filteredEvents]);
 
   // Takip edilen sanatçıların yaklaşan konserleri
   const followedEvents = useMemo(
@@ -310,14 +294,8 @@ export default function HomeScreen({ navigation }) {
           )}
         </View>
 
-        {/* BU HAFTA SONU + TAKİP ETTİKLERİN (boşsa görünmez) */}
-        <EventRail
-          title={t('home_weekend')}
-          accent={colors.secondary}
-          events={weekendEvents}
-          onPressEvent={handleNavigateToEvent}
-          onSeeAll={() => navigation.navigate('MainApp', { screen: 'Events' })}
-        />
+        {/* TAKİP ETTİKLERİN (boşsa görünmez). "Bu hafta sonu" rayı Öne çıkanlar ile
+            aynı konserleri tekrarladığı için kaldırıldı. */}
         <EventRail
           title={t('home_followed_artists')}
           accent={colors.purple}
@@ -364,23 +342,20 @@ export default function HomeScreen({ navigation }) {
               <View style={[styles.sectionAccent, { backgroundColor: colors.secondary }]} />
               <Text style={styles.sectionTitle}>{t('home_trend_posts')}</Text>
             </View>
+            <TouchableOpacity onPress={() => navigation.navigate('FeedTab')} style={styles.seeAllBtn} accessibilityRole="button">
+              <Text style={[styles.seeAllText, { color: colors.primary }]}>{t('home_see_all_btn')}</Text>
+            </TouchableOpacity>
           </View>
           {filteredPosts.length === 0 ? (
             <View style={styles.emptyState}>
               <Ionicons name="chatbubbles-outline" size={44} color={colors.textSecondary} style={styles.emptyIcon} />
               <Text style={styles.emptyText}>{t('home_no_posts')}</Text>
-              <TouchableOpacity style={styles.moreBtn} onPress={() => navigation.navigate('FeedTab')} accessibilityRole="button">
-                <Text style={styles.moreBtnText}>{t('home_see_all_posts')}</Text>
-              </TouchableOpacity>
             </View>
           ) : (
             <>
               {filteredPosts.slice(0, 4).map((item, index) => (
                 <HomePostCard key={`post-${item.id}`} item={item} index={index} navigation={navigation} />
               ))}
-              <TouchableOpacity style={styles.moreBtn} onPress={() => navigation.navigate('FeedTab')} accessibilityRole="button">
-                <Text style={styles.moreBtnText}>{t('home_see_all_posts')}</Text>
-              </TouchableOpacity>
             </>
           )}
         </View>
@@ -469,8 +444,6 @@ function createStyles(colors) {
     seeAllBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, backgroundColor: colors.cardAlt, borderWidth: 1, borderColor: colors.border },
     seeAllText: { fontSize: 13, fontWeight: '700' },
     featuredList: { paddingRight: 20, gap: 14, paddingBottom: 4 },
-    moreBtn: { marginTop: 4, paddingVertical: 14, borderRadius: 14, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, alignItems: 'center' },
-    moreBtnText: { color: colors.textSecondary, fontSize: 13, fontWeight: '700' },
     dailyWidget: {
       marginHorizontal: 16, marginTop: 22, marginBottom: 4, borderRadius: 16, overflow: 'hidden',
       backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,

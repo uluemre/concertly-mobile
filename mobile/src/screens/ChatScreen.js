@@ -1,8 +1,9 @@
-import React, { useState, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, FlatList, TextInput,
-  ActivityIndicator, KeyboardAvoidingView, Platform, Image, Alert, AppState,
+  ActivityIndicator, KeyboardAvoidingView, Platform, Image, Alert, AppState, Keyboard,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../theme';
@@ -29,6 +30,15 @@ export default function ChatScreen({ navigation, route }) {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState('');
+  const insets = useSafeAreaInsets();
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  useEffect(() => {
+    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const shown = Keyboard.addListener(showEvt, () => setKeyboardOpen(true));
+    const hidden = Keyboard.addListener(hideEvt, () => setKeyboardOpen(false));
+    return () => { shown.remove(); hidden.remove(); };
+  }, []);
   const [sending, setSending] = useState(false);
   const pollRef = useRef(null);
 
@@ -139,6 +149,11 @@ export default function ChatScreen({ navigation, route }) {
     );
   };
 
+  const canSend = !!text.trim() && !sending;
+  // Klavye kapalıyken alt çubuk iPhone'un alt çizgisinin (home indicator) üstünde dursun;
+  // klavye açıkken bu boşluk gereksiz (klavye zaten altta).
+  const composerBottom = keyboardOpen ? 8 : Math.max(insets.bottom, 10);
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -201,30 +216,36 @@ export default function ChatScreen({ navigation, route }) {
         />
       )}
 
-      {/* INPUT */}
-      <View style={[styles.inputBar, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
-        <TextInput
-          style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
-          placeholder={t('chat_placeholder')}
-          placeholderTextColor={colors.textSecondary}
-          value={text}
-          onChangeText={setText}
-          multiline
-          maxLength={1000}
-        />
-        <TouchableOpacity
-          onPress={handleSend}
-          disabled={!text.trim() || sending}
-          activeOpacity={0.8}
-          accessibilityRole="button"
-          accessibilityLabel={t('send')}
-        >
-          <View style={[styles.sendBtn, { backgroundColor: text.trim() ? colors.primary : colors.cardAlt }]}>
+      {/* MESAJ YAZMA ALANI: tek hap biçimli kutu, gönder butonu kutunun içinde */}
+      <View style={[styles.inputBar, { backgroundColor: colors.background, paddingBottom: composerBottom }]}>
+        <View style={[styles.composer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <TextInput
+            style={[styles.input, { color: colors.text }]}
+            placeholder={t('chat_placeholder')}
+            placeholderTextColor={colors.textSecondary}
+            value={text}
+            onChangeText={setText}
+            multiline
+            maxLength={1000}
+            accessibilityLabel={t('chat_placeholder')}
+          />
+          <TouchableOpacity
+            onPress={handleSend}
+            disabled={!canSend}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={t('send')}
+            accessibilityState={{ disabled: !canSend, busy: sending }}
+            style={[styles.sendBtn, { backgroundColor: text.trim() ? colors.primary : 'transparent' }]}
+          >
             {sending
               ? <ActivityIndicator size="small" color="#fff" />
-              : <Ionicons name="send" size={17} color={text.trim() ? '#fff' : colors.textSecondary} />}
-          </View>
-        </TouchableOpacity>
+              : <Ionicons name="arrow-up" size={20} color={text.trim() ? '#fff' : colors.textSecondary} />}
+          </TouchableOpacity>
+        </View>
+        {text.length > 900 && (
+          <Text style={[styles.counter, { color: colors.textSecondary }]}>{text.length}/1000</Text>
+        )}
       </View>
     </KeyboardAvoidingView>
   );
@@ -265,18 +286,21 @@ function createStyles(colors) {
     empty: { paddingVertical: 60, alignItems: 'center' },
     emptyText: { fontSize: 15 },
 
-    inputBar: {
-      flexDirection: 'row', alignItems: 'flex-end', gap: 10,
-      paddingHorizontal: 14, paddingVertical: 10, borderTopWidth: 1,
+    inputBar: { paddingHorizontal: 12, paddingTop: 8 },
+    composer: {
+      flexDirection: 'row', alignItems: 'flex-end',
+      borderWidth: 1, borderRadius: 24,
+      paddingLeft: 16, paddingRight: 5, paddingVertical: 5,
     },
     input: {
-      flex: 1, borderWidth: 1, borderRadius: 22,
-      paddingHorizontal: 16, paddingVertical: 10,
-      fontSize: 14.5, maxHeight: 110,
+      flex: 1, fontSize: 15, lineHeight: 20,
+      paddingTop: Platform.OS === 'ios' ? 8 : 6, paddingBottom: Platform.OS === 'ios' ? 8 : 6,
+      maxHeight: 120,
     },
     sendBtn: {
-      width: 44, height: 44, borderRadius: 22,
+      width: 36, height: 36, borderRadius: 18, marginLeft: 6,
       justifyContent: 'center', alignItems: 'center',
     },
+    counter: { fontSize: 11, textAlign: 'right', marginTop: 4, marginRight: 6 },
   });
 }

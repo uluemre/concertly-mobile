@@ -1,9 +1,8 @@
-// Kimlik doğrulama ekranlarının ortak iskeleti: degrade arka plan, safe area,
+// Kimlik doğrulama ekranlarının ortak iskeleti: düz arka plan, safe area,
 // klavye açıkken kaydırılabilir içerik, isteğe bağlı geri butonu ve başlık alanı.
 import React, { useMemo } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Image,
-  KeyboardAvoidingView, Platform,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,16 +20,18 @@ export default function AuthLayout({
 
   return (
     <View style={styles.container}>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+      {/* Klavye: KeyboardAvoidingView YOK. Eskiden klavye açılınca kapsayıcı küçülüyor,
+          ortalanmış içerik yeniden ortalanıyor ve iOS aynı anda odaktaki kutuya kaydırıyordu;
+          iki hareket üst üste binip kutu "kayıyordu". Artık yalnızca ScrollView'ın içerik
+          boşluğu klavye kadar büyür (iOS) ve sistem odaktaki kutuyu tek hareketle görünür
+          yapar; Android'de pencere zaten klavyeye göre yeniden boyutlanır (adjustResize). */}
         <ScrollView
           style={styles.flex}
           contentContainerStyle={[
             styles.scroll,
             { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 24 },
           ]}
+          automaticallyAdjustKeyboardInsets
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
           showsVerticalScrollIndicator={false}
@@ -76,7 +77,6 @@ export default function AuthLayout({
 
           {footer ? <View style={styles.footer}>{footer}</View> : null}
         </ScrollView>
-      </KeyboardAvoidingView>
     </View>
   );
 }

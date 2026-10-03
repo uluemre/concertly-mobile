@@ -163,11 +163,11 @@ class ConcertGroupingTest {
                 EventSource.TICKETMASTER, null);
         Event d = event(8886, "Dan Patlansky", "Kulüp Müjgan", "Ankara", "2026-10-20T22:00",
                 EventSource.TICKETMASTER, null);
-        // Tur kelimesi farkli: "Arena" / "Acikhava"
+        // Tur kelimesi farkli: "Arena" / "Acikhava" — ayni kaynak, ikisi de gercek saat (belirsiz)
         Event e = event(601, "Test Sanatci", "Ankara Arena", "Ankara", "2026-10-20T21:00",
                 EventSource.TICKETMASTER, null);
         Event f = event(602, "Test Sanatci", "Ankara Açıkhava Tiyatrosu", "Ankara", "2026-10-20T21:00",
-                EventSource.BILETINIAL, null);
+                EventSource.TICKETMASTER, null);
         // Farkli sanatci ayni mekan ayni saat: ayri
         Event h = event(603, "Baska Sanatci", "Oran Açık Hava Sahnesi", "Ankara", "2026-09-29T21:00",
                 EventSource.BILETINIAL, null);
@@ -183,18 +183,18 @@ class ConcertGroupingTest {
     }
 
     @Test
-    void withTimeGapOrDifferentBranchesStaysSeparate() {
-        // Ortak ayirt edici kelime var ama 2 saat fark: ayri seans olabilir
+    void sameSourceSessionsWithTimeGapOrDifferentBranchesStaySeparate() {
+        // Ayni kaynak, iki gercek saat (2 saat fark): ayri seans
         Event early = event(9437, "Kadebostany", "Volkswagen Arena Maslak", "İstanbul", "2026-10-02T20:00",
-                EventSource.BILETINIAL, null);
+                EventSource.TICKETMASTER, null);
         Event late = event(7886, "Kadebostany", "Maslak Volkswagen Sahnesi", "İstanbul", "2026-10-02T22:00",
                 EventSource.TICKETMASTER, null);
 
-        // Ortak kelime var ama salonlar 1 km'den uzak: ayni zincirin baska subesi
+        // Ayni kaynakta iki sube ayni saatte: belirsiz, birlestirilmez
         Event jjA = event(501, "Mabel Matiz", "Jolly Joker Atakent", "İstanbul", "2026-10-05T21:00",
                 EventSource.TICKETMASTER, null);
         Event jjB = event(502, "Mabel Matiz", "Jolly Joker Kadıköy", "İstanbul", "2026-10-05T21:00",
-                EventSource.BILETINIAL, null);
+                EventSource.TICKETMASTER, null);
         jjA.getVenue().setLatitude(41.02);
         jjA.getVenue().setLongitude(28.66);
         jjB.getVenue().setLatitude(40.99);
@@ -204,6 +204,37 @@ class ConcertGroupingTest {
 
         assertNotSame(g.get(9437L), g.get(7886L));
         assertNotSame(g.get(501L), g.get(502L));
+    }
+
+    @Test
+    void sameArtistSameCityWithinSixHoursIsOneConcertPreferringTheKnownTime() {
+        // Gercek veri: Gulsen, Oran Acikhava — Biletinial'da 21:00 ve saati bilinmeyen 00:00 kaydi
+        Event known = event(9563, "Gülşen", "Oran Açık Hava Sahnesi", "Ankara", "2026-10-04T21:00",
+                EventSource.BILETINIAL, null);
+        Event midnight = event(10127, "Gülşen", "Oran Açık Hava Sahnesi", "Ankara", "2026-10-05T00:00",
+                EventSource.BILETINIAL, null);
+        Event bubilet = event(10412, "Gülşen", "Oran Açık Hava Sahnesi", "Ankara", "2026-10-04T21:00",
+                EventSource.BUBILET, null);
+        // Farkli kaynaklar 3 saat farkla: tek konser
+        Event a = event(701, "Kadebostany", "Volkswagen Arena Maslak", "İstanbul", "2026-10-02T20:00",
+                EventSource.BILETINIAL, null);
+        Event b = event(702, "Kadebostany", "Maslak Volkswagen Sahnesi", "İstanbul", "2026-10-02T23:00",
+                EventSource.TICKETMASTER, null);
+        // 6 saatten uzak: ayri konser
+        Event c = event(703, "Kadebostany", "Volkswagen Arena Maslak", "İstanbul", "2026-10-03T06:30",
+                EventSource.BUBILET, null);
+
+        Map<Long, ConcertGrouping.Group> g = grouping.group(List.of(midnight, known, bubilet, a, b, c));
+
+        assertSame(g.get(9563L), g.get(10127L));
+        assertSame(g.get(9563L), g.get(10412L));
+        assertNotEquals(10127L, g.get(10127L).canonical().getId(), "saati bilinen kayit gosterilir");
+        assertSame(g.get(701L), g.get(702L));
+        assertNotSame(g.get(702L), g.get(703L));
+
+        List<Event> collapsed = grouping.collapse(List.of(known, midnight));
+        assertEquals(List.of(9563L), collapsed.stream().map(Event::getId).toList());
+        assertTrue(grouping.toleranceMinutes() >= 360, "pencere sorgusu 6 saati kapsamali");
     }
 
     @Test
