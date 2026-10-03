@@ -153,8 +153,8 @@ class ConcertGroupingTest {
     }
 
     @Test
-    void differentVenuesAtTheSameTimeStaySeparate() {
-        // Gercek veri: ayni sanatci ayni saatte ama tamamen farkli mekanlar (belirsiz; birlestirilmez)
+    void sameArtistAtTheSameTimeInTwoVenuesIsOneConcert() {
+        // Gercek veri: ayni sanatci ayni saatte iki farkli mekanda — olamaz, tek konser gosterilir
         Event a = event(7682, "Pentegram", "Bostancı Showland", "İstanbul", "2026-11-08T21:00",
                 EventSource.TICKETMASTER, null);
         Event b = event(9815, "Pentegram", "Harbiye Cemil Topuzlu Açıkhava Tiyatrosu", "İstanbul", "2026-11-08T21:00",
@@ -176,21 +176,21 @@ class ConcertGroupingTest {
 
         Map<Long, ConcertGrouping.Group> g = grouping.group(List.of(a, b, c, d, e, f, h, i));
 
-        assertNotSame(g.get(7682L), g.get(9815L));
-        assertNotSame(g.get(7653L), g.get(8886L));
-        assertNotSame(g.get(601L), g.get(602L));
-        assertNotSame(g.get(603L), g.get(604L));
+        assertSame(g.get(7682L), g.get(9815L));
+        assertSame(g.get(7653L), g.get(8886L), "Dan Patlansky ayni anda iki mekanda olamaz");
+        assertSame(g.get(601L), g.get(602L));
+        assertNotSame(g.get(603L), g.get(604L), "farkli sanatcilar ayri kalir");
     }
 
     @Test
-    void sameSourceSessionsWithTimeGapOrDifferentBranchesStaySeparate() {
-        // Ayni kaynak, iki gercek saat (2 saat fark): ayri seans
+    void sameVenueSessionsStaySeparateButTwoBranchesAtTheSameTimeAreOne() {
+        // Ayni kaynak, ayni mekan (iki yazim), iki gercek saat (2 saat fark): ayri seans
         Event early = event(9437, "Kadebostany", "Volkswagen Arena Maslak", "İstanbul", "2026-10-02T20:00",
                 EventSource.TICKETMASTER, null);
         Event late = event(7886, "Kadebostany", "Maslak Volkswagen Sahnesi", "İstanbul", "2026-10-02T22:00",
                 EventSource.TICKETMASTER, null);
 
-        // Ayni kaynakta iki sube ayni saatte: belirsiz, birlestirilmez
+        // Ayni sanatci ayni saatte iki subede olamaz: tek konser
         Event jjA = event(501, "Mabel Matiz", "Jolly Joker Atakent", "İstanbul", "2026-10-05T21:00",
                 EventSource.TICKETMASTER, null);
         Event jjB = event(502, "Mabel Matiz", "Jolly Joker Kadıköy", "İstanbul", "2026-10-05T21:00",
@@ -202,8 +202,8 @@ class ConcertGroupingTest {
 
         Map<Long, ConcertGrouping.Group> g = grouping.group(List.of(early, late, jjA, jjB));
 
-        assertNotSame(g.get(9437L), g.get(7886L));
-        assertNotSame(g.get(501L), g.get(502L));
+        assertNotSame(g.get(9437L), g.get(7886L), "ayni mekanda iki seans");
+        assertSame(g.get(501L), g.get(502L));
     }
 
     @Test
@@ -235,6 +235,33 @@ class ConcertGroupingTest {
         List<Event> collapsed = grouping.collapse(List.of(known, midnight));
         assertEquals(List.of(9563L), collapsed.stream().map(Event::getId).toList());
         assertTrue(grouping.toleranceMinutes() >= 360, "pencere sorgusu 6 saati kapsamali");
+    }
+
+    @Test
+    void differentlyWrittenArtistAtTheSameTimeIsOneConcertShowingTheVerifiedSource() {
+        // Gercek veri: Ticketmaster "Ahmet Ihvani" / Biletinial "Ahmet Aslan ve Ahmet Ihvani Konserleri"
+        Event tm = event(8878, "Ahmet Ihvani", "Çankaya Belediyesi Atatürk Sanat Merkezi", "Ankara",
+                "2026-10-17T20:30", EventSource.TICKETMASTER, null);
+        tm.setName("Ahmet Aslan & Ahmet İhvani");
+        Event bi = event(10076, "Ahmet Aslan ve Ahmet İhvani Konserleri", "ASM-Mavi Salon", "Ankara",
+                "2026-10-17T20:30", EventSource.BILETINIAL, null);
+        bi.setIsVerified(true);
+        // Tek ortak kelime ("Ahmet") yetmez: farkli sanatci ayri kalir
+        Event other = event(900, "Ahmet Kaya Anma", "Başka Salon", "Ankara", "2026-10-17T20:30",
+                EventSource.BUBILET, null);
+        // Ayni sanatci farkli yazim ama 2 saat fark: esnek eslesme yalnizca ayni an icin
+        Event later = event(901, "Ahmet Aslan ve Ahmet İhvani Konserleri", "Başka Salon", "Ankara",
+                "2026-10-17T22:30", EventSource.BUBILET, null);
+
+        Map<Long, ConcertGrouping.Group> g = grouping.group(List.of(tm, bi, other));
+
+        assertSame(g.get(8878L), g.get(10076L));
+        assertEquals(10076L, g.get(8878L).canonical().getId(), "dogrulanmis kaynak gosterilir");
+        assertNotSame(g.get(8878L), g.get(900L));
+
+        // Esnek ad eslesmesi yalnizca ayni an icin (aradaki kayit olmadan)
+        Map<Long, ConcertGrouping.Group> g2 = grouping.group(List.of(tm, later));
+        assertNotSame(g2.get(8878L), g2.get(901L));
     }
 
     @Test

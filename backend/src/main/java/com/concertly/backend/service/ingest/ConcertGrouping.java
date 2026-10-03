@@ -163,26 +163,74 @@ public class ConcertGrouping {
         if (a.getEventDate() == null || b.getEventDate() == null) return false;
         long minutes = Math.abs(java.time.Duration.between(a.getEventDate(), b.getEventDate()).toMinutes());
         if (minutes > ARTIST_CITY_WINDOW_MINUTES) return false;
-        String artist = EventMatcher.artistKey(a);
-        if (artist.isEmpty() || !artist.equals(EventMatcher.artistKey(b))) return false;
         if (a.getVenue() == null || b.getVenue() == null) return false;
         String city = EventMatcher.normalize(a.getVenue().getCity());
         if (city.isEmpty() || !city.equals(EventMatcher.normalize(b.getVenue().getCity()))) return false;
+
+        String artist = EventMatcher.artistKey(a);
+        boolean sameArtist = !artist.isEmpty() && artist.equals(EventMatcher.artistKey(b));
+        if (!sameArtist) {
+            // Kaynaklar sanatciyi farkli yazabiliyor ("Ahmet Ihvani" / "Ahmet Aslan ve Ahmet
+            // Ihvani Konserleri"): ayni anda (30 dk) ve sanatci kelimeleri digerinde geciyorsa tek konser
+            return minutes <= LISTING_MAX_MINUTES && samePerformerLoose(a, b);
+        }
 
         if (minutes <= LISTING_MAX_MINUTES) {
             if (sameVenueName(a, b, city)) return true;
             Double meters = distance(a, b);
             if ((meters == null || meters <= LISTING_MAX_VENUE_METERS) && shareDistinctiveVenueWord(a, b)) return true;
         }
-        // Ayni sanatci + ayni sehir + 6 saat icinde: tek konser (urun kurali). Istisna:
-        // ayni kaynagin iki gercek seansi (14:00 matine / 17:00 aksam, ek gosteri) ayri kalir.
-        return !distinctSessionsOfOneSource(a, b);
+        // Ayni sanatci + ayni sehir + 6 saat icinde: tek konser (urun kurali). Ayni sanatci ayni
+        // anda iki mekanda olamaz. Istisna: ayni kaynagin AYNI mekandaki iki gercek seansi
+        // (14:00 matine / 17:00 aksam, ek gosteri) ayri kalir.
+        return !distinctSessionsOfOneSource(a, b, city, minutes);
     }
 
-    /** Ayni kaynak iki kaydi da gercek saatle veriyorsa bunlar ayri seanslardir. */
-    static boolean distinctSessionsOfOneSource(Event a, Event b) {
-        return a.getSource() != null && a.getSource() == b.getSource()
-                && !isUnknownTime(a) && !isUnknownTime(b);
+    /** Ayri seans: ayni kaynak, ayni mekan, iki gercek saat ve en az 1 saat ara. */
+    static boolean distinctSessionsOfOneSource(Event a, Event b, String city, long minutesApart) {
+        if (a.getSource() == null || a.getSource() != b.getSource()) return false;
+        if (isUnknownTime(a) || isUnknownTime(b)) return false;
+        if (minutesApart < SEPARATE_SESSION_MIN_MINUTES) return false;
+        if (sameVenueName(a, b, city)) return true;
+        Double meters = distance(a, b);
+        return meters != null && meters <= LISTING_MAX_VENUE_METERS;
+    }
+
+    /** Ayni mekanda iki ayri seans en az bu kadar arayla olur. */
+    static final long SEPARATE_SESSION_MIN_MINUTES = 60;
+
+    /** Sanatci adinda ayirt edici olmayan kelimeler (esnek sanatci eslesmesi icin). */
+    private static final java.util.Set<String> PERFORMER_FILLER = java.util.Set.of(
+            "ve", "and", "ile", "feat", "ft", "x", "konser", "konseri", "konserleri", "concert", "concerts",
+            "live", "canli", "tour", "turnesi", "ozel", "special", "gecesi", "show", "sov", "grup", "band");
+
+    private static java.util.Set<String> performerTokens(String text) {
+        java.util.Set<String> out = new java.util.LinkedHashSet<>();
+        for (String w : EventMatcher.normalize(text).split(" ")) {
+            if (w.length() >= 2 && !PERFORMER_FILLER.contains(w)) out.add(w);
+        }
+        return out;
+    }
+
+    /**
+     * Sanatci adlari birebir tutmasa da ayni performans mi? Bir kaydin sanatci kelimeleri
+     * (en az iki kelime ya da tek ama 5+ harfli bir kelime) diger kaydin sanatci + etkinlik
+     * adinda geciyorsa evet. Yalnizca ayni sehirde, ayni anda (30 dk) kullanilir.
+     */
+    static boolean samePerformerLoose(Event a, Event b) {
+        String artistA = a.getArtist() != null ? a.getArtist().getName() : null;
+        String artistB = b.getArtist() != null ? b.getArtist().getName() : null;
+        java.util.Set<String> pa = performerTokens(artistA);
+        java.util.Set<String> pb = performerTokens(artistB);
+        java.util.Set<String> allA = new java.util.HashSet<>(pa);
+        allA.addAll(performerTokens(a.getName()));
+        java.util.Set<String> allB = new java.util.HashSet<>(pb);
+        allB.addAll(performerTokens(b.getName()));
+        return (distinctive(pa) && allB.containsAll(pa)) || (distinctive(pb) && allA.containsAll(pb));
+    }
+
+    private static boolean distinctive(java.util.Set<String> tokens) {
+        return tokens.size() >= 2 || (tokens.size() == 1 && tokens.iterator().next().length() >= 5);
     }
 
     /** Kaynaklar saati bilinmeyen konseri gece yarisina yazar; 00:00 "saat yok" sayilir. */
@@ -191,10 +239,15 @@ public class ConcertGrouping {
     }
 
     /**
-     * Listede gosterilecek kaydi secer: saati bilinen kayit, gece yarisina yazilmis
-     * (saati bilinmeyen) kopyadan once gelir; gerisi birlestirme kuraliyla ayni.
+     * Listede gosterilecek kaydi secer: dogrulanmis kayit, sonra saati bilinen kayit
+     * (gece yarisina yazilmis, saati bilinmeyen kopyadan once); gerisi birlestirme kuraliyla ayni.
      */
     Event chooseForListing(Event a, Event b) {
+        // Dogrulanmis kaynak (admin onayi / dogrulanmis organizator) once gelir
+        boolean aVerified = Boolean.TRUE.equals(a.getIsVerified());
+        boolean bVerified = Boolean.TRUE.equals(b.getIsVerified());
+        if (aVerified && !bVerified) return a;
+        if (bVerified && !aVerified) return b;
         boolean aUnknown = isUnknownTime(a);
         boolean bUnknown = isUnknownTime(b);
         if (aUnknown && !bUnknown) return b;
