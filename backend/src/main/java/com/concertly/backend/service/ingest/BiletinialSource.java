@@ -139,6 +139,10 @@ public class BiletinialSource {
     private RawConcertData toRaw(JsonNode event, String pageUrl) {
         LocalDateTime startsAt = toLocalDateTime(event.path("startDate").asText(null));
         if (startsAt == null) return null;
+        // Ertelenmis (yeni tarihi olmayan) seans alinmaz; iptal edilen seans iptal bayragiyla doner
+        String status = event.path("eventStatus").asText("");
+        if (status.endsWith("EventPostponed")) return null;
+        boolean cancelled = status.endsWith("EventCancelled");
 
         JsonNode location = event.path("location");
         JsonNode address = location.path("address");
@@ -165,7 +169,8 @@ public class BiletinialSource {
                 toDouble(geo.path("latitude")),
                 toDouble(geo.path("longitude")),
                 ticketUrl,
-                text(event.path("image")));
+                text(event.path("image")),
+                cancelled);
     }
 
     /**

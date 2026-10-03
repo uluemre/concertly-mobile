@@ -8,6 +8,8 @@ import com.concertly.backend.model.Venue;
 import com.concertly.backend.repository.ArtistRepository;
 import com.concertly.backend.repository.EventRepository;
 import com.concertly.backend.repository.VenueRepository;
+import com.concertly.backend.service.EventCancellationService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +36,10 @@ public class BiletinialRecordWriter {
     private final ArtistRepository artistRepository;
     private final VenueRepository venueRepository;
     private final EventSourceLinkService sourceLinks;
+
+    /** Kaynaktan gelen iptal bildirimi (alan enjeksiyonu: kurucuyu kullanan testler degismesin). */
+    @Autowired(required = false)
+    private EventCancellationService cancellation;
 
     public BiletinialRecordWriter(EventRepository eventRepository,
             ArtistRepository artistRepository,
@@ -62,6 +68,14 @@ public class BiletinialRecordWriter {
         Event event = sourceLinks.find(source, externalId)
                 .map(EventSourceLink::getEvent)
                 .orElseGet(() -> eventRepository.findByExternalId(externalId).orElse(null));
+
+        // Iptal edilmis seans: yeni kayit acilmaz; daha once alinmissa iptal olarak isaretlenir
+        if (raw.cancelled()) {
+            if (event != null && event.getMergedIntoEventId() == null && cancellation != null) {
+                cancellation.cancel(event);
+            }
+            return false;
+        }
 
         boolean isNew = event == null;
         if (isNew) {

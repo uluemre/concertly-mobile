@@ -33,7 +33,8 @@ public interface EventAttendanceRepository extends JpaRepository<EventAttendance
     /** Kullanıcının "gidiyorum" dediği, henüz bitmemiş konserler — en yakını önce. */
     @Query("SELECT ea FROM EventAttendance ea JOIN FETCH ea.event e " +
            "WHERE ea.user.id = :userId AND ea.status = 'GOING' AND e.eventDate >= :from " +
-           "AND e.mergedIntoEventId IS NULL ORDER BY e.eventDate ASC")
+           "AND e.mergedIntoEventId IS NULL " +
+           "AND (e.delistedReason IS NULL OR e.delistedReason <> 'CANCELLED') ORDER BY e.eventDate ASC")
     List<EventAttendance> findUpcomingGoing(@Param("userId") Long userId,
                                             @Param("from") LocalDateTime from,
                                             Pageable pageable);

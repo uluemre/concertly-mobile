@@ -29,6 +29,7 @@ public class ConcertResponse {
     private String ticketUrl;
     /** Kaynagi dogrulanmis etkinlik rozeti (bilet platformu ya da admin incelemesi). */
     private Boolean isVerified;
+    private boolean cancelled;
 
     private Long artistId;
     private String artistName;
@@ -66,6 +67,7 @@ public class ConcertResponse {
         dto.imageUrl = ImageUrls.usable(event.getImageUrl());
         dto.ticketUrl = event.getTicketUrl();
         dto.isVerified = event.getIsVerified();
+        dto.cancelled = com.concertly.backend.service.EventCancellationService.isCancelled(event);
 
         if (event.getArtist() != null) {
             dto.artistId = event.getArtist().getId();
@@ -220,6 +222,7 @@ public class ConcertResponse {
     public String getImageUrl() { return imageUrl; }
     public String getTicketUrl() { return ticketUrl; }
     public Boolean getIsVerified() { return isVerified; }
+    public boolean isCancelled() { return cancelled; }
     public Long getArtistId() { return artistId; }
     public String getArtistName() { return artistName; }
     public String getArtistImageUrl() { return artistImageUrl; }

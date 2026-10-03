@@ -51,17 +51,32 @@ class BubiletSourceTest {
     }
 
     @Test
-    void eachSessionIsSeparateAndCancelledIsSkipped() {
+    void eachSessionIsSeparateCancelledIsFlaggedAndPostponedIsSkipped() {
         String html = page(",\"subEvent\":["
                 + "{\"startDate\":\"2026-11-01T17:00:00+00:00\",\"offers\":{\"url\":\"x/seans/1\"}},"
                 + "{\"startDate\":\"2026-11-02T17:00:00+00:00\",\"offers\":{\"url\":\"x/seans/2\"}},"
-                + "{\"startDate\":\"2026-11-03T17:00:00+00:00\",\"eventStatus\":\"https://schema.org/EventCancelled\"}]");
+                + "{\"startDate\":\"2026-11-03T17:00:00+00:00\",\"eventStatus\":\"https://schema.org/EventCancelled\",\"offers\":{\"url\":\"x/seans/3\"}},"
+                + "{\"startDate\":\"2026-11-04T17:00:00+00:00\",\"eventStatus\":\"https://schema.org/EventPostponed\"}]");
 
         List<RawConcertData> records = source.parseEvents(html, PAGE_URL);
 
-        assertEquals(List.of("hadise@seans1", "hadise@seans2"),
+        assertEquals(List.of("hadise@seans1", "hadise@seans2", "hadise@seans3"),
                 records.stream().map(RawConcertData::sourceEventId).toList());
+        assertEquals(List.of(false, false, true), records.stream().map(RawConcertData::cancelled).toList());
         assertEquals("Hadise", records.get(1).concertName());
+    }
+
+    @Test
+    void cancelledSessionDoesNotHideAnActiveSessionAtTheSameTime() {
+        String html = page(",\"subEvent\":["
+                + "{\"startDate\":\"2026-11-03T17:00:00+00:00\",\"eventStatus\":\"https://schema.org/EventCancelled\",\"offers\":{\"url\":\"x/seans/7\"}},"
+                + "{\"startDate\":\"2026-11-03T17:00:00+00:00\",\"offers\":{\"url\":\"x/seans/8\"}}]");
+
+        List<RawConcertData> records = source.parseEvents(html, PAGE_URL);
+
+        assertEquals(1, records.size());
+        assertEquals("hadise@seans8", records.get(0).sourceEventId());
+        assertFalse(records.get(0).cancelled());
     }
 
     @Test

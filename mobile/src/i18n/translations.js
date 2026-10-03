@@ -1412,6 +1412,15 @@ export const translations = {
     badge_desc_sosyal_kelebek: '5 paylaşım yaptın.',
     badge_desc_icerik_ustasi: '20 paylaşım yaptın.',
     badge_desc_yeni_uye: 'Uygulamaya hoş geldin!',
+    // İptal edilen konserler
+    event_cancelled_badge: 'İPTAL',
+    event_cancelled_title: 'Bu konser iptal edildi',
+    event_cancelled_sub: 'Bilet iadesi için bileti aldığın siteyle iletişime geç.',
+    notif_event_cancelled: 'katılacağın bir konser iptal edildi',
+    admin_cancel_event: 'İptal et',
+    admin_uncancel_event: 'İptali geri al',
+    admin_cancel_event_msg: '"{name}" iptal edilsin mi? Listelerden kalkar ve katılımcılara bildirim gider.',
+    admin_uncancel_event_msg: '"{name}" yeniden listelensin mi? Bildirim gönderilmez.',
   },
 
   en: {
@@ -2822,5 +2831,14 @@ export const translations = {
     badge_desc_sosyal_kelebek: 'You shared 5 posts.',
     badge_desc_icerik_ustasi: 'You shared 20 posts.',
     badge_desc_yeni_uye: 'Welcome to the app!',
+    // İptal edilen konserler
+    event_cancelled_badge: 'CANCELLED',
+    event_cancelled_title: 'This concert has been cancelled',
+    event_cancelled_sub: 'Contact the site you bought your ticket from about a refund.',
+    notif_event_cancelled: 'a concert you were going to was cancelled',
+    admin_cancel_event: 'Cancel concert',
+    admin_uncancel_event: 'Undo cancellation',
+    admin_cancel_event_msg: 'Cancel "{name}"? It leaves all lists and attendees are notified.',
+    admin_uncancel_event_msg: 'List "{name}" again? No notification is sent.',
   },
 };

@@ -44,6 +44,11 @@ function EventCard({ item, variant = 'row', onPress, genericImages, style, dimme
     <View style={styles.dateBadge}>
       <Text style={styles.dateBadgeDay}>{day}</Text>
       <Text style={styles.dateBadgeMonth}>{month}</Text>
+      {item.cancelled ? (
+        <View style={styles.cancelledTag}>
+          <Text style={styles.cancelledTagText} numberOfLines={1}>{t('event_cancelled_badge')}</Text>
+        </View>
+      ) : null}
     </View>
   );
 
@@ -171,6 +176,9 @@ function createStyles(colors) {
     },
     dateBadgeDay: { color: '#fff', fontSize: 17, lineHeight: 19, fontWeight: '900' },
     dateBadgeMonth: { color: 'rgba(255,255,255,0.85)', fontSize: 9.5, fontWeight: '800', letterSpacing: 0.6 },
+    // İptal edilen konser (kullanıcının kendi listelerinde görünebilir)
+    cancelledTag: { marginTop: 3, paddingHorizontal: 5, paddingVertical: 1, borderRadius: 5, backgroundColor: colors.primary },
+    cancelledTagText: { color: '#fff', fontSize: 8.5, fontWeight: '900', letterSpacing: 0.4 },
     cardWhen: { color: colors.primary, fontSize: 11.5, fontWeight: '800', letterSpacing: 0.5, marginBottom: 3 },
     metaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 2 },
     metaText: { flex: 1, color: colors.textSecondary, fontSize: 12.5 },

@@ -131,10 +131,17 @@ public class BubiletSource {
                 else list.add(event);
                 // Ayni saatte birden fazla seans olabiliyor (ayri bilet turleri);
                 // konser olarak tek kayittir, ilk seans tutulur.
+                // Iptal edilen seans, ayni saatteki gecerli seansi golgelemesin: once gecerliler.
                 Set<LocalDateTime> seen = new HashSet<>();
+                List<RawConcertData> cancelled = new ArrayList<>();
                 for (JsonNode session : list) {
                     RawConcertData raw = toRaw(session, event, pageUrl);
-                    if (raw != null && raw.isUsable() && seen.add(raw.startsAt())) out.add(raw);
+                    if (raw == null || !raw.isUsable()) continue;
+                    if (raw.cancelled()) cancelled.add(raw);
+                    else if (seen.add(raw.startsAt())) out.add(raw);
+                }
+                for (RawConcertData raw : cancelled) {
+                    if (seen.add(raw.startsAt())) out.add(raw);
                 }
             }
         }
@@ -142,9 +149,11 @@ public class BubiletSource {
     }
 
     private RawConcertData toRaw(JsonNode session, JsonNode parent, String pageUrl) {
-        // Iptal ya da ertelenmis seans listelenmez.
+        // Ertelenmis seans (yeni tarih yok) listelenmez. Iptal edilen seans ise iptal
+        // bayragiyla doner: daha once alinmis kaydi iptal olarak isaretlemek icin.
         String status = session.path("eventStatus").asText("");
-        if (status.endsWith("EventCancelled") || status.endsWith("EventPostponed")) return null;
+        if (status.endsWith("EventPostponed")) return null;
+        boolean cancelled = status.endsWith("EventCancelled");
 
         LocalDateTime startsAt = toLocalDateTime(session.path("startDate").asText(null));
         if (startsAt == null) return null;
@@ -172,7 +181,8 @@ public class BubiletSource {
                 toDouble(geo.path("latitude")),
                 toDouble(geo.path("longitude")),
                 pageUrl,
-                image);
+                image,
+                cancelled);
     }
 
     /**

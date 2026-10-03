@@ -48,6 +48,8 @@ public class ReminderService {
 
         int sent = 0;
         for (Event event : upcoming) {
+            // Iptal edilen konser icin hatirlatma gitmez (katilimcilar iptal bildirimini aldi)
+            if (EventCancellationService.isCancelled(event)) continue;
             Set<Long> recipients = new HashSet<>();
             attendanceRepository.findByEventIdAndStatus(event.getId(), AttendanceStatus.GOING)
                     .forEach(a -> recipients.add(a.getUser().getId()));

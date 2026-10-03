@@ -195,7 +195,12 @@ function EventDetailContent({ route, navigation }) {
 
   const hasCoordinates =
     event.venueLatitude != null && event.venueLongitude != null;
-  const isExpired = parseEventDate(event.eventDate) < new Date();
+  const isCancelled = event.cancelled === true;
+  const isPastDate = parseEventDate(event.eventDate) < new Date();
+  // Geçmiş etkinlik bölümleri (değerlendirme, "etkinlik sona erdi") iptal edilen konserde gösterilmez
+  const isExpired = isPastDate && !isCancelled;
+  // Katılım, bilet, takvim, buddy, post: geçmiş ya da iptal edilmiş konserde kapalı
+  const isClosed = isPastDate || isCancelled;
 
   // Yazılabilir asıl takvim: iOS'ta varsayılan takvim; Android'de kullanıcının
   // kendi (OWNER) görünür takvimi. "İlk yazılabilir" seçimi bazen abone olunan /
@@ -488,9 +493,22 @@ function EventDetailContent({ route, navigation }) {
 
   // Kaynağı doğrulanmış etkinlik (Ticketmaster, organizatör hesabı ya da
   // admin incelemesi). Kullanıcı önerisi onaylanana kadar rozet çıkmaz.
-  const verifiedBadge = event.isVerified ? (
-    <View style={styles.verifiedBadge}>
-      <Text style={styles.verifiedBadgeText}>{t('event_verified_source')}</Text>
+  // Başlıktaki etiket satırı: tür solda, "Kaynak doğrulandı" sağda (eskiden alt alta
+  // biniyordu: aşağıdaki büyük doğrulama kutusuyla aynı stil adını paylaşıyordu)
+  const heroTags = (event.genre || event.isVerified) ? (
+    <View style={styles.heroTagRow}>
+      {event.genre ? (
+        <View style={styles.genreBadge}>
+          <Ionicons name="musical-notes" size={13} color="#fff" />
+          <Text style={styles.genreText} numberOfLines={1}>{displayGenre(event.genre, t)}</Text>
+        </View>
+      ) : <View />}
+      {event.isVerified ? (
+        <View style={styles.heroSourceBadge}>
+          <Ionicons name="checkmark-circle" size={13} color="#00D4AA" />
+          <Text style={styles.heroSourceText} numberOfLines={1}>{t('event_verified_source')}</Text>
+        </View>
+      ) : null}
     </View>
   ) : null;
 
@@ -517,7 +535,7 @@ function EventDetailContent({ route, navigation }) {
           <Ionicons name="share-social-outline" size={20} color="#fff" />
         </TouchableOpacity>
         {/* Bilet, içeride belirgin CTA olarak gösteriliyor — hero ikonu kaldırıldı */}
-        {!isExpired && (
+        {!isClosed && (
           <TouchableOpacity style={styles.iconBtn} onPress={addToCalendar} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={t('a11y_add_calendar')}>
             <Ionicons name="calendar-outline" size={20} color="#fff" />
           </TouchableOpacity>
@@ -560,13 +578,7 @@ function EventDetailContent({ route, navigation }) {
           <LinearGradient colors={['transparent', 'rgba(0,0,0,0.9)']} style={styles.heroOverlay}>
             {heroActions}
             <Text style={heroTitleStyle} numberOfLines={2} ellipsizeMode="tail">{event.name}</Text>
-            {event.genre && (
-              <View style={styles.genreBadge}>
-                <Ionicons name="musical-notes" size={13} color="#fff" />
-                <Text style={styles.genreText}>{displayGenre(event.genre, t)}</Text>
-              </View>
-            )}
-            {verifiedBadge}
+            {heroTags}
           </LinearGradient>
         </View>
       ) : (
@@ -576,28 +588,33 @@ function EventDetailContent({ route, navigation }) {
             {getInitials(event.artistName || event.name)}
           </Text>
           <Text style={heroTitleStyle} numberOfLines={2} ellipsizeMode="tail">{event.name}</Text>
-          {event.genre && (
-            <View style={styles.genreBadge}>
-              <Ionicons name="musical-notes" size={13} color="#fff" />
-              <Text style={styles.genreText}>{displayGenre(event.genre, t)}</Text>
-            </View>
-          )}
-          {verifiedBadge}
+          {heroTags}
         </View>
       )}
 
       <View style={styles.content}>
 
+        {/* İPTAL BANDI: kayıt listelerden düşer, detay açık kalır */}
+        {isCancelled && (
+          <View style={styles.cancelledBanner} accessibilityRole="alert">
+            <Ionicons name="close-circle" size={26} color={colors.primary} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.cancelledTitle}>{t('event_cancelled_title')}</Text>
+              <Text style={styles.cancelledSub}>{t('event_cancelled_sub')}</Text>
+            </View>
+          </View>
+        )}
+
         {/* KATILIM BUTONLARI */}
         <View style={styles.attendanceRow}>
           <Animated.View style={{ flex: 1, transform: [{ scale: goingScale }] }}>
           <TouchableOpacity
-            style={[styles.attendBtn, attendance === 'GOING' && styles.attendBtnActive, isExpired && styles.attendBtnDisabled]}
+            style={[styles.attendBtn, attendance === 'GOING' && styles.attendBtnActive, isClosed && styles.attendBtnDisabled]}
             onPress={() => { bounceBtn(goingScale); handleAttend('GOING'); }}
-            disabled={attendLoading || isExpired}
+            disabled={attendLoading || isClosed}
             activeOpacity={1}
             accessibilityRole="button"
-            accessibilityState={{ selected: attendance === 'GOING', disabled: attendLoading || isExpired }}
+            accessibilityState={{ selected: attendance === 'GOING', disabled: attendLoading || isClosed }}
           >
             <Ionicons
               name={attendance === 'GOING' ? 'checkmark-circle' : 'checkmark-circle-outline'}
@@ -619,12 +636,12 @@ function EventDetailContent({ route, navigation }) {
 
           <Animated.View style={{ flex: 1, transform: [{ scale: interestedScale }] }}>
           <TouchableOpacity
-            style={[styles.attendBtn, attendance === 'INTERESTED' && styles.attendBtnActiveYellow, isExpired && styles.attendBtnDisabled]}
+            style={[styles.attendBtn, attendance === 'INTERESTED' && styles.attendBtnActiveYellow, isClosed && styles.attendBtnDisabled]}
             onPress={() => { bounceBtn(interestedScale); handleAttend('INTERESTED'); }}
-            disabled={attendLoading || isExpired}
+            disabled={attendLoading || isClosed}
             activeOpacity={1}
             accessibilityRole="button"
-            accessibilityState={{ selected: attendance === 'INTERESTED', disabled: attendLoading || isExpired }}
+            accessibilityState={{ selected: attendance === 'INTERESTED', disabled: attendLoading || isClosed }}
           >
             <Ionicons
               name={attendance === 'INTERESTED' ? 'star' : 'star-outline'}
@@ -646,7 +663,7 @@ function EventDetailContent({ route, navigation }) {
         </View>
 
         {/* KONSERE HAZIRLAN — yalnızca "gidiyorum" diyenlere */}
-        {attendance === 'GOING' && !isExpired && (
+        {attendance === 'GOING' && !isClosed && (
           <TouchableOpacity
             onPress={() => navigation.navigate('ConcertPrep', { eventId: event.id })}
             activeOpacity={0.85}
@@ -665,7 +682,7 @@ function EventDetailContent({ route, navigation }) {
         )}
 
         {/* BİLET AL — tek ana CTA; birden fazla site varsa seçim menüsü açar */}
-        {!isExpired && ticketLinks.length > 0 && (
+        {!isClosed && ticketLinks.length > 0 && (
           <>
             <TouchableOpacity onPress={onTicketPress} activeOpacity={0.85} style={styles.ticketCtaWrap} accessibilityRole="button">
               <View style={styles.ticketCta}>
@@ -686,7 +703,7 @@ function EventDetailContent({ route, navigation }) {
         )}
 
         {/* KONSER ARKADAŞI */}
-        {!isExpired && (
+        {!isClosed && (
           <View style={[styles.buddyCard, { backgroundColor: colors.card, borderColor: isBuddy ? colors.primary : colors.border }]}>
             <View style={styles.buddyCardHeader}>
               <View style={styles.buddyHeaderText}>
@@ -922,7 +939,7 @@ function EventDetailContent({ route, navigation }) {
         )}
 
         {/* KONUM DOĞRULAMA BİLGİSİ */}
-        {hasCoordinates && !isExpired && (
+        {hasCoordinates && !isClosed && (
           <View style={styles.verifyInfoCard}>
             <Ionicons name="location" size={30} color={colors.accent} />
             <View style={styles.verifyInfoText}>
@@ -971,7 +988,7 @@ function EventDetailContent({ route, navigation }) {
         )}
 
         {/* POST AT BUTONU */}
-        {!isExpired && (
+        {!isClosed && (
           verifying ? (
             <View style={styles.verifyingContainer}>
               <ActivityIndicator color={colors.primary} />
@@ -1214,10 +1231,14 @@ function createStyles(colors) {
       borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
     },
     iconBtnText: { fontSize: 18 },
+    heroTagRow: {
+      alignSelf: 'stretch', flexDirection: 'row', alignItems: 'center',
+      justifyContent: 'space-between', gap: 8, marginTop: 10,
+    },
     genreBadge: {
-      flexDirection: 'row', alignItems: 'center', gap: 6,
+      flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1,
       backgroundColor: 'rgba(255,255,255,0.15)',
-      paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16, marginTop: 10,
+      paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16,
       borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)',
     },
     genreText: { color: '#fff', fontSize: 13, fontWeight: '700', letterSpacing: 0.5 },
@@ -1238,17 +1259,13 @@ function createStyles(colors) {
       fontSize: 120, fontWeight: '900',
       color: 'rgba(255,255,255,0.15)', letterSpacing: -4,
     },
-    verifiedBadge: {
-      alignSelf: 'flex-start',
-      marginTop: 8,
+    heroSourceBadge: {
+      flexDirection: 'row', alignItems: 'center', gap: 5, flexShrink: 0,
       backgroundColor: 'rgba(0,212,170,0.18)',
-      borderWidth: 1,
-      borderColor: 'rgba(0,212,170,0.45)',
-      borderRadius: 14,
-      paddingHorizontal: 11,
-      paddingVertical: 5,
+      borderWidth: 1, borderColor: 'rgba(0,212,170,0.45)',
+      borderRadius: 14, paddingHorizontal: 10, paddingVertical: 5,
     },
-    verifiedBadgeText: { color: '#00D4AA', fontSize: 12, fontWeight: '800' },
+    heroSourceText: { color: '#00D4AA', fontSize: 12, fontWeight: '800' },
     heroTitle: {
       fontSize: 32, fontWeight: '900', color: '#fff',
       textAlign: 'left', marginBottom: 4, letterSpacing: 0.5,
@@ -1316,6 +1333,13 @@ function createStyles(colors) {
     attendBtnActive: { backgroundColor: colors.accent + '26', borderColor: colors.accent },
     attendBtnActiveYellow: { backgroundColor: colors.secondary + '26', borderColor: colors.secondary },
     attendBtnDisabled: { opacity: 0.4 },
+    cancelledBanner: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      padding: 14, borderRadius: 14, marginBottom: 14,
+      backgroundColor: colors.primary + '1F', borderWidth: 1, borderColor: colors.primary + '66',
+    },
+    cancelledTitle: { fontSize: 15, fontWeight: '800', color: colors.primary },
+    cancelledSub: { fontSize: 12.5, color: colors.textSecondary, marginTop: 2, lineHeight: 17 },
     attendBtnText: { fontSize: 14, fontWeight: '800', color: colors.textSecondary },
     attendBtnCount: { fontSize: 11, fontWeight: '600', color: colors.textSecondary, marginTop: 2 },
     attendBtnTextActive: { color: colors.accent },

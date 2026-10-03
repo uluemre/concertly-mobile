@@ -173,6 +173,29 @@ export default function AdminEventsScreen({ navigation, route }) {
     ]);
   };
 
+  // İptal: konser ve listedeki kopyaları keşiften düşer, katılımcılara bildirim gider.
+  // Geri alma bildirim göndermez.
+  const handleCancelToggle = (ev) => {
+    const undo = !!ev.cancelled;
+    Alert.alert(
+      undo ? t('admin_uncancel_event') : t('admin_cancel_event'),
+      t(undo ? 'admin_uncancel_event_msg' : 'admin_cancel_event_msg', { name: ev.name }),
+      [
+        { text: t('cancel'), style: 'cancel' },
+        {
+          text: undo ? t('admin_uncancel_event') : t('admin_cancel_event'),
+          style: undo ? 'default' : 'destructive',
+          onPress: async () => {
+            try {
+              await API.post(`/admin/events/${ev.id}/${undo ? 'uncancel' : 'cancel'}`);
+              fetchEvents();
+            } catch { Alert.alert(t('error'), t('admin_op_failed')); }
+          },
+        },
+      ],
+    );
+  };
+
   const filtered = useMemo(() => {
     if (!search.trim()) return events;
     const q = search.toLowerCase();
@@ -188,10 +211,16 @@ export default function AdminEventsScreen({ navigation, route }) {
     outputRange: ['0%', '33.33%', '66.66%'],
   });
 
-  const renderEvent = ({ item }) => (
+  const renderEvent = ({ item }) => {
+    const status = item.cancelled
+      ? { color: colors.primary, label: t('event_cancelled_badge') }
+      : item.isApproved
+        ? { color: '#00D4AA', label: t('admin_status_approved_label') }
+        : { color: '#F5A623', label: t('admin_status_pending_label') };
+    return (
     <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
       {/* STATUS STRIP */}
-      <View style={[styles.cardStrip, { backgroundColor: item.isApproved ? '#00D4AA' : '#F5A623' }]} />
+      <View style={[styles.cardStrip, { backgroundColor: status.color }]} />
 
       <View style={styles.cardBody}>
         <View style={styles.cardHeader}>
@@ -201,12 +230,8 @@ export default function AdminEventsScreen({ navigation, route }) {
               {[item.artistName, item.venueCity].filter(Boolean).join(' · ')}
             </Text>
           </View>
-          <View style={[styles.statusBadge, {
-            backgroundColor: item.isApproved ? '#00D4AA22' : '#F5A62322',
-          }]}>
-            <Text style={[styles.statusBadgeText, { color: item.isApproved ? '#00D4AA' : '#F5A623' }]}>
-              {item.isApproved ? t('admin_status_approved_label') : t('admin_status_pending_label')}
-            </Text>
+          <View style={[styles.statusBadge, { backgroundColor: status.color + '22' }]}>
+            <Text style={[styles.statusBadgeText, { color: status.color }]}>{status.label}</Text>
           </View>
         </View>
 
@@ -225,7 +250,7 @@ export default function AdminEventsScreen({ navigation, route }) {
         </View>
 
         <View style={styles.cardActions}>
-          {!item.isApproved && (
+          {!item.isApproved && !item.cancelled && (
             <TouchableOpacity
               onPress={() => handleApprove(item)}
               style={[styles.actionBtn, { backgroundColor: '#00D4AA20', borderColor: '#00D4AA50' }]}
@@ -239,6 +264,16 @@ export default function AdminEventsScreen({ navigation, route }) {
           >
             <Text style={[styles.actionBtnText, { color: colors.primary }]}>{t('admin_action_edit')}</Text>
           </TouchableOpacity>
+          {(item.isApproved || item.cancelled) && (
+            <TouchableOpacity
+              onPress={() => handleCancelToggle(item)}
+              style={[styles.actionBtn, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}
+            >
+              <Text style={[styles.actionBtnText, { color: item.cancelled ? '#00D4AA' : '#F5A623' }]}>
+                {item.cancelled ? t('admin_uncancel_event') : t('admin_cancel_event')}
+              </Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             onPress={() => handleDelete(item)}
             style={[styles.actionBtn, { backgroundColor: '#E9456020', borderColor: '#E9456050' }]}
@@ -248,7 +283,8 @@ export default function AdminEventsScreen({ navigation, route }) {
         </View>
       </View>
     </View>
-  );
+    );
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>

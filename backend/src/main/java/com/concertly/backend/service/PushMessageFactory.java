@@ -42,6 +42,9 @@ public class PushMessageFactory {
             case "event_reminder" -> new String[] {
                     en ? "Your concert is coming up 🎤" : "Konserin yaklaşıyor 🎤",
                     extra };
+            case "event_cancelled" -> new String[] {
+                    en ? "Concert cancelled" : "Konser iptal edildi",
+                    en ? "\"" + extra + "\" has been cancelled." : "\"" + extra + "\" iptal edildi." };
             case "new_event" -> new String[] {
                     en ? "New concert 🎶" : "Yeni konser 🎶",
                     extra };

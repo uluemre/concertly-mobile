@@ -32,6 +32,7 @@ export default function NotificationsScreen({ navigation }) {
     message:        { icon: 'mail', tint: 'secondary', text: t('notif_message') },
     new_event:      { icon: 'mic', tint: 'primary', text: t('notif_new_event') },
     event_reminder: { icon: 'ticket', tint: 'secondary', text: t('notif_event_reminder') },
+    event_cancelled: { icon: 'close-circle', tint: 'primary', text: t('notif_event_cancelled') },
     daily_song:     { icon: 'calendar', tint: 'accent', text: t('notif_daily_song') },
     badge:          { icon: 'ribbon', tint: 'secondary', text: t('notif_default') },
     // Topluluk bildirimleri (A3)

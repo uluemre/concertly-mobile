@@ -43,6 +43,8 @@ public class EventResponse {
     // Kaynak & güven rozeti
     private String source;
     private Boolean isVerified;
+    /** Konser iptal edildi (kayit listelerden duser, detay acilir). */
+    private boolean cancelled;
     private String sourceUrl;
 
     // Oluşturan kullanıcı
@@ -63,6 +65,7 @@ public class EventResponse {
         dto.isApproved = event.getIsApproved();
         dto.source = event.getSource() != null ? event.getSource().name() : null;
         dto.isVerified = event.getIsVerified();
+        dto.cancelled = com.concertly.backend.service.EventCancellationService.isCancelled(event);
         dto.sourceUrl = event.getSourceUrl();
 
         // 🔥 EVENT EXTRA
@@ -216,5 +219,6 @@ public class EventResponse {
     public void setReviewCount(Integer reviewCount) { this.reviewCount = reviewCount; }
     public String getSource() { return source; }
     public Boolean getIsVerified() { return isVerified; }
+    public boolean isCancelled() { return cancelled; }
     public String getSourceUrl() { return sourceUrl; }
 }

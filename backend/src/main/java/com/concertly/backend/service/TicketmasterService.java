@@ -35,6 +35,21 @@ public class TicketmasterService {
     private final VenueRepository venueRepository;
     private final SpotifyService spotifyService;
     private final DeezerService deezerService;
+
+    /** Kaynaktan gelen iptal bildirimi (alan enjeksiyonu: kurucuyu kullanan testler degismesin). */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private EventCancellationService cancellation;
+
+    /** Ticketmaster "dates.status.code": onsale / offsale / cancelled / postponed / rescheduled. */
+    @SuppressWarnings("unchecked")
+    public static String statusCode(Map<String, Object> event) {
+        Object dates = event.get("dates");
+        if (!(dates instanceof Map)) return null;
+        Object status = ((Map<String, Object>) dates).get("status");
+        if (!(status instanceof Map)) return null;
+        Object code = ((Map<String, Object>) status).get("code");
+        return code instanceof String ? (String) code : null;
+    }
     private final com.concertly.backend.repository.ArtistFollowRepository artistFollowRepository;
     private final NotificationService notificationService;
     private final RestTemplate restTemplate;
@@ -493,6 +508,14 @@ public class TicketmasterService {
                 // geri getirmemeli (eskiden her gece geri geliyordu).
                 if (resolved != null && resolved.getMergedIntoEventId() != null) {
                     System.out.println("  🔗 Birleştirilmiş kopya atlandı: " + externalId);
+                    continue;
+                }
+
+                // İptal edilmiş konser: yeni kayıt açılmaz; daha önce alındıysa iptal işaretlenir
+                // (katılımcılara bildirim gider). Ertelenen/yeniden planlanan normal akışta güncellenir.
+                if ("cancelled".equalsIgnoreCase(statusCode(e))) {
+                    if (resolved != null && cancellation != null) cancellation.cancel(resolved);
+                    System.out.println("  ❌ İptal edilmiş konser: " + externalId);
                     continue;
                 }
 

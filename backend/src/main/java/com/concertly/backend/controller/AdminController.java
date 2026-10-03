@@ -207,6 +207,21 @@ public class AdminController {
     // Bağlı kaydı (katılım, gönderi, kaynak linki, birleşmiş kopya...) olmayan etkinlik gerçekten
     // silinir. Olan etkinlik FK yüzünden silinemiyordu ("Silinemedi"); artık listeden kaldırılır:
     // kullanıcı verisi kaybolmaz, sync geri açmaz (delistedReason), admin listesinde görünmez.
+    /** Iptal: kayit ve listedeki kopyalari listelerden duser, katilimcilara bildirim gider. */
+    @PostMapping("/events/{id}/cancel")
+    public Map<String, Integer> cancelEvent(@PathVariable Long id) {
+        return Map.of("cancelled", cancellation.cancelById(id));
+    }
+
+    /** Iptali geri alir: kayit listelere doner (bildirim gitmez). */
+    @PostMapping("/events/{id}/uncancel")
+    public Map<String, Integer> uncancelEvent(@PathVariable Long id) {
+        return Map.of("restored", cancellation.uncancelById(id));
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.concertly.backend.service.EventCancellationService cancellation;
+
     @DeleteMapping("/events/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @org.springframework.transaction.annotation.Transactional
