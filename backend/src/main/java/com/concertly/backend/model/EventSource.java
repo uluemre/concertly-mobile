@@ -14,6 +14,12 @@ public enum EventSource {
     BILETINIAL,
     /** Bubilet içe aktarımı (schema.org JSON-LD). */
     BUBILET,
+    /** Zorlu PSM mekân sitesi (schema.org JSON-LD). */
+    ZORLU_PSM,
+    /** BiletimGo içe aktarımı (HTML). */
+    BILETIMGO,
+    /** Biletino içe aktarımı (schema.org JSON-LD). */
+    BILETINO,
     /** Admin panelinden elle eklendi. */
     ADMIN,
     /** Sıradan kullanıcı önerdi — admin onayı gerekir. */

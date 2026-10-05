@@ -14,6 +14,7 @@ import org.springframework.web.client.RestTemplate;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -52,6 +53,13 @@ public class BubiletSource {
 
     private static final String BASE_URL = "https://www.bubilet.com.tr";
     private static final String CITY_LISTING = BASE_URL + "/%s/etiket/konser";
+    private static final String SITEMAP = BASE_URL + "/sitemap.xml";
+
+    /** Etkinlik sayfasındaki etiket linkleri: /istanbul/etiket/konser */
+    private static final Pattern TAG_LINK = Pattern.compile("href=\"/[a-z0-9-]+/etiket/([a-z0-9-]+)\"");
+
+    /** Kesin konser etiketleri; ayrıca adında konser / caz / jazz / muzik geçen etiketler. */
+    private static final Set<String> MUSIC_TAGS = Set.of("konser", "elektronik-muzik");
 
     /** Seans teklif adresindeki kimlik: .../seans/245435 */
     private static final Pattern SESSION_ID = Pattern.compile("/seans/(\\d+)");
@@ -105,6 +113,53 @@ public class BubiletSource {
         String html = get(String.format(CITY_LISTING, citySlug));
         if (html == null) return List.of();
         return extractEventUrls(html, citySlug);
+    }
+
+    /**
+     * Site haritasındaki etkinlik adresleri (yalnız verilen şehirler). Konser liste
+     * sayfası şehir başına yalnız ilk 25 konseri gösteriyor; tamamı haritada.
+     */
+    public List<String> sitemapEventUrls(Collection<String> citySlugs) {
+        String xml = get(SITEMAP);
+        if (xml == null) return List.of();
+        return extractSitemapEventUrls(xml, citySlugs);
+    }
+
+    static List<String> extractSitemapEventUrls(String xml, Collection<String> citySlugs) {
+        Set<String> cities = new HashSet<>();
+        for (String c : citySlugs) if (!c.isBlank()) cities.add(c.trim());
+        Pattern loc = Pattern.compile("<loc>\\s*(" + Pattern.quote(BASE_URL) + "/([a-z0-9-]+)/etkinlik/[^<\\s]+)\\s*</loc>");
+        Set<String> urls = new LinkedHashSet<>();
+        Matcher matcher = loc.matcher(xml);
+        while (matcher.find()) {
+            if (cities.contains(matcher.group(2))) urls.add(matcher.group(1));
+        }
+        return new ArrayList<>(urls);
+    }
+
+    /** Sayfayı açar, konser mi diye bakar; konserse kayıtlarını çıkarır. */
+    public SourcePageCrawler.PageResult fetchPage(String url) {
+        String html = get(url);
+        pause(politeDelayMs);
+        if (html == null) return SourcePageCrawler.PageResult.failed();
+        boolean music = isMusicPage(html);
+        return SourcePageCrawler.PageResult.of(music, music ? parseEvents(html, url) : List.of());
+    }
+
+    /**
+     * Bubilet her etkinlik sayfasında etiketlerini link olarak veriyor (konser, tiyatro,
+     * stand-up …). "muzikal" müzikli tiyatrodur, konser sayılmaz. Müzik dışı ad filtresi
+     * içe aktarımda ayrıca uygulanır.
+     */
+    static boolean isMusicPage(String html) {
+        Matcher matcher = TAG_LINK.matcher(html);
+        while (matcher.find()) {
+            String tag = matcher.group(1);
+            if (MUSIC_TAGS.contains(tag)) return true;
+            if (tag.contains("muzikal")) continue;
+            if (tag.contains("konser") || tag.contains("caz") || tag.contains("jazz") || tag.contains("muzik")) return true;
+        }
+        return false;
     }
 
     /** Sayfadaki /{sehir}/etkinlik/{slug} linkleri, gorulme sirasiyla ve tekil. */

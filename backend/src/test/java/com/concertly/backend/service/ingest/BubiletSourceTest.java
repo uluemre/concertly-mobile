@@ -130,4 +130,29 @@ class BubiletSourceTest {
                         "https://www.bubilet.com.tr/ankara/etkinlik/mabel-matiz"),
                 BubiletSource.extractEventUrls(html, "ankara"));
     }
+
+    // ── Site haritası keşfi ve konser sınıflandırması ───────────────────────
+
+    @Test
+    void sitemapEventUrlsAreFilteredByCity() {
+        String xml = "<urlset><url><loc>https://www.bubilet.com.tr/istanbul/etkinlik/cem-adrian-konseri</loc></url>"
+                + "<url><loc>https://www.bubilet.com.tr/bursa/etkinlik/x-konseri</loc></url>"
+                + "<url><loc>https://www.bubilet.com.tr/ankara/etkinlik/frida-oyunu-</loc></url>"
+                + "<url><loc>https://www.bubilet.com.tr/istanbul/etiket/konser</loc></url>"
+                + "<url><loc>https://www.bubilet.com.tr/istanbul/etkinlik/cem-adrian-konseri</loc></url></urlset>";
+        assertEquals(List.of("https://www.bubilet.com.tr/istanbul/etkinlik/cem-adrian-konseri",
+                        "https://www.bubilet.com.tr/ankara/etkinlik/frida-oyunu-"),
+                BubiletSource.extractSitemapEventUrls(xml, List.of("istanbul", "ankara")));
+    }
+
+    @Test
+    void musicPagesAreRecognisedByTheirTags() {
+        // Gerçek sayfalardaki etiket linkleri (6 Eki 2026)
+        assertTrue(BubiletSource.isMusicPage("<a href=\"/istanbul/etiket/konser\">Konser</a><a href=\"/istanbul/etiket/trendler\">"));
+        assertTrue(BubiletSource.isMusicPage("<a href=\"/izmir/etiket/elektronik-muzik\">"));
+        assertTrue(BubiletSource.isMusicPage("<a href=\"/izmir/etiket/30-uluslararasi-ankara-caz-festivali\">"));
+        assertFalse(BubiletSource.isMusicPage("<a href=\"/istanbul/etiket/tiyatro\"><a href=\"/istanbul/etiket/bu-hafta\">"));
+        assertFalse(BubiletSource.isMusicPage("<a href=\"/istanbul/etiket/stand-up\">"));
+        assertFalse(BubiletSource.isMusicPage("<a href=\"/istanbul/etiket/muzikal\">"), "müzikal tiyatrodur");
+    }
 }

@@ -189,6 +189,9 @@ public class ConcertResponse {
             case "biletix.com" -> "Biletix";
             case "biletinial.com" -> "Biletinial";
             case "bubilet.com.tr" -> "Bubilet";
+            case "zorlupsm.com" -> "Zorlu PSM";
+            case "biletimgo.com" -> "BiletimGo";
+            case "biletino.com" -> "Biletino";
             case "mobilet.com" -> "Mobilet";
             case "passo.com.tr" -> "Passo";
             case "iticket.com.tr" -> "iTicket";
