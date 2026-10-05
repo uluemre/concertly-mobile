@@ -184,6 +184,10 @@ public class AccountDeletionService {
         del("DELETE FROM UserBadge ub WHERE ub.user.id = :uid", uid);
         del("DELETE FROM SpotifyConnection sc WHERE sc.user.id = :uid", uid);
         del("DELETE FROM RefreshToken rt WHERE rt.user.id = :uid", uid);
+        // Cihaz push kayıtları ve organizatör başvuruları: telefonda giriş yapan her hesapta
+        // push token olduğu için bunlar yokken silme FK hatasıyla 409 dönüyordu
+        del("DELETE FROM PushToken pt WHERE pt.user.id = :uid", uid);
+        del("DELETE FROM OrganizerRequest o WHERE o.user.id = :uid", uid);
 
         // 4) Karşılıklı/gelen referanslar (başkaları kullanıcıya bağlı)
         del("DELETE FROM Follow f WHERE f.follower.id = :uid OR f.following.id = :uid", uid);

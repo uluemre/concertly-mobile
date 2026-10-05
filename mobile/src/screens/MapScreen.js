@@ -70,6 +70,26 @@ function formatDistance(km) {
   return `${Math.round(km)} km`;
 }
 
+// İşaretçi yalnız İLK göründüğünde kısa süre canlı çizilir (ikon yazı tipi otursun), sonra
+// donmuş görüntü olarak kalır. Eskiden haritayı her kaydırışta TÜM işaretçiler yeniden canlı
+// çizime alınıyordu; yüzlerce işaretçide iOS hareketi kilitliyordu.
+const TrackedMarker = React.memo(function TrackedMarker({ live, children, ...props }) {
+  const [warmup, setWarmup] = useState(true);
+  useEffect(() => {
+    const timer = setTimeout(() => setWarmup(false), 700);
+    return () => clearTimeout(timer);
+  }, []);
+  return <Marker {...props} tracksViewChanges={warmup || !!live}>{children}</Marker>;
+});
+
+// Kümeler yalnız yakınlaştırma düzeyi ya da görünen alan belirgin değişince yeniden hesaplanır
+function sameView(a, b) {
+  if (!a || !b) return false;
+  if (regionZoom(a) !== regionZoom(b)) return false;
+  return Math.abs(a.latitude - b.latitude) < a.latitudeDelta * 0.15
+    && Math.abs(a.longitude - b.longitude) < a.longitudeDelta * 0.15;
+}
+
 export default function MapScreen({ navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -150,10 +170,6 @@ export default function MapScreen({ navigation }) {
     return [...byVenue.values()];
   }, [filteredEvents]);
 
-  // Özel işaretçiler ilk çizimde birkaç an izlenir (ikon yazı tipi otursun), sonra
-  // donmuş görüntü olarak kalır — kaydırma/yakınlaştırma akıcı olur.
-  const [trackMarkers, setTrackMarkers] = useState(true);
-
   // Uzaklaşınca yakın mekânlar tek yuvarlakta toplanır (içindeki etkinlik sayısıyla);
   // ekranda bir anda çizilen işaretçi sayısı düşer, harita akıcı kalır.
   const clusterIndex = useMemo(() => {
@@ -179,16 +195,9 @@ export default function MapScreen({ navigation }) {
     return clusterIndex.getClusters(regionBBox(r), regionZoom(r));
   }, [clusterIndex, region, userLocation]);
 
-  // Çizilen küme/işaretçi seti değişince işaretçiler kısa süre yeniden izlenir
-  const clusterSignature = useMemo(
-    () => clusters.map(c => (c.properties.cluster ? `c${c.id}:${c.properties.events}` : c.properties.key)).join('|'),
-    [clusters],
-  );
-  useEffect(() => {
-    setTrackMarkers(true);
-    const timer = setTimeout(() => setTrackMarkers(false), 800);
-    return () => clearTimeout(timer);
-  }, [clusterSignature]);
+  const onRegionChangeComplete = useCallback((next) => {
+    setRegion(prev => (sameView(prev, next) ? prev : next));
+  }, []);
 
   const handleClusterPress = useCallback((cluster) => {
     if (!mapRef.current) return;
@@ -303,7 +312,7 @@ export default function MapScreen({ navigation }) {
         showsUserLocation={true}
         showsMyLocationButton={false}
         onPress={handleMapPress}
-        onRegionChangeComplete={setRegion}
+        onRegionChangeComplete={onRegionChangeComplete}
       >
         {/* Mesafe dairesi */}
         {userLocation && selectedRadius && (
@@ -322,16 +331,15 @@ export default function MapScreen({ navigation }) {
             const count = feature.properties.events;
             const size = count >= 100 ? 54 : count >= 20 ? 46 : 40;
             return (
-              <Marker
-                key={`cluster-${feature.id}`}
+              <TrackedMarker
+                key={`cluster-${feature.id}-${count}`}
                 coordinate={{ latitude, longitude }}
                 onPress={() => handleClusterPress(feature)}
-                tracksViewChanges={trackMarkers}
               >
                 <View style={[styles.cluster, { width: size, height: size, borderRadius: size / 2 }]}>
                   <Text style={styles.clusterText}>{count > 999 ? '999+' : count}</Text>
                 </View>
-              </Marker>
+              </TrackedMarker>
             );
           }
           const group = groupByKey.get(feature.properties.key);
@@ -340,12 +348,12 @@ export default function MapScreen({ navigation }) {
           const color = getMarkerColor(first.genre);
           const isSelected = selectedVenueKey === group.key;
           return (
-            <Marker
+            <TrackedMarker
               // Seçim değişince işaretçi yeniden çizilsin (izleme kapalıyken stil güncellenmez)
               key={isSelected ? `${group.key}-sel` : group.key}
               coordinate={{ latitude: group.latitude, longitude: group.longitude }}
               onPress={() => handleMarkerPress(first)}
-              tracksViewChanges={trackMarkers || isSelected}
+              live={isSelected}
             >
               {/* Dış kutu sayı rozetini de kapsar: işaretçi görüntüsü kutu sınırında kırpılır */}
               <View style={styles.markerWrap}>
@@ -360,7 +368,7 @@ export default function MapScreen({ navigation }) {
                   </View>
                 )}
               </View>
-            </Marker>
+            </TrackedMarker>
           );
         })}
       </MapView>
