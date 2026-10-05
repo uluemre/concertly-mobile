@@ -3,9 +3,11 @@ import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import API from '../../services/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../theme';
+import { useLanguage } from '../../context/LanguageContext';
 
 export default function PollCard({ postId, options: initialOptions, onVoted }) {
   const { colors } = useTheme();
+  const { t } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [options, setOptions] = useState(initialOptions);
   const [voting, setVoting] = useState(false);
@@ -20,7 +22,7 @@ export default function PollCard({ postId, options: initialOptions, onVoted }) {
       setOptions(res.data);
       onVoted?.(res.data);
     } catch (err) {
-      Alert.alert('Hata', 'Oy verilemedi.');
+      Alert.alert(t('error'), t('post_poll_vote_error'));
     } finally {
       setVoting(false);
     }
@@ -47,7 +49,7 @@ export default function PollCard({ postId, options: initialOptions, onVoted }) {
           </TouchableOpacity>
         );
       })}
-      <Text style={styles.pollTotal}>{totalVotes} oy</Text>
+      <Text style={styles.pollTotal}>{t('post_poll_votes', { n: totalVotes })}</Text>
     </View>
   );
 }

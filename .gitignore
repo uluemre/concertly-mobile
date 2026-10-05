@@ -16,3 +16,12 @@ uploads/
 # OS
 .DS_Store
 Thumbs.db
+
+# Yerel veri / hassas dosyalar (commit'lenmez)
+*.dump
+login.json
+dry-run*.json
+nul
+
+# Audit çalışma notları (yerel)
+.claude/audit/
