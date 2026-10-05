@@ -31,7 +31,11 @@ export function LanguageProvider({ children }) {
   }, []);
 
   const t = useCallback((key, params) => {
-    let str = translations[lang]?.[key] ?? translations.tr[key] ?? key;
+    // Tekil biçim: sayı 1 ise ve dilde "<anahtar>_one" varsa o kullanılır
+    // ("1 vote" / "2 votes"). Türkçede gerek yok; anahtar yoksa normal metin.
+    const count = params?.count ?? params?.n;
+    const oneKey = Number(count) === 1 ? translations[lang]?.[`${key}_one`] : undefined;
+    let str = oneKey ?? translations[lang]?.[key] ?? translations.tr[key] ?? key;
     if (params && typeof str === 'string') {
       Object.entries(params).forEach(([k, v]) => {
         str = str.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v));
