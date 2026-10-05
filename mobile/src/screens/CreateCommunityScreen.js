@@ -9,7 +9,7 @@ import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import { communityTypeLabel } from '../utils/communityType';
 import { useAuth } from '../context/AuthContext';
-import API, { getErrorMessage } from '../services/api';
+import API from '../services/api';
 import CityPicker from '../components/CityPicker';
 import { goBackOrFallback } from '../navigation/navHelpers';
 import { communityErrorMessage } from '../utils/communityErrors';
@@ -101,7 +101,7 @@ export default function CreateCommunityScreen({ navigation, route }) {
   const showError = (err) => {
     Alert.alert(t('error'), err?.response?.data?.message === 'COMMUNITY_DESCRIPTION_TOO_LONG'
       ? t('community_create_desc_too_long', { max: DESCRIPTION_MAX })
-      : (isEdit ? communityErrorMessage(err, t, 'community_edit_error') : getErrorMessage(err)));
+      : (isEdit ? communityErrorMessage(err, t, 'community_edit_error') : communityErrorMessage(err, t)));
   };
 
   // Yalnız değişen alanlar gönderilir (sunucu null alanı değiştirmez)

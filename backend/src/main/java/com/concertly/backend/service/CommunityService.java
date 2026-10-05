@@ -319,11 +319,11 @@ public class CommunityService {
                 .orElseThrow(() -> new ResourceNotFoundException("Kullanici bulunamadi: " + userId));
 
         if (req.getName() == null || req.getName().isBlank()) {
-            throw new IllegalArgumentException("Topluluk adi gerekli.");
+            throw new IllegalArgumentException("COMMUNITY_NAME_REQUIRED");
         }
         requireDescriptionLength(req.getDescription());
         if (communityRepository.countByOwnerId(userId) >= MAX_OWNED_COMMUNITIES) {
-            throw new IllegalArgumentException("En fazla " + MAX_OWNED_COMMUNITIES + " topluluk kurabilirsiniz.");
+            throw new IllegalArgumentException("COMMUNITY_OWN_LIMIT");
         }
 
         Community c = new Community();
@@ -418,7 +418,7 @@ public class CommunityService {
         Community c = communityRepository.findById(communityId)
                 .orElseThrow(() -> new ResourceNotFoundException("Topluluk bulunamadi: " + communityId));
         if (!isOwner(c, userId) && !isAdmin(userId)) {
-            throw forbidden("Sadece topluluk sahibi silebilir.");
+            throw forbidden("COMMUNITY_OWNER_ONLY_DELETE");
         }
 
         List<Long> postIds = communityPostRepository.findByCommunityIdOrderByCreatedAtDesc(communityId)
@@ -459,7 +459,7 @@ public class CommunityService {
         if (existing != null) {
             switch (existing.getStatus()) {
                 case ACTIVE -> { return toResponse(community, userId); } // B3: tekrar katılma idempotent
-                case PENDING -> throw new AlreadyExistsException("Katilma isteginiz zaten beklemede.");
+                case PENDING -> throw new AlreadyExistsException("COMMUNITY_JOIN_PENDING");
                 case BANNED -> throw forbidden("COMMUNITY_BANNED");
                 case INVITED -> { // bekleyen daveti varken katıl = daveti kabul et
                     existing.setStatus(ACTIVE);
@@ -473,7 +473,7 @@ public class CommunityService {
 
         String vis = effectiveVisibility(community);
         if (SECRET.equals(vis)) {
-            throw new IllegalArgumentException("Bu topluluga yalnizca davetle katilabilirsiniz.");
+            throw new IllegalArgumentException("COMMUNITY_INVITE_ONLY");
         }
 
         CommunityMember member = new CommunityMember();
@@ -499,11 +499,11 @@ public class CommunityService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Kullanici bulunamadi: " + userId));
         Community community = communityRepository.findByInviteCode(code)
-                .orElseThrow(() -> new ResourceNotFoundException("Davet baglantisi gecersiz."));
+                .orElseThrow(() -> new ResourceNotFoundException("INVITE_LINK_INVALID"));
         // B8: davet kodu SECRET topluluğa giriş yetkisidir (görünürlük kontrolü uygulanmaz),
         // ama reddedilmiş topluluk sahip/admin dışında yok sayılır.
         if (REJECTED.equals(effectiveApproval(community)) && !(isAdmin(userId) || isOwner(community, userId))) {
-            throw new ResourceNotFoundException("Davet baglantisi gecersiz.");
+            throw new ResourceNotFoundException("INVITE_LINK_INVALID");
         }
 
         CommunityMember existing = communityMemberRepository
@@ -542,13 +542,13 @@ public class CommunityService {
     public void leaveCommunity(Long userId, Long communityId) {
         CommunityMember member = communityMemberRepository
                 .findByUserIdAndCommunityId(userId, communityId)
-                .orElseThrow(() -> new ResourceNotFoundException("Bu topluluga uye degilsiniz."));
+                .orElseThrow(() -> new ResourceNotFoundException("COMMUNITY_NOT_MEMBER"));
         // D8: yasak kaydı kullanıcı tarafından silinemez (yoksa yasak kendiliğinden kalkar)
         if (BANNED.equals(member.getStatus())) {
             throw forbidden("COMMUNITY_BANNED");
         }
         if (OWNER.equals(member.getRole())) {
-            throw new IllegalArgumentException("Topluluk sahibi ayrilamaz. Once sahipligi devredin veya toplulugu silin.");
+            throw new IllegalArgumentException("COMMUNITY_OWNER_CANNOT_LEAVE");
         }
         communityMemberRepository.delete(member);
     }
@@ -572,9 +572,9 @@ public class CommunityService {
         if (c.isArchived()) throw archived(); // B1: bekleyen isteği onaylamak da yeni katılımdır
         if (isPendingReview(c)) throw pendingReview(); // B5
         CommunityMember m = communityMemberRepository.findByUserIdAndCommunityId(targetUserId, communityId)
-                .orElseThrow(() -> new ResourceNotFoundException("Katilma istegi bulunamadi."));
+                .orElseThrow(() -> new ResourceNotFoundException("JOIN_REQUEST_NOT_FOUND"));
         if (!PENDING.equals(m.getStatus())) {
-            throw new IllegalArgumentException("Bekleyen bir istek yok.");
+            throw new IllegalArgumentException("JOIN_REQUEST_NOT_PENDING");
         }
         m.setStatus(ACTIVE);
         communityMemberRepository.save(m);
@@ -588,9 +588,9 @@ public class CommunityService {
                 .orElseThrow(() -> new ResourceNotFoundException("Topluluk bulunamadi: " + communityId));
         requireManager(managerId, c);
         CommunityMember m = communityMemberRepository.findByUserIdAndCommunityId(targetUserId, communityId)
-                .orElseThrow(() -> new ResourceNotFoundException("Katilma istegi bulunamadi."));
+                .orElseThrow(() -> new ResourceNotFoundException("JOIN_REQUEST_NOT_FOUND"));
         if (!PENDING.equals(m.getStatus())) {
-            throw new IllegalArgumentException("Bekleyen bir istek yok.");
+            throw new IllegalArgumentException("JOIN_REQUEST_NOT_PENDING");
         }
         communityMemberRepository.delete(m);
     }
@@ -615,7 +615,7 @@ public class CommunityService {
         CommunityMember existing = communityMemberRepository
                 .findByUserIdAndCommunityId(targetUserId, communityId).orElse(null);
         if (existing != null) {
-            if (ACTIVE.equals(existing.getStatus())) throw new AlreadyExistsException("Bu kullanici zaten uye.");
+            if (ACTIVE.equals(existing.getStatus())) throw new AlreadyExistsException("COMMUNITY_ALREADY_MEMBER");
             if (BANNED.equals(existing.getStatus())) throw forbidden("COMMUNITY_BANNED");
             // PENDING isteği varsa daveti onay gibi say → ACTIVE; INVITED ise tekrar bildir.
             // Bu bir katılma isteği onayıdır: approveRequest ile aynı yetki gerekir, sıradan
@@ -644,9 +644,9 @@ public class CommunityService {
     @Transactional
     public CommunityResponse acceptInvite(Long userId, Long communityId) {
         CommunityMember m = communityMemberRepository.findByUserIdAndCommunityId(userId, communityId)
-                .orElseThrow(() -> new ResourceNotFoundException("Davet bulunamadi."));
+                .orElseThrow(() -> new ResourceNotFoundException("INVITE_NOT_FOUND"));
         if (!INVITED.equals(m.getStatus())) {
-            throw new IllegalArgumentException("Bekleyen bir davet yok.");
+            throw new IllegalArgumentException("INVITE_NOT_PENDING");
         }
         if (m.getCommunity().isArchived()) throw archived(); // B1: arşivden önce gelmiş davet de yeni girişi açmaz
         if (isPendingReview(m.getCommunity())) throw pendingReview(); // B5: incelemeden önce gelmiş davet de girişi açmaz
@@ -658,9 +658,9 @@ public class CommunityService {
     @Transactional
     public void declineInvite(Long userId, Long communityId) {
         CommunityMember m = communityMemberRepository.findByUserIdAndCommunityId(userId, communityId)
-                .orElseThrow(() -> new ResourceNotFoundException("Davet bulunamadi."));
+                .orElseThrow(() -> new ResourceNotFoundException("INVITE_NOT_FOUND"));
         if (!INVITED.equals(m.getStatus())) {
-            throw new IllegalArgumentException("Bekleyen bir davet yok.");
+            throw new IllegalArgumentException("INVITE_NOT_PENDING");
         }
         communityMemberRepository.delete(m);
     }
@@ -694,18 +694,18 @@ public class CommunityService {
         Community c = communityRepository.findById(communityId)
                 .orElseThrow(() -> new ResourceNotFoundException("Topluluk bulunamadi: " + communityId));
         if (!isOwner(c, ownerId) && !isAdmin(ownerId)) {
-            throw forbidden("Sadece topluluk sahibi rol atayabilir.");
+            throw forbidden("COMMUNITY_OWNER_ONLY_ROLES");
         }
         if (!MODERATOR.equals(role) && !MEMBER.equals(role)) {
-            throw new IllegalArgumentException("Gecersiz rol.");
+            throw new IllegalArgumentException("COMMUNITY_INVALID_ROLE");
         }
         CommunityMember m = communityMemberRepository.findByUserIdAndCommunityId(targetUserId, communityId)
-                .orElseThrow(() -> new ResourceNotFoundException("Uye bulunamadi."));
+                .orElseThrow(() -> new ResourceNotFoundException("COMMUNITY_MEMBER_NOT_FOUND"));
         if (OWNER.equals(m.getRole())) {
-            throw new IllegalArgumentException("Sahibin rolu degistirilemez.");
+            throw new IllegalArgumentException("COMMUNITY_OWNER_ROLE_LOCKED");
         }
         if (!ACTIVE.equals(m.getStatus())) {
-            throw new IllegalArgumentException("Yalnizca aktif uyelere rol atanir.");
+            throw new IllegalArgumentException("COMMUNITY_ROLE_ACTIVE_ONLY");
         }
         m.setRole(role);
         communityMemberRepository.save(m);
@@ -717,16 +717,16 @@ public class CommunityService {
                 .orElseThrow(() -> new ResourceNotFoundException("Topluluk bulunamadi: " + communityId));
         requireManager(managerId, c);
         CommunityMember m = communityMemberRepository.findByUserIdAndCommunityId(targetUserId, communityId)
-                .orElseThrow(() -> new ResourceNotFoundException("Uye bulunamadi."));
+                .orElseThrow(() -> new ResourceNotFoundException("COMMUNITY_MEMBER_NOT_FOUND"));
         if (OWNER.equals(m.getRole())) {
-            throw new IllegalArgumentException("Topluluk sahibi cikarilamaz.");
+            throw new IllegalArgumentException("COMMUNITY_OWNER_CANNOT_BE_REMOVED");
         }
         // Moderatörü yalnızca sahip/admin çıkarabilir
         if (MODERATOR.equals(m.getRole()) && !isOwner(c, managerId) && !isAdmin(managerId)) {
-            throw forbidden("Moderatoru yalnizca sahip cikarabilir.");
+            throw forbidden("COMMUNITY_OWNER_ONLY_REMOVE_MOD");
         }
         if (managerId != null && managerId.equals(targetUserId)) {
-            throw new IllegalArgumentException("Kendinizi yasaklayamazsiniz; topluluktan ayrilin.");
+            throw new IllegalArgumentException("COMMUNITY_CANNOT_BAN_SELF");
         }
         // B7: çıkarma = yasak. Satır silinmez (BANNED); kullanıcı join/kod/davetle geri giremez.
         // Kendi ayrılan satır silinir (leaveCommunity) ve tekrar katılabilir; yasak kalkınca (unbanMember) satır silinir.
@@ -753,9 +753,9 @@ public class CommunityService {
                 .orElseThrow(() -> new ResourceNotFoundException("Topluluk bulunamadi: " + communityId));
         requireManager(managerId, c);
         CommunityMember m = communityMemberRepository.findByUserIdAndCommunityId(targetUserId, communityId)
-                .orElseThrow(() -> new ResourceNotFoundException("Yasakli uye bulunamadi."));
+                .orElseThrow(() -> new ResourceNotFoundException("COMMUNITY_BANNED_MEMBER_NOT_FOUND"));
         if (!BANNED.equals(m.getStatus())) {
-            throw new ResourceNotFoundException("Yasakli uye bulunamadi.");
+            throw new ResourceNotFoundException("COMMUNITY_BANNED_MEMBER_NOT_FOUND");
         }
         communityMemberRepository.delete(m);
     }
@@ -765,17 +765,17 @@ public class CommunityService {
         Community c = communityRepository.findById(communityId)
                 .orElseThrow(() -> new ResourceNotFoundException("Topluluk bulunamadi: " + communityId));
         if (!isOwner(c, ownerId)) {
-            throw forbidden("Sadece mevcut sahip devredebilir.");
+            throw forbidden("COMMUNITY_OWNER_ONLY_TRANSFER");
         }
         // C2: kendine devir anlamsız; arşivli topluluk devredilmez. Bekleyen inceleme (PENDING) devri engellemez.
         if (ownerId.equals(targetUserId)) {
-            throw new IllegalArgumentException("Sahiplik kendinize devredilemez.");
+            throw new IllegalArgumentException("COMMUNITY_TRANSFER_TO_SELF");
         }
         if (c.isArchived()) throw archived();
         CommunityMember target = communityMemberRepository.findByUserIdAndCommunityId(targetUserId, communityId)
-                .orElseThrow(() -> new ResourceNotFoundException("Hedef uye bulunamadi."));
+                .orElseThrow(() -> new ResourceNotFoundException("COMMUNITY_TRANSFER_TARGET_NOT_FOUND"));
         if (!ACTIVE.equals(target.getStatus())) {
-            throw new IllegalArgumentException("Sahiplik yalnizca aktif uyeye devredilir.");
+            throw new IllegalArgumentException("COMMUNITY_TRANSFER_ACTIVE_ONLY");
         }
         CommunityMember current = communityMemberRepository.findByUserIdAndCommunityId(ownerId, communityId)
                 .orElseThrow(() -> new ResourceNotFoundException("Mevcut sahip uyeligi bulunamadi."));
@@ -937,7 +937,7 @@ public class CommunityService {
     @Transactional
     public CommunityPostCommentResponse addPostComment(Long userId, Long communityId, Long postId, String content) {
         if (content == null || content.isBlank()) {
-            throw new IllegalArgumentException("Yorum bos olamaz.");
+            throw new IllegalArgumentException("COMMENT_EMPTY");
         }
         ContentLimits.check(content.trim(), ContentLimits.COMMENT_MAX); // B10
         User user = userRepository.findById(userId)
@@ -947,7 +947,7 @@ public class CommunityService {
         requireCommunityVisible(community, userId); // B8
 
         if (!communityMemberRepository.existsByUserIdAndCommunityIdAndStatus(userId, communityId, ACTIVE)) {
-            throw forbidden("Sadece uyeler yorum yapabilir.");
+            throw forbidden("COMMUNITY_MEMBERS_ONLY_COMMENT");
         }
         // D2: üyelik URL'deki topluluk için doğrulandı; gönderi de o topluluğa ait olmalı
         CommunityPost post = requirePostVisibleTo(community, postId, userId);
@@ -979,7 +979,7 @@ public class CommunityService {
         boolean activeMember = currentUserId != null &&
                 communityMemberRepository.existsByUserIdAndCommunityIdAndStatus(currentUserId, c.getId(), ACTIVE);
         if (!activeMember && !isAdmin(currentUserId)) {
-            throw forbidden("Bu toplulugun gonderilerini gormek icin uye olmalisiniz.");
+            throw forbidden("COMMUNITY_MEMBERS_ONLY_VIEW");
         }
     }
 
@@ -1027,7 +1027,7 @@ public class CommunityService {
     public void requireCanReportCommunityContent(Long reporterId, String targetType, Long targetId) {
         String type = targetType == null ? "" : targetType.trim().toUpperCase(java.util.Locale.ROOT);
         if (!"COMMUNITY_POST".equals(type) && !"COMMUNITY_COMMENT".equals(type)) return;
-        if (targetId == null) throw new IllegalArgumentException("Şikayet hedefi eksik");
+        if (targetId == null) throw new IllegalArgumentException("REPORT_TARGET_MISSING");
 
         CommunityPost post;
         CommunityPostComment comment = null;
@@ -1061,7 +1061,7 @@ public class CommunityService {
         requireCommunityVisible(community, userId); // B8
 
         if (!communityMemberRepository.existsByUserIdAndCommunityIdAndStatus(userId, communityId, ACTIVE)) {
-            throw forbidden("Sadece uyeler post olusturabilir.");
+            throw forbidden("COMMUNITY_MEMBERS_ONLY_POST");
         }
 
         ContentLimits.check(request.getContent(), ContentLimits.COMMUNITY_POST_MAX);
@@ -1108,7 +1108,7 @@ public class CommunityService {
         requireCommunityVisible(community, userId); // B8
 
         if (!communityMemberRepository.existsByUserIdAndCommunityIdAndStatus(userId, communityId, ACTIVE)) {
-            throw forbidden("Sadece uyeler oy verebilir.");
+            throw forbidden("COMMUNITY_MEMBERS_ONLY_VOTE");
         }
         // D2: gönderi URL'deki topluluğa, seçenek de bu gönderinin anketine ait olmalı
         CommunityPost post = requirePostVisibleTo(community, postId, userId);
@@ -1247,7 +1247,7 @@ public class CommunityService {
         CommunityMember m = userId == null ? null
                 : communityMemberRepository.findByUserIdAndCommunityId(userId, c.getId()).orElse(null);
         if (m == null || !ACTIVE.equals(m.getStatus()) || !canManage(m.getRole())) {
-            throw forbidden("Bu islem icin yetkiniz yok.");
+            throw forbidden("COMMUNITY_NO_PERMISSION");
         }
     }
 

@@ -234,7 +234,7 @@ export default function ProfileScreen({ navigation, route }) {
               </TouchableOpacity>
 
               <View style={styles.heroInfo}>
-                <Text style={styles.username} numberOfLines={1}>@{profile?.username || 'Kullanıcı'}</Text>
+                <Text style={styles.username} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>@{profile?.username || 'Kullanıcı'}</Text>
                 {profile?.bio ? (
                   <Text style={styles.bioText} numberOfLines={3}>{profile.bio}</Text>
                 ) : (
@@ -247,8 +247,8 @@ export default function ProfileScreen({ navigation, route }) {
 
             <View style={styles.statsInline}>
               <View style={styles.stat}>
-                <Text style={styles.statNumber}>{posts.length}</Text>
-                <Text style={styles.statLabel}>{tu('profile_stat_posts')}</Text>
+                <Text style={styles.statNumber} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{posts.length}</Text>
+                <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{tu('profile_stat_posts')}</Text>
               </View>
               <View style={styles.statDivider} />
               <TouchableOpacity
@@ -258,8 +258,8 @@ export default function ProfileScreen({ navigation, route }) {
                 accessibilityRole="button"
                 accessibilityLabel={`${profile?.followerCount || 0} ${t('profile_followers')}`}
               >
-                <Text style={styles.statNumber}>{profile?.followerCount || 0}</Text>
-                <Text style={styles.statLabel}>{tu('profile_followers')}</Text>
+                <Text style={styles.statNumber} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{profile?.followerCount || 0}</Text>
+                <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{tu('profile_followers')}</Text>
               </TouchableOpacity>
               <View style={styles.statDivider} />
               <TouchableOpacity
@@ -269,13 +269,13 @@ export default function ProfileScreen({ navigation, route }) {
                 accessibilityRole="button"
                 accessibilityLabel={`${profile?.followingCount || 0} ${t('profile_following')}`}
               >
-                <Text style={styles.statNumber}>{profile?.followingCount || 0}</Text>
-                <Text style={styles.statLabel}>{tu('profile_following')}</Text>
+                <Text style={styles.statNumber} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{profile?.followingCount || 0}</Text>
+                <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{tu('profile_following')}</Text>
               </TouchableOpacity>
               <View style={styles.statDivider} />
               <View style={styles.stat}>
-                <Text style={styles.statNumber}>{events.length}</Text>
-                <Text style={styles.statLabel}>{tu('profile_stat_events')}</Text>
+                <Text style={styles.statNumber} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{events.length}</Text>
+                <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{tu('profile_stat_events')}</Text>
               </View>
             </View>
           </View>
@@ -663,7 +663,7 @@ function createStyles(colors) {
       flexDirection: 'row',
       alignItems: 'center',
     },
-    stat: { flex: 1, alignItems: 'center' },
+    stat: { flex: 1, alignItems: 'center', paddingHorizontal: 2 },
     statNumber: { fontSize: 18, fontWeight: '800', color: colors.text },
     statLabel: { fontSize: 10, color: colors.textSecondary, marginTop: 3, letterSpacing: 0.8, fontWeight: '700' },
     statDivider: { width: 1, height: 22, backgroundColor: colors.border },

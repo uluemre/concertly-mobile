@@ -219,7 +219,7 @@ function UserProfileContent({ route, navigation }) {
 
           {/* Sağ: BİLGİ + BUTONLAR */}
           <View style={styles.infoCol}>
-            <Text style={styles.username} numberOfLines={1}>@{profile?.username}</Text>
+            <Text style={styles.username} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>@{profile?.username}</Text>
             {profile?.bio ? (
               <Text style={styles.bio} numberOfLines={2}>{profile.bio}</Text>
             ) : (
@@ -281,8 +281,8 @@ function UserProfileContent({ route, navigation }) {
         {/* STATS */}
         <View style={styles.statsRow}>
           <View style={styles.stat}>
-            <Text style={styles.statNumber}>{locked ? '—' : posts.length}</Text>
-            <Text style={styles.statLabel}>{tu('profile_post_count')}</Text>
+            <Text style={styles.statNumber} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{locked ? '—' : posts.length}</Text>
+            <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{tu('profile_post_count')}</Text>
           </View>
           <View style={styles.statDivider} />
           <TouchableOpacity
@@ -292,8 +292,8 @@ function UserProfileContent({ route, navigation }) {
             accessibilityRole="button"
             accessibilityLabel={`${profile?.followerCount || 0} ${t('profile_followers')}`}
           >
-            <Text style={styles.statNumber}>{profile?.followerCount || 0}</Text>
-            <Text style={styles.statLabel}>{tu('profile_followers')}</Text>
+            <Text style={styles.statNumber} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{profile?.followerCount || 0}</Text>
+            <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{tu('profile_followers')}</Text>
           </TouchableOpacity>
           <View style={styles.statDivider} />
           <TouchableOpacity
@@ -303,13 +303,13 @@ function UserProfileContent({ route, navigation }) {
             accessibilityRole="button"
             accessibilityLabel={`${profile?.followingCount || 0} ${t('profile_following')}`}
           >
-            <Text style={styles.statNumber}>{profile?.followingCount || 0}</Text>
-            <Text style={styles.statLabel}>{tu('profile_following')}</Text>
+            <Text style={styles.statNumber} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{profile?.followingCount || 0}</Text>
+            <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{tu('profile_following')}</Text>
           </TouchableOpacity>
           <View style={styles.statDivider} />
           <View style={styles.stat}>
-            <Text style={styles.statNumber}>{locked ? '—' : events.length}</Text>
-            <Text style={styles.statLabel}>{tu('profile_event_count')}</Text>
+            <Text style={styles.statNumber} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{locked ? '—' : events.length}</Text>
+            <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{tu('profile_event_count')}</Text>
           </View>
         </View>
       </View>

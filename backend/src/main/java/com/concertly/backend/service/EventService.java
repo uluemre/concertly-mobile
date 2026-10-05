@@ -149,33 +149,32 @@ public class EventService {
         if (genres == null || genres.isEmpty()) {
             return getAllEvents(city);
         }
-        List<String> lowerGenres = expandGenres(genres);
-        String queryCity = (city == null || city.isBlank()) ? launchCityConfig.firstCity() : city;
+        java.util.Set<String> lowerGenres = new java.util.HashSet<>(expandGenres(genres));
 
-        List<Event> matching = new java.util.ArrayList<>(eventRepository.findByVenueCityAndGenreIn(queryCity, lowerGenres));
-        matching.removeIf(e -> !e.listedPublicly());
-        matching.sort(Comparator.comparing(Event::getEventDate));
-
+        // Şehir seçilmemişse tüm açılış şehirleri. Tür eşleşmesi de aynı listeden süzülür;
+        // eskiden yalnız ilk şehirde (İstanbul) aranıyordu ve "Tüm Türkiye"de öneriler
+        // hep İstanbul'dan geliyordu.
         List<Event> all = (city == null || city.isBlank())
                 ? eventRepository.findByCitiesNormalized(launchCityConfig.getCities().stream()
                         .map(LaunchCityConfig::normalize).toList())
                 : eventRepository.findByCityNormalized(city);
-        all = new java.util.ArrayList<>(all);
-        all.removeIf(e -> !e.listedPublicly());
-        all.sort(Comparator.comparing(Event::getEventDate));
 
-        // Matching events first, then remaining ones
-        java.util.Set<Long> matchingIds = matching.stream().map(Event::getId).collect(java.util.stream.Collectors.toSet());
-        java.util.List<Event> sorted = new java.util.ArrayList<>(matching);
-        for (Event e : all) {
-            if (!matchingIds.contains(e.getId())) {
-                sorted.add(e);
-            }
-        }
+        // Önce türü tutanlar, sonra kalanlar; her grup kendi içinde tarih sırasında
+        List<Event> sorted = all.stream()
+                .filter(Event::listedPublicly)
+                .sorted(Comparator
+                        .comparing((Event e) -> !matchesGenre(e, lowerGenres))
+                        .thenComparing(Event::getEventDate))
+                .toList();
 
         return collapseCopies(sorted).stream()
                 .map(EventResponse::from)
                 .toList();
+    }
+
+    private static boolean matchesGenre(Event e, java.util.Set<String> lowerGenres) {
+        return e.getGenre() != null
+                && lowerGenres.contains(e.getGenre().trim().toLowerCase(java.util.Locale.ROOT));
     }
 
     public EventResponse getEventById(Long id) {

@@ -194,16 +194,4 @@ public interface EventRepository extends JpaRepository<Event, Long> {
             """)
     List<Object[]> topArtistsByUpcomingEvents(@Param("from") java.time.LocalDateTime from,
                                               org.springframework.data.domain.Pageable pageable);
-
-    @EntityGraph(attributePaths = {"artist", "venue", "createdBy"})
-    @Query("""
-                SELECT e FROM Event e
-                WHERE LOWER(REPLACE(e.venue.city, 'İ', 'I')) = LOWER(REPLACE(:city, 'İ', 'I'))
-                AND LOWER(e.genre) IN :genres
-                ORDER BY e.eventDate DESC
-            """)
-    List<Event> findByVenueCityAndGenreIn(
-        @Param("city") String city,
-        @Param("genres") List<String> genres
-    );
 }
