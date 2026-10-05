@@ -68,6 +68,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/auth/verify-email").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/resend-verification").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/users/register").permitAll()
+                        // Dis tetikleyici JWT kullanmaz; uc kendi gizli anahtarini (X-Sync-Token) dogrular
+                        .requestMatchers(HttpMethod.POST, "/api/internal/sync").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/events").permitAll()
                         // Mobil konser listesi — etkinlikler zaten herkese acik
                         .requestMatchers(HttpMethod.GET, "/api/concerts", "/api/concerts/*/tickets").permitAll()

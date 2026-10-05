@@ -2,6 +2,7 @@ package com.concertly.backend.controller;
 
 import com.concertly.backend.dto.response.DuplicateCandidateResponse;
 import com.concertly.backend.service.ingest.ConcertSyncScheduler;
+import com.concertly.backend.service.ingest.SourceHealthService;
 import com.concertly.backend.service.ingest.CrossSourceDuplicateReport;
 import com.concertly.backend.service.ingest.EventMergeService;
 import com.concertly.backend.service.ingest.EventSourceLinkService;
@@ -33,15 +34,18 @@ public class AdminSourceController {
     private final CrossSourceDuplicateReport duplicateReport;
     private final EventSourceLinkService sourceLinkService;
     private final EventMergeService mergeService;
+    private final SourceHealthService healthService;
 
     public AdminSourceController(ConcertSyncScheduler scheduler,
             CrossSourceDuplicateReport duplicateReport,
             EventSourceLinkService sourceLinkService,
-            EventMergeService mergeService) {
+            EventMergeService mergeService,
+            SourceHealthService healthService) {
         this.scheduler = scheduler;
         this.duplicateReport = duplicateReport;
         this.sourceLinkService = sourceLinkService;
         this.mergeService = mergeService;
+        this.healthService = healthService;
     }
 
     /**
@@ -66,6 +70,15 @@ public class AdminSourceController {
     @PostMapping("/unmerge")
     public EventMergeService.MergeResult unmerge(@RequestBody Map<String, Long> body) {
         return mergeService.unmerge(body.get("eventId"));
+    }
+
+    /**
+     * Kaynak sagligi: her acik kaynagin son kosulari ve OK / WARN / FAIL durumu.
+     * Bir kaynak bir gecede sifira duserse (site tasarimi degisti) burada gorunur.
+     */
+    @GetMapping("/health")
+    public SourceHealthService.HealthReport health() {
+        return healthService.report();
     }
 
     /** Tanimli kaynaklar. */

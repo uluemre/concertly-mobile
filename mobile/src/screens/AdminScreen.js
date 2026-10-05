@@ -80,6 +80,13 @@ const NAV_ITEMS = [
     tint: 'textSecondary',
     screen: 'AdminDeletionFeedback',
   },
+  {
+    titleKey: 'admin_nav_sources_title',
+    subtitleKey: 'admin_nav_sources_sub',
+    icon: 'server',
+    tint: 'purple',
+    screen: 'AdminSources',
+  },
 ];
 
 export default function AdminScreen({ navigation }) {

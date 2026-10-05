@@ -67,6 +67,7 @@ import AdminEventsScreen from '../screens/AdminEventsScreen';
 import AdminUsersScreen from '../screens/AdminUsersScreen';
 import AdminPostsScreen from '../screens/AdminPostsScreen';
 import AdminDeletionFeedbackScreen from '../screens/AdminDeletionFeedbackScreen';
+import AdminSourcesScreen from '../screens/AdminSourcesScreen';
 import AdminCommunitiesScreen from '../screens/AdminCommunitiesScreen';
 import AdminReportsScreen from '../screens/AdminReportsScreen';
 import AdminOrganizerRequestsScreen from '../screens/AdminOrganizerRequestsScreen';
@@ -435,6 +436,7 @@ export default function AppNavigator() {
         <Stack.Screen name="AdminUsers" component={AdminUsersScreen} />
         <Stack.Screen name="AdminPosts" component={AdminPostsScreen} />
         <Stack.Screen name="AdminDeletionFeedback" component={AdminDeletionFeedbackScreen} />
+        <Stack.Screen name="AdminSources" component={AdminSourcesScreen} />
         <Stack.Screen name="AdminCommunities" component={AdminCommunitiesScreen} />
         <Stack.Screen name="SpotifyRecommendations" component={SpotifyRecommendationsScreen} />
         <Stack.Screen name="VenueProfile" component={VenueProfileScreen} />

@@ -1,0 +1,38 @@
+# Gece 04:00 konser senkronunun yedeği.
+#
+# Sunucu 04:00'te uyuyor ya da yeniden başlıyorsa o gecenin senkronu çalışmaz.
+# Bu iş her sabah 05:00'te (Türkiye) sunucuyu uyandırır ve son 20 saatte başarılı
+# bir senkron YOKSA başlatır; varsa hiçbir şey yapmaz (çift senkron olmaz).
+#
+# Kurulum (bir kez):
+#   1) Render ortam değişkeni: SYNC_TRIGGER_TOKEN = uzun rastgele bir metin
+#   2) GitHub → Settings → Secrets and variables → Actions → New repository secret:
+#      SYNC_TRIGGER_TOKEN = aynı metin
+# Secret tanımlı değilse iş sessizce atlanır.
+name: nightly-sync-backup
+
+on:
+  schedule:
+    - cron: "0 2 * * *"   # 02:00 UTC = 05:00 Türkiye
+  workflow_dispatch:
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Trigger sync if missed
+        env:
+          TOKEN: ${{ secrets.SYNC_TRIGGER_TOKEN }}
+          BASE: ${{ vars.API_BASE_URL || 'https://concertly-api.onrender.com' }}
+        run: |
+          if [ -z "$TOKEN" ]; then echo "SYNC_TRIGGER_TOKEN tanimli degil, atlandi"; exit 0; fi
+          # Önce uyandır (soğuk açılış ~90 sn sürebilir)
+          curl -fsS --max-time 150 --retry 3 --retry-delay 15 "$BASE/actuator/health/liveness" || true
+          code=$(curl -sS -o resp.json -w "%{http_code}" --max-time 60 --retry 2 --retry-delay 10 \
+            -X POST -H "X-Sync-Token: $TOKEN" "$BASE/api/internal/sync?ifMissedHours=20")
+          echo "HTTP $code: $(cat resp.json 2>/dev/null)"
+          case "$code" in
+            200|202|409) exit 0 ;;
+            *) echo "Tetikleme basarisiz"; exit 1 ;;
+          esac

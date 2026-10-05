@@ -50,15 +50,6 @@ public class BiletinialSource {
     private static final String BASE_URL = "https://biletinial.com";
     private static final String CITY_LISTING = BASE_URL + "/tr-tr/muzik/%s";
 
-    /** Sayfaya gomulu JSON-LD bloklari. */
-    private static final Pattern LD_JSON = Pattern.compile(
-            "<script[^>]*type=\"application/ld\\+json\"[^>]*>(.*?)</script>",
-            Pattern.DOTALL | Pattern.CASE_INSENSITIVE);
-
-    /** Etkinlik saatleri Turkiye duvar saatiyle saklanir. */
-    private static final ZoneId ISTANBUL = ZoneId.of("Europe/Istanbul");
-
-    private static final ObjectMapper MAPPER = new ObjectMapper();
     private final RestTemplate restTemplate;
     private final long politeDelayMs;
     private final int maxRetries;
@@ -189,46 +180,20 @@ public class BiletinialSource {
      * verir; Concertly sehir bazinda calistigi icin yaka ekini atiyoruz.
      */
     static String normalizeCity(String locality) {
-        if (locality == null || locality.isBlank()) return null;
-        String city = locality.trim();
-        String lower = city.toLowerCase(Locale.ROOT);
-        for (String suffix : new String[] { " anadolu", " avrupa", " asya" }) {
-            if (lower.endsWith(suffix)) return city.substring(0, city.length() - suffix.length()).trim();
-        }
-        return city;
+        return JsonLd.normalizeCity(locality);
     }
 
     /** Saat dilimli tarihi Turkiye duvar saatine cevirir. */
     static LocalDateTime toLocalDateTime(String isoDate) {
-        if (isoDate == null || isoDate.isBlank()) return null;
-        try {
-            return OffsetDateTime.parse(isoDate).atZoneSameInstant(ISTANBUL).toLocalDateTime();
-        } catch (DateTimeParseException ignored) {
-            // Saat dilimi olmayan bicim de gelebilir.
-        }
-        try {
-            return LocalDateTime.parse(isoDate);
-        } catch (DateTimeParseException e) {
-            return null;
-        }
+        return JsonLd.toLocalDateTime(isoDate);
     }
 
     // ── Yardimcilar ─────────────────────────────────────────────────────────
 
     /** Sayfadaki JSON-LD bloklari; Bubilet okuyucusu da kullanir. */
     static List<JsonNode> jsonLdBlocks(String html) {
-        List<JsonNode> nodes = new ArrayList<>();
-        Matcher matcher = LD_JSON.matcher(html);
-        while (matcher.find()) {
-            String raw = matcher.group(1).trim();
-            if (raw.isEmpty()) continue;
-            try {
-                nodes.add(MAPPER.readTree(raw));
-            } catch (Exception e) {
-                log.debug("JSON-LD blogu okunamadi: {}", e.getMessage());
-            }
-        }
-        return nodes;
+        // Ortak, toleransli okuyucu (bkz. JsonLd)
+        return JsonLd.blocks(html);
     }
 
     /**
@@ -259,19 +224,11 @@ public class BiletinialSource {
     }
 
     static String text(JsonNode node) {
-        if (node == null || node.isMissingNode() || node.isNull()) return null;
-        String value = node.isTextual() ? node.asText() : node.toString();
-        value = value.trim();
-        return value.isEmpty() ? null : value;
+        return JsonLd.text(node);
     }
 
     static Double toDouble(JsonNode node) {
-        if (node == null || node.isMissingNode() || node.isNull()) return null;
-        try {
-            return Double.valueOf(node.asText());
-        } catch (NumberFormatException e) {
-            return null;
-        }
+        return JsonLd.toDouble(node);
     }
 
     /** Istekler arasi nezaket beklemesi. */

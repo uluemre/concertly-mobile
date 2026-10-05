@@ -108,6 +108,12 @@ class SecurityRoutesTest {
     // ── Herkese açık uçlar ──────────────────────────────────────────────────
 
     @Test
+    void internalSyncSkipsJwtButIsClosedWithoutItsOwnToken() throws Exception {
+        // JWT istemez (GitHub Actions çağırır); anahtar tanımlı değilken uç yokmuş gibi 404
+        mvc.perform(post("/api/internal/sync")).andExpect(status().isNotFound());
+    }
+
+    @Test
     void publicPagesNeedNoToken() throws Exception {
         getAs("/legal/privacy.html", null).andExpect(status().isOk());
         getAs("/.well-known/assetlinks.json", null).andExpect(status().isOk());

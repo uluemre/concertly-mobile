@@ -2,6 +2,7 @@ package com.concertly.backend.repository;
 
 import com.concertly.backend.model.EventSource;
 import com.concertly.backend.model.EventSourceLink;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -10,6 +11,12 @@ import java.util.Optional;
 
 public interface EventSourceLinkRepository extends JpaRepository<EventSourceLink, Long> {
 
+    /**
+     * Etkinlik (sanatçı ve mekânıyla) aynı sorguda gelir. Senkron, gece zamanlayıcısında
+     * açık bir oturum olmadan çalışır; tembel yüklenen etkinliğe dokunmak orada
+     * LazyInitializationException veriyordu ve Ticketmaster her kaydı atlıyordu.
+     */
+    @EntityGraph(attributePaths = {"event", "event.artist", "event.venue"})
     Optional<EventSourceLink> findBySourceAndExternalId(EventSource source, String externalId);
 
     List<EventSourceLink> findByEventId(Long eventId);
