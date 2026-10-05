@@ -140,15 +140,41 @@ export default function HomeScreen({ navigation }) {
         foldSearch(e.venueCity).includes(q) ||
         foldSearch(e.venueName).includes(q);
     });
-    // Takip edilen sanatçıların etkinliklerini öne al (stabil sıralama)
-    if (followedArtistIds.size > 0) {
-      list.sort((a, b) =>
-        (followedArtistIds.has(b.artistId) ? 1 : 0) - (followedArtistIds.has(a.artistId) ? 1 : 0));
-    }
     return list;
-  }, [events, search, followedArtistIds]);
+  }, [events, search]);
 
-  // Bu hafta sonu: Cuma 00:00 – Pazar 23:59 (hafta sonundaysak bugünden itibaren)
+  // Öne çıkanlar = keşif rayı. Takip edilen sanatçılar kendi rayında olduğu için burada
+  // yer almaz (iki ray aynı konserleri gösteriyordu). Önce: 30 gün içinde, sevilen türde,
+  // doğrulanmış kaynaklı, görselli konserler; her sanatçıdan en fazla bir kart.
+  const featuredEvents = useMemo(() => {
+    const favGenres = (session.favoriteGenres || '')
+      .split(',').map(g => foldSearch(g.trim())).filter(Boolean);
+    const soon = Date.now() + 30 * 24 * 60 * 60 * 1000;
+    const score = e => {
+      let s = 0;
+      if (parseEventDate(e.eventDate) <= soon) s += 3;
+      const genre = foldSearch(`${e.genre || ''} ${e.artistGenre || ''}`);
+      if (favGenres.some(g => genre.includes(g))) s += 2;
+      if (e.isVerified) s += 1;
+      if (e.imageUrl || e.artistImageUrl) s += 1;
+      return s;
+    };
+    const candidates = filteredEvents
+      .filter(e => !e.cancelled && !followedArtistIds.has(e.artistId))
+      .map(e => ({ e, s: score(e), t: parseEventDate(e.eventDate) }))
+      .sort((a, b) => (b.s - a.s) || (a.t - b.t));
+    const seenArtists = new Set();
+    const picked = [];
+    for (const { e } of candidates) {
+      const artistKey = e.artistId ?? foldSearch(e.artistName || e.name);
+      if (seenArtists.has(artistKey)) continue;
+      seenArtists.add(artistKey);
+      picked.push(e);
+      if (picked.length === 6) break;
+    }
+    // Hepsi takip edilenlerden oluşuyorsa ray boş kalmasın: en yakın konserler
+    return picked.length > 0 ? picked : filteredEvents.slice(0, 6);
+  }, [filteredEvents, followedArtistIds, session.favoriteGenres]);
 
   // Takip edilen sanatçıların yaklaşan konserleri
   const followedEvents = useMemo(
@@ -274,7 +300,7 @@ export default function HomeScreen({ navigation }) {
           ) : (
             <FlatList
               horizontal
-              data={filteredEvents.slice(0, 6)}
+              data={featuredEvents}
               keyExtractor={item => `feat-${item.id}`}
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.featuredList}
