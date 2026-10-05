@@ -13,6 +13,7 @@ import java.util.Optional;
 public interface ArtistFollowRepository extends JpaRepository<ArtistFollow, Long> {
     Optional<ArtistFollow> findByUserIdAndArtistId(Long userId, Long artistId);
     long countByArtistId(Long artistId);
+    long countByUserId(Long userId);
     List<ArtistFollow> findAllByUserId(Long userId);
     List<ArtistFollow> findAllByArtistId(Long artistId);
 

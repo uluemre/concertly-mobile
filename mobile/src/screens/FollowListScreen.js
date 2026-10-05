@@ -20,6 +20,8 @@ export default function FollowListScreen({ route, navigation }) {
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [users, setUsers] = useState([]);
+  // "Takip" sayısı sanatçıları da içerir (N-46); liste de onları göstersin
+  const [artists, setArtists] = useState([]);
   const [loading, setLoading] = useState(true);
   const [locked, setLocked] = useState(false);
 
@@ -41,13 +43,20 @@ export default function FollowListScreen({ route, navigation }) {
 
   const fetchList = async () => {
     try {
-      const res = await API.get(`/users/${userId}/${type}`);
+      const [res, artistRes] = await Promise.all([
+        API.get(`/users/${userId}/${type}`),
+        type === 'following'
+          ? API.get(`/users/${userId}/followed-artists`).catch(() => ({ data: [] }))
+          : Promise.resolve({ data: [] }),
+      ]);
       setUsers(res.data);
+      setArtists(Array.isArray(artistRes.data) ? artistRes.data : []);
       setLocked(false);
     } catch (err) {
       if (isPrivateAccountError(err)) {
         // Gizli hesabın listesi: genel hata yerine kilit mesajı
         setUsers([]);
+        setArtists([]);
         setLocked(true);
       } else {
         Alert.alert(t('error'), t('follow_load_error'));
@@ -85,7 +94,31 @@ export default function FollowListScreen({ route, navigation }) {
     }
   };
 
+  const renderArtist = (artist) => (
+    <TouchableOpacity
+      style={styles.row}
+      onPress={() => navigation.navigate('ArtistProfile', { artistId: artist.id, artistName: artist.name })}
+      activeOpacity={0.8}
+      accessibilityRole="button"
+      accessibilityLabel={artist.name}
+    >
+      {artist.imageUrl ? (
+        <Image source={{ uri: artist.imageUrl }} style={styles.avatar} />
+      ) : (
+        <View style={styles.avatarPlaceholder}>
+          <Ionicons name="musical-notes" size={22} color={colors.textSecondary} />
+        </View>
+      )}
+      <View style={styles.info}>
+        <Text style={styles.username} numberOfLines={1}>{artist.name}</Text>
+        <Text style={styles.city}>{t('events_artist')}</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+    </TouchableOpacity>
+  );
+
   const renderUser = ({ item }) => {
+    if (item.kind === 'artist') return renderArtist(item.artist);
     const isSelf = item.id === session.userId;
     const status = statusOf(item);
     return (
@@ -129,6 +162,9 @@ export default function FollowListScreen({ route, navigation }) {
     );
   };
 
+  // Önce kişiler, ardından takip edilen sanatçılar
+  const rows = [...users, ...artists.map(a => ({ kind: 'artist', artist: a }))];
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -148,10 +184,10 @@ export default function FollowListScreen({ route, navigation }) {
       </View>
 
       <FlatList
-        data={users}
-        keyExtractor={item => String(item.id)}
+        data={rows}
+        keyExtractor={item => item.kind === 'artist' ? `a${item.artist.id}` : String(item.id)}
         renderItem={renderUser}
-        contentContainerStyle={users.length === 0 && styles.emptyContainer}
+        contentContainerStyle={rows.length === 0 && styles.emptyContainer}
         ListEmptyComponent={
           <View style={styles.empty}>
             <Ionicons name={locked ? 'lock-closed-outline' : 'people-outline'} size={48} color={colors.textSecondary} style={styles.emptyEmoji} />

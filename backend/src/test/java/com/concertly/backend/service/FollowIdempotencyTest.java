@@ -2,6 +2,7 @@ package com.concertly.backend.service;
 
 import com.concertly.backend.model.Follow;
 import com.concertly.backend.model.User;
+import com.concertly.backend.repository.ArtistFollowRepository;
 import com.concertly.backend.repository.FollowRepository;
 import com.concertly.backend.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,7 +33,8 @@ class FollowIdempotencyTest {
         follows = mock(FollowRepository.class);
         UserRepository users = mock(UserRepository.class);
         notifications = mock(NotificationService.class);
-        service = new FollowService(follows, users, notifications, mock(ModerationService.class), mock(PrivacyService.class));
+        service = new FollowService(follows, users, notifications, mock(ModerationService.class), mock(PrivacyService.class),
+                mock(ArtistFollowRepository.class));
         when(users.findById(1L)).thenReturn(Optional.of(user(1)));
         when(users.findById(2L)).thenReturn(Optional.of(user(2)));
     }

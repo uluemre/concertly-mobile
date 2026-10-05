@@ -4,6 +4,7 @@ import com.concertly.backend.dto.response.UserSummaryResponse;
 import com.concertly.backend.exception.ResourceNotFoundException;
 import com.concertly.backend.model.Follow;
 import com.concertly.backend.model.User;
+import com.concertly.backend.repository.ArtistFollowRepository;
 import com.concertly.backend.repository.FollowRepository;
 import com.concertly.backend.repository.UserRepository;
 import org.springframework.data.domain.PageRequest;
@@ -25,17 +26,20 @@ public class FollowService {
     private final NotificationService notificationService;
     private final ModerationService moderationService;
     private final PrivacyService privacyService;
+    private final ArtistFollowRepository artistFollowRepository;
 
     public FollowService(FollowRepository followRepository,
                          UserRepository userRepository,
                          NotificationService notificationService,
                          ModerationService moderationService,
-                         PrivacyService privacyService) {
+                         PrivacyService privacyService,
+                         ArtistFollowRepository artistFollowRepository) {
         this.followRepository    = followRepository;
         this.userRepository      = userRepository;
         this.notificationService = notificationService;
         this.moderationService   = moderationService;
         this.privacyService      = privacyService;
+        this.artistFollowRepository = artistFollowRepository;
     }
 
     // ✅ TAKİP ET — özel hesapta PENDING istek, açık hesapta doğrudan ACCEPTED
@@ -167,7 +171,9 @@ public class FollowService {
 
     private UserSummaryResponse toSummary(User user, Long currentUserId, boolean includeContact, boolean restricted) {
         long followers = followRepository.countAcceptedFollowers(user.getId());
-        long following = followRepository.countAcceptedFollowing(user.getId());
+        // "Takip" sayısı kişileri ve takip edilen sanatçıları birlikte sayar (N-46, Emre kararı)
+        long following = followRepository.countAcceptedFollowing(user.getId())
+                + artistFollowRepository.countByUserId(user.getId());
         String status = followStatus(currentUserId, user.getId());
         UserSummaryResponse dto = UserSummaryResponse.from(user, followers, following,
                 Follow.ACCEPTED.equals(status), includeContact).withFollowStatus(status);

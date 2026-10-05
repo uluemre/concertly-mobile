@@ -135,7 +135,7 @@ class PrivateAccountTest {
     }
 
     FollowService followService() {
-        return new FollowService(follows, users, notifications, moderation, privacy);
+        return new FollowService(follows, users, notifications, moderation, privacy, mock(ArtistFollowRepository.class));
     }
 
     PostService postService(PostRepository posts, LikeRepository likes, PollVoteRepository votes) {
@@ -270,7 +270,7 @@ class PrivateAccountTest {
     private NotificationService realNotifications(int[] saved) {
         Set<String> store = new HashSet<>();
         NotificationRepository repo = mock(NotificationRepository.class);
-        when(repo.existsByRecipientIdAndActorIdAndTypeAndEntityId(any(), any(), any(), any()))
+        when(repo.existsByRecipientIdAndActorIdAndTypeAndEntityIdAndCreatedAtAfter(any(), any(), any(), any(), any()))
                 .thenAnswer(i -> store.contains(i.getArgument(0) + "|" + i.getArgument(1) + "|" + i.getArgument(2)));
         when(repo.save(any(Notification.class))).thenAnswer(i -> {
             Notification n = i.getArgument(0);
@@ -286,7 +286,7 @@ class PrivateAccountTest {
     @Test
     void rejectThenReRequestNotifiesOwnerAgain() {
         int[] saved = {0};
-        FollowService s = new FollowService(follows, users, realNotifications(saved), moderation, privacy);
+        FollowService s = new FollowService(follows, users, realNotifications(saved), moderation, privacy, mock(ArtistFollowRepository.class));
         // STRANGER ilk kez ister
         when(follows.findByFollowerIdAndFollowingId(STRANGER, OWNER)).thenReturn(Optional.empty());
         s.follow(STRANGER, OWNER);
@@ -304,7 +304,7 @@ class PrivateAccountTest {
     @Test
     void cancelThenReRequestDoesNotNotifyOwnerAgain() {
         int[] saved = {0};
-        FollowService s = new FollowService(follows, users, realNotifications(saved), moderation, privacy);
+        FollowService s = new FollowService(follows, users, realNotifications(saved), moderation, privacy, mock(ArtistFollowRepository.class));
         when(follows.findByFollowerIdAndFollowingId(STRANGER, OWNER)).thenReturn(Optional.empty());
         s.follow(STRANGER, OWNER);
         assertEquals(1, saved[0]);

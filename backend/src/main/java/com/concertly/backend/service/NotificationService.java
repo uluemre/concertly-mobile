@@ -37,14 +37,18 @@ public class NotificationService {
      * Geri alınıp tekrarlanabilen (idempotent) eylemler: beğen/geri al/tekrar beğen ya da
      * takip/bırak/takip aynı bildirimi ve push'u yeniden üretmesin (N-30). Yorum, mesaj,
      * davet gibi her seferinde yeni olay sayılan türler bu listede DEĞİL.
+     * Tekrar yalnız {@link #REPEAT_WINDOW} içinde bastırılır: bir hafta sonra yeniden
+     * beğenen/takip eden kişi için bildirim yine gelir (Emre kararı, 5 Eki 2026).
      */
     private static final java.util.Set<String> ONCE_PER_ACTOR_TYPES = java.util.Set.of("like", "follow", "follow_request");
+    static final java.time.Duration REPEAT_WINDOW = java.time.Duration.ofDays(7);
 
     public void send(Long recipientId, Long actorId, String type, String entityType, Long entityId) {
         try {
             if (recipientId.equals(actorId)) return;
             if (ONCE_PER_ACTOR_TYPES.contains(type) && notificationRepository
-                    .existsByRecipientIdAndActorIdAndTypeAndEntityId(recipientId, actorId, type, entityId)) return;
+                    .existsByRecipientIdAndActorIdAndTypeAndEntityIdAndCreatedAtAfter(recipientId, actorId, type, entityId,
+                            java.time.LocalDateTime.now().minus(REPEAT_WINDOW))) return;
             User recipient = userRepository.findById(recipientId).orElseThrow();
             User actor     = userRepository.findById(actorId).orElseThrow();
             Notification n = new Notification();

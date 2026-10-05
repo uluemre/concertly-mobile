@@ -53,7 +53,7 @@ class NonSecurityNPhaseTest {
     @Test
     void n30_likeNotificationSkippedWhenAlreadySent() {
         NotificationRepository repo = mock(NotificationRepository.class);
-        when(repo.existsByRecipientIdAndActorIdAndTypeAndEntityId(1L, 2L, "like", 10L)).thenReturn(true);
+        when(repo.existsByRecipientIdAndActorIdAndTypeAndEntityIdAndCreatedAtAfter(eq(1L), eq(2L), eq("like"), eq(10L), any())).thenReturn(true);
         notificationService(repo).send(1L, 2L, "like", "post", 10L);
         verify(repo, never()).save(any(Notification.class));
     }
@@ -70,20 +70,36 @@ class NonSecurityNPhaseTest {
     @Test
     void n30_followSkippedWhenAlreadySent() {
         NotificationRepository repo = mock(NotificationRepository.class);
-        when(repo.existsByRecipientIdAndActorIdAndTypeAndEntityId(1L, 2L, "follow", 1L)).thenReturn(true);
+        when(repo.existsByRecipientIdAndActorIdAndTypeAndEntityIdAndCreatedAtAfter(eq(1L), eq(2L), eq("follow"), eq(1L), any())).thenReturn(true);
         notificationService(repo).send(1L, 2L, "follow", "user", 1L);
         verify(repo, never()).save(any(Notification.class));
     }
 
     @Test
+    void n30_repeatIsSuppressedOnlyWithinSevenDays() {
+        // Aynı kişi bir hafta sonra yeniden beğenirse bildirim yine gelmeli:
+        // tekrar kontrolü yalnız son 7 güne bakar
+        NotificationRepository repo = mock(NotificationRepository.class);
+        org.mockito.ArgumentCaptor<java.time.LocalDateTime> after =
+                org.mockito.ArgumentCaptor.forClass(java.time.LocalDateTime.class);
+        notificationService(repo).send(1L, 2L, "like", "post", 10L);
+        java.time.LocalDateTime sentAt = java.time.LocalDateTime.now();
+        verify(repo).existsByRecipientIdAndActorIdAndTypeAndEntityIdAndCreatedAtAfter(
+                eq(1L), eq(2L), eq("like"), eq(10L), after.capture());
+        long days = java.time.Duration.between(after.getValue(), sentAt).toDays();
+        assertEquals(7, days, "pencere 7 gün olmalı");
+        verify(repo).save(any(Notification.class));
+    }
+
+    @Test
     void n30_commentAndMessageStillNotifyEveryTime() {
         NotificationRepository repo = mock(NotificationRepository.class);
-        when(repo.existsByRecipientIdAndActorIdAndTypeAndEntityId(any(), any(), any(), any())).thenReturn(true);
+        when(repo.existsByRecipientIdAndActorIdAndTypeAndEntityIdAndCreatedAtAfter(any(), any(), any(), any(), any())).thenReturn(true);
         NotificationService svc = notificationService(repo);
         svc.send(1L, 2L, "comment", "post", 10L);
         svc.send(1L, 2L, "message", "user", 2L);
         verify(repo, times(2)).save(any(Notification.class));
-        verify(repo, never()).existsByRecipientIdAndActorIdAndTypeAndEntityId(any(), any(), any(), any());
+        verify(repo, never()).existsByRecipientIdAndActorIdAndTypeAndEntityIdAndCreatedAtAfter(any(), any(), any(), any(), any());
     }
 
     // ── N-49: olmayan yol 404, yöntem 405, 500'de iç mesaj sızmaz ───────────────────────────
