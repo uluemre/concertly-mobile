@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ActivityIndicator, FlatList, Animated,
+  ActivityIndicator, Animated,
   RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { FlashList } from '@shopify/flash-list';
 import API, { getErrorMessage } from '../services/api';
 import { useTheme } from '../theme';
 import { ListSkeletonPage } from '../components/SkeletonLoader';
@@ -189,18 +190,17 @@ export default function FeedScreen({ navigation }) {
           </TouchableOpacity>
         </View>
       ) : (
-        <FlatList
+        // FlashList: kartlar geri dönüştürülür; PostCard'ın state'i gönderi kimliğine bağlı
+        <FlashList
           data={posts}
           keyExtractor={item => item.id.toString()}
           renderItem={renderPost}
+          // Resimli / anketli / düz kartlar ayrı havuzlarda: yükseklikleri çok farklı
+          getItemType={item => item.postType || 'TEXT'}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           onEndReached={onEndReached}
           onEndReachedThreshold={0.5}
-          initialNumToRender={8}
-          maxToRenderPerBatch={8}
-          windowSize={11}
-          removeClippedSubviews
           ListFooterComponent={
             loadingMore ? <ActivityIndicator color={colors.primary} style={{ marginVertical: 20 }} /> : null
           }

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useMemo } from 'react';
+import React, { useRef, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Animated,
   Modal, TextInput, KeyboardAvoidingView, Platform,
@@ -6,13 +6,13 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import { useRecyclingState } from '@shopify/flash-list';
 import API from '../../services/api';
 import { useTheme } from '../../theme';
 import { hapticLight } from '../../utils/haptics';
 import { useLanguage } from '../../context/LanguageContext';
 import { formatTimeAgo } from '../../utils/time';
 import PollCard from './PollCard';
-import CommentModal from './CommentModal';
 import { openEvent } from '../../navigation/navHelpers';
 import { publishPostUpdate } from '../../services/postUpdates';
 import { buildShareUrl, shareWithLink } from '../../services/shareLinks';
@@ -51,18 +51,24 @@ export default React.memo(function PostCard({
     });
   };
 
-  const [liked, setLiked] = useState(!!item.likedByMe);
-  const [likeCount, setLikeCount] = useState(item.likeCount || 0);
+  // Kart FlashList'te geri dönüştürülür: aynı bileşen başka bir gönderiye geçebilir.
+  // Bu yüzden karta özel state gönderi kimliğine bağlı; kimlik değişince sıfırlanır
+  // ve yarım kalmış kalp animasyonları yeni gönderide görünmez.
+  const resetAnims = () => {
+    scaleAnim.setValue(1);
+    heartAnim.setValue(0);
+    floatAnims.forEach(a => { a.y.setValue(0); a.opacity.setValue(0); a.x.setValue(0); });
+  };
   // PostDetail'de değişen sayılar liste öğesine yazılır; kart onları göstersin
-  useEffect(() => {
-    setLiked(!!item.likedByMe);
-    setLikeCount(item.likeCount || 0);
-  }, [item.likedByMe, item.likeCount]);
-  const [likeLoading, setLikeLoading] = useState(false);
-  const [showComments, setShowComments] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editText, setEditText] = useState(item.content || '');
-  const [editSaving, setEditSaving] = useState(false);
+  const [liked, setLiked] = useRecyclingState(!!item.likedByMe, [item.id, item.likedByMe]);
+  const [likeCount, setLikeCount] = useRecyclingState(item.likeCount || 0, [item.id, item.likeCount]);
+  const [likeLoading, setLikeLoading] = useRecyclingState(false, [item.id], resetAnims);
+  const [showEditModal, setShowEditModal] = useRecyclingState(false, [item.id]);
+  const [editText, setEditText] = useRecyclingState(item.content || '', [item.id]);
+  const [editSaving, setEditSaving] = useRecyclingState(false, [item.id]);
+
+  const currentIdRef = useRef(item.id);
+  currentIdRef.current = item.id;
 
   const isOwner = item.userId === currentUserId;
 
@@ -79,18 +85,23 @@ export default React.memo(function PostCard({
       Animated.timing(heartAnim, { toValue: 0, duration: 600, useNativeDriver: true }),
     ]).start();
     if (!liked) fireFloatingHearts();
+    const postId = item.id;
+    // İstek sürerken kart başka gönderiye geçerse sonuç yeni gönderiye yazılmasın
+    const stillSamePost = () => currentIdRef.current === postId;
     try {
-      if (liked) await API.delete(`/posts/${item.id}/like?userId=${currentUserId}`);
-      else await API.post(`/posts/${item.id}/like?userId=${currentUserId}`);
+      if (liked) await API.delete(`/posts/${postId}/like?userId=${currentUserId}`);
+      else await API.post(`/posts/${postId}/like?userId=${currentUserId}`);
       const nextCount = liked ? Math.max(0, likeCount - 1) : likeCount + 1;
-      setLiked(!liked);
-      setLikeCount(nextCount);
+      if (stillSamePost()) {
+        setLiked(!liked);
+        setLikeCount(nextCount);
+      }
       // Aynı gönderiyi gösteren diğer ekranlar (ana sayfa, profil) da güncellensin
-      publishPostUpdate(item.id, { likedByMe: !liked, likeCount: nextCount });
+      publishPostUpdate(postId, { likedByMe: !liked, likeCount: nextCount });
     } catch (err) {
       console.log('Like hatası:', err.message);
     } finally {
-      setLikeLoading(false);
+      if (stillSamePost()) setLikeLoading(false);
     }
   };
 
@@ -305,7 +316,13 @@ export default React.memo(function PostCard({
         <Image source={{ uri: item.imageUrl }} style={styles.postImage} contentFit="cover" transition={150} />
       )}
       {item.postType === 'POLL' && item.pollOptions && (
-        <PollCard postId={item.id} options={item.pollOptions} />
+        <PollCard
+          key={item.id}
+          postId={item.id}
+          options={item.pollOptions}
+          // Oy listeye yazılır; kart geri dönüştürülüp tekrar gelince oy kaybolmaz
+          onVoted={(pollOptions) => publishPostUpdate(item.id, { pollOptions })}
+        />
       )}
 
       {/* AKSİYONLAR */}
@@ -338,13 +355,6 @@ export default React.memo(function PostCard({
           <Text style={styles.actionCount}>{t('share')}</Text>
         </TouchableOpacity>
       </View>
-
-      <CommentModal
-        visible={showComments}
-        postId={item.id}
-        currentUserId={currentUserId}
-        onClose={() => setShowComments(false)}
-      />
     </View>
   );
 });

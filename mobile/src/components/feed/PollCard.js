@@ -4,7 +4,7 @@ import API from '../../services/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../theme';
 
-export default function PollCard({ postId, options: initialOptions }) {
+export default function PollCard({ postId, options: initialOptions, onVoted }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [options, setOptions] = useState(initialOptions);
@@ -18,6 +18,7 @@ export default function PollCard({ postId, options: initialOptions }) {
     try {
       const res = await API.post(`/posts/${postId}/poll/vote?optionId=${optionId}`);
       setOptions(res.data);
+      onVoted?.(res.data);
     } catch (err) {
       Alert.alert('Hata', 'Oy verilemedi.');
     } finally {
