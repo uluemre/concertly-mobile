@@ -4,7 +4,7 @@ import {
   Modal, TextInput, FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { TURKISH_CITIES, LAUNCH_CITIES, isLaunchCity } from '../constants/cities';
+import { TURKISH_CITIES, isLaunchCity, useLaunchCities } from '../constants/cities';
 
 // Türkçe-duyarlı normalleştirme: "ist" → "İstanbul" eşleşsin.
 const norm = (s) => (s || '').toLocaleLowerCase('tr-TR').trim();
@@ -21,12 +21,13 @@ const norm = (s) => (s || '').toLocaleLowerCase('tr-TR').trim();
  * props: value (string|null), onChange(city), colors, t
  */
 export default function CityPicker({ value, onChange, colors, t }) {
+  const launchCities = useLaunchCities();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [modalOpen, setModalOpen] = useState(false);
   const [query, setQuery] = useState('');
 
-  const showSelectedExtra = value && !LAUNCH_CITIES.includes(value);
-  const chips = showSelectedExtra ? [...LAUNCH_CITIES, value] : LAUNCH_CITIES;
+  const showSelectedExtra = value && !launchCities.includes(value);
+  const chips = showSelectedExtra ? [...launchCities, value] : launchCities;
   const outOfScope = !!value && !isLaunchCity(value);
 
   const filtered = query.trim()

@@ -6,6 +6,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Text, View, ActivityIndicator, Animated, AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { loadLaunchCities } from '../services/launchCities';
 import * as Notifications from 'expo-notifications';
 import API, { setSessionExpiredHandler, hasApiSession } from '../services/api';
 import { PUBLIC_SCREENS, setPendingRoute } from './pendingRoute';
@@ -68,6 +69,7 @@ import AdminUsersScreen from '../screens/AdminUsersScreen';
 import AdminPostsScreen from '../screens/AdminPostsScreen';
 import AdminDeletionFeedbackScreen from '../screens/AdminDeletionFeedbackScreen';
 import AdminSourcesScreen from '../screens/AdminSourcesScreen';
+import AdminCitiesScreen from '../screens/AdminCitiesScreen';
 import AdminCommunitiesScreen from '../screens/AdminCommunitiesScreen';
 import AdminReportsScreen from '../screens/AdminReportsScreen';
 import AdminOrganizerRequestsScreen from '../screens/AdminOrganizerRequestsScreen';
@@ -191,6 +193,9 @@ export default function AppNavigator() {
   const { session, isReady, logout, notificationCount } = useAuth();
   const { lang } = useLanguage();
   const navigationRef = useRef(null);
+
+  // Açık şehirler (Admin > Şehirler) sunucudan; oturum gerekmez
+  useEffect(() => { loadLaunchCities(); }, []);
 
   // ── Push bildirimleri ──────────────────────────────────────────────────────
   // Cihaz adresi her girişte tazelenir: token yenilenebilir, kullanıcı
@@ -437,6 +442,7 @@ export default function AppNavigator() {
         <Stack.Screen name="AdminPosts" component={AdminPostsScreen} />
         <Stack.Screen name="AdminDeletionFeedback" component={AdminDeletionFeedbackScreen} />
         <Stack.Screen name="AdminSources" component={AdminSourcesScreen} />
+        <Stack.Screen name="AdminCities" component={AdminCitiesScreen} />
         <Stack.Screen name="AdminCommunities" component={AdminCommunitiesScreen} />
         <Stack.Screen name="SpotifyRecommendations" component={SpotifyRecommendationsScreen} />
         <Stack.Screen name="VenueProfile" component={VenueProfileScreen} />

@@ -15,7 +15,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import EventCard from '../components/EventCard';
 import { findGenericImages } from '../utils/eventImage';
 import { EventsSkeletonPage } from '../components/SkeletonLoader';
-import { LAUNCH_CITIES, launchCityOrNull } from '../constants/cities';
+import { launchCityOrNull, useLaunchCities } from '../constants/cities';
 import { parseEventDate } from '../utils/time';
 import { foldSearch } from '../utils/text';
 
@@ -36,7 +36,6 @@ function isBadDateInput(str) {
 }
 import { goBackOrFallback, openEvent } from '../navigation/navHelpers';
 
-const CITIES = ['Tümü', ...LAUNCH_CITIES];
 
 // Kullanıcının seçtiği liste görünümü; cihazda hatırlanır.
 const LAYOUT_KEY = 'eventsLayout';
@@ -49,6 +48,7 @@ const GENRES = ['Tümü', 'Rock', 'Pop', 'Rap', 'Elektronik', 'Jazz', 'Klasik', 
 
 export default function EventsScreen({ navigation, route }) {
   const { colors } = useTheme();
+  const launchCities = useLaunchCities();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { session } = useAuth();
   const { t, lang } = useLanguage();
@@ -462,7 +462,7 @@ export default function EventsScreen({ navigation, route }) {
         <View style={[styles.cityModal, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Text style={[styles.cityModalTitle, { color: colors.text }]}>{t('events_city_select')}</Text>
           <ScrollView showsVerticalScrollIndicator={false}>
-            {CITIES.map(city => {
+            {['Tümü', ...launchCities].map(city => {
               const active = city === 'Tümü' ? !selectedCity : selectedCity === city;
               return (
                 <TouchableOpacity

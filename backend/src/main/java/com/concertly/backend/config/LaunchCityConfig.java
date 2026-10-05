@@ -10,7 +10,14 @@ import java.util.Locale;
 @Component
 public class LaunchCityConfig {
 
+    /** Ayar dosyasındaki liste: ilk kurulumda açılacak şehirler ve veritabanı yokken yedek. */
     private final List<String> cities;
+
+    /**
+     * Veritabanındaki açık şehirler (admin panelinden yönetilir). Boşsa ayar listesi
+     * kullanılır. CityService açılışta ve her değişiklikte günceller.
+     */
+    private volatile List<String> active = List.of();
 
     public LaunchCityConfig(
             @Value("${app.launch.cities:İstanbul,Ankara,İzmir,Antalya}") String configuredCities) {
@@ -25,7 +32,31 @@ public class LaunchCityConfig {
     }
 
     public List<String> getCities() {
+        List<String> current = active;
+        return current.isEmpty() ? cities : current;
+    }
+
+    /** Ayar dosyasındaki ilk kurulum listesi. */
+    public List<String> getConfiguredCities() {
         return cities;
+    }
+
+    /** CityService veritabanındaki açık şehirleri bildirir (boş liste = ayar listesine dön). */
+    public void refresh(List<String> enabledCities) {
+        this.active = enabledCities == null ? List.of() : List.copyOf(enabledCities);
+    }
+
+    /** Bilet sitelerinin şehir adresleri: "eskisehir". */
+    public List<String> citySlugs() {
+        return getCities().stream().map(TurkishProvinces::slug).toList();
+    }
+
+    /** BiletimGo takvim adresleri: "eskisehir-26" (plakası bilinmeyen şehir atlanır). */
+    public List<String> slugPlateCodes() {
+        return getCities().stream()
+                .filter(c -> TurkishProvinces.plate(c) != null)
+                .map(c -> TurkishProvinces.slug(c) + "-" + String.format("%02d", TurkishProvinces.plate(c)))
+                .toList();
     }
 
     public boolean contains(String city) {
@@ -33,11 +64,11 @@ public class LaunchCityConfig {
             return false;
         }
         String normalized = normalize(city);
-        return cities.stream().map(LaunchCityConfig::normalize).anyMatch(normalized::equals);
+        return getCities().stream().map(LaunchCityConfig::normalize).anyMatch(normalized::equals);
     }
 
     public String firstCity() {
-        return cities.get(0);
+        return getCities().get(0);
     }
 
     public String ticketmasterCity(String city) {
@@ -46,14 +77,23 @@ public class LaunchCityConfig {
             case "izmir" -> "Izmir";
             case "ankara" -> "Ankara";
             case "antalya" -> "Antalya";
-            default -> city;
+            default -> TurkishProvinces.ascii(city);
         };
     }
 
+    /**
+     * Türkçe harf duyarsız şehir anahtarı: "İstanbul"/"Istanbul" → "istanbul",
+     * "Eskişehir"/"Eskisehir" → "eskisehir". EventRepository'deki TRANSLATE ile aynı kural.
+     */
     public static String normalize(String city) {
-        return city.trim()
-                .replace('İ', 'I')
-                .replace('ı', 'i')
-                .toLowerCase(Locale.ROOT);
+        StringBuilder sb = new StringBuilder(city.length());
+        for (char c : city.trim().toCharArray()) {
+            int i = FROM.indexOf(c);
+            sb.append(i >= 0 ? TO.charAt(i) : c);
+        }
+        return sb.toString().toLowerCase(Locale.ROOT);
     }
+
+    private static final String FROM = "İIıŞşĞğÜüÖöÇç";
+    private static final String TO = "iiissgguuoocc";
 }

@@ -26,14 +26,16 @@ public class BubiletConcertSource implements ConcertSource {
     private final int maxEventPagesPerCity;
     private final SourcePageCrawler crawler;
     private final int maxNewPagesPerRun;
+    private final com.concertly.backend.config.LaunchCityConfig launchCityConfig;
 
     public BubiletConcertSource(BubiletSource source,
             BiletinialImportService importService,
             @Value("${app.sources.bubilet.enabled:true}") boolean enabled,
-            @Value("${app.sources.bubilet.city-slugs:istanbul,ankara,izmir,antalya}") String citySlugs,
+            @Value("${app.sources.bubilet.city-slugs:}") String citySlugs,
             @Value("${app.sources.bubilet.max-pages-per-city:25}") int maxEventPagesPerCity,
             SourcePageCrawler crawler,
-            @Value("${app.sources.bubilet.max-new-pages:400}") int maxNewPagesPerRun) {
+            @Value("${app.sources.bubilet.max-new-pages:400}") int maxNewPagesPerRun,
+            com.concertly.backend.config.LaunchCityConfig launchCityConfig) {
         this.source = source;
         this.importService = importService;
         this.enabled = enabled;
@@ -41,6 +43,7 @@ public class BubiletConcertSource implements ConcertSource {
         this.maxEventPagesPerCity = maxEventPagesPerCity;
         this.crawler = crawler;
         this.maxNewPagesPerRun = maxNewPagesPerRun;
+        this.launchCityConfig = launchCityConfig;
     }
 
     @Override
@@ -61,7 +64,9 @@ public class BubiletConcertSource implements ConcertSource {
     @Override
     public SourceSyncResult sync() {
         long started = System.currentTimeMillis();
-        List<String> cities = citySlugs.stream().map(String::trim).filter(c -> !c.isEmpty()).toList();
+        // Ayarla verilmediyse açık şehirler (Admin > Şehirler)
+        List<String> configured = citySlugs.stream().map(String::trim).filter(c -> !c.isEmpty()).toList();
+        List<String> cities = configured.isEmpty() ? launchCityConfig.citySlugs() : configured;
 
         Set<String> listing = new LinkedHashSet<>();
         for (String city : cities) {

@@ -87,6 +87,13 @@ const NAV_ITEMS = [
     tint: 'purple',
     screen: 'AdminSources',
   },
+  {
+    titleKey: 'admin_nav_cities_title',
+    subtitleKey: 'admin_nav_cities_sub',
+    icon: 'map',
+    tint: 'accent',
+    screen: 'AdminCities',
+  },
 ];
 
 export default function AdminScreen({ navigation }) {

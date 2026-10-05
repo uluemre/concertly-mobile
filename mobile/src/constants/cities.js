@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react';
+
 // Türkiye'nin 81 ili — tek kaynak. Tüm ekranlar (onboarding, Home/Events filtresi,
 // Settings) buradan okur.
 //
@@ -26,22 +28,53 @@ export const POPULAR_CITIES = [
   'İstanbul', 'Ankara', 'İzmir', 'Antalya', 'Bursa', 'Adana', 'Eskişehir', 'Konya',
 ];
 
-// İlk canlı sürümün kontrollü kapsamı. Yeni şehirler buraya eklenmeden
-// onboarding, profil ve etkinlik filtrelerinde görünmez.
-// Backend tarafındaki karşılığı: app.launch.cities (LaunchCityConfig).
-export const LAUNCH_CITIES = ['İstanbul', 'Ankara', 'İzmir', 'Antalya'];
+// Uygulamanın kapsadığı (açık) şehirler. Asıl liste sunucudan gelir
+// (GET /cities — Admin > Şehirler'den açılıp kapatılır); bu dizi yalnız ilk açılışta
+// ve bağlantı yokken kullanılan varsayılandır. Backend karşılığı: app.launch.cities.
+export const DEFAULT_LAUNCH_CITIES = [
+  'İstanbul', 'Ankara', 'İzmir', 'Bursa', 'Antalya', 'Eskişehir', 'Adana', 'Mersin', 'Kocaeli',
+];
 
-// Backend'in LaunchCityConfig.normalize'ı ile birebir aynı kural: 'İ'→'I',
-// 'ı'→'i', sonra küçült. Ticketmaster "Istanbul" yazarken bizim canonical
-// adımız "İstanbul" olduğu için bu karşılaştırma şart.
+let launchCities = DEFAULT_LAUNCH_CITIES;
+const listeners = new Set();
+
+/** Şu anki açık şehirler. */
+export function getLaunchCities() {
+  return launchCities;
+}
+
+/** Sunucudan gelen listeyi uygular (boş/geçersiz liste yok sayılır). */
+export function setLaunchCities(list) {
+  if (!Array.isArray(list) || list.length === 0) return;
+  const next = list.filter(c => typeof c === 'string' && c.trim());
+  if (next.length === 0 || next.join('|') === launchCities.join('|')) return;
+  launchCities = next;
+  listeners.forEach(l => l(next));
+}
+
+/** Açık şehirleri izleyen hook: admin yeni şehir açınca ekran da güncellenir. */
+export function useLaunchCities() {
+  const [cities, setCities] = useState(launchCities);
+  useEffect(() => {
+    listeners.add(setCities);
+    setCities(launchCities);
+    return () => { listeners.delete(setCities); };
+  }, []);
+  return cities;
+}
+
+// Backend'in LaunchCityConfig.normalize'ı ile birebir aynı kural: Türkçe harfler
+// sadeleşir (İ/ı→i, ş→s, ğ→g, ü→u, ö→o, ç→c), sonra küçülür. "Eskisehir" ile
+// "Eskişehir", "Istanbul" ile "İstanbul" aynı şehir sayılır.
+const FOLD = { 'İ': 'i', 'I': 'i', 'ı': 'i', 'Ş': 's', 'ş': 's', 'Ğ': 'g', 'ğ': 'g', 'Ü': 'u', 'ü': 'u', 'Ö': 'o', 'ö': 'o', 'Ç': 'c', 'ç': 'c' };
 const normalizeCity = (city) =>
-  (city || '').trim().replace(/İ/g, 'I').replace(/ı/g, 'i').toLowerCase();
+  (city || '').trim().replace(/[İIıŞşĞğÜüÖöÇç]/g, ch => FOLD[ch]).toLowerCase();
 
-/** Şehir ilk yayın kapsamında mı? (Türkçe-duyarlı karşılaştırma) */
+/** Şehir açık şehirlerden biri mi? (Türkçe-duyarlı karşılaştırma) */
 export function isLaunchCity(city) {
   if (!city) return false;
   const n = normalizeCity(city);
-  return LAUNCH_CITIES.some(c => normalizeCity(c) === n);
+  return launchCities.some(c => normalizeCity(c) === n);
 }
 
 /**
@@ -52,5 +85,5 @@ export function isLaunchCity(city) {
 export function launchCityOrNull(city) {
   if (!city) return null;
   const n = normalizeCity(city);
-  return LAUNCH_CITIES.find(c => normalizeCity(c) === n) || null;
+  return launchCities.find(c => normalizeCity(c) === n) || null;
 }

@@ -101,6 +101,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/events/*/attendance").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/artists/*/attendance").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/search").permitAll()
+                        // Açık şehir listesi: kayıt/onboarding ekranı oturumsuz da okur
+                        .requestMatchers(HttpMethod.GET, "/api/cities").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/communities").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/communities/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/demo/**").hasRole("ADMIN")

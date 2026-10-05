@@ -42,19 +42,22 @@ public class BiletinialImportService {
     private final EventRepository eventRepository;
     private final List<String> citySlugs;
     private final int maxEventPagesPerCity;
+    private final com.concertly.backend.config.LaunchCityConfig launchCityConfig;
 
     public BiletinialImportService(BiletinialSource source,
             BiletinialRecordWriter writer,
             RawConcertValidator validator,
             EventRepository eventRepository,
-            @Value("${app.sources.biletinial.city-slugs:istanbul,ankara,izmir,antalya}") String citySlugs,
-            @Value("${app.sources.biletinial.max-pages-per-city:25}") int maxEventPagesPerCity) {
+            @Value("${app.sources.biletinial.city-slugs:}") String citySlugs,
+            @Value("${app.sources.biletinial.max-pages-per-city:25}") int maxEventPagesPerCity,
+            com.concertly.backend.config.LaunchCityConfig launchCityConfig) {
         this.source = source;
         this.writer = writer;
         this.validator = validator;
         this.eventRepository = eventRepository;
         this.citySlugs = List.of(citySlugs.split(","));
         this.maxEventPagesPerCity = maxEventPagesPerCity;
+        this.launchCityConfig = launchCityConfig;
     }
 
     /** Ice aktarim sonucu, cagiran taraf ne oldugunu gorebilsin. */
@@ -72,7 +75,9 @@ public class BiletinialImportService {
      */
     public ImportResult importAll() {
         Set<RawConcertData> unique = new LinkedHashSet<>();
-        for (String slug : citySlugs) {
+        // Ayarla verilmediyse açık şehirler (Admin > Şehirler)
+        List<String> configured = citySlugs.stream().map(String::trim).filter(c -> !c.isEmpty()).toList();
+        for (String slug : configured.isEmpty() ? launchCityConfig.citySlugs() : configured) {
             String city = slug.trim();
             if (city.isEmpty()) continue;
             unique.addAll(source.fetchCity(city, maxEventPagesPerCity));

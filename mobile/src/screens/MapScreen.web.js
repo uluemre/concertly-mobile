@@ -6,7 +6,7 @@ import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { goBackOrFallback, openEvent } from '../navigation/navHelpers';
-import { LAUNCH_CITIES, launchCityOrNull } from '../constants/cities';
+import { launchCityOrNull, useLaunchCities } from '../constants/cities';
 import { parseEventDate } from '../utils/time';
 
 /** Mekanı OpenStreetMap'te işaretli gösteren adres. */
@@ -21,6 +21,7 @@ const hasCoords = (e) => Number.isFinite(e?.venueLatitude) && Number.isFinite(e?
 // etkinlikler şehre göre listelenir, mekan "Haritada aç" ile OpenStreetMap'te açılır.
 export default function MapScreen({ navigation }) {
   const { colors } = useTheme();
+  const launchCities = useLaunchCities();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { session } = useAuth();
   const { t, lang } = useLanguage();
@@ -57,7 +58,7 @@ export default function MapScreen({ navigation }) {
       });
   }, [city]);
 
-  const cities = [null, ...LAUNCH_CITIES];
+  const cities = [null, ...launchCities];
 
   const formatDate = (value) => {
     const d = parseEventDate(value);

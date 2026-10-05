@@ -11,7 +11,7 @@ import API from '../services/api';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
-import { LAUNCH_CITIES } from '../constants/cities';
+import { useLaunchCities } from '../constants/cities';
 import { goBackOrFallback } from '../navigation/navHelpers';
 import { DOWNLOAD_URL, buildShareUrl, shareWithLink } from '../services/shareLinks';
 import { isValidUsername, normalizeUsername } from '../utils/username';
@@ -31,6 +31,7 @@ export default function SettingsScreen({ navigation, route }) {
   const { colors, themeMode, setThemeMode } = useTheme();
   const { session, updateSession, logout } = useAuth();
   const { lang, setLang, t, tu } = useLanguage();
+  const launchCities = useLaunchCities();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [loading, setLoading] = useState(true);
@@ -713,7 +714,7 @@ export default function SettingsScreen({ navigation, route }) {
               </TouchableOpacity>
             </View>
             <FlatList
-              data={LAUNCH_CITIES}
+              data={launchCities}
               keyExtractor={(item) => item}
               renderItem={({ item }) => (
                 <TouchableOpacity

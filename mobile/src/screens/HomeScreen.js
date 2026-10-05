@@ -16,7 +16,7 @@ import FeaturedCard from '../components/home/FeaturedCard';
 import HomePostCard from '../components/home/HomePostCard';
 import NextConcertCard from '../components/home/NextConcertCard';
 import EventRail from '../components/home/EventRail';
-import { LAUNCH_CITIES, launchCityOrNull } from '../constants/cities';
+import { launchCityOrNull, useLaunchCities } from '../constants/cities';
 import { parseEventDate } from '../utils/time';
 import { foldSearch } from '../utils/text';
 import { openEvent } from '../navigation/navHelpers';
@@ -26,9 +26,9 @@ const { width } = Dimensions.get('window');
 const FEATURED_CARD_WIDTH = width * 0.78;
 const FEATURED_CARD_HEIGHT = 240;
 
-const CITIES = ['Tümü', ...LAUNCH_CITIES];
 
 export default function HomeScreen({ navigation }) {
+  const launchCities = useLaunchCities();
   const { colors, themeMode } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { session } = useAuth();
@@ -394,7 +394,7 @@ export default function HomeScreen({ navigation }) {
         <View style={[styles.cityModal, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Text style={[styles.cityModalTitle, { color: colors.text }]}>{t('home_city_select')}</Text>
           <ScrollView showsVerticalScrollIndicator={false}>
-            {CITIES.map(city => {
+            {['Tümü', ...launchCities].map(city => {
               const active = city === 'Tümü' ? !selectedCity : selectedCity === city;
               return (
                 <TouchableOpacity

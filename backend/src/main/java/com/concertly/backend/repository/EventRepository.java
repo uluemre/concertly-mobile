@@ -163,13 +163,14 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     List<Event> searchByPattern(@Param("pattern") String pattern);
 
     @EntityGraph(attributePaths = {"artist", "venue", "createdBy"})
-    @Query("SELECT e FROM Event e WHERE LOWER(REPLACE(e.venue.city, 'İ', 'I')) = LOWER(REPLACE(:city, 'İ', 'I'))")
+    // Şehir karşılaştırması Türkçe harf duyarsız (Eskişehir = Eskisehir); LaunchCityConfig.normalize ile aynı kural
+    @Query("SELECT e FROM Event e WHERE LOWER(FUNCTION('translate', e.venue.city, 'İIıŞşĞğÜüÖöÇç', 'iiissgguuoocc')) = LOWER(FUNCTION('translate', :city, 'İIıŞşĞğÜüÖöÇç', 'iiissgguuoocc'))")
     List<Event> findByCityNormalized(@Param("city") String city);
 
     @EntityGraph(attributePaths = {"artist", "venue", "createdBy"})
     @Query("""
             SELECT e FROM Event e
-            WHERE LOWER(REPLACE(e.venue.city, 'İ', 'I'))
+            WHERE LOWER(FUNCTION('translate', e.venue.city, 'İIıŞşĞğÜüÖöÇç', 'iiissgguuoocc'))
             IN :cities
             ORDER BY e.eventDate ASC
             """)

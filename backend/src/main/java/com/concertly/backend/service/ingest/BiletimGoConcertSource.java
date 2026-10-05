@@ -1,5 +1,6 @@
 package com.concertly.backend.service.ingest;
 
+import com.concertly.backend.config.LaunchCityConfig;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -20,16 +21,20 @@ public class BiletimGoConcertSource implements ConcertSource {
     private final BiletimGoSource source;
     private final BiletinialImportService importService;
     private final boolean enabled;
+    /** Ayarla verildiyse sabit liste; boşsa açık şehirlerden türetilir (Admin > Şehirler). */
     private final List<String> cityCodes;
+    private final LaunchCityConfig launchCityConfig;
 
     public BiletimGoConcertSource(BiletimGoSource source,
             BiletinialImportService importService,
             @Value("${app.sources.biletimgo.enabled:true}") boolean enabled,
-            @Value("${app.sources.biletimgo.city-codes:istanbul-34,ankara-06,izmir-35,antalya-07}") String cityCodes) {
+            @Value("${app.sources.biletimgo.city-codes:}") String cityCodes,
+            LaunchCityConfig launchCityConfig) {
         this.source = source;
         this.importService = importService;
         this.enabled = enabled;
-        this.cityCodes = List.of(cityCodes.split(","));
+        this.cityCodes = List.of(cityCodes.split(",")).stream().map(String::trim).filter(c -> !c.isEmpty()).toList();
+        this.launchCityConfig = launchCityConfig;
     }
 
     @Override
@@ -46,7 +51,7 @@ public class BiletimGoConcertSource implements ConcertSource {
     public SourceSyncResult sync() {
         long started = System.currentTimeMillis();
         Set<String> urls = new LinkedHashSet<>();
-        for (String code : cityCodes) {
+        for (String code : cityCodes.isEmpty() ? launchCityConfig.slugPlateCodes() : cityCodes) {
             if (!code.isBlank()) urls.addAll(source.listConcertUrls(code.trim()));
         }
         List<RawConcertData> records = new ArrayList<>();
