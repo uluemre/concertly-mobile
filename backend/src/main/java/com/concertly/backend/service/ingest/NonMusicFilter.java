@@ -40,7 +40,10 @@ public final class NonMusicFilter {
             word("sergi(si)?"),
             word("cinayet(ler|leri)?( [a-z0-9]+){0,3} kumpanya(si)?"),
             word("oyun"),
-            word("fight night"));
+            word("fight night"),
+            // Bilet sitelerinin "konser" kategorisine giren disko partileri (BiletimGo, Eki 2026).
+            // "Oktoberfest" bilerek YOK: Oktoberfest adlı müzik festivalleri korunuyor (bkz. testler)
+            word("diskosu"));
 
     /** Bunlardan biri geçiyorsa etkinlik müziktir; asla elenmez. */
     private static final Pattern MUSIC = word(

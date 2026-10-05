@@ -172,7 +172,12 @@ public class ConcertGrouping {
         if (!sameArtist) {
             // Kaynaklar sanatciyi farkli yazabiliyor ("Ahmet Ihvani" / "Ahmet Aslan ve Ahmet
             // Ihvani Konserleri"): ayni anda (30 dk) ve sanatci kelimeleri digerinde geciyorsa tek konser
-            return minutes <= LISTING_MAX_MINUTES && samePerformerLoose(a, b);
+            if (!samePerformerLoose(a, b)) return false;
+            if (minutes <= LISTING_MAX_MINUTES) return true;
+            // Farkli siteler ayni konsere kapi acilisi / sahne saati gibi farkli saat yazabiliyor
+            // ("Mansur Ark" 22:00 / "Mansur Ark & Dj Fikret Kocamaz" 21:00, ayni mekan): ayni
+            // mekanda ayni gece tek konser. Ayni sitenin iki kaydi ise ayri seans olabilir.
+            return a.getSource() != null && a.getSource() != b.getSource() && sameVenueName(a, b, city);
         }
 
         if (minutes <= LISTING_MAX_MINUTES) {

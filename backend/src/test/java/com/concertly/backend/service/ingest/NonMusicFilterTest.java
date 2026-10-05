@@ -233,4 +233,10 @@ class NonMusicFilterTest {
             assertTrue(approved.getIsApproved());
         }
     }
+
+    @Test
+    void discoPartiesListedAsConcertsAreFiltered() {
+        assertTrue(NonMusicFilter.isNonMusic("Açık Hava Diskosu"));
+        assertFalse(NonMusicFilter.isNonMusic("Disko Partizani"), "tek başına 'disko' sanatçı adı olabilir");
+    }
 }

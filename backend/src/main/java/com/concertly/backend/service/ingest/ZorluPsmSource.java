@@ -149,100 +149,16 @@ public class ZorluPsmSource {
         return url != null && url.startsWith("http") ? url : pageUrl;
     }
 
-    /**
-     * Ad tamamen büyük harfle geliyor ("THE CINEMATIC ORCHESTRA", "EMİR ERSOY &quot;…&quot;").
-     * Açıklama metninde aynı ad doğru yazımıyla geçiyorsa oradan alınır; yoksa kelime
-     * kelime küçültülür. Türkçe kuralı (I→ı) yalnız Türkçe harf taşıyan kelimelere
-     * uygulanır, yoksa "NIGHT" "Nıght" olurdu.
-     */
+    /** Büyük harfli adı düzeltir (bkz. NameCase). */
     static String properName(String rawName, String description) {
-        String name = decodeEntities(rawName);
-        if (name == null) return null;
-        name = name.trim();
-        if (name.isEmpty()) return null;
-        if (!isAllUpper(name)) return name;
-        String desc = decodeEntities(description);
-        if (desc != null) {
-            int at = fold(desc).indexOf(fold(name));
-            if (at >= 0) {
-                String found = desc.substring(at, at + name.length());
-                if (!isAllUpper(found)) return found;
-            }
-        }
-        return titleCaseTr(name);
+        return NameCase.properName(rawName, description);
     }
 
-    /** Geriye uyum: yalnız ad. */
     static String clean(String name) {
-        return properName(name, null);
+        return NameCase.properName(name, null);
     }
 
-    /** Uzunluk değiştirmeden büyük/küçük ve I/ı/İ/i farkını yok sayar (indexOf için). */
-    static String fold(String value) {
-        StringBuilder sb = new StringBuilder(value.length());
-        for (char c : value.toCharArray()) {
-            if (c == 'İ' || c == 'I' || c == 'ı') sb.append('i');
-            else sb.append(Character.toLowerCase(c));
-        }
-        return sb.toString();
-    }
-
-    private static final Pattern NUMERIC_ENTITY = Pattern.compile("&#(x[0-9a-fA-F]+|[0-9]+);");
-
-    /** &quot; &amp; &#39; &#x27; &#xA; gibi kaçışları çözer. */
-    static String decodeEntities(String value) {
-        if (value == null) return null;
-        Matcher m = NUMERIC_ENTITY.matcher(value);
-        StringBuilder sb = new StringBuilder();
-        while (m.find()) {
-            String code = m.group(1);
-            int cp = code.startsWith("x") ? Integer.parseInt(code.substring(1), 16) : Integer.parseInt(code);
-            m.appendReplacement(sb, Matcher.quoteReplacement(cp == 0xA || cp == 0xD ? " " : new String(Character.toChars(cp))));
-        }
-        m.appendTail(sb);
-        return sb.toString().replace("&quot;", "\"").replace("&apos;", "'").replace("&amp;", "&")
-                .replace("&lt;", "<").replace("&gt;", ">").replace("&nbsp;", " ");
-    }
-
-    private static final Locale TR = Locale.forLanguageTag("tr");
-
-    private static boolean isAllUpper(String value) {
-        boolean letter = false;
-        for (char c : value.toCharArray()) {
-            if (Character.isLetter(c)) {
-                letter = true;
-                if (Character.isLowerCase(c)) return false;
-            }
-        }
-        return letter;
-    }
-
-    private static final String TURKISH_LETTERS = "ŞĞÜÖÇİşğüöçı";
-
-    /**
-     * "GAYE SU AKYOL İLE" → "Gaye Su Akyol İle". Türkçe harf taşıyan kelimeye Türkçe
-     * küçültme (I→ı), taşımayana genel küçültme (I→i) uygulanır.
-     */
     static String titleCaseTr(String value) {
-        StringBuilder lowered = new StringBuilder(value.length());
-        for (String word : value.split("(?<=\\s)|(?=\\s)")) {
-            boolean turkish = word.chars().anyMatch(ch -> TURKISH_LETTERS.indexOf(ch) >= 0);
-            lowered.append(word.toLowerCase(turkish ? TR : Locale.ROOT));
-        }
-        String lower = lowered.toString();
-        StringBuilder sb = new StringBuilder(lower.length());
-        boolean start = true;
-        for (int i = 0; i < lower.length(); i++) {
-            char c = lower.charAt(i);
-            if (start && Character.isLetter(c)) {
-                sb.append(String.valueOf(c).toUpperCase(TR));
-                start = false;
-            } else {
-                sb.append(c);
-                if (Character.isWhitespace(c) || c == '"' || c == '(' || c == '-' || c == '/') start = true;
-                else if (Character.isLetter(c)) start = false;
-            }
-        }
-        return sb.toString();
+        return NameCase.titleCase(value);
     }
 }

@@ -368,4 +368,26 @@ class ConcertGroupingTest {
         assertEquals(List.of("Biletix", "Biletinial", "Bubilet"),
                 card.getTicketLinks().stream().map(ConcertResponse.TicketLink::label).toList());
     }
+
+    @Test
+    void looselyMatchingPerformerAtTheSameVenueAnHourApartIsOneCardAcrossSites() {
+        // Gerçek veri (6 Eki 2026): Biletix "Mansur Ark" 22:00 / BiletimGo "Mansur Ark & Dj Fikret Kocamaz" 21:00
+        Event tm = event(1, "Mansur Ark", "Hayal Kahvesi Bahçeşehir", "İstanbul", "2026-10-17T22:00",
+                EventSource.TICKETMASTER, "https://www.biletix.com/x");
+        Event bg = event(2, "Mansur Ark & Dj Fikret Kocamaz", "Hayal Kahvesi Bahçeşehir", "İstanbul", "2026-10-17T21:00",
+                EventSource.BILETIMGO, "https://www.biletimgo.com/etkinlik/x-31097");
+        assertTrue(grouping.sameConcertForListing(tm, bg));
+
+        // Aynı sitenin aynı mekândaki iki kaydı ayrı seans olabilir: birleşmez
+        Event bg2 = event(3, "Mansur Ark & Dj Fikret Kocamaz", "Hayal Kahvesi Bahçeşehir", "İstanbul", "2026-10-17T23:30",
+                EventSource.BILETIMGO, "https://www.biletimgo.com/etkinlik/y-31098");
+        Event bg3 = event(4, "Mansur Ark", "Hayal Kahvesi Bahçeşehir", "İstanbul", "2026-10-17T21:00",
+                EventSource.BILETIMGO, "https://www.biletimgo.com/etkinlik/z-31099");
+        assertFalse(grouping.sameConcertForListing(bg2, bg3));
+
+        // Farklı mekânda ve bir saatten fazla arayla: birleşmez
+        Event other = event(5, "Mansur Ark", "Jolly Joker Kartal", "İstanbul", "2026-10-17T22:30",
+                EventSource.BUBILET, "https://www.bubilet.com.tr/x");
+        assertFalse(grouping.sameConcertForListing(bg, other));
+    }
 }
