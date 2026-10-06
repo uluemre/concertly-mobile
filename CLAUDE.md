@@ -27,6 +27,14 @@ npm run web        # Start in browser
 EAS build config lives in `mobile/eas.json`; app metadata in `mobile/app.json`
 (name `Concertly`, slug `concertly`, bundle id `com.concertly.app`).
 
+**OTA updates (EAS Update / `expo-updates`)**: each build profile has a channel of the
+same name (`development`, `preview`, `production`). `runtimeVersion` uses the
+`fingerprint` policy, so an update only reaches builds with identical native code.
+JS/asset-only changes ship with `npm run update:preview` / `npm run update:production`.
+Adding a native module or changing native config (plugins, permissions) needs a new
+build. Apps check on launch and apply the downloaded update on the next cold start.
+Expo Go ignores updates.
+
 ### Backend (`backend/`)
 
 ```bash
