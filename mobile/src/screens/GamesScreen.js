@@ -8,41 +8,16 @@ import { useTheme } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
 import { goBackOrFallback } from '../navigation/navHelpers';
+import { hapticLight } from '../utils/haptics';
 
-// Menü kartları (Keşfet ile aynı dil): düz kart, rengi ikon taşır. tint: tema rengi anahtarı
-const GAME_DEFS = [
-  {
-    key: 'daily',
-    icon: 'calendar',
-    tint: 'accent',
-    titleKey: 'menu_daily_song',
-    subKey: 'menu_daily_song_sub',
-    screen: 'DailySong',
-  },
-  {
-    key: 'quiz',
-    icon: 'mic',
-    tint: 'primary',
-    titleKey: 'menu_song_quiz',
-    subKey: 'menu_song_quiz_sub',
-    screen: 'SongQuiz',
-  },
-  {
-    key: 'blind',
-    icon: 'trophy',
-    tint: 'secondary',
-    titleKey: 'menu_blind_rank',
-    subKey: 'menu_blind_rank_sub',
-    screen: 'BlindRank',
-  },
-  {
-    key: 'setlist',
-    icon: 'list',
-    tint: 'purple',
-    titleKey: 'setlist_title',
-    subKey: 'games_setlist_sub',
-    screen: 'Events',
-  },
+const STREAK_COLOR = '#F5A623';
+
+// 2x2 renkli oyun kutuları; rengi kutunun kendisi taşır
+const GAME_TILES = [
+  { key: 'quiz', icon: 'help-circle-outline', color: '#7C3AED', titleKey: 'games_quiz_title', subKey: 'games_quiz_sub', screen: 'SongQuiz' },
+  { key: 'blind', icon: 'list', color: '#E94560', titleKey: 'games_blind_title', subKey: 'games_blind_sub', screen: 'BlindRank' },
+  { key: 'bingo', icon: 'grid-outline', color: '#F57C00', titleKey: 'menu_bingo', subKey: 'games_bingo_sub', screen: 'ConcertBingo' },
+  { key: 'setlist', icon: 'musical-notes', color: '#00A88A', titleKey: 'games_setlist_title', subKey: 'games_setlist_tile_sub', screen: 'EventsPicker', params: { pickForSetlist: true } },
 ];
 
 export default function GamesScreen({ navigation }) {
@@ -50,7 +25,7 @@ export default function GamesScreen({ navigation }) {
   const { t } = useLanguage();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
-  const [daily, setDaily] = useState(null); // { streak, finished, solved }
+  const [daily, setDaily] = useState(null); // { streak, finished, solved, week }
 
   useFocusEffect(useCallback(() => {
     API.get('/daily-song/today')
@@ -58,14 +33,22 @@ export default function GamesScreen({ navigation }) {
       .catch(() => {});
   }, []));
 
-  const dailyBadge = () => {
+  const weekdays = t('games_weekdays').split(',');
+  const week = Array.isArray(daily?.week) ? daily.week : [];
+  const todayIndex = (new Date().getDay() + 6) % 7; // Pazartesi = 0
+  const streak = daily?.streak ?? 0;
+  const streakText = streak > 0 ? t('games_streak_line', { count: streak }) : t('games_streak_none');
+
+  const dailyStatus = () => {
     if (!daily) return null;
-    if (daily.finished) {
-      return daily.solved
-        ? { text: t('games_daily_done'), color: '#00D4AA' }
-        : { text: t('games_daily_missed'), color: '#E94560' };
-    }
-    return { text: t('games_daily_waiting'), color: '#F5A623' };
+    if (daily.finished) return daily.solved ? t('games_daily_done') : t('games_daily_missed');
+    return t('games_daily_waiting');
+  };
+  const status = dailyStatus();
+
+  const open = (screen, params) => {
+    hapticLight();
+    navigation.navigate(screen, params);
   };
 
   return (
@@ -77,51 +60,66 @@ export default function GamesScreen({ navigation }) {
         <TouchableOpacity onPress={() => goBackOrFallback(navigation)} accessibilityRole="button">
           <Text style={[styles.backText, { color: colors.primary }]}>{t('back')}</Text>
         </TouchableOpacity>
-        <View style={styles.headerRow}>
-          <View>
-            <Text style={[styles.headerTitle, { color: colors.text }]}>{t('games_title')}</Text>
-            <Text style={[styles.headerSub, { color: colors.textSecondary }]}>{t('games_subtitle')}</Text>
-          </View>
-          {daily?.streak > 0 && (
-            <View style={[styles.streakPill, { backgroundColor: '#F5A62322', borderColor: '#F5A62360' }]}>
-              <Text style={styles.streakText}>{t('daily_streak', { count: daily.streak })}</Text>
-            </View>
-          )}
-        </View>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>{t('games_title')}</Text>
       </View>
 
-      <View style={styles.list}>
-        {GAME_DEFS.map(game => {
-          const badge = game.key === 'daily' ? dailyBadge() : null;
-          return (
+      <View style={styles.body}>
+        <TouchableOpacity
+          onPress={() => open('DailySong')}
+          activeOpacity={0.85}
+          style={styles.dailyCard}
+          accessibilityRole="button"
+          accessibilityLabel={`${t('menu_daily_song')}, ${streakText}${status ? `, ${status}` : ''}`}
+        >
+          <View style={styles.dailyTop}>
+            <View style={styles.flameWrap}>
+              <Ionicons name="flame" size={26} color={STREAK_COLOR} />
+            </View>
+            <View style={styles.dailyInfo}>
+              <Text style={styles.dailyTitle}>{t('menu_daily_song')}</Text>
+              <Text style={styles.dailySub} numberOfLines={1}>{streakText}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+          </View>
+
+          <View style={styles.weekRow}>
+            {weekdays.map((label, i) => {
+              const done = !!week[i];
+              const isToday = i === todayIndex;
+              return (
+                <View key={label} style={styles.dayCol}>
+                  <View style={[styles.dayRing, isToday && styles.dayRingToday]}>
+                    <View style={[styles.dayDot, done && styles.dayDotDone]} />
+                  </View>
+                  <Text style={[styles.dayLabel, isToday && styles.dayLabelToday]}>{label}</Text>
+                </View>
+              );
+            })}
+          </View>
+
+          {status && <Text style={styles.dailyStatus} numberOfLines={1}>{status}</Text>}
+        </TouchableOpacity>
+
+        <View style={styles.grid}>
+          {GAME_TILES.map(game => (
             <TouchableOpacity
               key={game.key}
-              onPress={() => game.key === 'setlist'
-                ? navigation.navigate('EventsPicker', { pickForSetlist: true })
-                : navigation.navigate(game.screen)}
+              onPress={() => open(game.screen, game.params)}
               activeOpacity={0.85}
-              style={styles.card}
+              style={[styles.tile, { backgroundColor: game.color }]}
               accessibilityRole="button"
-              accessibilityLabel={`${t(game.titleKey)}, ${t(game.subKey)}${badge ? `, ${badge.text}` : ''}`}
+              accessibilityLabel={`${t(game.titleKey)}, ${t(game.subKey)}`}
             >
-              <View style={styles.cardGrad}>
-                <View style={[styles.cardIconWrap, { backgroundColor: (colors[game.tint] || colors.primary) + '22' }]}>
-                  <Ionicons name={game.icon} size={24} color={colors[game.tint] || colors.primary} />
-                </View>
-                <View style={styles.cardInfo}>
-                  <Text style={styles.cardTitle}>{t(game.titleKey)}</Text>
-                  <Text style={styles.cardSub} numberOfLines={2}>{t(game.subKey)}</Text>
-                  {badge && (
-                    <View style={[styles.cardBadge, { backgroundColor: badge.color + '22' }]}>
-                      <Text style={[styles.cardBadgeText, { color: badge.color }]}>{badge.text}</Text>
-                    </View>
-                  )}
-                </View>
-                <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+              <View style={styles.tileIcon}>
+                <Ionicons name={game.icon} size={24} color="#fff" />
+              </View>
+              <View>
+                <Text style={styles.tileTitle} numberOfLines={1}>{t(game.titleKey)}</Text>
+                <Text style={styles.tileSub} numberOfLines={2}>{t(game.subKey)}</Text>
               </View>
             </TouchableOpacity>
-          );
-        })}
+          ))}
+        </View>
       </View>
     </ScrollView>
   );
@@ -130,28 +128,48 @@ export default function GamesScreen({ navigation }) {
 function createStyles(colors) {
   return StyleSheet.create({
     container: { flex: 1 },
-    header: { paddingTop: 56, paddingBottom: 20, paddingHorizontal: 20, gap: 10 },
+    header: { paddingTop: 56, paddingBottom: 12, paddingHorizontal: 20, gap: 10 },
     backText: { fontSize: 16, fontWeight: '600' },
-    headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    headerTitle: { fontSize: 26, fontWeight: '900' },
-    headerSub: { fontSize: 13, marginTop: 4 },
-    streakPill: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, borderWidth: 1 },
-    streakText: { color: '#F5A623', fontSize: 13, fontWeight: '800' },
+    headerTitle: { fontSize: 28, fontWeight: '900' },
 
-    list: { padding: 16, gap: 12 },
-    card: { borderRadius: 18, overflow: 'hidden', backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
-    cardGrad: { flexDirection: 'row', alignItems: 'center', padding: 18, gap: 14 },
-    cardIconWrap: {
-      width: 54, height: 54, borderRadius: 27,
+    body: { paddingHorizontal: 16, gap: 14 },
+
+    dailyCard: {
+      borderRadius: 20, padding: 18, gap: 16,
+      backgroundColor: colors.card, borderWidth: 1, borderColor: STREAK_COLOR + '55',
+    },
+    dailyTop: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+    flameWrap: {
+      width: 48, height: 48, borderRadius: 24,
+      backgroundColor: STREAK_COLOR + '22', justifyContent: 'center', alignItems: 'center',
+    },
+    dailyInfo: { flex: 1, gap: 2 },
+    dailyTitle: { fontSize: 17, fontWeight: '800', color: colors.text },
+    dailySub: { fontSize: 13, fontWeight: '700', color: STREAK_COLOR },
+    weekRow: { flexDirection: 'row', justifyContent: 'space-between' },
+    dayCol: { alignItems: 'center', gap: 6 },
+    dayRing: {
+      width: 30, height: 30, borderRadius: 15,
       justifyContent: 'center', alignItems: 'center',
+      borderWidth: 2, borderColor: 'transparent',
     },
-    cardInfo: { flex: 1, gap: 3 },
-    cardTitle: { fontSize: 16, fontWeight: '800', color: colors.text },
-    cardSub: { fontSize: 12, color: colors.textSecondary, lineHeight: 16 },
-    cardBadge: {
-      alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 3,
-      borderRadius: 8, marginTop: 4,
+    dayRingToday: { borderColor: STREAK_COLOR },
+    dayDot: { width: 20, height: 20, borderRadius: 10, backgroundColor: colors.border },
+    dayDotDone: { backgroundColor: STREAK_COLOR },
+    dayLabel: { fontSize: 11, fontWeight: '600', color: colors.textSecondary },
+    dayLabelToday: { color: STREAK_COLOR, fontWeight: '800' },
+    dailyStatus: { fontSize: 12, color: colors.textSecondary },
+
+    grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 12 },
+    tile: {
+      width: '48.5%', minHeight: 150, borderRadius: 20, padding: 16,
+      justifyContent: 'space-between',
     },
-    cardBadgeText: { fontSize: 11, fontWeight: '800' },
+    tileIcon: {
+      width: 44, height: 44, borderRadius: 14,
+      backgroundColor: 'rgba(255,255,255,0.22)', justifyContent: 'center', alignItems: 'center',
+    },
+    tileTitle: { fontSize: 16, fontWeight: '900', color: '#fff' },
+    tileSub: { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.85)', marginTop: 3, lineHeight: 16 },
   });
 }

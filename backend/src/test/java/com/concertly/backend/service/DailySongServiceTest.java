@@ -135,5 +135,25 @@ class DailySongServiceTest {
         assertNull(result.get("answer"));
         assertNotNull(result.get("previewUrl"));
         assertEquals(5, result.get("maxAttempts"));
+        assertEquals(List.of(false, false, false, false, false, false, false), result.get("week"));
+    }
+
+    private static DailySongPlay solvedOn(LocalDate day) {
+        DailySongPlay p = new DailySongPlay();
+        p.setEpochDay(day.toEpochDay());
+        p.setSolved(true);
+        return p;
+    }
+
+    @Test
+    void weekMarksSolvedDaysFromMondayToSunday() {
+        // Çarşamba 7 Eki 2026; geçen haftanın Pazar'ı sayılmaz
+        LocalDate wed = LocalDate.of(2026, 10, 7);
+        List<DailySongPlay> solved = List.of(solvedOn(wed), solvedOn(wed.minusDays(2)), solvedOn(wed.minusDays(3)));
+        assertEquals(List.of(true, false, true, false, false, false, false), DailySongService.weekOf(solved, wed));
+        // Pazar günü: hafta hâlâ o Pazartesi'den başlar
+        LocalDate sun = LocalDate.of(2026, 10, 11);
+        assertEquals(List.of(true, false, true, false, false, false, true),
+                DailySongService.weekOf(List.of(solvedOn(sun), solvedOn(wed), solvedOn(wed.minusDays(2))), sun));
     }
 }

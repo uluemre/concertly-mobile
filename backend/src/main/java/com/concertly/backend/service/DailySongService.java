@@ -80,7 +80,9 @@ public class DailySongService {
             result.put("answer", answerMap(track));
             result.put("solvedAttempt", play.getSolvedAttempt());
         }
-        result.put("streak", computeStreak(userId, today));
+        List<DailySongPlay> solvedPlays = playRepository.findByUserIdAndSolvedTrueOrderByEpochDayDesc(userId);
+        result.put("streak", streakOf(solvedPlays, today));
+        result.put("week", weekOf(solvedPlays, LocalDate.ofEpochDay(today)));
         result.put("stats", dayStats(today));
         return result;
     }
@@ -177,8 +179,25 @@ public class DailySongService {
         return ascii.replaceAll("[^a-z0-9]+", " ").trim();
     }
 
+    /**
+     * İçinde bulunulan haftanın (Pazartesi → Pazar) çözüm durumu, Oyunlar ekranındaki
+     * gün noktaları için: 7 eleman, çözülen gün true.
+     */
+    static List<Boolean> weekOf(List<DailySongPlay> solvedPlays, LocalDate today) {
+        long monday = today.with(java.time.DayOfWeek.MONDAY).toEpochDay();
+        Boolean[] week = {false, false, false, false, false, false, false};
+        for (DailySongPlay p : solvedPlays) {
+            long i = p.getEpochDay() - monday;
+            if (i >= 0 && i < 7) week[(int) i] = true;
+        }
+        return List.of(week);
+    }
+
     private int computeStreak(Long userId, long today) {
-        List<DailySongPlay> solvedPlays = playRepository.findByUserIdAndSolvedTrueOrderByEpochDayDesc(userId);
+        return streakOf(playRepository.findByUserIdAndSolvedTrueOrderByEpochDayDesc(userId), today);
+    }
+
+    static int streakOf(List<DailySongPlay> solvedPlays, long today) {
         if (solvedPlays.isEmpty()) return 0;
 
         // Seri bugünden ya da (bugün henüz çözülmediyse) dünden geriye sayılır

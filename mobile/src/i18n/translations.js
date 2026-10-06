@@ -1218,6 +1218,16 @@ export const translations = {
     games_daily_waiting: 'Bugünkü şarkı seni bekliyor!',
     games_daily_keep_streak: '{count} günlük serini kaybetme — bugün oyna!',
     games_daily_streak_safe: '{count} günlük seri! Yarın da gel',
+    games_streak_line: '{count} günlük serin var',
+    games_streak_none: 'Bugün bil, seriyi başlat',
+    games_weekdays: 'Pt,Sa,Ça,Pe,Cu,Ct,Pz',
+    games_quiz_title: 'Şarkı Quiz',
+    games_quiz_sub: 'Sanatçını ne kadar tanıyorsun?',
+    games_blind_title: 'Blind Rank',
+    games_blind_sub: 'Geri dönüş yok, sırala',
+    games_bingo_sub: 'Konserde oyna',
+    games_setlist_title: 'Setlist Tahmini',
+    games_setlist_tile_sub: 'Bil, puan kazan',
 
     // SETLIST TAHMİN LİGİ
     detail_setlist_btn: 'Setlist Tahmini',
@@ -2766,6 +2776,16 @@ export const translations = {
     games_daily_waiting: 'Today\'s song is waiting for you!',
     games_daily_keep_streak: 'Don\'t lose your {count}-day streak — play today!',
     games_daily_streak_safe: '{count}-day streak! Come back tomorrow',
+    games_streak_line: 'You have a {count}-day streak',
+    games_streak_none: 'Get today\'s song to start a streak',
+    games_weekdays: 'Mo,Tu,We,Th,Fr,Sa,Su',
+    games_quiz_title: 'Song Quiz',
+    games_quiz_sub: 'How well do you know your artist?',
+    games_blind_title: 'Blind Rank',
+    games_blind_sub: 'No going back, rank them',
+    games_bingo_sub: 'Play at the concert',
+    games_setlist_title: 'Setlist Guess',
+    games_setlist_tile_sub: 'Guess right, earn points',
 
     // SETLIST PREDICTION LEAGUE
     detail_setlist_btn: 'Setlist Prediction',
