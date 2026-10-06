@@ -375,6 +375,10 @@ export const translations = {
     passport_section_badges: 'Rozetler',
     passport_section_top_artists: 'En çok gittiğin sanatçılar',
     passport_section_music_taste: 'Türler',
+    passport_scope_all: 'Tüm zamanlar',
+    passport_scope_year: '{year}',
+    passport_busy_month: 'En yoğun ayın',
+    passport_year_empty: '{year} yılında henüz konser yok',
 
     // NOTIFICATIONS
     notifications_title: 'Bildirimler',
@@ -1145,29 +1149,6 @@ export const translations = {
     admin_field_lng: 'Boylam (32.752193)',
 
     // WRAPPED / MÜZİK KİMLİĞİ
-    menu_wrapped: 'Konser Yılım',
-    menu_wrapped_sub: 'Bu yıl gittiğin konserlerin özeti',
-    wrapped_stat_concerts: 'Konser',
-    wrapped_year_label: 'Konser yılın · {year}',
-    wrapped_all_time: 'Tüm konserlerin',
-    wrapped_unit_concerts: 'konser',
-    wrapped_hero_empty: 'Bu yıl henüz konser işaretlemedin',
-    wrapped_recent: 'Gittiğin konserler',
-    wrapped_stat_cities: 'şehir',
-    wrapped_stat_artists: 'sanatçı',
-    wrapped_stat_verified: 'doğrulandı',
-    wrapped_top_artist: 'En çok gördüğün sanatçı',
-    wrapped_top_artist_sub: '{count} kez canlı izledin',
-    wrapped_top_artist_sub_one: '{count} kez canlı izledin',
-    wrapped_genres: 'Türler',
-    wrapped_busy_month: 'En yoğun ay',
-    wrapped_busy_month_sub: '{count} konser',
-    wrapped_busy_month_sub_one: '{count} konser',
-    wrapped_open_passport: 'Konser pasaportunu aç',
-    wrapped_edit_prefs: 'Tür ve sanatçı tercihlerini düzenle',
-    wrapped_empty_title: 'Sana uygun yaklaşan konserler',
-    wrapped_empty_sub: 'Gideceğin konserleri işaretle, yılın burada birikir.',
-    wrapped_browse_events: 'Tüm etkinlikler',
 
     // OYUN MERKEZİ
     menu_passport: 'Pasaport',
@@ -1934,6 +1915,10 @@ export const translations = {
     passport_section_badges: 'Badges',
     passport_section_top_artists: 'Artists you saw most',
     passport_section_music_taste: 'Genres',
+    passport_scope_all: 'All time',
+    passport_scope_year: '{year}',
+    passport_busy_month: 'Your busiest month',
+    passport_year_empty: "No concerts in {year} yet",
 
     // NOTIFICATIONS
     notifications_title: 'Notifications',
@@ -2704,29 +2689,6 @@ export const translations = {
     admin_field_lng: 'Longitude (32.752193)',
 
     // WRAPPED / MUSIC IDENTITY
-    menu_wrapped: 'My Concert Year',
-    menu_wrapped_sub: 'A summary of this year\'s concerts',
-    wrapped_stat_concerts: 'Concerts',
-    wrapped_year_label: 'Your concert year · {year}',
-    wrapped_all_time: 'All your concerts',
-    wrapped_unit_concerts: 'concerts',
-    wrapped_hero_empty: 'No concerts marked this year yet',
-    wrapped_recent: 'Concerts you went to',
-    wrapped_stat_cities: 'cities',
-    wrapped_stat_artists: 'artists',
-    wrapped_stat_verified: 'verified',
-    wrapped_top_artist: 'Most seen artist',
-    wrapped_top_artist_sub: 'Seen live {count} times',
-    wrapped_top_artist_sub_one: "Seen live {count} time",
-    wrapped_genres: 'Genres',
-    wrapped_busy_month: 'Busiest month',
-    wrapped_busy_month_sub: '{count} concerts',
-    wrapped_busy_month_sub_one: "{count} concert",
-    wrapped_open_passport: 'Open concert passport',
-    wrapped_edit_prefs: 'Edit genre and artist preferences',
-    wrapped_empty_title: 'Upcoming concerts for you',
-    wrapped_empty_sub: 'Mark the concerts you\'re going to and your year adds up here.',
-    wrapped_browse_events: 'All events',
 
     // GAMES HUB
     menu_passport: 'Passport',

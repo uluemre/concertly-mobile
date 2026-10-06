@@ -15,7 +15,6 @@ const CARD_SIZE = (width - 48) / 2;
 // Mor (purple) yardımcı renk olarak tek kartta.
 const MENU_ITEM_DEFS = [
   { id: 1, titleKey: 'menu_communities', subKey: 'menu_communities_sub', icon: 'people-outline', tint: 'accent', screen: 'Communities', available: true },
-  { id: 10, titleKey: 'menu_wrapped', subKey: 'menu_wrapped_sub', icon: 'sparkles-outline', tint: 'primary', screen: 'Wrapped', available: true },
   { id: 7, titleKey: 'menu_map_item', subKey: 'menu_map_item_sub', icon: 'map-outline', tint: 'accent', screen: 'Map', available: true },
   { id: 4, titleKey: 'menu_buddy_item', subKey: 'menu_buddy_item_sub', icon: 'person-add-outline', tint: 'secondary', screen: 'ConcertBuddyMatch', available: true },
   { id: 11, titleKey: 'menu_passport', subKey: 'menu_passport_sub', icon: 'ticket-outline', tint: 'purple', screen: 'ConcertPassport', available: true },

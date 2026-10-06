@@ -31,6 +31,44 @@ const GOLD = '#E8C170';
 const BADGE_GRADIENTS = [['#E94560', '#7C3AED'], ['#F5A623', '#E94560'], ['#00D4AA', '#3B82F6'], ['#7C3AED', '#00D4AA']];
 
 const GOAL_OPTIONS = [5, 10, 15, 20, 25, 30, 50];
+const TOP_LIMIT = 5;
+
+/**
+ * Seçilen yılın özeti, konser kayıtlarından (sunucudaki tüm zamanlar özetiyle aynı kurallar):
+ * şehirler cityKey ile ("Istanbul" = "İstanbul"), en çok gidilen 5 sanatçı ve 5 tür, en yoğun ay.
+ */
+function summarize(events) {
+  const artists = new Map();
+  const genres = new Map();
+  const months = new Map();
+  const cities = new Set();
+  let verified = 0;
+  events.forEach(e => {
+    if (e.verified) verified++;
+    const city = e.cityKey || e.venueCity;
+    if (city) cities.add(city);
+    if (e.artistName) {
+      const key = e.artistId ?? e.artistName;
+      const a = artists.get(key) || { artistId: e.artistId, name: e.artistName, count: 0 };
+      a.count++;
+      artists.set(key, a);
+    }
+    if (e.genre) genres.set(e.genre, (genres.get(e.genre) || 0) + 1);
+    const m = parseEventDate(e.eventDate).getMonth();
+    if (!isNaN(m)) months.set(m, (months.get(m) || 0) + 1);
+  });
+  const busiest = [...months.entries()].sort((a, b) => b[1] - a[1])[0];
+  return {
+    totalConcerts: events.length,
+    verifiedConcerts: verified,
+    uniqueArtists: artists.size,
+    uniqueCities: cities.size,
+    topArtists: [...artists.values()].sort((a, b) => b.count - a.count).slice(0, TOP_LIMIT),
+    topGenres: [...genres.entries()].sort((a, b) => b[1] - a[1]).slice(0, TOP_LIMIT)
+      .map(([genre, count]) => ({ genre, count })),
+    busiestMonth: busiest ? { month: busiest[0], count: busiest[1] } : null,
+  };
+}
 const GOAL_STORAGE_KEY = 'passport_concert_goal';
 
 // Rozetler emoji yerine sade ikonla gösterilir (kodlar BadgeService'te).
@@ -71,6 +109,8 @@ export default function ConcertPassportScreen({ navigation, route }) {
   const [loading, setLoading] = useState(true);
   const [locked, setLocked] = useState(false);
   const [goal, setGoal] = useState(10);
+  // Tüm zamanlar (pasaport) ya da yalnız bu yıl (eski "Konser Yılın" ekranının yerini alır)
+  const [scope, setScope] = useState('all');
   const goalAnim = useRef(new Animated.Value(0)).current;
   const year = new Date().getFullYear();
 
@@ -108,8 +148,18 @@ export default function ConcertPassportScreen({ navigation, route }) {
     shareWithLink(msg, session.username ? buildShareUrl('user', session.username) : null);
   };
 
-  const events = passport?.events || [];
-  const yearGroups = useMemo(() => groupByYear([...events]), [passport]);
+  const allEvents = passport?.events || [];
+  const events = useMemo(
+    () => (scope === 'year' ? allEvents.filter(e => parseEventDate(e.eventDate).getFullYear() === year) : allEvents),
+    [passport, scope, year],
+  );
+  // Tüm zamanlarda sunucunun özeti, bu yılda konser kayıtlarından hesaplanan özet
+  const view = useMemo(() => {
+    if (!passport) return null;
+    if (scope === 'all') return { ...passport, busiestMonth: null };
+    return summarize(events);
+  }, [passport, scope, events]);
+  const yearGroups = useMemo(() => groupByYear([...events]), [events]);
   // Sanatçı fotoğrafı için: sanatçının herhangi bir konser kaydı
   const artistSample = useMemo(() => {
     const m = {};
@@ -170,6 +220,27 @@ export default function ConcertPassportScreen({ navigation, route }) {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+        {/* TÜM ZAMANLAR / BU YIL */}
+        {passport && allEvents.length > 0 && (
+          <View style={styles.scopeBar} accessibilityRole="tablist">
+            {[['all', t('passport_scope_all')], ['year', t('passport_scope_year', { year })]].map(([key, label]) => {
+              const active = scope === key;
+              return (
+                <TouchableOpacity
+                  key={key}
+                  onPress={() => setScope(key)}
+                  style={[styles.scopeBtn, active && styles.scopeBtnActive]}
+                  activeOpacity={0.85}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: active }}
+                >
+                  <Text style={[styles.scopeText, active && styles.scopeTextActive]}>{label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
+
         {/* PASAPORT KAPAĞI */}
         {passport && (
           <View style={styles.cover}>
@@ -193,10 +264,10 @@ export default function ConcertPassportScreen({ navigation, route }) {
 
             <View style={styles.statsRow}>
               {[
-                [passport.totalConcerts, t('passport_stat_concerts')],
-                [passport.verifiedConcerts, t('passport_stat_verified')],
-                [passport.uniqueArtists, t('passport_stat_artists')],
-                [passport.uniqueCities, t('passport_stat_cities')],
+                [view.totalConcerts, t('passport_stat_concerts')],
+                [view.verifiedConcerts, t('passport_stat_verified')],
+                [view.uniqueArtists, t('passport_stat_artists')],
+                [view.uniqueCities, t('passport_stat_cities')],
               ].map(([value, label], i) => (
                 <View key={label} style={[styles.stat, i > 0 && styles.statDivider]}>
                   <Text style={styles.statValue}>{value}</Text>
@@ -225,8 +296,43 @@ export default function ConcertPassportScreen({ navigation, route }) {
           </View>
         )}
 
+        {/* EN YOĞUN AY (yalnız bu yıl) */}
+        {view?.busiestMonth && (
+          <View style={styles.monthCard}>
+            <View style={styles.monthIcon}>
+              <Ionicons name="calendar" size={20} color={colors.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.monthLabel}>{t('passport_busy_month')}</Text>
+              <Text style={styles.monthName}>
+                {new Date(year, view.busiestMonth.month, 1).toLocaleDateString(locale, { month: 'long' })}
+              </Text>
+            </View>
+            <Text style={styles.monthCount}>{t('passport_year_count', { count: view.busiestMonth.count })}</Text>
+          </View>
+        )}
+
+        {/* BU YIL BOŞ (önceki yıllarda konser var) */}
+        {passport && scope === 'year' && events.length === 0 && allEvents.length > 0 && (
+          <View style={styles.emptyCard}>
+            <View style={styles.emptyIcon}>
+              <Ionicons name="calendar-outline" size={26} color={colors.primary} />
+            </View>
+            <Text style={styles.emptyTitle}>{t('passport_year_empty', { year })}</Text>
+            {isOwn && (
+              <TouchableOpacity
+                onPress={() => navigation.navigate('MainApp', { screen: 'Events' })}
+                activeOpacity={0.85}
+                style={styles.emptyCta}
+              >
+                <Text style={styles.emptyCtaText}>{t('passport_empty_cta')}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
         {/* BOŞ DURUM */}
-        {passport && events.length === 0 && (
+        {passport && allEvents.length === 0 && (
           <View style={styles.emptyCard}>
             <View style={styles.emptyIcon}>
               <Ionicons name="ticket-outline" size={26} color={colors.primary} />
@@ -294,11 +400,11 @@ export default function ConcertPassportScreen({ navigation, route }) {
         ))}
 
         {/* EN ÇOK GİTTİĞİN SANATÇILAR */}
-        {passport?.topArtists?.length > 0 && (
+        {view?.topArtists?.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>{t('passport_section_top_artists')}</Text>
-            {passport.topArtists.map((a, i) => {
-              const max = passport.topArtists[0].count || 1;
+            {view.topArtists.map((a, i) => {
+              const max = view.topArtists[0].count || 1;
               const sample = artistSample[a.name] || { name: a.name, artistName: a.name };
               return (
                 <TouchableOpacity
@@ -325,11 +431,11 @@ export default function ConcertPassportScreen({ navigation, route }) {
         )}
 
         {/* TÜRLER */}
-        {passport?.topGenres?.length > 0 && (
+        {view?.topGenres?.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>{t('passport_section_music_taste')}</Text>
             <View style={styles.genreWrap}>
-              {passport.topGenres.map(g => {
+              {view.topGenres.map(g => {
                 const c = genreAccent(g.genre);
                 return (
                   <View key={g.genre} style={[styles.genreChip, { backgroundColor: c + '22', borderColor: c + '66' }]}>
@@ -449,6 +555,30 @@ function createStyles(colors) {
     goalTrack: { height: 8, borderRadius: 4, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.14)' },
     goalFill: { height: '100%', borderRadius: 4, backgroundColor: GOLD },
     goalDone: { color: GOLD, fontSize: 12.5, fontWeight: '900', marginTop: 8 },
+
+    // Tüm zamanlar / bu yıl
+    scopeBar: {
+      flexDirection: 'row', marginHorizontal: 16, marginTop: 4, marginBottom: 6, padding: 4,
+      borderRadius: 14, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
+    },
+    scopeBtn: { flex: 1, paddingVertical: 9, borderRadius: 10, alignItems: 'center' },
+    scopeBtnActive: { backgroundColor: colors.primary },
+    scopeText: { color: colors.textSecondary, fontSize: 13.5, fontWeight: '800' },
+    scopeTextActive: { color: '#fff' },
+
+    // En yoğun ay
+    monthCard: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      marginHorizontal: 16, marginTop: 14, padding: 14, borderRadius: 18,
+      backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
+    },
+    monthIcon: {
+      width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center',
+      backgroundColor: colors.primary + '1F',
+    },
+    monthLabel: { color: colors.textSecondary, fontSize: 12, fontWeight: '700' },
+    monthName: { color: colors.text, fontSize: 17, fontWeight: '900', marginTop: 1 },
+    monthCount: { color: colors.primary, fontSize: 13, fontWeight: '800' },
 
     // Boş
     emptyCard: {

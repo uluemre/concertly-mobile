@@ -26,7 +26,7 @@ const APP_SCREEN_NAMES = new Set([
   'CreateCommunity', 'CommunityManage', 'ArtistProfile', 'Welcome', 'Settings', 'Map', 'FollowList', 'FollowRequests',
   'Admin', 'AdminEvents', 'AdminUsers', 'AdminPosts', 'AdminDeletionFeedback', 'AdminCommunities',
   'SpotifyRecommendations', 'VenueProfile', 'PostDetail', 'ConcertBuddyMatch', 'ConcertPassport',
-  'ChatList', 'Chat', 'SongQuiz', 'DailySong', 'BlindRank', 'SetlistPrediction', 'Games', 'Wrapped',
+  'ChatList', 'Chat', 'SongQuiz', 'DailySong', 'BlindRank', 'SetlistPrediction', 'Games',
   'ConcertBingo', 'ConcertPrep', 'ForgotPassword', 'ResetPassword', 'ChangePassword', 'BlockedUsers',
   'SuggestEvent', 'AdminReports', 'AdminOrganizerRequests', 'Legal', 'NotFound',
   // MainApp sekmeleri

@@ -86,7 +86,6 @@ import DailySongScreen from '../screens/DailySongScreen';
 import BlindRankScreen from '../screens/BlindRankScreen';
 import SetlistPredictionScreen from '../screens/SetlistPredictionScreen';
 import GamesScreen from '../screens/GamesScreen';
-import WrappedScreen from '../screens/WrappedScreen';
 import ConcertBingoScreen from '../screens/ConcertBingoScreen';
 import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
 import ResetPasswordScreen from '../screens/ResetPasswordScreen';
@@ -456,7 +455,6 @@ export default function AppNavigator() {
         <Stack.Screen name="BlindRank" component={BlindRankScreen} />
         <Stack.Screen name="SetlistPrediction" component={SetlistPredictionScreen} />
         <Stack.Screen name="Games" component={GamesScreen} />
-        <Stack.Screen name="Wrapped" component={WrappedScreen} />
         <Stack.Screen name="ConcertBingo" component={ConcertBingoScreen} />
         <Stack.Screen name="ConcertPrep" component={ConcertPrepScreen} />
         <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
