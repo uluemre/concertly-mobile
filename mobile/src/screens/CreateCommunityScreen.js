@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
+  View, Text, StyleSheet, TouchableOpacity,
+  TextInput, ActivityIndicator, Alert, Platform,
 } from 'react-native';
+import { KeyboardAwareScrollView } from '../components/keyboard';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../theme';
@@ -183,11 +184,8 @@ export default function CreateCommunityScreen({ navigation, route }) {
   const hero = isEdit && editColors ? editColors : theme;
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <View style={{ flex: 1 }}>
+      <KeyboardAwareScrollView bottomOffset={24} style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <LinearGradient colors={[hero.start, hero.end]} style={styles.hero}>
           <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.backButton} accessibilityRole="button">
             <Text style={styles.backText}>{t('back')}</Text>
@@ -299,8 +297,8 @@ export default function CreateCommunityScreen({ navigation, route }) {
             ? <ActivityIndicator color="#fff" />
             : <Text style={styles.submitText}>{t(isEdit ? 'save' : 'community_create_submit')}</Text>}
         </TouchableOpacity>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
+    </View>
   );
 }
 

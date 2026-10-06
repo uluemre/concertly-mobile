@@ -36,6 +36,10 @@ public class PushMessageFactory {
             case "follow_accepted" -> new String[] {
                     en ? "Request accepted" : "İstek kabul edildi",
                     en ? actor + " accepted your follow request" : actor + " takip isteğini kabul etti" };
+            case "buddy_match" -> new String[] {
+                    en ? "New concert buddy 🎶" : "Yeni konser arkadaşı 🎶",
+                    en ? "You and " + actor + " matched — say hi before the show"
+                       : actor + " ile eşleştiniz — konserden önce bir merhaba de" };
             case "message" -> new String[] {
                     en ? "New message" : "Yeni mesaj",
                     en ? actor + " sent you a message" : actor + " sana mesaj gönderdi" };

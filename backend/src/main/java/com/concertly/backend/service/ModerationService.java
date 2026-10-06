@@ -55,6 +55,9 @@ public class ModerationService {
      */
     public void requireCanMessage(Long senderId, User receiver) {
         if (messageRepository.conversationExists(senderId, receiver.getId())) return;
+        // Konser Arkadaşı eşleşmesi: iki taraf da birbirini seçti, ilk mesaj her zaman gönderilebilir
+        if (buddySwipeRepository.existsBySwiperIdAndTargetIdAndLikedTrue(senderId, receiver.getId())
+                && buddySwipeRepository.existsBySwiperIdAndTargetIdAndLikedTrue(receiver.getId(), senderId)) return;
         MessagePrivacy privacy = receiver.getMessagePrivacy();
         if (privacy == MessagePrivacy.NOBODY) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "DM_CLOSED");

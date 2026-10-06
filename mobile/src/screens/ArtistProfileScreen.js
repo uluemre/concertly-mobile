@@ -3,8 +3,9 @@ import {
   View, Text, StyleSheet, ScrollView,
   TouchableOpacity, ActivityIndicator,
   Animated, Dimensions, Alert, Image,
-  TextInput, KeyboardAvoidingView, Platform, Linking,
+  TextInput, Platform, Linking,
 } from 'react-native';
+import { KeyboardAvoidingView } from '../components/keyboard';
 // Ionicons'ta Spotify logosu yok: yalnızca o buton FontAwesome kullanır
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import EventCard from '../components/EventCard';
@@ -246,7 +247,7 @@ export default function ArtistProfileScreen({ route, navigation }) {
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior="padding"
     >
     <Animated.ScrollView
       style={[styles.container, { opacity: fadeAnim }]}

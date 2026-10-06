@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, FlatList,
-  TextInput, ActivityIndicator, KeyboardAvoidingView,
+  TextInput, ActivityIndicator,
   Platform, Alert, Image, Animated,
 } from 'react-native';
+import { KeyboardAvoidingView } from '../components/keyboard';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../theme';
 import { hapticLight } from '../utils/haptics';
@@ -257,8 +258,7 @@ function PostDetailContent({ route, navigation }) {
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+        behavior="padding"
       >
         {loading ? (
           <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 48 }} />

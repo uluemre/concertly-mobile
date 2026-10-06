@@ -64,6 +64,16 @@ class ModerationServiceTest {
     }
 
     @Test
+    void concertBuddyMatchCanStartAConversationEvenWhenDmsAreClosed() {
+        when(messageRepository.conversationExists(1L, 2L)).thenReturn(false);
+        when(buddySwipeRepository.existsBySwiperIdAndTargetIdAndLikedTrue(1L, 2L)).thenReturn(true);
+        when(buddySwipeRepository.existsBySwiperIdAndTargetIdAndLikedTrue(2L, 1L)).thenReturn(true);
+        receiver.setMessagePrivacy(MessagePrivacy.NOBODY);
+
+        assertDoesNotThrow(() -> service.requireCanMessage(1L, receiver));
+    }
+
+    @Test
     void followingOnlyRejectsStranger() {
         when(messageRepository.conversationExists(1L, 2L)).thenReturn(false);
         when(followRepository.isAcceptedFollower(2L, 1L)).thenReturn(false);

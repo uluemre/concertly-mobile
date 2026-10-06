@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, FlatList, TextInput,
-  ActivityIndicator, KeyboardAvoidingView, Platform, Image, Alert, AppState, Keyboard,
+  ActivityIndicator, Platform, Image, Alert, AppState, Keyboard,
 } from 'react-native';
+import { KeyboardAvoidingView } from '../components/keyboard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -21,7 +22,7 @@ function formatClock(dateStr, lang) {
 }
 
 export default function ChatScreen({ navigation, route }) {
-  const { userId, username, profileImageUrl, sharedEventName } = route.params;
+  const { userId, username, profileImageUrl, sharedEventName, initialText } = route.params;
   const { colors } = useTheme();
   const { session } = useAuth();
   const { t, lang } = useLanguage();
@@ -29,7 +30,7 @@ export default function ChatScreen({ navigation, route }) {
 
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [text, setText] = useState('');
+  const [text, setText] = useState(initialText || '');
   const insets = useSafeAreaInsets();
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   useEffect(() => {
@@ -156,7 +157,7 @@ export default function ChatScreen({ navigation, route }) {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior="padding"
       style={[styles.container, { backgroundColor: colors.background }]}
     >
       {/* HEADER */}

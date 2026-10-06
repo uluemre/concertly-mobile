@@ -73,6 +73,12 @@ public class ConcertBuddyController {
                 .orElseThrow(() -> new ResourceNotFoundException("Etkinlik bulunamadı: " + eventId));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Kullanıcı bulunamadı: " + userId));
+        // Geçmiş konserde arkadaş aranmaz
+        if (event.getEventDate() == null || !event.getEventDate().isAfter(java.time.LocalDateTime.now())) {
+            throw new IllegalArgumentException("BUDDY_EVENT_PAST");
+        }
+        // Sütun 200 karakter: uzun mesaj kesilir (eskiden veritabanı hatası veriyordu)
+        if (message != null && message.trim().length() > 200) message = message.trim().substring(0, 200);
 
         ConcertBuddy buddy = buddyRepository.findByUserIdAndEventId(userId, eventId)
                 .orElse(new ConcertBuddy());

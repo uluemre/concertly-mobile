@@ -148,6 +148,8 @@ export function routeForNotification(data) {
         return { screen: 'Chat', params: { userId: Number(data.actorId), username: data.actorUsername } };
       }
       return entityId ? { screen: 'UserProfile', params: { userId: entityId } } : null;
+    case 'buddy':
+      return { screen: 'ConcertBuddyMatch', params: { tab: 'matches' } };
     case 'daily_song':
       return { screen: 'DailySong', params: {} };
     case 'badge':

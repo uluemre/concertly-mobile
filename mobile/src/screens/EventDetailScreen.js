@@ -731,7 +731,7 @@ function EventDetailContent({ route, navigation }) {
 
             {/* Eşleştiriciye köprü — per-event liste + swipe eşleşmesini birbirine bağlar */}
             <TouchableOpacity
-              onPress={() => navigation.navigate('ConcertBuddyMatch', { eventName: event.name })}
+              onPress={() => navigation.navigate('ConcertBuddyMatch', { eventId: event.id, eventName: event.name })}
               style={[styles.buddyMatchLink, { borderColor: colors.border }]}
               activeOpacity={0.8}
             >

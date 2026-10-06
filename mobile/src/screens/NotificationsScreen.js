@@ -31,6 +31,7 @@ export default function NotificationsScreen({ navigation }) {
     follow:         { icon: 'person-add', tint: 'primary', text: t('notif_follow') },
     follow_request:  { icon: 'hand-left', tint: 'secondary', text: t('notif_follow_request') },
     follow_accepted: { icon: 'checkmark-circle', tint: 'accent', text: t('notif_follow_accepted') },
+    buddy_match:     { icon: 'people', tint: 'accent', text: t('notif_buddy_match') },
     like:           { icon: 'heart', tint: 'primary', text: t('notif_like') },
     comment:        { icon: 'chatbubble', tint: 'accent', text: t('notif_comment') },
     message:        { icon: 'mail', tint: 'secondary', text: t('notif_message') },
@@ -200,6 +201,10 @@ export default function NotificationsScreen({ navigation }) {
         username: item.actorUsername,
         profileImageUrl: item.actorProfileImageUrl,
       });
+      return;
+    }
+    if (item.type === 'buddy_match') {
+      navigation.navigate('ConcertBuddyMatch', { tab: 'matches' });
       return;
     }
     if (item.type === 'daily_song') {

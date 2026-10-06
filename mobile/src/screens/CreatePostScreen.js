@@ -2,8 +2,9 @@ import React, { useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, TextInput,
   TouchableOpacity, ActivityIndicator,
-  Alert, ScrollView, KeyboardAvoidingView, Platform, Image
+  Alert, Platform, Image
 } from 'react-native';
+import { KeyboardAwareScrollView } from '../components/keyboard';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import API, { uploadImage } from '../services/api';
@@ -108,11 +109,8 @@ export default function CreatePostScreen({ route, navigation }) {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-      <ScrollView style={styles.container}>
+    <View style={styles.container}>
+      <KeyboardAwareScrollView bottomOffset={24} keyboardShouldPersistTaps="handled" style={styles.container}>
         {/* HEADER */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={() => goBackOrFallback(navigation)} accessibilityRole="button">
@@ -248,8 +246,8 @@ export default function CreatePostScreen({ route, navigation }) {
             </TouchableOpacity>
           )}
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
+    </View>
   );
 }
 

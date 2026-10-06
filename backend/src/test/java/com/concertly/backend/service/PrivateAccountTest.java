@@ -2,7 +2,6 @@ package com.concertly.backend.service;
 
 import com.concertly.backend.config.ShareLinkConfig;
 import com.concertly.backend.controller.BadgeController;
-import com.concertly.backend.controller.BuddyMatchController;
 import com.concertly.backend.controller.ShareController;
 import com.concertly.backend.controller.UserController;
 import com.concertly.backend.dto.request.CreateCommentRequest;
@@ -603,43 +602,7 @@ class PrivateAccountTest {
         verify(links).renderLandingPage(eq("post/101"), eq("@u9"), eq("gizli icerik"), eq("/uploads/x.jpg"));
     }
 
-    // ── Konser arkadaşı kartı ────────────────────────────────────────────────────
-
-    @Test
-    void buddyCardOfPrivateCandidateHasHeaderFieldsOnly() {
-        EventAttendanceRepository attendance = mock(EventAttendanceRepository.class);
-        UserRepository ur = mock(UserRepository.class);
-        ModerationService mod = mock(ModerationService.class);
-        when(mod.getHiddenUserIds(anyLong())).thenReturn(new HashSet<>());
-        BuddyMatchController c = new BuddyMatchController(attendance, mock(BuddySwipeRepository.class), ur, mod);
-        as(7L);
-
-        Event e = new Event();
-        ReflectionTestUtils.setField(e, "id", 100L);
-        e.setName("Konser");
-        e.setEventDate(LocalDateTime.now().plusDays(3));
-        User me = user(7, false);
-        me.setFavoriteGenres("Rock,Pop");
-        EventAttendance mine = new EventAttendance();
-        mine.setUser(me); mine.setEvent(e); mine.setStatus(AttendanceStatus.GOING);
-        EventAttendance theirs = new EventAttendance();
-        theirs.setUser(owner); theirs.setEvent(e); theirs.setStatus(AttendanceStatus.GOING);
-        EventAttendance pub = new EventAttendance();
-        pub.setUser(publicOwner); pub.setEvent(e); pub.setStatus(AttendanceStatus.GOING);
-        when(attendance.findByUserIdAndStatus(7L, AttendanceStatus.GOING)).thenReturn(List.of(mine));
-        when(attendance.findGoingForEvents(any(), any())).thenReturn(List.of(mine, theirs, pub));
-        when(ur.findById(7L)).thenReturn(Optional.of(me));
-
-        Map<Long, Map<String, Object>> cards = new HashMap<>();
-        for (Map<String, Object> card : c.discover()) cards.put((Long) card.get("userId"), card);
-        Map<String, Object> priv = cards.get((long) OWNER);
-        assertEquals("u1", priv.get("username"));
-        assertEquals("", priv.get("bio"));
-        assertEquals("", priv.get("city"));
-        assertEquals("", priv.get("favoriteGenres"));
-        assertEquals(0, priv.get("genreMatchScore"));
-        assertEquals("bio9", cards.get((long) PUBLIC_OWNER).get("bio"));
-    }
+    // Konser arkadaşı kartı (gizli aday yalnız başlık alanlarıyla): BuddyMatchServiceTest
 
     // ── Takip akışı ──────────────────────────────────────────────────────────────
 

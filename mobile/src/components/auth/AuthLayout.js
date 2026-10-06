@@ -2,8 +2,9 @@
 // klavye açıkken kaydırılabilir içerik, isteğe bağlı geri butonu ve başlık alanı.
 import React, { useMemo } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Platform,
+  View, Text, StyleSheet, TouchableOpacity, Image, Platform,
 } from 'react-native';
+import { KeyboardAwareScrollView } from '../keyboard';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme';
@@ -20,18 +21,17 @@ export default function AuthLayout({
 
   return (
     <View style={styles.container}>
-      {/* Klavye: KeyboardAvoidingView YOK. Eskiden klavye açılınca kapsayıcı küçülüyor,
-          ortalanmış içerik yeniden ortalanıyor ve iOS aynı anda odaktaki kutuya kaydırıyordu;
-          iki hareket üst üste binip kutu "kayıyordu". Artık yalnızca ScrollView'ın içerik
-          boşluğu klavye kadar büyür (iOS) ve sistem odaktaki kutuyu tek hareketle görünür
-          yapar; Android'de pencere zaten klavyeye göre yeniden boyutlanır (adjustResize). */}
-        <ScrollView
+      {/* Klavye: KeyboardAvoidingView YOK. Kapsayıcı küçülüp içerik yeniden ortalanınca
+          odaktaki kutu "kayıyordu". Kaydırma görünümü odaktaki kutuyu klavyenin üstüne tek
+          hareketle getirir; Android'de de (SDK 57 kenardan kenara: pencere artık klavyeye
+          göre küçülmüyor). Bkz. components/keyboard. */}
+        <KeyboardAwareScrollView
           style={styles.flex}
           contentContainerStyle={[
             styles.scroll,
             { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 24 },
           ]}
-          automaticallyAdjustKeyboardInsets
+          bottomOffset={24}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
           showsVerticalScrollIndicator={false}
@@ -76,7 +76,7 @@ export default function AuthLayout({
           </View>
 
           {footer ? <View style={styles.footer}>{footer}</View> : null}
-        </ScrollView>
+        </KeyboardAwareScrollView>
     </View>
   );
 }
