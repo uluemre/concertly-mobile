@@ -8,6 +8,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -372,8 +373,97 @@ public final class DuplicateDetector {
                 }
                 clusters.add(new EventCluster(canonical, dups));
             }
+            // Saat dilimi kayması: aynı site + aynı sayfa + tam 3 saat (bkz. timeShiftTwin)
+            for (Event late : sorted) {
+                if (used.contains(late.getId())) continue;
+                for (Event early : sorted) {
+                    if (early == late || used.contains(early.getId())) continue;
+                    if (!timeShiftTwin(early, late)) continue;
+                    MergeConfidence conf = lowerOfMaps(MergeConfidence.HIGH, early, late, artistConf, venueConf);
+                    if (!conf.atLeast(min)) continue;
+                    clusters.add(new EventCluster(early, List.of(new EventMatch(late, TIME_SHIFT_MINUTES,
+                            "TIME_SHIFT: ayni site ve sayfa, tam 3 saat ileri kaymis kopya", conf))));
+                    used.add(early.getId());
+                    used.add(late.getId());
+                    break;
+                }
+            }
         }
         return clusters;
+    }
+
+    /**
+     * Doğru saatli ikizi daha önce başka bir kayda BİRLEŞTİRİLMİŞ kayık kopyalar: ikiz aday
+     * listesinde olmadığı için kümelemede görünmez. İkizin kimliğinden (aynı sayfa, 3 saat
+     * önce) bulunur, birleştirme zinciri asıl kayda kadar izlenir ve kopya oraya bağlanır.
+     *
+     * @param all        tüm etkinlikler (birleştirilmiş olanlar dahil)
+     * @param candidates yayında ve birleştirilmemiş etkinlikler
+     * @param clustered  kümelemede zaten yer alan etkinlik kimlikleri
+     */
+    public static List<EventCluster> timeShiftOrphans(Collection<Event> all, Collection<Event> candidates,
+                                                      Set<Long> clustered, MergeConfidence min) {
+        if (!MergeConfidence.HIGH.atLeast(min)) return List.of();
+        Map<String, Event> byExternalId = new HashMap<>();
+        Map<Long, Event> byId = new HashMap<>();
+        for (Event e : all) {
+            if (e == null || e.getId() == null) continue;
+            byId.put(e.getId(), e);
+            if (e.getExternalId() != null) byExternalId.putIfAbsent(e.getExternalId(), e);
+        }
+        Map<Long, List<EventMatch>> byRoot = new LinkedHashMap<>();
+        for (Event late : candidates) {
+            if (late.getId() == null || clustered.contains(late.getId()) || late.getEventDate() == null) continue;
+            int hour = late.getEventDate().getHour();
+            if (!(hour >= 22 || hour < 4)) continue;
+            String suffix = "@" + late.getEventDate();
+            String ext = late.getExternalId();
+            if (ext == null || !ext.endsWith(suffix)) continue;
+            Event twin = byExternalId.get(ext.substring(0, ext.length() - suffix.length())
+                    + "@" + late.getEventDate().minusMinutes(TIME_SHIFT_MINUTES));
+            if (twin == null || twin.getSource() != late.getSource()) continue;
+            Event root = twin;
+            for (int guard = 0; root.getMergedIntoEventId() != null && guard < 10; guard++) {
+                Event next = byId.get(root.getMergedIntoEventId());
+                if (next == null) break;
+                root = next;
+            }
+            if (root.getId().equals(late.getId()) || clustered.contains(root.getId()) || !root.listedPublicly()) continue;
+            byRoot.computeIfAbsent(root.getId(), k -> new ArrayList<>()).add(new EventMatch(late, TIME_SHIFT_MINUTES,
+                    "TIME_SHIFT: ayni site ve sayfa, tam 3 saat ileri kaymis kopya (ikizi daha once birlestirilmis)",
+                    MergeConfidence.HIGH));
+        }
+        List<EventCluster> out = new ArrayList<>();
+        for (Map.Entry<Long, List<EventMatch>> e : byRoot.entrySet()) {
+            out.add(new EventCluster(byId.get(e.getKey()), e.getValue()));
+        }
+        return out;
+    }
+
+    /** Türkiye saati ile UTC farkı: kayan kopya tam bu kadar ileride. */
+    static final long TIME_SHIFT_MINUTES = 180;
+
+    /**
+     * Saat dilimi kayması kopyası mı? Biletinial bir dönem saati UTC gibi verdi; aynı seans
+     * 21:00 ve ertesi gün 00:00 olarak iki kayıt açıldı (kimlik saati içerdiği için). İkisi de
+     * aynı siteden, aynı etkinlik sayfasından gelir ve tam 3 saat aralıklıdır; geç olanın saati
+     * gece yarısı civarındadır (gerçek matine / akşam seansları bu imzayı taşımaz).
+     */
+    static boolean timeShiftTwin(Event early, Event late) {
+        if (early.getSource() == null || early.getSource() != late.getSource()) return false;
+        if (early.getEventDate() == null || late.getEventDate() == null) return false;
+        if (Duration.between(early.getEventDate(), late.getEventDate()).toMinutes() != TIME_SHIFT_MINUTES) return false;
+        int hour = late.getEventDate().getHour();
+        if (!(hour >= 22 || hour < 4)) return false;
+        String a = pageKey(early.getExternalId()), b = pageKey(late.getExternalId());
+        return a != null && a.equals(b);
+    }
+
+    /** "biletinial:slug@2026-10-10T20:30" → "biletinial:slug" (seans kısmı atılır). */
+    static String pageKey(String externalId) {
+        if (externalId == null) return null;
+        int at = externalId.indexOf('@');
+        return at > 0 ? externalId.substring(0, at) : null;
     }
 
     /**

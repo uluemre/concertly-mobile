@@ -390,4 +390,20 @@ class ConcertGroupingTest {
                 EventSource.BUBILET, "https://www.bubilet.com.tr/x");
         assertFalse(grouping.sameConcertForListing(bg, other));
     }
+
+    @Test
+    void singleWordNameOverlapAtDifferentVenuesIsNotTheSameConcert() {
+        // Gerçek veri (6 Eki 2026): "Yaşar" Jolly Joker / "Ebru Yaşar & Senfoni" Volkswagen Arena, aynı saat
+        Event yasar = event(1, "Yaşar", "Jolly Joker Kartal", "İstanbul", "2026-10-24T21:00",
+                EventSource.TICKETMASTER, "https://www.biletix.com/x");
+        Event ebru = event(2, "Ebru Yaşar", "Volkswagen Arena", "İstanbul", "2026-10-24T21:00",
+                EventSource.BUBILET, "https://www.bubilet.com.tr/x");
+        ebru.setName("Ebru Yaşar & Senfoni");
+        assertFalse(grouping.sameConcertForListing(yasar, ebru));
+
+        // Aynı mekânda tek kelimelik eşleşme hâlâ tek kart
+        Event yasarBubilet = event(3, "Yaşar Konseri", "Jolly Joker Kartal", "İstanbul", "2026-10-24T21:00",
+                EventSource.BUBILET, "https://www.bubilet.com.tr/y");
+        assertTrue(grouping.sameConcertForListing(yasar, yasarBubilet));
+    }
 }

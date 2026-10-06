@@ -165,9 +165,16 @@ public class DuplicateMergeService {
         List<Event> candidates = events.stream()
                 .filter(e -> e.listedPublicly() && e.getMergedIntoEventId() == null && !excludeEvents.contains(e.getId()))
                 .toList();
-        List<EventCluster> clusters = DuplicateDetector.clusterEvents(candidates,
+        List<EventCluster> clusters = new ArrayList<>(DuplicateDetector.clusterEvents(candidates,
                 id -> artistMap.getOrDefault(id, id), id -> venueMap.getOrDefault(id, id),
-                artistConf, venueConf, min, eventMergeService::chooseCanonical);
+                artistConf, venueConf, min, eventMergeService::chooseCanonical));
+        // İkizi daha önce birleştirilmiş kayık kopyalar (saat dilimi hatası)
+        Set<Long> clustered = new HashSet<>();
+        for (EventCluster c : clusters) {
+            clustered.add(c.canonical().getId());
+            c.duplicates().forEach(m -> clustered.add(m.duplicate().getId()));
+        }
+        clusters.addAll(DuplicateDetector.timeShiftOrphans(events, candidates, clustered, min));
         return new Plan(artistGroups, venueGroups, clusters);
     }
 

@@ -173,6 +173,9 @@ public class ConcertGrouping {
             // Kaynaklar sanatciyi farkli yazabiliyor ("Ahmet Ihvani" / "Ahmet Aslan ve Ahmet
             // Ihvani Konserleri"): ayni anda (30 dk) ve sanatci kelimeleri digerinde geciyorsa tek konser
             if (!samePerformerLoose(a, b)) return false;
+            // Tek kelimelik eşleşme ("Yaşar" / "Ebru Yaşar & Senfoni") farklı kişiler olabilir:
+            // yalnız aynı mekândaysa aynı konser sayılır
+            if (singleWordLooseMatch(a, b) && !sameVenueName(a, b, city)) return false;
             if (minutes <= LISTING_MAX_MINUTES) return true;
             // Farkli siteler ayni konsere kapi acilisi / sahne saati gibi farkli saat yazabiliyor
             // ("Mansur Ark" 22:00 / "Mansur Ark & Dj Fikret Kocamaz" 21:00, ayni mekan): ayni
@@ -232,6 +235,13 @@ public class ConcertGrouping {
         java.util.Set<String> allB = new java.util.HashSet<>(pb);
         allB.addAll(performerTokens(b.getName()));
         return (distinctive(pa) && allB.containsAll(pa)) || (distinctive(pb) && allA.containsAll(pb));
+    }
+
+    /** Esnek eşleşme yalnız tek kelimeli bir sanatçı adına mı dayanıyor? */
+    static boolean singleWordLooseMatch(Event a, Event b) {
+        int ta = performerTokens(a.getArtist() != null ? a.getArtist().getName() : null).size();
+        int tb = performerTokens(b.getArtist() != null ? b.getArtist().getName() : null).size();
+        return Math.min(ta, tb) <= 1;
     }
 
     private static boolean distinctive(java.util.Set<String> tokens) {

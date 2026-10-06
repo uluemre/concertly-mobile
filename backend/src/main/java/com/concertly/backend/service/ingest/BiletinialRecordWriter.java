@@ -56,6 +56,24 @@ public class BiletinialRecordWriter {
     }
 
     /**
+     * Kaynak bir dönem saati UTC gibi verdi: "slug@2026-11-14T21:00" seansı ayrıca
+     * "slug@2026-11-15T00:00" olarak geldi. Kimlik saati içerdiği için ikinci bir kayıt
+     * açılıyordu. Aynı sayfanın 3 saat önceki seansı zaten varsa ve bu saat gece yarısı
+     * civarındaysa yeni kayıt kayma kopyasıdır.
+     */
+    boolean isTimeShiftedCopy(EventSource source, String externalId, java.time.LocalDateTime startsAt) {
+        if (startsAt == null) return false;
+        int hour = startsAt.getHour();
+        if (!(hour >= 22 || hour < 4)) return false;
+        String suffix = "@" + startsAt;
+        if (!externalId.endsWith(suffix)) return false;   // kimliği saat içermeyen kaynaklar (seans no) etkilenmez
+        String earlierId = externalId.substring(0, externalId.length() - suffix.length())
+                + "@" + startsAt.minusMinutes(DuplicateDetector.TIME_SHIFT_MINUTES);
+        return sourceLinks.find(source, earlierId).isPresent()
+                || eventRepository.findByExternalId(earlierId).isPresent();
+    }
+
+    /**
      * Kaydi ekler ya da gunceller.
      *
      * @return yeni kayit olusturulduysa true
@@ -82,6 +100,8 @@ public class BiletinialRecordWriter {
         }
 
         boolean isNew = event == null;
+        // Aynı seansın 3 saat kaymış ikizi (saat dilimi hatası): yeni kayıt açılmaz
+        if (isNew && isTimeShiftedCopy(source, externalId, raw.startsAt())) return false;
         if (isNew) {
             event = new Event();
             event.setExternalId(externalId);
