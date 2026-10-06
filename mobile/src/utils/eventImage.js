@@ -52,8 +52,9 @@ export function eventImageCandidates(item, genericImages) {
   if (!item) return [];
   const eventImg = item.imageUrl;
   const artistImg = item.artistImageUrl;
-  const eventIsGeneric = !!(eventImg && genericImages && genericImages.has(eventImg));
-  const ordered = eventIsGeneric ? [artistImg, eventImg] : [eventImg, artistImg];
+  // Sanatçının tek, güncel fotoğrafı önce (profil ve tüm konser kartlarında aynı görsel);
+  // yoksa etkinliğin kendi afişi. (genericImages parametresi eski çağrılarla uyum için duruyor.)
+  const ordered = [artistImg, eventImg];
   const out = [];
   for (const url of ordered) {
     if (!isPlaceholderImage(url) && !out.includes(url)) out.push(url);

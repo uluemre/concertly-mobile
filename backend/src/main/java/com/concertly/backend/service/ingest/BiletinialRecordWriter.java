@@ -41,6 +41,10 @@ public class BiletinialRecordWriter {
     @Autowired(required = false)
     private EventCancellationService cancellation;
 
+    /** Takipçilere yeni konser bildirimi (alan enjeksiyonu: kurucuyu kullanan testler degismesin). */
+    @Autowired(required = false)
+    private com.concertly.backend.service.NewConcertNotifier newConcertNotifier;
+
     public BiletinialRecordWriter(EventRepository eventRepository,
             ArtistRepository artistRepository,
             VenueRepository venueRepository,
@@ -119,6 +123,7 @@ public class BiletinialRecordWriter {
         // Kaynak kimligi her kosuda tazelenir (last_seen_at).
         sourceLinks.upsert(saved, source, externalId,
                 raw.ticketUrl(), raw.ticketUrl(), !canonicalFromOtherSource);
+        if (isNew && newConcertNotifier != null) newConcertNotifier.notifyFollowers(saved);
         return isNew;
     }
 

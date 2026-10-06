@@ -30,6 +30,9 @@ public interface CommunityMemberRepository extends JpaRepository<CommunityMember
 
     long countByCommunityIdAndStatus(Long communityId, String status);
 
+    /** Kullanıcının bu durumdaki üyelik sayısı (rozet). */
+    long countByUserIdAndStatus(Long userId, String status);
+
     void deleteByCommunityId(Long communityId);
 
     // Toplu ACTIVE üye sayımı — (communityId, count)

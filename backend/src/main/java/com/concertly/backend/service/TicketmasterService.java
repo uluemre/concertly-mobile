@@ -748,7 +748,15 @@ public class TicketmasterService {
      * Yeni etkinlik eklenince sanatçının takipçilerine "turne duyurusu" bildirimi
      * düşer.
      */
+    /** Ortak bildirici (kopya kontrolü dahil); yoksa eski yol. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private NewConcertNotifier newConcertNotifier;
+
     private void notifyArtistFollowers(Event event, Artist artist) {
+        if (newConcertNotifier != null) {
+            newConcertNotifier.notifyFollowers(event);
+            return;
+        }
         try {
             if (artist == null || artist.getId() == null)
                 return;

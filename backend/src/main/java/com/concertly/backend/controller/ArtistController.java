@@ -16,6 +16,14 @@ import java.util.Map;
 @RequestMapping("/api/artists")
 public class ArtistController {
 
+    /** Rozet kontrolü işlem bittikten sonra (alan enjeksiyonu: kurucuyu kullanan testler değişmesin). */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.concertly.backend.service.BadgeService badgeService;
+
+    private void checkBadges(Long userId) {
+        if (badgeService != null) badgeService.checkQuietly(userId);
+    }
+
     private final ArtistService artistService;
     private final SimilarArtistService similarArtistService;
 
@@ -50,6 +58,7 @@ public class ArtistController {
     public void follow(@PathVariable Long id) {
         Long userId = JwtUtil.getCurrentUserId();
         artistService.follow(userId, id);
+        checkBadges(userId);
     }
 
     @DeleteMapping("/{id}/follow")

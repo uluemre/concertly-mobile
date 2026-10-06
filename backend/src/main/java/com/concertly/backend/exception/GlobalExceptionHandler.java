@@ -80,6 +80,14 @@ public class GlobalExceptionHandler {
                 .body(new ApiError(400, "Geçersiz parametre: " + ex.getName()));
     }
 
+    // Bozuk / okunamayan JSON gövdesi istemci hatasıdır (eskiden catch-all'a düşüp 500 dönüyordu)
+    @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiError> handleUnreadableBody(org.springframework.http.converter.HttpMessageNotReadableException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(new ApiError(400, "Geçersiz istek."));
+    }
+
     // 409 — veritabanı constraint ihlali (unique, foreign key vs.)
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiError> handleDataIntegrity(DataIntegrityViolationException ex) {

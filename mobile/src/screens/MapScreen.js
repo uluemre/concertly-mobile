@@ -6,6 +6,7 @@ import {
 import MapView, { Marker, Circle } from 'react-native-maps';
 import * as Location from 'expo-location';
 import Supercluster from 'supercluster';
+import { pinImage, clusterImage } from '../components/map/markerImages';
 import { Ionicons } from '@expo/vector-icons';
 import API from '../services/api';
 import { useTheme } from '../theme';
@@ -69,18 +70,6 @@ function formatDistance(km) {
   if (km < 10) return `${km.toFixed(1)} km`;
   return `${Math.round(km)} km`;
 }
-
-// İşaretçi yalnız İLK göründüğünde kısa süre canlı çizilir (ikon yazı tipi otursun), sonra
-// donmuş görüntü olarak kalır. Eskiden haritayı her kaydırışta TÜM işaretçiler yeniden canlı
-// çizime alınıyordu; yüzlerce işaretçide iOS hareketi kilitliyordu.
-const TrackedMarker = React.memo(function TrackedMarker({ live, children, ...props }) {
-  const [warmup, setWarmup] = useState(true);
-  useEffect(() => {
-    const timer = setTimeout(() => setWarmup(false), 700);
-    return () => clearTimeout(timer);
-  }, []);
-  return <Marker {...props} tracksViewChanges={warmup || !!live}>{children}</Marker>;
-});
 
 // Kümeler yalnız yakınlaştırma düzeyi ya da görünen alan belirgin değişince yeniden hesaplanır
 function sameView(a, b) {
@@ -325,50 +314,38 @@ export default function MapScreen({ navigation }) {
           />
         )}
 
+        {/* İşaretçiler hazır PNG (bkz. markerImages): özel görünüm çizimi yok, harita donmaz */}
         {clusters.map(feature => {
           if (feature.properties.cluster) {
             const [longitude, latitude] = feature.geometry.coordinates;
             const count = feature.properties.events;
-            const size = count >= 100 ? 54 : count >= 20 ? 46 : 40;
             return (
-              <TrackedMarker
-                key={`cluster-${feature.id}-${count}`}
+              <Marker
+                key={`cluster-${feature.id}`}
                 coordinate={{ latitude, longitude }}
+                image={clusterImage(count)}
+                anchor={{ x: 0.5, y: 0.5 }}
+                tracksViewChanges={false}
                 onPress={() => handleClusterPress(feature)}
-              >
-                <View style={[styles.cluster, { width: size, height: size, borderRadius: size / 2 }]}>
-                  <Text style={styles.clusterText}>{count > 999 ? '999+' : count}</Text>
-                </View>
-              </TrackedMarker>
+                accessibilityLabel={t('map_cluster_a11y', { count })}
+              />
             );
           }
           const group = groupByKey.get(feature.properties.key);
           if (!group) return null;
           const first = group.events[0];
-          const color = getMarkerColor(first.genre);
           const isSelected = selectedVenueKey === group.key;
           return (
-            <TrackedMarker
-              // Seçim değişince işaretçi yeniden çizilsin (izleme kapalıyken stil güncellenmez)
-              key={isSelected ? `${group.key}-sel` : group.key}
+            <Marker
+              key={group.key}
               coordinate={{ latitude: group.latitude, longitude: group.longitude }}
+              image={pinImage(first.genre, isSelected)}
+              anchor={{ x: 0.5, y: 0.5 }}
+              zIndex={isSelected ? 10 : 1}
+              tracksViewChanges={false}
               onPress={() => handleMarkerPress(first)}
-              live={isSelected}
-            >
-              {/* Dış kutu sayı rozetini de kapsar: işaretçi görüntüsü kutu sınırında kırpılır */}
-              <View style={styles.markerWrap}>
-                <View style={[styles.marker, isSelected && styles.markerSelected, { borderColor: color }]}>
-                  <Ionicons name="musical-notes" size={18} color={color} />
-                </View>
-                {group.events.length > 1 && (
-                  <View style={[styles.markerCount, { backgroundColor: color }]}>
-                    <Text style={styles.markerCountText}>
-                      {group.events.length > 99 ? '99+' : group.events.length}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            </TrackedMarker>
+              accessibilityLabel={first.venueName || first.name}
+            />
           );
         })}
       </MapView>
@@ -508,58 +485,7 @@ function createStyles(colors) {
 
     map: { flex: 1, width },
 
-    marker: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: 'rgba(10,10,20,0.85)',
-      borderWidth: 2.5,
-      borderColor: '#E94560',
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    markerSelected: {
-      width: 48,
-      height: 48,
-      borderRadius: 24,
-      borderWidth: 3,
-    },
     subRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 3 },
-    cluster: {
-      alignItems: 'center', justifyContent: 'center',
-      backgroundColor: colors.primary, borderWidth: 3, borderColor: 'rgba(255,255,255,0.85)',
-    },
-    clusterText: { color: '#fff', fontSize: 14, fontWeight: '900' },
-    markerWrap: { width: 58, height: 54, alignItems: 'center', justifyContent: 'center' },
-    markerCount: {
-      position: 'absolute', top: 0, right: 0,
-      minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 4,
-      alignItems: 'center', justifyContent: 'center',
-      borderWidth: 1.5, borderColor: '#fff',
-    },
-    markerCountText: { color: '#fff', fontSize: 10, fontWeight: '800' },
-    subText: { marginBottom: 0, flexShrink: 1 },
-
-    bottomCard: {
-      position: 'absolute',
-      bottom: 0,
-      left: 0,
-      right: 0,
-      backgroundColor: colors.card,
-      borderTopLeftRadius: 24,
-      borderTopRightRadius: 24,
-      padding: 20,
-      paddingBottom: 34,
-      borderTopWidth: 1,
-      borderColor: colors.border,
-    },
-    bottomCardHandle: {
-      width: 40,
-      height: 4,
-      borderRadius: 2,
-      alignSelf: 'center',
-      marginBottom: 16,
-    },
     bottomCardBody: {
       flexDirection: 'row',
       gap: 14,

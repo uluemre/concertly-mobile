@@ -32,6 +32,44 @@ const TRACKS = [
     ],
   },
   {
+    key: 'cities', titleKey: 'badges_track_cities', icon: 'map',
+    badges: [
+      { code: 'yola_cikan', icon: 'navigate' },
+      { code: 'sehir_gezgini', icon: 'map' },
+      { code: 'turkiye_turu', icon: 'bus' },
+    ],
+  },
+  {
+    key: 'loyalty', titleKey: 'badges_track_loyalty', icon: 'heart',
+    badges: [
+      { code: 'sadik_hayran', icon: 'heart' },
+      { code: 'gercek_fan', icon: 'flame' },
+    ],
+  },
+  {
+    key: 'discovery', titleKey: 'badges_track_discovery', icon: 'compass',
+    badges: [
+      { code: 'muzik_kasifi', icon: 'compass' },
+      { code: 'kesif_tutkunu', icon: 'telescope' },
+      { code: 'koleksiyoncu', icon: 'albums' },
+    ],
+  },
+  {
+    key: 'daily', titleKey: 'badges_track_daily', icon: 'headset',
+    badges: [
+      { code: 'kulak_misafiri', icon: 'ear' },
+      { code: 'kulagi_delik', icon: 'headset' },
+      { code: 'muzik_dahisi', icon: 'bulb' },
+    ],
+  },
+  {
+    key: 'community', titleKey: 'badges_track_community', icon: 'people',
+    badges: [
+      { code: 'topluluk_ruhu', icon: 'people' },
+      { code: 'kurucu', icon: 'construct' },
+    ],
+  },
+  {
     key: 'start', titleKey: 'badges_track_start', icon: 'sparkles',
     badges: [{ code: 'yeni_uye', icon: 'sparkles' }],
   },

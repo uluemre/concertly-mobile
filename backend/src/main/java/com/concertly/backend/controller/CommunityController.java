@@ -20,6 +20,14 @@ import java.util.Map;
 @RequestMapping("/api/communities")
 public class CommunityController {
 
+    /** Rozet kontrolü işlem bittikten sonra (alan enjeksiyonu: kurucuyu kullanan testler değişmesin). */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.concertly.backend.service.BadgeService badgeService;
+
+    private void checkBadges(Long userId) {
+        if (badgeService != null) badgeService.checkQuietly(userId);
+    }
+
     private final CommunityService communityService;
 
     public CommunityController(CommunityService communityService) {
@@ -61,7 +69,9 @@ public class CommunityController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public CommunityResponse create(@RequestBody CreateCommunityRequest req) {
-        return communityService.createCommunity(JwtUtil.getCurrentUserId(), req);
+        var result = communityService.createCommunity(JwtUtil.getCurrentUserId(), req);
+        checkBadges(JwtUtil.getCurrentUserId());
+        return result;
     }
 
     @PutMapping("/{id}")
@@ -79,12 +89,16 @@ public class CommunityController {
 
     @PostMapping("/{id}/join")
     public CommunityResponse join(@PathVariable Long id) {
-        return communityService.joinCommunity(JwtUtil.getCurrentUserId(), id);
+        var result = communityService.joinCommunity(JwtUtil.getCurrentUserId(), id);
+        checkBadges(JwtUtil.getCurrentUserId());
+        return result;
     }
 
     @PostMapping("/join")
     public CommunityResponse joinByCode(@RequestParam String code) {
-        return communityService.joinByInviteCode(JwtUtil.getCurrentUserId(), code);
+        var result = communityService.joinByInviteCode(JwtUtil.getCurrentUserId(), code);
+        checkBadges(JwtUtil.getCurrentUserId());
+        return result;
     }
 
     @DeleteMapping("/{id}/join")
@@ -122,7 +136,9 @@ public class CommunityController {
 
     @PostMapping("/{id}/invite/accept")
     public CommunityResponse acceptInvite(@PathVariable Long id) {
-        return communityService.acceptInvite(JwtUtil.getCurrentUserId(), id);
+        var result = communityService.acceptInvite(JwtUtil.getCurrentUserId(), id);
+        checkBadges(JwtUtil.getCurrentUserId());
+        return result;
     }
 
     @DeleteMapping("/{id}/invite")

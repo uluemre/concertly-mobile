@@ -77,15 +77,28 @@ public class PushMessageFactory {
     }
 
     /** Rozet kodu → görünen ad (N-38). Veritabanındaki ad yalnızca Türkçe olduğundan burada tutulur. */
-    private static final java.util.Map<String, String[]> BADGE_NAMES = java.util.Map.of(
-            "ilk_konser",      new String[] { "İlk Konser",        "First Concert" },
-            "konser_kurdu",    new String[] { "Konser Kurdu",      "Concert Buff" },
-            "festival_sezonu", new String[] { "Festival Sezonu",   "Festival Season" },
-            "efsane_seyirci",  new String[] { "Efsane Seyirci",    "Legendary Fan" },
-            "ilk_paylasim",    new String[] { "Hikaye Anlatıcısı", "Storyteller" },
-            "sosyal_kelebek",  new String[] { "Sosyal Kelebek",    "Social Butterfly" },
-            "icerik_ustasi",   new String[] { "İçerik Ustası",     "Content Master" },
-            "yeni_uye",        new String[] { "Yeni Üye",          "New Member" });
+    private static final java.util.Map<String, String[]> BADGE_NAMES = java.util.Map.ofEntries(
+            java.util.Map.entry("ilk_konser", new String[] { "İlk Konser", "First Concert" }),
+            java.util.Map.entry("konser_kurdu", new String[] { "Konser Kurdu", "Concert Buff" }),
+            java.util.Map.entry("festival_sezonu", new String[] { "Festival Sezonu", "Festival Season" }),
+            java.util.Map.entry("efsane_seyirci", new String[] { "Efsane Seyirci", "Legendary Fan" }),
+            java.util.Map.entry("ilk_paylasim", new String[] { "Hikaye Anlatıcısı", "Storyteller" }),
+            java.util.Map.entry("sosyal_kelebek", new String[] { "Sosyal Kelebek", "Social Butterfly" }),
+            java.util.Map.entry("icerik_ustasi", new String[] { "İçerik Ustası", "Content Master" }),
+            java.util.Map.entry("yeni_uye", new String[] { "Yeni Üye", "New Member" }),
+            java.util.Map.entry("yola_cikan", new String[] { "Yola Çıkan", "On the Road" }),
+            java.util.Map.entry("sehir_gezgini", new String[] { "Şehir Gezgini", "City Hopper" }),
+            java.util.Map.entry("turkiye_turu", new String[] { "Türkiye Turu", "Turkey Tour" }),
+            java.util.Map.entry("sadik_hayran", new String[] { "Sadık Hayran", "Loyal Fan" }),
+            java.util.Map.entry("gercek_fan", new String[] { "Gerçek Fan", "True Fan" }),
+            java.util.Map.entry("muzik_kasifi", new String[] { "Müzik Kâşifi", "Music Explorer" }),
+            java.util.Map.entry("kesif_tutkunu", new String[] { "Keşif Tutkunu", "Avid Explorer" }),
+            java.util.Map.entry("koleksiyoncu", new String[] { "Koleksiyoncu", "Collector" }),
+            java.util.Map.entry("kulak_misafiri", new String[] { "Kulak Misafiri", "Eavesdropper" }),
+            java.util.Map.entry("kulagi_delik", new String[] { "Kulağı Delik", "Sharp Ears" }),
+            java.util.Map.entry("muzik_dahisi", new String[] { "Müzik Dahisi", "Music Genius" }),
+            java.util.Map.entry("topluluk_ruhu", new String[] { "Topluluk Ruhu", "Community Spirit" }),
+            java.util.Map.entry("kurucu", new String[] { "Kurucu", "Founder" }));
 
     static String badgeName(String code, boolean en) {
         String[] names = code == null ? null : BADGE_NAMES.get(code);

@@ -12,6 +12,9 @@ public interface DailySongPlayRepository extends JpaRepository<DailySongPlay, Lo
 
     List<DailySongPlay> findByUserIdAndSolvedTrueOrderByEpochDayDesc(Long userId);
 
+    /** Bilinen günlük şarkı sayısı (rozet). */
+    long countByUserIdAndSolvedTrue(Long userId);
+
     long countByEpochDay(long epochDay);
 
     long countByEpochDayAndSolvedTrue(long epochDay);

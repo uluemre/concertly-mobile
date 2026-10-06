@@ -178,4 +178,27 @@ class NonSecurityNPhaseTest {
             assertTrue(found, name);
         }
     }
+
+    // ── Bildirim silme: satır gizlenir, yalnız alıcının kendi bildirimleri ──
+
+    @Test
+    void deletingNotificationsHidesOnlyTheCallersOwnRows() {
+        NotificationRepository repo = mock(NotificationRepository.class);
+        when(repo.softDeleteByIds(eq(1L), eq(java.util.List.of(10L, 11L)), any())).thenReturn(2);
+        NotificationService svc = notificationService(repo);
+        assertEquals(2, svc.delete(1L, java.util.List.of(10L, 11L)));
+        // Alıcı kısıtı sorgunun kendisinde: başkasının id'si verilse de yalnız uid=1 satırları etkilenir
+        verify(repo).softDeleteByIds(eq(1L), eq(java.util.List.of(10L, 11L)), any());
+        verify(repo, never()).delete(any(Notification.class));
+        verify(repo, never()).deleteAll();
+        assertEquals(0, svc.delete(1L, java.util.List.of()));
+    }
+
+    @Test
+    void deleteRequestIsCapped() {
+        NotificationService svc = notificationService(mock(NotificationRepository.class));
+        java.util.List<Long> ids = new java.util.ArrayList<>();
+        for (long i = 0; i < 501; i++) ids.add(i);
+        assertThrows(IllegalArgumentException.class, () -> svc.delete(1L, ids));
+    }
 }

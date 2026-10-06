@@ -32,6 +32,14 @@ public class Notification {
 
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    /**
+     * Kullanıcı bildirimi sildiyse zamanı. Satır silinmez, yalnız listeden düşer:
+     * "aynı bildirimi tekrar gönderme" kontrolleri bu satırlara bakıyor; gerçekten
+     * silinse sildiğin hatırlatma ertesi gün yeniden gelebilirdi.
+     */
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
     public Long getId() { return id; }
     public User getRecipient() { return recipient; }
     public void setRecipient(User recipient) { this.recipient = recipient; }
@@ -48,4 +56,6 @@ public class Notification {
     public Boolean getIsRead() { return isRead; }
     public void setIsRead(Boolean isRead) { this.isRead = isRead; }
     public LocalDateTime getCreatedAt() { return createdAt; }
+    public LocalDateTime getDeletedAt() { return deletedAt; }
+    public void setDeletedAt(LocalDateTime deletedAt) { this.deletedAt = deletedAt; }
 }

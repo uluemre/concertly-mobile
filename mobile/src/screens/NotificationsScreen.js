@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import {
   View, Text, SectionList, TouchableOpacity,
-  StyleSheet, ActivityIndicator, Image,
+  StyleSheet, ActivityIndicator, Image, Alert,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,6 +15,10 @@ import {
 } from '../utils/communityNotifications';
 import { parseEventDate } from '../utils/time';
 import { openEvent } from '../navigation/navHelpers';
+import { hapticLight } from '../utils/haptics';
+
+// Kişisiz (Concertly'nin kendi gönderdiği) bildirimlerde gösterilen logo
+const LOGO = require('../../assets/logo-mark.png');
 
 export default function NotificationsScreen({ navigation }) {
   const { colors } = useTheme();
@@ -62,6 +66,9 @@ export default function NotificationsScreen({ navigation }) {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  // Çoklu silme: seçim modu ve seçilen grup anahtarları
+  const [selecting, setSelecting] = useState(false);
+  const [selected, setSelected] = useState(() => new Set());
   const isMounted = useRef(true);
 
   useEffect(() => {
@@ -86,6 +93,7 @@ export default function NotificationsScreen({ navigation }) {
           key,
           type: n.type,
           rep: n,                                   // en yeni (liste tarihe göre azalan sıralı)
+          ids: [n.id],                              // silmede grubun tüm bildirimleri birlikte gider
           count: 1,
           actors: n.actorUsername ? [n.actorUsername] : [],
           isUnread: !n.isRead,
@@ -93,6 +101,7 @@ export default function NotificationsScreen({ navigation }) {
       } else {
         const g = groups[idx];
         g.count += 1;
+        g.ids.push(n.id);
         if (n.actorUsername && !g.actors.includes(n.actorUsername)) g.actors.push(n.actorUsername);
         if (!n.isRead) g.isUnread = true;
       }
@@ -224,6 +233,67 @@ export default function NotificationsScreen({ navigation }) {
     }
   };
 
+  // ── Silme ────────────────────────────────────────────────────────────────
+  // Bildirim listeden hemen düşer; sunucu hata verirse liste yeniden yüklenir.
+  const removeIds = async (ids) => {
+    if (ids.length === 0) return;
+    const drop = new Set(ids);
+    setNotifications(prev => prev.filter(n => !drop.has(n.id)));
+    try {
+      if (ids.length === 1) await API.delete(`/notifications/${ids[0]}`);
+      else await API.post('/notifications/delete', { ids });
+    } catch (err) {
+      Alert.alert(t('error'), t('notif_delete_error'));
+      fetchAndMarkRead();
+    }
+  };
+
+  const confirmDeleteGroup = (g) => {
+    hapticLight();
+    Alert.alert(t('notif_delete_title'), null, [
+      { text: t('cancel'), style: 'cancel' },
+      { text: t('delete'), style: 'destructive', onPress: () => removeIds(g.ids) },
+    ]);
+  };
+
+  const exitSelection = () => { setSelecting(false); setSelected(new Set()); };
+
+  const toggleSelected = (key) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
+
+  const allSelected = grouped.length > 0 && selected.size === grouped.length;
+  const selectAllToggle = () => {
+    setSelected(allSelected ? new Set() : new Set(grouped.map(g => g.key)));
+  };
+
+  const deleteSelected = () => {
+    const ids = grouped.filter(g => selected.has(g.key)).flatMap(g => g.ids);
+    if (ids.length === 0) return;
+    Alert.alert(t('notif_delete_selected_title', { count: selected.size }), null, [
+      { text: t('cancel'), style: 'cancel' },
+      {
+        text: t('delete'), style: 'destructive', onPress: async () => {
+          exitSelection();
+          if (ids.length === notifications.length) {
+            // Hepsi seçildiyse tek istekle tümü
+            setNotifications([]);
+            try { await API.delete('/notifications'); } catch {
+              Alert.alert(t('error'), t('notif_delete_error'));
+              fetchAndMarkRead();
+            }
+          } else {
+            removeIds(ids);
+          }
+        },
+      },
+    ]);
+  };
+
   const renderItem = ({ item: g }) => {
     const line = getLine(g);
     const rep = g.rep;
@@ -233,16 +303,28 @@ export default function NotificationsScreen({ navigation }) {
 
     return (
       <TouchableOpacity
-        style={[styles.row, isUnread && styles.rowUnread]}
-        onPress={() => handlePress(g)}
+        style={[styles.row, isUnread && styles.rowUnread, selecting && selected.has(g.key) && styles.rowSelected]}
+        onPress={() => (selecting ? toggleSelected(g.key) : handlePress(g))}
+        onLongPress={() => (selecting ? toggleSelected(g.key) : confirmDeleteGroup(g))}
+        delayLongPress={350}
         activeOpacity={0.75}
-        accessibilityRole="button"
+        accessibilityRole={selecting ? 'checkbox' : 'button'}
+        accessibilityState={selecting ? { checked: selected.has(g.key) } : undefined}
+        accessibilityHint={selecting ? undefined : t('notif_long_press_hint')}
         accessibilityLabel={[line.actor, line.text, communityName, time].filter(Boolean).join(', ')}
       >
+        {selecting && (
+          <Ionicons
+            name={selected.has(g.key) ? 'checkmark-circle' : 'ellipse-outline'}
+            size={24}
+            color={selected.has(g.key) ? colors.primary : colors.textSecondary}
+            style={styles.checkbox}
+          />
+        )}
         {/* Avatar ayrıca tıklanır: bildirimi oluşturan kişinin profili */}
         <TouchableOpacity
           style={styles.avatarWrap}
-          disabled={!rep.actorId}
+          disabled={!rep.actorId || selecting}
           onPress={() => navigation.navigate('UserProfile', { userId: rep.actorId })}
           activeOpacity={0.75}
           accessibilityRole="button"
@@ -257,10 +339,8 @@ export default function NotificationsScreen({ navigation }) {
               <Text style={styles.avatarInitial}>{rep.actorUsername[0].toUpperCase()}</Text>
             </View>
           ) : (
-            // Kişisiz (sistem) bildirim: Concertly'nin kendisi — marka rengi
-            <View style={[styles.avatarPlaceholder, styles.avatarSystem]}>
-              <Ionicons name="musical-notes" size={22} color="#fff" />
-            </View>
+            // Kişisiz (sistem) bildirim: Concertly'nin kendisi — logo
+            <Image source={LOGO} style={[styles.avatar, styles.avatarLogo]} accessibilityLabel="Concertly" />
           )}
           <View style={styles.typeBadge}>
             <Ionicons name={line.icon} size={13} color={colors[line.tint] || colors.textSecondary} />
@@ -326,9 +406,37 @@ export default function NotificationsScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, styles.headerRow]}>
         <Text style={styles.headerTitle} accessibilityRole="header">{t('notifications_title')}</Text>
+        {grouped.length > 0 && (
+          <TouchableOpacity
+            onPress={() => (selecting ? exitSelection() : setSelecting(true))}
+            style={styles.headerAction}
+            accessibilityRole="button"
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Text style={styles.headerActionText}>{selecting ? t('cancel') : t('notif_select')}</Text>
+          </TouchableOpacity>
+        )}
       </View>
+
+      {selecting && (
+        <View style={styles.selectionBar}>
+          <TouchableOpacity onPress={selectAllToggle} accessibilityRole="button" hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Text style={styles.selectionLink}>{allSelected ? t('notif_select_none') : t('notif_select_all')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={deleteSelected}
+            disabled={selected.size === 0}
+            style={[styles.deleteBtn, selected.size === 0 && styles.deleteBtnDisabled]}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: selected.size === 0 }}
+          >
+            <Ionicons name="trash-outline" size={16} color="#fff" />
+            <Text style={styles.deleteBtnText}>{t('notif_delete_count', { count: selected.size })}</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       <SectionList
         sections={sections}
@@ -362,6 +470,22 @@ function createStyles(colors) {
     center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
 
     header: { paddingTop: 56, paddingBottom: 16, paddingHorizontal: 20 },
+    headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    headerAction: { paddingVertical: 6, paddingHorizontal: 4 },
+    headerActionText: { fontSize: 15, fontWeight: '700', color: colors.primary },
+    selectionBar: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: 20, paddingBottom: 12,
+    },
+    selectionLink: { fontSize: 14, fontWeight: '600', color: colors.primary },
+    deleteBtn: {
+      flexDirection: 'row', alignItems: 'center', gap: 6,
+      backgroundColor: colors.primary, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8,
+    },
+    deleteBtnDisabled: { opacity: 0.4 },
+    deleteBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
+    checkbox: { marginRight: 10 },
+    avatarLogo: { backgroundColor: '#0F0F1A' },
     headerTitle: { fontSize: 26, fontWeight: '900', color: colors.text, letterSpacing: 0.2 },
     listContent: { paddingHorizontal: 16, paddingBottom: 32 },
 
@@ -375,6 +499,7 @@ function createStyles(colors) {
       borderColor: colors.border,
       backgroundColor: colors.card,
     },
+    rowSelected: { backgroundColor: colors.primary + '14' },
     rowUnread: {
       borderColor: colors.primary + '66',
       backgroundColor: colors.primary + '12',

@@ -195,4 +195,36 @@ public interface EventRepository extends JpaRepository<Event, Long> {
             """)
     List<Object[]> topArtistsByUpcomingEvents(@Param("from") java.time.LocalDateTime from,
                                               org.springframework.data.domain.Pageable pageable);
+
+    /** Aynı sanatçının bu zaman aralığında başka kaydı var mı (yeni konser bildirimi kopya kontrolü). */
+    boolean existsByArtistIdAndIdNotAndEventDateBetween(Long artistId, Long id,
+                                                        java.time.LocalDateTime from, java.time.LocalDateTime to);
+
+    /** Yaklaşan ve listelenen konseri olan sanatçılar (fotoğraf görevi). */
+    @Query("""
+            SELECT DISTINCT e.artist FROM Event e
+            WHERE e.artist IS NOT NULL AND e.eventDate >= :now
+              AND e.isApproved = true AND e.delistedReason IS NULL
+            """)
+    List<com.concertly.backend.model.Artist> findUpcomingListedArtists(@Param("now") java.time.LocalDateTime now);
+
+
+    /** Sanatçının yaklaşan konser görselleri ve kaynakları: [imageUrl, source, id], en yeni önce. */
+    @Query("""
+            SELECT e.imageUrl, e.source, e.id FROM Event e
+            WHERE e.artist.id = :artistId AND e.imageUrl IS NOT NULL AND e.eventDate >= :now
+              AND e.isApproved = true AND e.delistedReason IS NULL
+            ORDER BY e.id DESC
+            """)
+    List<Object[]> findUpcomingImageSourcesByArtist(@Param("artistId") Long artistId,
+                                                    @Param("now") java.time.LocalDateTime now);
+
+    /** Birden çok sanatçının konserinde ortak kullanılan (genel) görseller: Ticketmaster'ın davul görseli gibi. */
+    @Query("""
+            SELECT e.imageUrl FROM Event e
+            WHERE e.imageUrl IS NOT NULL AND e.eventDate >= :now AND e.artist IS NOT NULL
+            GROUP BY e.imageUrl
+            HAVING COUNT(DISTINCT e.artist.id) >= :minArtists
+            """)
+    List<String> findSharedImages(@Param("now") java.time.LocalDateTime now, @Param("minArtists") long minArtists);
 }

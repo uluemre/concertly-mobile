@@ -12,6 +12,14 @@ import java.util.Map;
 @RequestMapping("/api/daily-song")
 public class DailySongController {
 
+    /** Rozet kontrolü işlem bittikten sonra (alan enjeksiyonu: kurucuyu kullanan testler değişmesin). */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.concertly.backend.service.BadgeService badgeService;
+
+    private void checkBadges(Long userId) {
+        if (badgeService != null) badgeService.checkQuietly(userId);
+    }
+
     private final DailySongService dailySongService;
     private final DeezerService deezerService;
 
@@ -29,7 +37,10 @@ public class DailySongController {
     public Map<String, Object> guess(@RequestBody Map<String, Object> body) {
         String guess = body.get("guess") != null ? body.get("guess").toString() : null;
         boolean skip = Boolean.parseBoolean(String.valueOf(body.getOrDefault("skip", "false")));
-        return dailySongService.guess(JwtUtil.getCurrentUserId(), guess, skip);
+        Long userId = JwtUtil.getCurrentUserId();
+        var result = dailySongService.guess(userId, guess, skip);
+        checkBadges(userId);
+        return result;
     }
 
     @GetMapping("/search")

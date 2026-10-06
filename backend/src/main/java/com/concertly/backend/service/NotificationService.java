@@ -125,14 +125,14 @@ public class NotificationService {
     }
 
     public List<NotificationResponse> getForUser(Long userId) {
-        return notificationRepository.findByRecipientIdOrderByCreatedAtDesc(userId)
+        return notificationRepository.findByRecipientIdAndDeletedAtIsNullOrderByCreatedAtDesc(userId)
                 .stream()
                 .map(NotificationResponse::from)
                 .toList();
     }
 
     public long getUnreadCount(Long userId) {
-        return notificationRepository.countByRecipientIdAndIsReadFalse(userId);
+        return notificationRepository.countByRecipientIdAndIsReadFalseAndDeletedAtIsNull(userId);
     }
 
     @Transactional
@@ -147,12 +147,31 @@ public class NotificationService {
 
     @Transactional
     public void markAllRead(Long userId) {
-        notificationRepository.findByRecipientIdOrderByCreatedAtDesc(userId)
+        notificationRepository.findByRecipientIdAndDeletedAtIsNullOrderByCreatedAtDesc(userId)
                 .forEach(n -> {
                     if (!n.getIsRead()) {
                         n.setIsRead(true);
                         notificationRepository.save(n);
                     }
                 });
+    }
+
+    /** Üst sınır: tek istekte gizlenebilecek bildirim (gruplanmış satırlar birden çok id taşır). */
+    static final int MAX_DELETE_IDS = 500;
+
+    /**
+     * Bildirimleri kullanıcının listesinden kaldırır (satır gizlenir, bkz. Notification.deletedAt).
+     * Başkasının bildirim id'si verilirse etkilenmez.
+     */
+    @Transactional
+    public int delete(Long userId, java.util.Collection<Long> ids) {
+        if (ids == null || ids.isEmpty()) return 0;
+        if (ids.size() > MAX_DELETE_IDS) throw new IllegalArgumentException("TOO_MANY_IDS");
+        return notificationRepository.softDeleteByIds(userId, ids, java.time.LocalDateTime.now());
+    }
+
+    @Transactional
+    public int deleteAll(Long userId) {
+        return notificationRepository.softDeleteAll(userId, java.time.LocalDateTime.now());
     }
 }

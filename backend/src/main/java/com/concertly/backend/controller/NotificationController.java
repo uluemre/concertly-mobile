@@ -51,6 +51,27 @@ public class NotificationController {
         notificationService.markAllRead(userId);
     }
 
+    // ── Silme (tekli / çoklu / tümü) ──────────────────────────────────────────
+    // Bildirim gerçekten silinmez, kullanıcının listesinden kaldırılır.
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable Long id) {
+        notificationService.delete(JwtUtil.getCurrentUserId(), java.util.List.of(id));
+    }
+
+    /** Body: {"ids": [1, 2, 3]} — gruplanmış satırlar birden çok bildirimi birlikte siler. */
+    @PostMapping("/delete")
+    public Map<String, Integer> deleteMany(@RequestBody Map<String, java.util.List<Long>> body) {
+        java.util.List<Long> ids = body == null ? null : body.get("ids");
+        return Map.of("deleted", notificationService.delete(JwtUtil.getCurrentUserId(), ids));
+    }
+
+    @DeleteMapping
+    public Map<String, Integer> deleteAll() {
+        return Map.of("deleted", notificationService.deleteAll(JwtUtil.getCurrentUserId()));
+    }
+
     // ── Bildirim tercihleri ───────────────────────────────────────────────────
 
     @GetMapping("/settings")

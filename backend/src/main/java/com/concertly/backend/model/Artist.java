@@ -32,6 +32,19 @@ public class Artist {
 
     private String imageUrl;
 
+    /** Fotoğrafın geldiği yer: DEEZER | EVENT (konser afişi) | SPOTIFY; null = eski kayıt. */
+    @jakarta.persistence.Column(name = "image_source", length = 20)
+    private String imageSource;
+
+    /** Fotoğraf en son ne zaman arandı (gece görevi eskiyenleri yeniden arar). */
+    @jakarta.persistence.Column(name = "image_checked_at")
+    private java.time.LocalDateTime imageCheckedAt;
+
+    public String getImageSource() { return imageSource; }
+    public void setImageSource(String imageSource) { this.imageSource = imageSource; }
+    public java.time.LocalDateTime getImageCheckedAt() { return imageCheckedAt; }
+    public void setImageCheckedAt(java.time.LocalDateTime imageCheckedAt) { this.imageCheckedAt = imageCheckedAt; }
+
     private String externalId;
 
     private Integer popularity;

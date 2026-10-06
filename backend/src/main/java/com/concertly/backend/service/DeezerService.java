@@ -16,6 +16,23 @@ public class DeezerService {
     private final RestTemplate restTemplate = ExternalHttp.restTemplate();
 
     public DeezerArtistData searchArtist(String artistName) {
+        try {
+            return searchArtistOrThrow(artistName);
+        } catch (DeezerUnavailableException e) {
+            return null;
+        }
+    }
+
+    /** Deezer'a ulaşılamadı (ağ / sunucu hatası): "bulunamadı" ile karıştırılmasın diye ayrı. */
+    public static class DeezerUnavailableException extends RuntimeException {
+        public DeezerUnavailableException(String message) { super(message); }
+    }
+
+    /**
+     * Birebir ad eşleşmesiyle arar. Bulunamazsa null; Deezer'a ulaşılamazsa
+     * DeezerUnavailableException (fotoğraf görevi o sanatçıya o gece dokunmaz).
+     */
+    public DeezerArtistData searchArtistOrThrow(String artistName) {
         if (artistName == null || artistName.isBlank()) return null;
 
         String[] queries = buildQueries(artistName);
@@ -37,7 +54,7 @@ public class DeezerService {
             String url = UriComponentsBuilder
                 .fromUriString("https://api.deezer.com/search/artist")
                 .queryParam("q", query)
-                .queryParam("limit", "5")
+                .queryParam("limit", "10")
                 .toUriString();
 
             Map<String, Object> response = restTemplate.getForObject(url, Map.class);
@@ -49,13 +66,20 @@ public class DeezerService {
                 return null;
             }
 
-            Map<String, Object> best = data.get(0);
+            // Yalnız adı birebir tutan sonuç (Türkçe harf / büyük-küçük farkı yok sayılır).
+            // Eskiden eşleşme yoksa ilk sonuç alınıyordu: kısa/genel adlı sanatçıya
+            // başka birinin fotoğrafı geliyordu (Spotify'daki yanlış profil hatasıyla aynı).
+            List<Map<String, Object>> exactMatches = new ArrayList<>();
+            String wanted = nameKey(originalName);
+            String wantedQuery = nameKey(query);
             for (Map<String, Object> item : data) {
-                String name = (String) item.get("name");
-                if (name != null && name.equalsIgnoreCase(originalName)) {
-                    best = item;
-                    break;
-                }
+                String key = nameKey((String) item.get("name"));
+                if (!key.isEmpty() && (key.equals(wanted) || key.equals(wantedQuery))) exactMatches.add(item);
+            }
+            Map<String, Object> best = pickUnambiguous(exactMatches);
+            if (best == null) {
+                System.out.println("  🔍 Deezer'da birebir ve kesin eşleşme yok (" + exactMatches.size() + " aday): " + originalName);
+                return null;
             }
 
             String imageUrl = (String) best.get("picture_xl");
@@ -71,8 +95,48 @@ public class DeezerService {
 
         } catch (Exception e) {
             System.out.println("  ❌ Deezer hata (" + query + "): " + e.getMessage());
+            if (e instanceof org.springframework.web.client.RestClientException) {
+                throw new DeezerUnavailableException(e.getMessage());
+            }
             return null;
         }
+    }
+
+    /** Aynı adlı adaylardan biri ancak açıkça baskınsa seçilir (takipçi ≥ 10 katı ve ≥ 1000). */
+    static final int DOMINANCE_FACTOR = 10;
+    static final long DOMINANCE_MIN_FANS = 1000;
+
+    /**
+     * Aynı adla birden çok sanatçı olabilir: gerçek Scorpions'ın milyonlarca takipçisi var,
+     * aynı adlı tribute hesaplarının birkaç yüz. Takipçisi açıkça baskın olan seçilir; sayılar
+     * yakınsa ("Manifest": 7.819 / 1.456 / 12) hangisi olduğu bilinemez, null döner.
+     */
+    static Map<String, Object> pickUnambiguous(List<Map<String, Object>> exactMatches) {
+        if (exactMatches.isEmpty()) return null;
+        if (exactMatches.size() == 1) return exactMatches.get(0);
+        List<Map<String, Object>> sorted = new ArrayList<>(exactMatches);
+        sorted.sort((x, y) -> Long.compare(fans(y), fans(x)));
+        long top = fans(sorted.get(0));
+        long second = fans(sorted.get(1));
+        if (top >= DOMINANCE_MIN_FANS && top >= DOMINANCE_FACTOR * Math.max(second, 1)) return sorted.get(0);
+        return null;
+    }
+
+    private static long fans(Map<String, Object> item) {
+        Object v = item.get("nb_fan");
+        return v instanceof Number n ? n.longValue() : 0L;
+    }
+
+    /** Karşılaştırma anahtarı: Türkçe harfler sadeleşir, harf/rakam dışı atılır. */
+    static String nameKey(String name) {
+        if (name == null) return "";
+        String s = name.trim()
+                .replace('İ', 'i').replace('I', 'i').replace('ı', 'i')
+                .replace('Ş', 's').replace('ş', 's').replace('Ğ', 'g').replace('ğ', 'g')
+                .replace('Ü', 'u').replace('ü', 'u').replace('Ö', 'o').replace('ö', 'o')
+                .replace('Ç', 'c').replace('ç', 'c');
+        s = java.text.Normalizer.normalize(s, java.text.Normalizer.Form.NFD).replaceAll("\\p{M}", "");
+        return s.toLowerCase(java.util.Locale.ROOT).replaceAll("[^a-z0-9]", "");
     }
 
     public static class DeezerArtistData {

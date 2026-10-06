@@ -77,4 +77,18 @@ public interface ArtistRepository extends JpaRepository<Artist, Long> {
                 ORDER BY a.name ASC
             """)
     List<Artist> findByGenreIn(@Param("genres") List<String> genres);
+
+    /**
+     * Eski kurallarla Deezer'dan alınmış ve hiç doğrulanmamış fotoğraflar (yaklaşan konseri
+     * olmayan sanatçılar dahil): fotoğraf görevi bunları birebir eşleşmeyle yeniden doğrular.
+     */
+    @org.springframework.data.jpa.repository.Query("""
+            SELECT a FROM Artist a
+            WHERE (a.imageUrl LIKE '%dzcdn%' OR a.imageUrl LIKE '%deezer%')
+              AND a.imageCheckedAt IS NULL AND a.mergedIntoArtistId IS NULL
+            """)
+    java.util.List<com.concertly.backend.model.Artist> findUnverifiedDeezerPhotos();
+
+    /** Fotoğrafı olmayan sanatçılar (zorla yeniden taramada Deezer'a sorulur). */
+    java.util.List<com.concertly.backend.model.Artist> findByImageUrlIsNullAndMergedIntoArtistIdIsNull();
 }
