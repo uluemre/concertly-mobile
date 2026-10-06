@@ -138,6 +138,25 @@ class DailySongServiceTest {
         assertEquals(List.of(false, false, false, false, false, false, false), result.get("week"));
     }
 
+    @Test
+    void previewLinkIsRefreshedFromTheTrackIdAndReusedForAWhile() {
+        // Deezer linkleri ~15 dk sonra 403 verir (gerçek hata, 7 Eki 2026): havuzdaki eski link kullanılmaz
+        DeezerService.Track track = new DeezerService.Track("Kahraman", "https://dzcdn/eski.mp3", "", "Sertab Erener");
+        track.deezerId = 42L;
+        when(deezerService.getTrackPreview(42L)).thenReturn("https://dzcdn/taze.mp3");
+
+        assertEquals("https://dzcdn/taze.mp3", service.freshPreview(track));
+        assertEquals("https://dzcdn/taze.mp3", service.freshPreview(track));
+        org.mockito.Mockito.verify(deezerService, org.mockito.Mockito.times(1)).getTrackPreview(42L);
+
+        // Kimliği bilinmeyen ya da Deezer'a ulaşılamayan şarkıda eldeki link döner
+        DeezerService.Track noId = new DeezerService.Track("X", "https://dzcdn/x.mp3", "", "");
+        assertEquals("https://dzcdn/x.mp3", service.freshPreview(noId));
+        DeezerService.Track down = new DeezerService.Track("Y", "https://dzcdn/y.mp3", "", "");
+        down.deezerId = 7L;
+        assertEquals("https://dzcdn/y.mp3", service.freshPreview(down));
+    }
+
     private static DailySongPlay solvedOn(LocalDate day) {
         DailySongPlay p = new DailySongPlay();
         p.setEpochDay(day.toEpochDay());

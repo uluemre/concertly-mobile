@@ -39,7 +39,7 @@ public class ConcertDayService {
     private static final Duration STILL_ON = Duration.ofHours(4);
     private static final int WARMUP_SIZE = 10;
     /** Deezer önizleme linkleri imzalı ve süreli; uzun tutulmaz. */
-    private static final long WARMUP_CACHE_MS = 20 * 60 * 1000L;
+    private static final long WARMUP_CACHE_MS = 10 * 60 * 1000L;
 
     private final EventAttendanceRepository attendanceRepository;
     private final EventRepository eventRepository;

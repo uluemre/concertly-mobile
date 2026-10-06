@@ -3,10 +3,12 @@ import {
   View, Text, StyleSheet, ActivityIndicator,
   TouchableOpacity, Dimensions, ScrollView, Animated,
 } from 'react-native';
-import MapView, { Marker, Circle } from 'react-native-maps';
+import MapView, { Circle } from 'react-native-maps';
 import * as Location from 'expo-location';
 import Supercluster from 'supercluster';
 import { pinImage, clusterImage } from '../components/map/markerImages';
+import ImageMarker from '../components/map/ImageMarker';
+import EventImage from '../components/EventImage';
 import { Ionicons } from '@expo/vector-icons';
 import API from '../services/api';
 import { useTheme } from '../theme';
@@ -19,6 +21,8 @@ const { width, height } = Dimensions.get('window');
 const TURKEY_CENTER = { latitude: 39.0, longitude: 35.0, latitudeDelta: 10, longitudeDelta: 10 };
 
 const RADIUS_VALUES = [null, 10, 25, 50];
+// Kapalı alt kartın ekran dışında durduğu kayma (kart + alt boşluktan uzun)
+const SHEET_HIDDEN_Y = 420;
 
 const GENRE_COLORS = {
   rock: '#E94560',
@@ -94,24 +98,30 @@ export default function MapScreen({ navigation }) {
 
   const [allEvents, setAllEvents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  // iOS'ta harita hazır olmadan eklenen işaretçiler bazen hiç çizilmiyor: hazır olunca eklenir
+  const [mapReady, setMapReady] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
   const [locationDenied, setLocationDenied] = useState(false);
   const [selectedRadius, setSelectedRadius] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
 
-  const bottomAnim = useRef(new Animated.Value(220)).current;
+  const bottomAnim = useRef(new Animated.Value(SHEET_HIDDEN_Y)).current;
 
   useEffect(() => {
     Promise.all([fetchEvents(), requestLocation()]).finally(() => setLoading(false));
   }, []);
 
   const fetchEvents = async () => {
+    setLoadError(false);
     try {
       // Yalnızca yaklaşan etkinlikler (N-18) — eskiden filtresiz geldiği için geçmişler de pinleniyordu
       const res = await API.get('/events', { params: { upcoming: true } });
       setAllEvents(res.data.filter(e => e.venueLatitude && e.venueLongitude));
     } catch (err) {
+      // Sessizce boş harita göstermek yerine tekrar denetilir
       console.log('Harita yükleme hatası:', err.message);
+      setLoadError(true);
     }
   };
 
@@ -221,7 +231,7 @@ export default function MapScreen({ navigation }) {
 
   const handleMapPress = useCallback(() => {
     if (!selectedEvent) return;
-    Animated.timing(bottomAnim, { toValue: 220, duration: 220, useNativeDriver: true }).start(() => setSelectedEvent(null));
+    Animated.timing(bottomAnim, { toValue: SHEET_HIDDEN_Y, duration: 220, useNativeDriver: true }).start(() => setSelectedEvent(null));
   }, [selectedEvent, bottomAnim]);
 
   const goToUserLocation = () => {
@@ -292,6 +302,22 @@ export default function MapScreen({ navigation }) {
         </ScrollView>
       </View>
 
+      {loadError ? (
+        <TouchableOpacity
+          style={styles.notice}
+          onPress={() => fetchEvents()}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+        >
+          <Text style={styles.noticeText}>{t('map_load_failed')}</Text>
+          <Text style={styles.noticeAction}>{t('retry')}</Text>
+        </TouchableOpacity>
+      ) : filteredEvents.length === 0 ? (
+        <View style={styles.notice}>
+          <Text style={styles.noticeText}>{t('map_empty')}</Text>
+        </View>
+      ) : null}
+
       {/* HARİTA */}
       <MapView
         ref={mapRef}
@@ -302,6 +328,7 @@ export default function MapScreen({ navigation }) {
         showsMyLocationButton={false}
         onPress={handleMapPress}
         onRegionChangeComplete={onRegionChangeComplete}
+        onMapReady={() => setMapReady(true)}
       >
         {/* Mesafe dairesi */}
         {userLocation && selectedRadius && (
@@ -314,16 +341,16 @@ export default function MapScreen({ navigation }) {
           />
         )}
 
-        {/* İşaretçiler hazır PNG (bkz. markerImages): özel görünüm çizimi yok, harita donmaz */}
-        {clusters.map(feature => {
+        {/* İşaretçiler hazır PNG (bkz. markerImages, ImageMarker): harita donmaz */}
+        {mapReady && clusters.map(feature => {
           if (feature.properties.cluster) {
             const [longitude, latitude] = feature.geometry.coordinates;
             const count = feature.properties.events;
             return (
-              <Marker
+              <ImageMarker
                 key={`cluster-${feature.id}`}
                 coordinate={{ latitude, longitude }}
-                image={clusterImage(count)}
+                source={clusterImage(count)}
                 anchor={{ x: 0.5, y: 0.5 }}
                 tracksViewChanges={false}
                 onPress={() => handleClusterPress(feature)}
@@ -336,10 +363,10 @@ export default function MapScreen({ navigation }) {
           const first = group.events[0];
           const isSelected = selectedVenueKey === group.key;
           return (
-            <Marker
+            <ImageMarker
               key={group.key}
               coordinate={{ latitude: group.latitude, longitude: group.longitude }}
-              image={pinImage(first.genre, isSelected)}
+              source={pinImage(first.genre, isSelected)}
               anchor={{ x: 0.5, y: 0.5 }}
               zIndex={isSelected ? 10 : 1}
               tracksViewChanges={false}
@@ -351,66 +378,95 @@ export default function MapScreen({ navigation }) {
       </MapView>
 
       {/* ALT KAYAN PANEL */}
-      {selectedEvent && (
-        <Animated.View style={[styles.bottomCard, { transform: [{ translateY: bottomAnim }] }]}>
-          <View style={[styles.bottomCardHandle, { backgroundColor: colors.border }]} />
+      {selectedEvent && (() => {
+        const accent = getMarkerColor(selectedEvent.genre);
+        const when = parseEventDate(selectedEvent.eventDate);
+        const locale = dateLocale(lang);
+        return (
+          <Animated.View style={[styles.sheet, { transform: [{ translateY: bottomAnim }] }]}>
+            <View style={styles.sheetHandle} />
 
-          <View style={styles.bottomCardBody}>
-            <View style={[styles.bottomCardDot, { backgroundColor: getMarkerColor(selectedEvent.genre) }]} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.bottomCardTitle} numberOfLines={2}>{selectedEvent.name}</Text>
-              {selectedEvent.artistName && (
-                <View style={styles.subRow}>
-                  <Ionicons name="mic-outline" size={13} color={colors.textSecondary} />
-                  <Text style={[styles.bottomCardSub, styles.subText]}>{selectedEvent.artistName}</Text>
-                </View>
-              )}
-              <View style={styles.subRow}>
-                <Ionicons name="calendar-clear-outline" size={13} color={colors.textSecondary} />
-                <Text style={[styles.bottomCardSub, styles.subText]}>
-                  {parseEventDate(selectedEvent.eventDate).toLocaleDateString(dateLocale(lang), { day: 'numeric', month: 'long', year: 'numeric' })}
-                </Text>
-              </View>
-              {selectedEvent.venueName && (
-                <View style={styles.subRow}>
-                  <Ionicons name="business-outline" size={13} color={colors.textSecondary} />
-                  <Text style={[styles.bottomCardSub, styles.subText]}>{selectedEvent.venueName}</Text>
-                </View>
-              )}
-              {selectedEvent.distanceKm !== null && (
-                <View style={[styles.subRow, { marginTop: 4 }]}>
-                  <Ionicons name="location" size={13} color={colors.primary} />
-                  <Text style={[styles.bottomCardDistance, { marginTop: 0 }]}>
-                    {formatDistance(selectedEvent.distanceKm)} {t('map_away')}
+            <View style={styles.sheetTop}>
+              <EventImage key={selectedEvent.id} item={selectedEvent} style={styles.sheetImage} initialsSize={22}>
+                <View style={styles.dateBadge}>
+                  <Text style={styles.dateBadgeDay}>{when.getDate()}</Text>
+                  <Text style={styles.dateBadgeMonth}>
+                    {when.toLocaleDateString(locale, { month: 'short' }).replace('.', '').toUpperCase()}
                   </Text>
                 </View>
+              </EventImage>
+
+              <View style={styles.sheetInfo}>
+                {!!selectedEvent.genre && (
+                  <View style={[styles.genreChip, { backgroundColor: accent + '22' }]}>
+                    <Text style={[styles.genreChipText, { color: accent }]} numberOfLines={1}>{selectedEvent.genre}</Text>
+                  </View>
+                )}
+                <Text style={styles.sheetTitle} numberOfLines={2}>{selectedEvent.name}</Text>
+                {!!selectedEvent.artistName && selectedEvent.artistName !== selectedEvent.name && (
+                  <Text style={styles.sheetArtist} numberOfLines={1}>{selectedEvent.artistName}</Text>
+                )}
+              </View>
+
+              <TouchableOpacity
+                onPress={handleMapPress}
+                style={styles.sheetClose}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                accessibilityRole="button"
+                accessibilityLabel={t('close')}
+              >
+                <Ionicons name="close" size={18} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.sheetRows}>
+              <View style={styles.sheetRow}>
+                <Ionicons name="time-outline" size={15} color={colors.textSecondary} />
+                <Text style={styles.sheetRowText} numberOfLines={1}>
+                  {when.toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' })}
+                  {' · '}
+                  {when.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}
+                </Text>
+              </View>
+              {!!selectedEvent.venueName && (
+                <View style={styles.sheetRow}>
+                  <Ionicons name="location-outline" size={15} color={colors.textSecondary} />
+                  <Text style={styles.sheetRowText} numberOfLines={1}>
+                    {selectedEvent.venueName}{selectedEvent.venueCity ? `, ${selectedEvent.venueCity}` : ''}
+                  </Text>
+                  {selectedEvent.distanceKm !== null && (
+                    <Text style={styles.sheetDistance}>{formatDistance(selectedEvent.distanceKm)}</Text>
+                  )}
+                </View>
               )}
+            </View>
+
+            <View style={styles.sheetActions}>
               {selectedVenueCount > 1 && !!selectedEvent.venueId && (
                 <TouchableOpacity
                   onPress={() => navigation.navigate('VenueProfile', { venueId: selectedEvent.venueId, venueName: selectedEvent.venueName })}
-                  style={[styles.subRow, { marginTop: 6 }]}
+                  style={styles.sheetSecondary}
+                  activeOpacity={0.8}
                   accessibilityRole="link"
                 >
-                  <Ionicons name="calendar-outline" size={13} color={colors.primary} />
-                  <Text style={[styles.bottomCardDistance, { marginTop: 0 }]}>
+                  <Ionicons name="calendar-outline" size={15} color={colors.text} />
+                  <Text style={styles.sheetSecondaryText} numberOfLines={1}>
                     {t('map_venue_events', { count: selectedVenueCount })}
                   </Text>
-                  <Ionicons name="chevron-forward" size={13} color={colors.primary} />
                 </TouchableOpacity>
               )}
+              <TouchableOpacity
+                style={[styles.sheetPrimary, { backgroundColor: colors.primary }]}
+                onPress={() => openEvent(navigation, selectedEvent)}
+                activeOpacity={0.85}
+                accessibilityRole="button"
+              >
+                <Text style={styles.sheetPrimaryText}>{t('map_details')}</Text>
+              </TouchableOpacity>
             </View>
-          </View>
-
-          <TouchableOpacity
-            style={[styles.bottomCardBtn, { backgroundColor: getMarkerColor(selectedEvent.genre) }]}
-            onPress={() => openEvent(navigation, selectedEvent)}
-            activeOpacity={0.85}
-            accessibilityRole="button"
-          >
-            <Text style={styles.bottomCardBtnText}>{t('map_details')}</Text>
-          </TouchableOpacity>
-        </Animated.View>
-      )}
+          </Animated.View>
+        );
+      })()}
 
       {/* YAKINDAKI ETKİNLİKLER LİSTESİ (konum varsa, panel kapalıysa) */}
       {!selectedEvent && userLocation && nearbySorted.length > 0 && (
@@ -442,6 +498,13 @@ function createStyles(colors) {
     container: { flex: 1, backgroundColor: colors.background },
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background, gap: 12 },
     loadingText: { color: colors.textSecondary, fontSize: 14 },
+    notice: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+      paddingHorizontal: 16, paddingVertical: 10, backgroundColor: colors.card,
+      borderBottomWidth: 1, borderBottomColor: colors.border,
+    },
+    noticeText: { flex: 1, color: colors.textSecondary, fontSize: 13 },
+    noticeAction: { color: colors.primary, fontSize: 13, fontWeight: '800' },
 
     header: {
       paddingTop: 56,
@@ -485,41 +548,52 @@ function createStyles(colors) {
 
     map: { flex: 1, width },
 
-    subRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 3 },
-    bottomCardBody: {
-      flexDirection: 'row',
-      gap: 14,
-      marginBottom: 16,
+    sheet: {
+      position: 'absolute', left: 12, right: 12, bottom: 24,
+      backgroundColor: colors.card, borderRadius: 24,
+      paddingHorizontal: 16, paddingTop: 8, paddingBottom: 16,
+      borderWidth: 1, borderColor: colors.border,
+      shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 16, shadowOffset: { width: 0, height: 6 },
+      elevation: 12,
     },
-    bottomCardDot: {
-      width: 6,
-      borderRadius: 3,
-      alignSelf: 'stretch',
+    sheetHandle: {
+      alignSelf: 'center', width: 36, height: 4, borderRadius: 2,
+      backgroundColor: colors.border, marginBottom: 12,
     },
-    bottomCardTitle: {
-      fontSize: 17,
-      fontWeight: '800',
-      color: colors.text,
-      marginBottom: 6,
-      lineHeight: 22,
+    sheetTop: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
+    sheetImage: { width: 76, height: 76, borderRadius: 16 },
+    dateBadge: {
+      position: 'absolute', left: 6, top: 6,
+      backgroundColor: 'rgba(0,0,0,0.65)', borderRadius: 8,
+      paddingHorizontal: 6, paddingVertical: 3, alignItems: 'center', minWidth: 30,
     },
-    bottomCardSub: {
-      fontSize: 13,
-      color: colors.textSecondary,
-      marginBottom: 3,
+    dateBadgeDay: { color: '#fff', fontSize: 14, fontWeight: '900', lineHeight: 16 },
+    dateBadgeMonth: { color: '#fff', fontSize: 9, fontWeight: '800', letterSpacing: 0.5 },
+    sheetInfo: { flex: 1, gap: 4 },
+    genreChip: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
+    genreChipText: { fontSize: 11, fontWeight: '800' },
+    sheetTitle: { fontSize: 17, fontWeight: '800', color: colors.text, lineHeight: 22 },
+    sheetArtist: { fontSize: 13, color: colors.textSecondary, fontWeight: '600' },
+    sheetClose: {
+      width: 30, height: 30, borderRadius: 15,
+      backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center',
     },
-    bottomCardDistance: {
-      fontSize: 13,
-      color: colors.primary,
-      fontWeight: '700',
-      marginTop: 4,
+    sheetRows: {
+      marginTop: 14, paddingTop: 12, gap: 8,
+      borderTopWidth: 1, borderTopColor: colors.border,
     },
-    bottomCardBtn: {
-      paddingVertical: 14,
-      borderRadius: 16,
-      alignItems: 'center',
+    sheetRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    sheetRowText: { flex: 1, fontSize: 14, color: colors.text },
+    sheetDistance: { fontSize: 13, fontWeight: '700', color: colors.primary },
+    sheetActions: { flexDirection: 'row', gap: 10, marginTop: 16 },
+    sheetSecondary: {
+      flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+      paddingVertical: 13, paddingHorizontal: 10, borderRadius: 14,
+      backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border,
     },
-    bottomCardBtnText: { color: '#fff', fontSize: 15, fontWeight: '800' },
+    sheetSecondaryText: { fontSize: 13, fontWeight: '700', color: colors.text, flexShrink: 1 },
+    sheetPrimary: { flex: 1, paddingVertical: 13, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+    sheetPrimaryText: { color: '#fff', fontSize: 15, fontWeight: '800' },
 
     nearbyStrip: {
       position: 'absolute',

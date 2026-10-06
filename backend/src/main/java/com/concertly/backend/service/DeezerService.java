@@ -271,12 +271,30 @@ public class DeezerService {
                 if (album != null && album.get("cover_medium") != null) {
                     cover = (String) album.get("cover_medium");
                 }
-                tracks.add(new Track(title.trim(), preview, cover, artist));
+                Track track = new Track(title.trim(), preview, cover, artist);
+                if (item.get("id") instanceof Number n) track.deezerId = n.longValue();
+                tracks.add(track);
             }
         } catch (Exception e) {
             System.out.println("  ❌ Deezer playlist hatası (" + playlistId + "): " + e.getMessage());
         }
         return tracks;
+    }
+
+    /**
+     * Şarkının taze önizleme linki. Deezer linkleri imzalı ve ~15 dk geçerli; uzun süre
+     * saklanan bir link 403 verir. Bulunamazsa null.
+     */
+    @SuppressWarnings("unchecked")
+    public String getTrackPreview(long trackId) {
+        try {
+            Map<String, Object> response = restTemplate.getForObject("https://api.deezer.com/track/" + trackId, Map.class);
+            Object preview = response == null ? null : response.get("preview");
+            return preview instanceof String s && !s.isBlank() ? s : null;
+        } catch (Exception e) {
+            System.out.println("  ❌ Deezer şarkı önizleme hatası (" + trackId + "): " + e.getMessage());
+            return null;
+        }
     }
 
     /** Şarkı arama — günlük şarkı tahmin kutusunun otomatik tamamlaması için. */
@@ -328,6 +346,8 @@ public class DeezerService {
         public final String previewUrl;
         public final String coverUrl;
         public final String artistName;
+        /** Deezer şarkı kimliği (biliniyorsa); taze önizleme linki almak için. */
+        public Long deezerId;
 
         public Track(String title, String previewUrl, String coverUrl) {
             this(title, previewUrl, coverUrl, "");

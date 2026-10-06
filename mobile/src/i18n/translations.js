@@ -860,6 +860,7 @@ export const translations = {
     map_radius_all: 'Tümü',
     map_web_note: 'Harita görünümü mobil uygulamada. Web’de mekânı “Haritada aç” ile görebilirsin.',
     map_empty: 'Yaklaşan etkinlik bulunamadı',
+    map_load_failed: 'Etkinlikler yüklenemedi.',
     map_open_osm: 'Haritada aç',
 
 
@@ -2418,6 +2419,7 @@ export const translations = {
     map_radius_all: 'All',
     map_web_note: 'The map view is in the mobile app. On the web, use “Open in map” to see the venue.',
     map_empty: 'No upcoming events found',
+    map_load_failed: "Couldn't load events.",
     map_open_osm: 'Open in map',
 
 

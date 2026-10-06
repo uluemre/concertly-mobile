@@ -34,6 +34,11 @@ public class DailySongService {
     // Gün bazlı havuz önbelleği — gün değişince tazelenir, gün içinde sabit kalır
     private volatile List<DeezerService.Track> cachedPool = List.of();
     private volatile long cachedPoolDay = -1;
+    /** Önizleme linki ~15 dk geçerli: 10 dk'dan eski link yenilenir. */
+    static final long PREVIEW_TTL_MS = 10 * 60 * 1000L;
+    private volatile String cachedPreview;
+    private volatile Long cachedPreviewTrackId;
+    private volatile long cachedPreviewAt;
 
     public DailySongService(DeezerService deezerService,
                             DailySongPlayRepository playRepository,
@@ -66,7 +71,7 @@ public class DailySongService {
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("dayNumber", today - LAUNCH_EPOCH_DAY + 1);
-        result.put("previewUrl", track.previewUrl);
+        result.put("previewUrl", freshPreview(track));
         result.put("maxAttempts", MAX_ATTEMPTS);
         result.put("snippetMs", SNIPPET_MS);
 
@@ -134,6 +139,24 @@ public class DailySongService {
             throw new IllegalStateException("Günlük şarkı havuzu yüklenemedi");
         }
         return pool.get((int) (epochDay % pool.size()));
+    }
+
+    /**
+     * Havuz gün boyu sabit kalır (şarkı gün içinde değişmesin), ama içindeki önizleme linkleri
+     * ~15 dk sonra 403 verir. Günün şarkısının linki şarkı kimliğinden taze alınır.
+     */
+    String freshPreview(DeezerService.Track track) {
+        if (track.deezerId == null) return track.previewUrl;
+        long now = System.currentTimeMillis();
+        if (track.deezerId.equals(cachedPreviewTrackId) && cachedPreview != null && now - cachedPreviewAt < PREVIEW_TTL_MS) {
+            return cachedPreview;
+        }
+        String fresh = deezerService.getTrackPreview(track.deezerId);
+        if (fresh == null) return track.previewUrl;
+        cachedPreview = fresh;
+        cachedPreviewTrackId = track.deezerId;
+        cachedPreviewAt = now;
+        return fresh;
     }
 
     private List<DeezerService.Track> getPool(long epochDay) {
