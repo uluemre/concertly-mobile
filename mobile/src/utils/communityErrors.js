@@ -17,6 +17,7 @@ const CODE_MAP = {
   POST_LIMIT: { key: 'err_post_limit' },
   COMMENT_LIMIT: { key: 'err_comment_limit' },
   MESSAGE_LIMIT: { key: 'err_message_limit' },
+  UPLOAD_LIMIT: { key: 'err_upload_limit' },
   PRIVATE_ACCOUNT: { key: 'err_private_account' },
   SETLIST_NOT_ATTENDED: { key: 'setlist_err_not_attended' },
   // Topluluk işlemleri (C5): sunucu artık ham Türkçe cümle yerine kod döndürüyor

@@ -1,6 +1,8 @@
 package com.concertly.backend.controller;
 
-import org.springframework.beans.factory.annotation.Value;
+import com.concertly.backend.security.JwtUtil;
+import com.concertly.backend.service.storage.ImageStorage;
+import com.concertly.backend.service.storage.MediaUploadService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -8,9 +10,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -21,11 +20,16 @@ public class MediaController {
 
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of("jpg", "jpeg", "png", "webp", "gif");
 
-    private final Path uploadDir;
+    private static final Map<String, String> CONTENT_TYPES = Map.of(
+            "jpg", "image/jpeg", "jpeg", "image/jpeg", "png", "image/png",
+            "webp", "image/webp", "gif", "image/gif");
 
-    public MediaController(@Value("${app.upload.dir:uploads}") String uploadDir) throws IOException {
-        this.uploadDir = Paths.get(uploadDir).toAbsolutePath().normalize();
-        Files.createDirectories(this.uploadDir);
+    private final ImageStorage storage;
+    private final MediaUploadService uploads;
+
+    public MediaController(ImageStorage storage, MediaUploadService uploads) {
+        this.storage = storage;
+        this.uploads = uploads;
     }
 
     static boolean matchesImageSignature(String extension, byte[] h) {
@@ -58,7 +62,7 @@ public class MediaController {
     }
 
     /**
-     * Görsel yükler, sunucuda saklar ve göreli yolunu döner.
+     * Görsel yükler, depoya (yerel disk ya da R2) yazar ve göreli yolunu döner.
      * İstemci bu yolu (/uploads/<dosya>) imageUrl/profileImageUrl olarak kaydeder;
      * mobil taraf görüntülerken kendi bildiği sunucu adresiyle birleştirir.
      */
@@ -68,6 +72,8 @@ public class MediaController {
         if (file.isEmpty()) {
             throw new IllegalArgumentException("Dosya boş");
         }
+        Long userId = JwtUtil.getCurrentUserId();
+        uploads.checkQuota(userId);
 
         String original = file.getOriginalFilename() != null ? file.getOriginalFilename() : "";
         String extension = original.contains(".")
@@ -87,11 +93,9 @@ public class MediaController {
         }
 
         String filename = UUID.randomUUID() + "." + extension;
-        Path target = uploadDir.resolve(filename).normalize();
-        if (!target.startsWith(uploadDir)) {
-            throw new IllegalArgumentException("Geçersiz dosya adı");
-        }
-        file.transferTo(target);
+        byte[] content = file.getBytes();
+        storage.put(filename, content, CONTENT_TYPES.get(extension));
+        uploads.record(filename, userId, content.length);
 
         return Map.of("url", "/uploads/" + filename);
     }

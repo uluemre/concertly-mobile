@@ -15,6 +15,8 @@ import com.concertly.backend.model.Post;
 import com.concertly.backend.model.User;
 import com.concertly.backend.repository.*;
 import com.concertly.backend.security.JwtUtil;
+import com.concertly.backend.service.storage.LocalImageStorage;
+import com.concertly.backend.service.storage.MediaUploadService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -303,7 +305,7 @@ class SecurityFixesNPhaseTest {
 
     @Test
     void sec06_validSignaturesAreAccepted(@TempDir Path dir) throws Exception {
-        MediaController c = new MediaController(dir.toString());
+        MediaController c = new MediaController(new LocalImageStorage(dir.toString()), mock(MediaUploadService.class));
         assertTrue(c.upload(new MockMultipartFile("file", "a.png", "image/png", PNG)).get("url").startsWith("/uploads/"));
         assertNotNull(c.upload(new MockMultipartFile("file", "a.JPG", "image/jpeg", JPG)));
         assertNotNull(c.upload(new MockMultipartFile("file", "a.jpeg", "image/jpeg", JPG)));
@@ -313,7 +315,7 @@ class SecurityFixesNPhaseTest {
 
     @Test
     void sec06_mismatchedOrFakeContentIsRejected(@TempDir Path dir) throws Exception {
-        MediaController c = new MediaController(dir.toString());
+        MediaController c = new MediaController(new LocalImageStorage(dir.toString()), mock(MediaUploadService.class));
         byte[] html = "<html><script>alert(1)</script>".getBytes();
         for (MockMultipartFile f : List.of(
                 new MockMultipartFile("file", "a.png", "image/png", html),

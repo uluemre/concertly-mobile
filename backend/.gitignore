@@ -2,7 +2,7 @@ HELP.md
 target/
 
 # Yüklenen kullanıcı görselleri — yerel dev'de oluşur, repoya girmez.
-# Prod'da kalıcı disk (Render Disk / volume) üzerinde UPLOAD_DIR ile saklanır.
+# Prod'da Cloudflare R2'de saklanır (STORAGE_TYPE=r2, bkz. application.properties).
 uploads/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
