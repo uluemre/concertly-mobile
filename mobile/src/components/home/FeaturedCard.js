@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import { View, Text, StyleSheet, Animated } from 'react-native';
+import PressableScale from '../PressableScale';
 import EventImage from '../EventImage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../../theme';
+import { useTheme, fonts } from '../../theme';
 import { useLanguage, upperLocale } from '../../context/LanguageContext';
 import { showArtistLine, displayGenre } from '../../utils/text';
 import { formatDateShort } from '../../utils/time';
@@ -33,7 +34,7 @@ export default React.memo(function FeaturedCard({ item, index, cardWidth, cardHe
 
   return (
     <Animated.View style={[styles.outer, { opacity, transform: [{ scale }] }]}>
-      <TouchableOpacity activeOpacity={0.92} onPress={() => onPress(item)}>
+      <PressableScale scaleTo={0.98} onPress={() => onPress(item)}>
         <View style={styles.card}>
           <EventImage key={item.id} item={item} style={styles.bg} initialsSize={46} />
           <LinearGradient
@@ -80,7 +81,7 @@ export default React.memo(function FeaturedCard({ item, index, cardWidth, cardHe
           </View>
           <View style={[styles.accentLine, { backgroundColor: accent }]} />
         </View>
-      </TouchableOpacity>
+      </PressableScale>
     </Animated.View>
   );
 });
@@ -122,7 +123,7 @@ function createStyles(colors, cardWidth, cardHeight) {
     content: { position: 'absolute', bottom: 14, left: 14, right: 14 },
     artistRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 },
     artist: { fontSize: 12, color: '#fff', opacity: 0.7, fontWeight: '600', flexShrink: 1 },
-    title: { fontSize: 18, fontWeight: '900', color: '#fff', lineHeight: 22, marginBottom: 10 },
+    title: { fontSize: 18, fontFamily: fonts.heading, color: '#fff', lineHeight: 22, marginBottom: 10 },
     meta: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
     pillRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
     pill: {

@@ -5,9 +5,10 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   View, Text, StyleSheet, TouchableOpacity, ImageBackground, Animated, Image, LayoutAnimation,
 } from 'react-native';
+import PressableScale from '../PressableScale';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../../theme';
+import { useTheme, fonts } from '../../theme';
 import { useFocusEffect } from '@react-navigation/native';
 import API from '../../services/api';
 import { useLanguage } from '../../context/LanguageContext';
@@ -78,8 +79,7 @@ function Card({ data, receivedAt, t, onPress }) {
       ? `${cd.days}${t('cday_short_days')} ${pad(cd.hours)}:${pad(cd.minutes)}:${pad(cd.seconds)}`
       : `${pad(cd.hours)}:${pad(cd.minutes)}:${pad(cd.seconds)}`;
     return (
-      <TouchableOpacity
-        activeOpacity={0.85}
+      <PressableScale scaleTo={0.98}
         onPress={toggle}
         style={styles.stripWrap}
         accessibilityRole="button"
@@ -106,12 +106,12 @@ function Card({ data, receivedAt, t, onPress }) {
           )}
           <Ionicons name="chevron-down" size={16} color={colors.textSecondary} style={styles.stripChevron} />
         </View>
-      </TouchableOpacity>
+      </PressableScale>
     );
   }
 
   return (
-    <TouchableOpacity activeOpacity={0.9} onPress={onPress} style={styles.wrap} accessibilityRole="button" accessibilityLabel={`${t('cday_next_title')}: ${data.artistName || data.eventName}`}>
+    <PressableScale scaleTo={0.98} onPress={onPress} style={styles.wrap} accessibilityRole="button" accessibilityLabel={`${t('cday_next_title')}: ${data.artistName || data.eventName}`}>
       <ImageBackground
         source={data.imageUrl ? { uri: data.imageUrl } : undefined}
         style={styles.card}
@@ -144,6 +144,7 @@ function Card({ data, receivedAt, t, onPress }) {
                 hitSlop={12}
                 style={styles.collapseBtn}
                 accessibilityRole="button"
+                accessibilityLabel={t('a11y_collapse')}
                 accessibilityState={{ expanded: true }}
               >
                 <Ionicons name="chevron-up" size={16} color="#fff" />
@@ -190,7 +191,7 @@ function Card({ data, receivedAt, t, onPress }) {
           </View>
         </LinearGradient>
       </ImageBackground>
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 
@@ -222,12 +223,12 @@ const styles = StyleSheet.create({
   wxChip: { backgroundColor: 'rgba(255,255,255,0.16)', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
   wxRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   wxText: { color: '#fff', fontSize: 13, fontWeight: '700' },
-  title: { color: '#fff', fontSize: 26, fontWeight: '900', marginTop: 10 },
+  title: { color: '#fff', fontSize: 26, fontFamily: fonts.heading, marginTop: 10 },
   venueRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
   venue: { color: 'rgba(255,255,255,0.8)', fontSize: 13, flexShrink: 1 },
   countRow: { flexDirection: 'row', gap: 8, marginTop: 14 },
   countBox: { flex: 1, backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 12, paddingVertical: 8, alignItems: 'center' },
-  countNum: { color: '#fff', fontSize: 22, fontWeight: '900', fontVariant: ['tabular-nums'] },
+  countNum: { color: '#fff', fontSize: 22, fontFamily: fonts.heading, fontVariant: ['tabular-nums'] },
   countLbl: { color: 'rgba(255,255,255,0.7)', fontSize: 10, fontWeight: '700', marginTop: 1 },
   footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14 },
   friends: { flexDirection: 'row', alignItems: 'center', flexShrink: 1 },

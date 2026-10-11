@@ -2,8 +2,9 @@
 // "Takip ettiğin sanatçılar"). Liste boşsa hiçbir şey çizmez.
 import React, { memo, useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import PressableScale from '../PressableScale';
 import EventImage from '../EventImage';
-import { useTheme } from '../../theme';
+import { useTheme, fonts } from '../../theme';
 import { useLanguage } from '../../context/LanguageContext';
 import { parseEventDate } from '../../utils/time';
 import { showArtistLine } from '../../utils/text';
@@ -48,7 +49,7 @@ const RailCard = memo(function RailCard({ item, lang, styles, onPress }) {
   const locale = lang === 'en' ? 'en-GB' : 'tr-TR';
   const when = `${d.toLocaleDateString(locale, { weekday: 'short', day: 'numeric' })} · ${d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}`;
   return (
-    <TouchableOpacity activeOpacity={0.85} onPress={onPress} style={styles.card}>
+    <PressableScale onPress={onPress} style={styles.card}>
       <EventImage key={item.id} item={item} style={styles.imageWrap} initialsSize={24}>
         <View style={styles.dateChip}>
           <Text style={styles.dateText}>{when}</Text>
@@ -58,7 +59,7 @@ const RailCard = memo(function RailCard({ item, lang, styles, onPress }) {
       <Text style={styles.meta} numberOfLines={1}>
         {showArtistLine(item.artistName, item.name) ? item.artistName : (item.venueName || item.venueCity || '')}
       </Text>
-    </TouchableOpacity>
+    </PressableScale>
   );
 });
 
@@ -68,7 +69,7 @@ function createStyles(colors) {
     head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, marginBottom: 12 },
     titleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     accent: { width: 4, height: 20, borderRadius: 2 },
-    title: { fontSize: 18, fontWeight: '800', color: colors.text },
+    title: { fontSize: 18, fontFamily: fonts.heading, color: colors.text },
     seeAll: { fontSize: 13, fontWeight: '700' },
     list: { paddingHorizontal: 20, gap: 12 },
     card: { width: CARD_W },

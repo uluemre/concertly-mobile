@@ -1,10 +1,11 @@
 import React, { useRef, useEffect, useMemo, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity,
+  View, Text, StyleSheet,
   ScrollView, Alert, Animated, Dimensions
 } from 'react-native';
+import PressableScale from '../components/PressableScale';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../theme';
+import { useTheme, fonts } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -101,9 +102,8 @@ function AnimatedCard({ item, index, navigation, styles, colors, isSetupCard }) 
       styles.cardWrapper,
       { opacity: opacityAnim, transform: [{ scale: scaleAnim }] },
     ]}>
-      <TouchableOpacity
+      <PressableScale scaleTo={0.95}
         onPress={handlePress}
-        activeOpacity={0.82}
         style={styles.cardTouchable}
         accessibilityRole="button"
         accessibilityLabel={`${item.title}, ${isSetupCard ? t('menu_tap_to_start') : item.subtitle}`}
@@ -150,7 +150,7 @@ function AnimatedCard({ item, index, navigation, styles, colors, isSetupCard }) 
             </View>
           )}
         </View>
-      </TouchableOpacity>
+      </PressableScale>
 
       {isSetupCard && (
         <Animated.View
@@ -236,7 +236,7 @@ function createStyles(colors) {
 
     header: { paddingTop: 64, paddingBottom: 28, paddingHorizontal: 24 },
     headerLabel: { fontSize: 13, color: colors.textSecondary, marginBottom: 4 },
-    headerTitle: { fontSize: 32, fontWeight: 'bold', color: colors.text, marginBottom: 8 },
+    headerTitle: { fontSize: 32, fontFamily: fonts.headingBold, color: colors.text, marginBottom: 8 },
     headerSub: { fontSize: 14, color: colors.textSecondary, lineHeight: 20 },
 
     grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16, paddingTop: 20, gap: 14 },

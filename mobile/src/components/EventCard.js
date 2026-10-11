@@ -1,5 +1,6 @@
 import React, { memo, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import PressableScale from './PressableScale';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import EventImage from './EventImage';
@@ -72,7 +73,7 @@ function EventCard({ item, variant = 'row', onPress, genericImages, style, dimme
 
   if (variant === 'poster') {
     return (
-      <TouchableOpacity activeOpacity={0.88} onPress={onPress} style={[styles.posterCard, dimmed && styles.dimmed, style]}>
+      <PressableScale onPress={onPress} style={[styles.posterCard, dimmed && styles.dimmed, style]}>
         <EventImage key={item.id} item={item} genericImages={genericImages} style={styles.posterImage} initialsSize={48}>
           <LinearGradient
             colors={['transparent', 'rgba(6,6,18,0.55)', 'rgba(6,6,18,0.95)']}
@@ -106,13 +107,13 @@ function EventCard({ item, variant = 'row', onPress, genericImages, style, dimme
             </View>
           </View>
         </EventImage>
-      </TouchableOpacity>
+      </PressableScale>
     );
   }
 
   if (variant === 'tile') {
     return (
-      <TouchableOpacity activeOpacity={0.88} onPress={onPress} style={[styles.tileCard, dimmed && styles.dimmed, style]}>
+      <PressableScale onPress={onPress} style={[styles.tileCard, dimmed && styles.dimmed, style]}>
         <EventImage key={item.id} item={item} genericImages={genericImages} style={styles.tileImage} initialsSize={30}>
           {dateBadge}
           {links.length > 1 ? (
@@ -132,12 +133,12 @@ function EventCard({ item, variant = 'row', onPress, genericImages, style, dimme
             </View>
           )}
         </View>
-      </TouchableOpacity>
+      </PressableScale>
     );
   }
 
   return (
-    <TouchableOpacity activeOpacity={0.85} onPress={onPress} style={[styles.rowCard, dimmed && styles.dimmed, style]}>
+    <PressableScale onPress={onPress} style={[styles.rowCard, dimmed && styles.dimmed, style]}>
       <EventImage key={item.id} item={item} genericImages={genericImages} style={styles.rowThumb} initialsSize={24}>
         {dateBadge}
       </EventImage>
@@ -158,7 +159,7 @@ function EventCard({ item, variant = 'row', onPress, genericImages, style, dimme
         )}
         {footer}
       </View>
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 

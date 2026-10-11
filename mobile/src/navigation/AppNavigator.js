@@ -100,6 +100,9 @@ import { useTheme } from '../theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useLanguage } from '../context/LanguageContext';
 
+// iOS'ta kenardan kaydırıp geri dönme olduğu gibi kalır (yalnızca açılış animasyonu değişir)
+const COMPOSE_OPTIONS = { animation: 'slide_from_bottom' };
+
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
@@ -358,9 +361,11 @@ export default function AppNavigator() {
           component={EventDetailScreen}
         />
 
+        {/* Oluşturma ekranları (gönderi, topluluk, etkinlik önerisi) alttan açılır */}
         <Stack.Screen
           name="CreatePost"
           component={CreatePostScreen}
+          options={COMPOSE_OPTIONS}
         />
 
         {/* Setlist seçim akışı için pushable Events (param'lı) — tab dışı */}
@@ -392,6 +397,7 @@ export default function AppNavigator() {
         <Stack.Screen
           name="CreateCommunity"
           component={CreateCommunityScreen}
+          options={COMPOSE_OPTIONS}
         />
 
         <Stack.Screen
@@ -463,7 +469,7 @@ export default function AppNavigator() {
         <Stack.Screen name="BlockedUsers" component={BlockedUsersScreen} />
 
         {/* Kullanıcı etkinlik önerisi — Ticketmaster dışı veri kanalı */}
-        <Stack.Screen name="SuggestEvent" component={SuggestEventScreen} />
+        <Stack.Screen name="SuggestEvent" component={SuggestEventScreen} options={COMPOSE_OPTIONS} />
 
         {/* Moderasyon & organizatör kuyruğu (admin) */}
         <Stack.Screen name="AdminReports" component={AdminReportsScreen} />

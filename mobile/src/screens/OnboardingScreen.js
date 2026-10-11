@@ -1,12 +1,18 @@
 import React, { useRef, useState } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity,
-    Dimensions, Animated, FlatList, StatusBar, Image,
+    Dimensions, FlatList, StatusBar, Image,
 } from 'react-native';
+// Kaydırmaya bağlı efektler UI thread'inde hesaplanır (Android'de takılmaz)
+import Animated, {
+    useSharedValue, useAnimatedScrollHandler, useAnimatedStyle,
+    interpolate, interpolateColor, Extrapolation,
+} from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useLanguage } from '../context/LanguageContext';
+import { useLanguage } from '../context/LanguageContext';
+import { fonts } from '../theme';
 
 const { width, height } = Dimensions.get('window');
 
@@ -180,18 +186,14 @@ function Visual({ item, t }) {
 function Slide({ item, index, scrollX, t }) {
     const inputRange = [(index - 1) * width, index * width, (index + 1) * width];
 
-    const visualScale = scrollX.interpolate({
-        inputRange, outputRange: [0.7, 1, 0.7], extrapolate: 'clamp',
-    });
-    const visualOpacity = scrollX.interpolate({
-        inputRange, outputRange: [0, 1, 0], extrapolate: 'clamp',
-    });
-    const textTranslateY = scrollX.interpolate({
-        inputRange, outputRange: [40, 0, -40], extrapolate: 'clamp',
-    });
-    const textOpacity = scrollX.interpolate({
-        inputRange, outputRange: [0, 1, 0], extrapolate: 'clamp',
-    });
+    const visualStyle = useAnimatedStyle(() => ({
+        opacity: interpolate(scrollX.value, inputRange, [0, 1, 0], Extrapolation.CLAMP),
+        transform: [{ scale: interpolate(scrollX.value, inputRange, [0.7, 1, 0.7], Extrapolation.CLAMP) }],
+    }));
+    const textStyle = useAnimatedStyle(() => ({
+        opacity: interpolate(scrollX.value, inputRange, [0, 1, 0], Extrapolation.CLAMP),
+        transform: [{ translateY: interpolate(scrollX.value, inputRange, [40, 0, -40], Extrapolation.CLAMP) }],
+    }));
 
     return (
         <View style={styles.slide}>
@@ -201,18 +203,12 @@ function Slide({ item, index, scrollX, t }) {
             <View style={[styles.bgCircle, styles.bgCircle3, { borderColor: item.accent + '08' }]} />
 
             {/* Görsel mockup */}
-            <Animated.View style={[
-                styles.visualContainer,
-                { opacity: visualOpacity, transform: [{ scale: visualScale }] },
-            ]}>
+            <Animated.View style={[styles.visualContainer, visualStyle]}>
                 <Visual item={item} t={t} />
             </Animated.View>
 
             {/* Metin */}
-            <Animated.View style={[
-                styles.textContainer,
-                { opacity: textOpacity, transform: [{ translateY: textTranslateY }] },
-            ]}>
+            <Animated.View style={[styles.textContainer, textStyle]}>
                 <Text style={styles.title}>{t(item.titleKey)}</Text>
                 <View style={[styles.accentLine, { backgroundColor: item.accent }]} />
                 <Text style={styles.subtitle}>{t(item.subKey)}</Text>
@@ -221,8 +217,22 @@ function Slide({ item, index, scrollX, t }) {
     );
 }
 
+function Dot({ index, scrollX, color }) {
+    const style = useAnimatedStyle(() => {
+        const range = [(index - 1) * width, index * width, (index + 1) * width];
+        return {
+            width: interpolate(scrollX.value, range, [8, 24, 8], Extrapolation.CLAMP),
+            opacity: interpolate(scrollX.value, range, [0.3, 1, 0.3], Extrapolation.CLAMP),
+        };
+    });
+    return <Animated.View style={[styles.dot, { backgroundColor: color }, style]} />;
+}
+
 export default function OnboardingScreen({ navigation }) {
-    const scrollX = useRef(new Animated.Value(0)).current;
+    const scrollX = useSharedValue(0);
+    const onScroll = useAnimatedScrollHandler((e) => {
+        scrollX.value = e.contentOffset.x;
+    });
     const flatListRef = useRef(null);
     const [currentIndex, setCurrentIndex] = useState(0);
     const { t } = useLanguage();
@@ -256,11 +266,11 @@ export default function OnboardingScreen({ navigation }) {
     const currentSlide = SLIDES[currentIndex];
 
     // Buton rengi scroll ile değişsin
-    const btnBg = scrollX.interpolate({
-        inputRange: SLIDES.map((_, i) => i * width),
-        outputRange: SLIDES.map(s => s.accent),
-        extrapolate: 'clamp',
-    });
+    const btnRange = SLIDES.map((_, i) => i * width);
+    const btnColors = SLIDES.map(s => s.accent);
+    const btnStyle = useAnimatedStyle(() => ({
+        backgroundColor: interpolateColor(scrollX.value, btnRange, btnColors),
+    }));
 
     return (
         <View style={styles.container}>
@@ -276,10 +286,7 @@ export default function OnboardingScreen({ navigation }) {
                 getItemLayout={(_, index) => ({ length: width, offset: width * index, index })}
                 showsHorizontalScrollIndicator={false}
                 bounces={false}
-                onScroll={Animated.event(
-                    [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-                    { useNativeDriver: false }
-                )}
+                onScroll={onScroll}
                 scrollEventThrottle={16}
                 onViewableItemsChanged={onViewableItemsChanged}
                 viewabilityConfig={{ viewAreaCoveragePercentThreshold: 50 }}
@@ -293,31 +300,9 @@ export default function OnboardingScreen({ navigation }) {
 
                 {/* Nokta indikatörler */}
                 <View style={styles.dotsRow}>
-                    {SLIDES.map((slide, i) => {
-                        const dotWidth = scrollX.interpolate({
-                            inputRange: [(i - 1) * width, i * width, (i + 1) * width],
-                            outputRange: [8, 24, 8],
-                            extrapolate: 'clamp',
-                        });
-                        const dotOpacity = scrollX.interpolate({
-                            inputRange: [(i - 1) * width, i * width, (i + 1) * width],
-                            outputRange: [0.3, 1, 0.3],
-                            extrapolate: 'clamp',
-                        });
-                        return (
-                            <Animated.View
-                                key={slide.key}
-                                style={[
-                                    styles.dot,
-                                    {
-                                        width: dotWidth,
-                                        opacity: dotOpacity,
-                                        backgroundColor: currentSlide.accent,
-                                    },
-                                ]}
-                            />
-                        );
-                    })}
+                    {SLIDES.map((slide, i) => (
+                        <Dot key={slide.key} index={i} scrollX={scrollX} color={currentSlide.accent} />
+                    ))}
                 </View>
 
                 {/* Butonlar */}
@@ -333,7 +318,7 @@ export default function OnboardingScreen({ navigation }) {
 
                     {/* İleri / Başla */}
                     <TouchableOpacity onPress={goNext} activeOpacity={0.85}>
-                        <Animated.View style={[styles.nextBtn, { backgroundColor: btnBg }]}>
+                        <Animated.View style={[styles.nextBtn, btnStyle]}>
                             <Text style={styles.nextText}>
                                 {currentIndex === SLIDES.length - 1 ? t('onb_start') : t('onb_next')}
                             </Text>
@@ -481,7 +466,7 @@ const styles = StyleSheet.create({
     textContainer: { alignItems: 'flex-start', width: '100%' },
     title: {
         fontSize: 40,
-        fontWeight: '900',
+        fontFamily: fonts.heading,
         lineHeight: 46,
         letterSpacing: -1,
         marginBottom: 16,
