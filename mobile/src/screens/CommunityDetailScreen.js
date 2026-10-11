@@ -8,7 +8,8 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../theme';
+import { useTheme, fonts } from '../theme';
+import { DetailSkeletonPage } from '../components/SkeletonLoader';
 import { hapticLight } from '../utils/haptics';
 import { useLanguage } from '../context/LanguageContext';
 import { communityTypeLabel } from '../utils/communityType';
@@ -16,6 +17,7 @@ import API, { getErrorMessage, uploadImage } from '../services/api';
 import { goBackOrFallback } from '../navigation/navHelpers';
 import { communityErrorMessage } from '../utils/communityErrors';
 import DeepLinkLoader from '../components/DeepLinkLoader';
+import { useReport } from '../components/ReportSheet';
 import { formatRelativeShort } from '../utils/time';
 
 export default function CommunityDetailScreen({ route, navigation }) {
@@ -25,6 +27,7 @@ export default function CommunityDetailScreen({ route, navigation }) {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { session } = useAuth();
   const modInFlight = useRef(new Set());
+  const { openReport, reportSheet } = useReport();
 
   const [community, setCommunity] = useState(null);
   const [posts, setPosts] = useState([]);
@@ -296,28 +299,8 @@ export default function CommunityDetailScreen({ route, navigation }) {
   // Gönderi / yorum ⋯ menüsü: şikâyet (yazar değilse) + gizle/göster (yönetici) — B11
   const isOwnContent = (item) => !!session?.userId && String(item.userId) === String(session.userId);
 
-  const submitReport = async (targetType, targetId, reason) => {
-    const key = `r:${targetType}:${targetId}`;
-    if (modInFlight.current.has(key)) return;
-    modInFlight.current.add(key);
-    try {
-      await API.post('/reports', { targetType, targetId, reason });
-      Alert.alert(t('mod_reported_title'), t('mod_reported_msg'));
-    } catch (err) {
-      Alert.alert(t('error'), communityErrorMessage(err, t, 'mod_error'));
-    } finally {
-      modInFlight.current.delete(key);
-    }
-  };
-
-  const askReportReason = (targetType, targetId) => {
-    Alert.alert(t('mod_reason_title'), null, [
-      { text: t('mod_reason_spam'), onPress: () => submitReport(targetType, targetId, 'SPAM') },
-      { text: t('mod_reason_harassment'), onPress: () => submitReport(targetType, targetId, 'HARASSMENT') },
-      { text: t('mod_reason_inappropriate'), onPress: () => submitReport(targetType, targetId, 'INAPPROPRIATE') },
-      { text: t('mod_cancel'), style: 'cancel' },
-    ]);
-  };
+  // Şikâyet nedeni ortak alt sayfada seçilir (Android'de 4 düğmeli Alert iptali düşürüyordu)
+  const askReportReason = (targetType, targetId) => openReport(targetType, targetId);
 
   const toggleHide = async (post, comment) => {
     const target = comment || post;
@@ -361,9 +344,7 @@ export default function CommunityDetailScreen({ route, navigation }) {
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.loadingContainer]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
+      <DetailSkeletonPage heroHeight={240} />
     );
   }
 
@@ -507,7 +488,7 @@ export default function CommunityDetailScreen({ route, navigation }) {
       {community.approvalStatus === 'PENDING' && (
         <View style={[styles.banner, styles.bannerReview]}>
           <View style={styles.bannerRow}>
-            <Ionicons name="time-outline" size={16} color="#F5A623" />
+            <Ionicons name="time-outline" size={16} color={colors.secondary} />
             <Text style={[styles.bannerText, styles.bannerTextFlex]}>{t('community_review_banner')}</Text>
           </View>
         </View>
@@ -777,6 +758,7 @@ export default function CommunityDetailScreen({ route, navigation }) {
           </View>
         )}
       </View>
+      {reportSheet}
     </ScrollView>
   );
 }
@@ -829,7 +811,7 @@ function createStyles(colors) {
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     errorText: { color: colors.textSecondary, fontSize: 14 },
     banner: { marginHorizontal: 16, marginTop: 14, borderRadius: 12, padding: 12, borderWidth: 1 },
-    bannerReview: { backgroundColor: '#F5A62318', borderColor: '#F5A623' },
+    bannerReview: { backgroundColor: colors.secondary + '18', borderColor: colors.secondary },
     bannerRejected: { backgroundColor: '#E9456018', borderColor: '#E94560' },
     bannerText: { color: colors.text, fontSize: 12, lineHeight: 17, fontWeight: '600' },
     bannerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
@@ -851,7 +833,7 @@ function createStyles(colors) {
     },
     heroEmoji: { fontSize: 32 },
     heroTitleCol: { flex: 1 },
-    heroTitle: { color: '#fff', fontSize: 22, fontWeight: '900', lineHeight: 27 },
+    heroTitle: { color: '#fff', fontSize: 22, fontFamily: fonts.heading, lineHeight: 27 },
     heroChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
     heroChip: {
       backgroundColor: 'rgba(255,255,255,0.18)',
@@ -887,7 +869,7 @@ function createStyles(colors) {
     heroJoinTextActive: { color: '#fff', fontSize: 15, fontWeight: '900' },
     heroArchivedInfo: { color: '#fff', fontSize: 13, fontWeight: '700', textAlign: 'center', marginTop: 12, opacity: 0.9 },
     section: { paddingHorizontal: 16, marginTop: 18 },
-    sectionTitle: { color: colors.text, fontSize: 16, fontWeight: '800', marginBottom: 10 },
+    sectionTitle: { color: colors.text, fontSize: 16, fontFamily: fonts.heading, marginBottom: 10 },
 
     // SABİTLENMİŞ KONU
     pinnedCard: {
@@ -984,7 +966,7 @@ function createStyles(colors) {
 
     // FEED BAŞLIĞI
     feedHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
-    feedTitle: { color: colors.text, fontSize: 18, fontWeight: '900' },
+    feedTitle: { color: colors.text, fontSize: 18, fontFamily: fonts.heading },
     feedCountPill: {
       backgroundColor: colors.primary, borderRadius: 11,
       minWidth: 22, paddingHorizontal: 7, paddingVertical: 2, alignItems: 'center',

@@ -53,6 +53,16 @@ const CODE_MAP = {
   COMMUNITY_TRANSFER_TARGET_NOT_FOUND: { key: 'cerr_community_transfer_target_not_found' },
   COMMUNITY_TRANSFER_ACTIVE_ONLY: { key: 'cerr_community_transfer_active_only' },
   COMMENT_EMPTY: { key: 'cerr_comment_empty' },
+  // Gönderi / yorum / arkadaş uçları (Post & Buddy turu)
+  CONTENT_EMPTY: { key: 'err_content_empty' },
+  POST_TYPE_INVALID: { key: 'err_generic' },
+  POLL_TOO_FEW_OPTIONS: { key: 'post_poll_min' },
+  POLL_OPTION_INVALID: { key: 'err_poll_option_invalid' },
+  COMMENT_DELETE_FORBIDDEN: { key: 'err_comment_delete_forbidden' },
+  BUDDY_UNMATCHED: { key: 'chat_closed_unmatched' },
+  BLOCKED: { key: 'chat_closed_blocked' },
+  UNDO_EXPIRED: { key: 'buddy_undo_expired' },
+  EVENT_NOT_JOINABLE: { key: 'buddy_event_not_joinable' },
 };
 
 // fallbackKey verilirse tanınmayan hatalarda getErrorMessage yerine o çeviri gösterilir.

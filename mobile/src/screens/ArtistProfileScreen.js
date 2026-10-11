@@ -11,7 +11,7 @@ import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import EventCard from '../components/EventCard';
 import DeepLinkLoader from '../components/DeepLinkLoader';
 import API from '../services/api';
-import { useTheme } from '../theme';
+import { useTheme, fonts } from '../theme';
 import { ProfileSkeletonPage } from '../components/SkeletonLoader';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -554,7 +554,10 @@ export default function ArtistProfileScreen({ route, navigation }) {
                     })}
                   </Text>
                 </View>
-                <Text style={styles.postContent}>{item.content}</Text>
+                {!!item.content && <Text style={styles.postContent}>{item.content}</Text>}
+                {!!item.imageUrl && (
+                  <Image source={{ uri: item.imageUrl }} style={styles.postImage} resizeMode="cover" accessibilityIgnoresInvertColors />
+                )}
                 <View style={styles.postFooter}>
                   <View style={styles.postStatItem}>
                     <Ionicons name="heart-outline" size={14} color={colors.textSecondary} />
@@ -675,10 +678,10 @@ function createStyles(colors) {
     },
     avatarLetter: { fontSize: 44, fontWeight: '900', color: colors.text },
     infoCol: { flex: 1, paddingTop: 2 },
-    artistName: { fontSize: 22, fontWeight: 'bold', color: colors.text, marginBottom: 6, lineHeight: 27 },
+    artistName: { fontSize: 22, fontFamily: fonts.headingBold, color: colors.text, marginBottom: 6, lineHeight: 27 },
 
     avgRatingRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 6 },
-    avgRatingText: { color: '#F5A623', fontSize: 13, fontWeight: '700' },
+    avgRatingText: { color: colors.secondary, fontSize: 13, fontWeight: '700' },
     avgRatingCount: { color: colors.textSecondary, fontSize: 11 },
 
     genreTagsText: { color: colors.textSecondary, fontSize: 12, marginBottom: 5, lineHeight: 17 },
@@ -712,7 +715,7 @@ function createStyles(colors) {
       borderWidth: 1, borderColor: colors.border, width: '100%',
     },
     stat: { alignItems: 'center', flex: 1 },
-    statNumber: { fontSize: 20, fontWeight: 'bold', color: colors.text },
+    statNumber: { fontSize: 20, fontFamily: fonts.headingBold, color: colors.text },
     statLabel: { fontSize: 11, color: colors.textSecondary, marginTop: 3 },
     statDivider: { width: 1, height: 32, backgroundColor: colors.border },
 
@@ -762,6 +765,7 @@ function createStyles(colors) {
     postEventText: { marginTop: 0, flexShrink: 1 },
     postDate: { fontSize: 11, color: colors.textSecondary },
     postContent: { fontSize: 14, color: colors.text, lineHeight: 20, marginBottom: 12 },
+    postImage: { width: '100%', height: 200, borderRadius: 12, marginBottom: 12, backgroundColor: colors.cardAlt },
     postFooter: { flexDirection: 'row', gap: 14 },
     postStatItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     postStat: { fontSize: 13, color: colors.textSecondary },

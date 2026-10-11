@@ -4,6 +4,7 @@ import API from '../../services/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../theme';
 import { useLanguage } from '../../context/LanguageContext';
+import { apiErrorMessage } from '../../utils/communityErrors';
 
 export default function PollCard({ postId, options: initialOptions, onVoted }) {
   const { colors } = useTheme();
@@ -22,7 +23,7 @@ export default function PollCard({ postId, options: initialOptions, onVoted }) {
       setOptions(res.data);
       onVoted?.(res.data);
     } catch (err) {
-      Alert.alert(t('error'), t('post_poll_vote_error'));
+      Alert.alert(t('error'), apiErrorMessage(err, t, 'post_poll_vote_error'));
     } finally {
       setVoting(false);
     }
@@ -39,6 +40,9 @@ export default function PollCard({ postId, options: initialOptions, onVoted }) {
             onPress={() => handleVote(opt.id)}
             activeOpacity={hasVoted ? 1 : 0.7}
             disabled={hasVoted || voting}
+            accessibilityRole="button"
+            accessibilityState={{ selected: !!opt.voted, disabled: hasVoted || voting }}
+            accessibilityLabel={hasVoted ? `${opt.optionText}, ${pct}%` : opt.optionText}
           >
             {hasVoted && <View style={[styles.pollBar, { width: `${pct}%` }]} />}
             {opt.voted && <Ionicons name="checkmark" size={16} color={colors.primary} style={styles.pollCheck} />}

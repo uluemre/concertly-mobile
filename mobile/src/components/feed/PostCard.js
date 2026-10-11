@@ -1,8 +1,6 @@
 import React, { useRef, useMemo } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, Animated,
-  Modal, TextInput, KeyboardAvoidingView, Platform,
-  Alert,
+  View, Text, TouchableOpacity, StyleSheet, Animated, Alert,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,8 +12,14 @@ import { useLanguage } from '../../context/LanguageContext';
 import { formatTimeAgo } from '../../utils/time';
 import PollCard from './PollCard';
 import { openEvent } from '../../navigation/navHelpers';
-import { publishPostUpdate } from '../../services/postUpdates';
+import {
+  publishPostUpdate, publishPostRemoved, publishUserHidden, isPostEdited,
+} from '../../services/postUpdates';
+import usePostActions from './usePostActions';
 import { buildShareUrl, shareWithLink } from '../../services/shareLinks';
+
+// Aksiyon satırı ikonları küçük; dokunma alanı 44 pt'ye tamamlanır
+const ACTION_HIT_SLOP = { top: 10, bottom: 10, left: 6, right: 6 };
 
 export default React.memo(function PostCard({
   item, index, currentUserId, navigation, onDelete, onEdit,
@@ -63,43 +67,66 @@ export default React.memo(function PostCard({
   const [liked, setLiked] = useRecyclingState(!!item.likedByMe, [item.id, item.likedByMe]);
   const [likeCount, setLikeCount] = useRecyclingState(item.likeCount || 0, [item.id, item.likeCount]);
   const [likeLoading, setLikeLoading] = useRecyclingState(false, [item.id], resetAnims);
-  const [showEditModal, setShowEditModal] = useRecyclingState(false, [item.id]);
-  const [editText, setEditText] = useRecyclingState(item.content || '', [item.id]);
-  const [editSaving, setEditSaving] = useRecyclingState(false, [item.id]);
 
   const currentIdRef = useRef(item.id);
   currentIdRef.current = item.id;
 
-  const isOwner = item.userId === currentUserId;
+  const openDetail = () => navigation.navigate('PostDetail', { postId: item.id });
 
+  // "⋯" menüsü (Düzenle/Sil ya da Şikâyet/Engelle) — PostDetail ile ortak
+  const { openOptions, actionElements } = usePostActions({
+    post: item,
+    currentUserId,
+    onDeleted: (id) => { onDelete?.(id); publishPostRemoved(id); },
+    onEdited: (id, updated) => {
+      onEdit?.(id, updated.content);
+      publishPostUpdate(id, { content: updated.content, updatedAt: updated.updatedAt });
+    },
+    onBlocked: (userId) => publishUserHidden(userId),
+  });
+
+  // İyimser beğeni: kalp ve sayı hemen değişir; istek başarısız olursa eski hâline
+  // döner ve kullanıcı bilgilendirilir. 409/404 (zaten beğenilmiş / beğeni yok)
+  // istenen sonuçla aynı olduğu için başarı sayılır.
   const handleLike = async () => {
     if (likeLoading) return;
     hapticLight();
+    const postId = item.id;
+    const wasLiked = liked;
+    const prevCount = likeCount;
+    const nextCount = wasLiked ? Math.max(0, prevCount - 1) : prevCount + 1;
     setLikeLoading(true);
+    setLiked(!wasLiked);
+    setLikeCount(nextCount);
     Animated.sequence([
       Animated.spring(scaleAnim, { toValue: 1.35, useNativeDriver: true, tension: 200 }),
       Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 200 }),
     ]).start();
-    Animated.sequence([
-      Animated.timing(heartAnim, { toValue: 1, duration: 150, useNativeDriver: true }),
-      Animated.timing(heartAnim, { toValue: 0, duration: 600, useNativeDriver: true }),
-    ]).start();
-    if (!liked) fireFloatingHearts();
-    const postId = item.id;
+    if (!wasLiked) {
+      Animated.sequence([
+        Animated.timing(heartAnim, { toValue: 1, duration: 150, useNativeDriver: true }),
+        Animated.timing(heartAnim, { toValue: 0, duration: 600, useNativeDriver: true }),
+      ]).start();
+      fireFloatingHearts();
+    }
     // İstek sürerken kart başka gönderiye geçerse sonuç yeni gönderiye yazılmasın
     const stillSamePost = () => currentIdRef.current === postId;
     try {
-      if (liked) await API.delete(`/posts/${postId}/like?userId=${currentUserId}`);
-      else await API.post(`/posts/${postId}/like?userId=${currentUserId}`);
-      const nextCount = liked ? Math.max(0, likeCount - 1) : likeCount + 1;
-      if (stillSamePost()) {
-        setLiked(!liked);
-        setLikeCount(nextCount);
-      }
+      if (wasLiked) await API.delete(`/posts/${postId}/like`);
+      else await API.post(`/posts/${postId}/like`);
       // Aynı gönderiyi gösteren diğer ekranlar (ana sayfa, profil) da güncellensin
-      publishPostUpdate(postId, { likedByMe: !liked, likeCount: nextCount });
+      publishPostUpdate(postId, { likedByMe: !wasLiked, likeCount: nextCount });
     } catch (err) {
-      console.log('Like hatası:', err.message);
+      const status = err?.response?.status;
+      if ((!wasLiked && status === 409) || (wasLiked && status === 404)) {
+        publishPostUpdate(postId, { likedByMe: !wasLiked, likeCount: nextCount });
+      } else {
+        if (stillSamePost()) {
+          setLiked(wasLiked);
+          setLikeCount(prevCount);
+        }
+        Alert.alert('', t('like_failed'));
+      }
     } finally {
       if (stillSamePost()) setLikeLoading(false);
     }
@@ -114,87 +141,6 @@ export default React.memo(function PostCard({
       t('post_share_tagline'),
     ].filter((x, i) => x || i === 3).join('\n');
     await shareWithLink(message, buildShareUrl('post', item.id));
-  };
-
-  const handleDelete = () => {
-    Alert.alert(t('profile_post_delete_title'), t('profile_post_delete_confirm'), [
-      { text: t('cancel'), style: 'cancel' },
-      {
-        text: t('delete'), style: 'destructive', onPress: async () => {
-          try {
-            await API.delete(`/posts/${item.id}`);
-            onDelete?.(item.id);
-          } catch {
-            Alert.alert(t('error'), t('profile_post_delete_error'));
-          }
-        },
-      },
-    ]);
-  };
-
-  const submitReport = async (reason) => {
-    try {
-      await API.post('/reports', { targetType: 'POST', targetId: item.id, reason });
-      Alert.alert(t('mod_reported_title'), t('mod_reported_msg'));
-    } catch {
-      Alert.alert('', t('mod_error'));
-    }
-  };
-
-  const handleReport = () => {
-    Alert.alert(t('mod_reason_title'), null, [
-      { text: t('mod_reason_spam'), onPress: () => submitReport('SPAM') },
-      { text: t('mod_reason_harassment'), onPress: () => submitReport('HARASSMENT') },
-      { text: t('mod_reason_inappropriate'), onPress: () => submitReport('INAPPROPRIATE') },
-      { text: t('mod_cancel'), style: 'cancel' },
-    ]);
-  };
-
-  const handleBlock = () => {
-    Alert.alert(t('mod_block_title'), t('mod_block_msg'), [
-      { text: t('mod_cancel'), style: 'cancel' },
-      {
-        text: t('mod_block'), style: 'destructive', onPress: async () => {
-          try {
-            await API.post(`/users/${item.userId}/block`);
-            Alert.alert('', t('mod_blocked_msg'));
-            onDelete?.(item.id);
-          } catch {
-            Alert.alert('', t('mod_error'));
-          }
-        },
-      },
-    ]);
-  };
-
-  const handleOptions = () => {
-    if (isOwner) {
-      Alert.alert(t('profile_post_actions'), null, [
-        { text: t('edit'), onPress: () => { setEditText(item.content || ''); setShowEditModal(true); } },
-        { text: t('delete'), style: 'destructive', onPress: handleDelete },
-        { text: t('cancel'), style: 'cancel' },
-      ]);
-    } else {
-      Alert.alert(t('mod_options_title'), null, [
-        { text: t('mod_report'), onPress: handleReport },
-        { text: t('mod_block'), style: 'destructive', onPress: handleBlock },
-        { text: t('mod_cancel'), style: 'cancel' },
-      ]);
-    }
-  };
-
-  const handleEditSave = async () => {
-    if (!editText.trim()) return;
-    setEditSaving(true);
-    try {
-      const res = await API.patch(`/posts/${item.id}`, { content: editText.trim() });
-      onEdit?.(item.id, res.data.content);
-      setShowEditModal(false);
-    } catch {
-      Alert.alert(t('error'), t('profile_edit_error'));
-    } finally {
-      setEditSaving(false);
-    }
   };
 
   const goToUserProfile = () => {
@@ -269,51 +215,29 @@ export default React.memo(function PostCard({
           </View>
         </TouchableOpacity>
         <View style={styles.headerRight}>
-          <Text style={styles.postTime}>{formatTimeAgo(item.createdAt, lang)}</Text>
-          <TouchableOpacity onPress={handleOptions} style={styles.optionsBtn} accessibilityRole="button" accessibilityLabel={t('mod_options_title')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <Text style={styles.postTime}>
+            {formatTimeAgo(item.createdAt, lang)}
+            {isPostEdited(item) ? ` · ${t('post_edited')}` : ''}
+          </Text>
+          <TouchableOpacity onPress={openOptions} style={styles.optionsBtn} accessibilityRole="button" accessibilityLabel={t('mod_options_title')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Ionicons name="ellipsis-horizontal" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* DÜZENLEME MODALI */}
-      <Modal visible={showEditModal} transparent animationType="fade" onRequestClose={() => setShowEditModal(false)}>
-        <TouchableOpacity style={styles.editOverlay} activeOpacity={1} onPress={() => setShowEditModal(false)} />
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.editSheetWrapper}>
-          <View style={[styles.editSheet, { backgroundColor: colors.card }]}>
-            <Text style={[styles.editTitle, { color: colors.text }]}>{t('profile_edit_title')}</Text>
-            <TextInput
-              style={[styles.editInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
-              value={editText}
-              onChangeText={setEditText}
-              multiline
-              autoFocus
-              placeholderTextColor={colors.textSecondary}
-            />
-            <View style={styles.editActions}>
-              <TouchableOpacity style={[styles.editBtn, { backgroundColor: colors.border }]} onPress={() => setShowEditModal(false)}>
-                <Text style={[styles.editBtnText, { color: colors.text }]}>{t('cancel')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.editBtn, { backgroundColor: colors.primary, opacity: editSaving ? 0.6 : 1 }]}
-                onPress={handleEditSave}
-                disabled={editSaving}
-              >
-                <Text style={[styles.editBtnText, { color: '#fff' }]}>{editSaving ? t('profile_edit_saving') : t('profile_edit_save')}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+      {actionElements}
 
       {/* İÇERİK — tıklayınca detay */}
       {item.content ? (
-        <TouchableOpacity activeOpacity={0.85} onPress={() => navigation.navigate('PostDetail', { postId: item.id })}>
+        <TouchableOpacity activeOpacity={0.85} onPress={openDetail}>
           <Text style={styles.content} numberOfLines={4}>{item.content}</Text>
         </TouchableOpacity>
       ) : null}
-      {item.postType === 'IMAGE' && item.imageUrl && (
-        <Image source={{ uri: item.imageUrl }} style={styles.postImage} contentFit="cover" transition={150} />
+      {/* Görsel de detayı açar: yazısız görsel gönderisinin başka giriş noktası yoktu */}
+      {item.postType === 'IMAGE' && !!item.imageUrl && (
+        <TouchableOpacity activeOpacity={0.9} onPress={openDetail} accessibilityRole="imagebutton" accessibilityLabel={t('a11y_open_post')}>
+          <Image source={{ uri: item.imageUrl }} style={styles.postImage} contentFit="cover" transition={150} />
+        </TouchableOpacity>
       )}
       {item.postType === 'POLL' && item.pollOptions && (
         <PollCard
@@ -331,6 +255,7 @@ export default React.memo(function PostCard({
           style={styles.actionBtn}
           onPress={handleLike}
           activeOpacity={0.7}
+          hitSlop={ACTION_HIT_SLOP}
           accessibilityRole="button"
           accessibilityState={{ selected: liked }}
           accessibilityLabel={`${t('a11y_like')}, ${likeCount}`}
@@ -342,15 +267,16 @@ export default React.memo(function PostCard({
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.actionBtn}
-          onPress={() => navigation.navigate('PostDetail', { postId: item.id })}
+          onPress={openDetail}
           activeOpacity={0.7}
+          hitSlop={ACTION_HIT_SLOP}
           accessibilityRole="button"
           accessibilityLabel={`${t('a11y_comments')}, ${item.commentCount || 0}`}
         >
           <Ionicons name="chatbubble-outline" size={21} color={colors.textSecondary} />
           <Text style={styles.actionCount}>{item.commentCount || 0}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionBtn} onPress={handleShare} activeOpacity={0.7} accessibilityRole="button">
+        <TouchableOpacity style={styles.actionBtn} onPress={handleShare} activeOpacity={0.7} hitSlop={ACTION_HIT_SLOP} accessibilityRole="button">
           <Ionicons name="share-outline" size={21} color={colors.textSecondary} />
           <Text style={styles.actionCount}>{t('share')}</Text>
         </TouchableOpacity>
@@ -386,24 +312,13 @@ function createStyles(colors) {
     eventTagRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
     eventTag: { fontSize: 12, color: colors.textSecondary, flexShrink: 1 },
     postTime: { fontSize: 11, color: colors.textSecondary },
-    editOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' },
-    editSheetWrapper: { position: 'absolute', bottom: 0, left: 0, right: 0 },
-    editSheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 36 },
-    editTitle: { fontSize: 16, fontWeight: '800', marginBottom: 14 },
-    editInput: {
-      borderWidth: 1, borderRadius: 12, padding: 12, fontSize: 15,
-      minHeight: 100, textAlignVertical: 'top', marginBottom: 14,
-    },
-    editActions: { flexDirection: 'row', gap: 10 },
-    editBtn: { flex: 1, paddingVertical: 13, borderRadius: 12, alignItems: 'center' },
-    editBtnText: { fontSize: 15, fontWeight: '700' },
     content: { fontSize: 15, color: colors.text, lineHeight: 22, marginBottom: 14 },
     postImage: { width: '100%', height: 220, borderRadius: 12, marginBottom: 14, overflow: 'hidden' },
     actions: {
       flexDirection: 'row', gap: 20, paddingTop: 12,
       borderTopWidth: 1, borderTopColor: colors.border,
     },
-    actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 28 },
     actionCount: { fontSize: 13, color: colors.textSecondary, fontWeight: '600' },
     actionCountActive: { color: colors.primary },
   });

@@ -12,7 +12,7 @@ import EventCard from '../components/EventCard';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import API, { uploadImage } from '../services/api';
-import { useTheme } from '../theme';
+import { useTheme, fonts } from '../theme';
 import { ProfileSkeletonPage } from '../components/SkeletonLoader';
 import BadgeGrid from '../components/profile/BadgeGrid';
 import { parseEventDate, dateLocale } from '../utils/time';
@@ -166,7 +166,7 @@ export default function ProfileScreen({ navigation, route }) {
   return (
     <>
       <Modal visible={!!editingPost} transparent animationType="fade" onRequestClose={() => setEditingPost(null)}>
-        <TouchableOpacity style={styles.editOverlay} activeOpacity={1} onPress={() => setEditingPost(null)} />
+        <TouchableOpacity style={styles.editOverlay} activeOpacity={1} onPress={() => setEditingPost(null)} accessibilityRole="button" accessibilityLabel={t('close')} />
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.editSheetWrapper}>
           <View style={[styles.editSheet, { backgroundColor: colors.card }]}>
             <Text style={[styles.editTitle, { color: colors.text }]}>{t('profile_edit_title')}</Text>
@@ -418,18 +418,21 @@ export default function ProfileScreen({ navigation, route }) {
                   activeOpacity={0.85}
                 >
                   <View style={styles.postHeader}>
-                    {item.eventId ? (
-                      // Konsere bağlı gönderide etkinlik adı ayrıca etkinliği açar
-                      <TouchableOpacity onPress={() => openEvent(navigation, item.eventId)} activeOpacity={0.7}>
-                        <Text style={styles.postEventName}>{item.eventName || t('event_generic')}</Text>
-                      </TouchableOpacity>
-                    ) : item.eventName ? (
-                      <Text style={styles.postEventName}>{item.eventName}</Text>
-                    ) : <View />}
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    {/* Solda etkinlik (varsa) + tarih; konsersiz gönderide üstte boşluk kalmaz */}
+                    <View style={styles.postHeaderInfo}>
+                      {item.eventId ? (
+                        // Konsere bağlı gönderide etkinlik adı ayrıca etkinliği açar
+                        <TouchableOpacity onPress={() => openEvent(navigation, item.eventId)} activeOpacity={0.7}>
+                          <Text style={styles.postEventName} numberOfLines={1}>{item.eventName || t('event_generic')}</Text>
+                        </TouchableOpacity>
+                      ) : item.eventName ? (
+                        <Text style={styles.postEventName} numberOfLines={1}>{item.eventName}</Text>
+                      ) : null}
                       <Text style={styles.postDate}>
                         {new Date(item.createdAt).toLocaleDateString(dateLocale(lang))}
                       </Text>
+                    </View>
+                    <View>
                       <TouchableOpacity
                         accessibilityRole="button"
                         accessibilityLabel={t('profile_post_actions')}
@@ -462,7 +465,10 @@ export default function ProfileScreen({ navigation, route }) {
                       </TouchableOpacity>
                     </View>
                   </View>
-                  <Text style={styles.postContent} numberOfLines={3}>{item.content}</Text>
+                  {!!item.content && <Text style={styles.postContent} numberOfLines={3}>{item.content}</Text>}
+                  {!!item.imageUrl && (
+                    <Image source={{ uri: item.imageUrl }} style={styles.postImage} resizeMode="cover" accessibilityIgnoresInvertColors />
+                  )}
                   <View style={styles.postFooter}>
                     <View style={styles.postStatItem}>
                       <Ionicons name="heart-outline" size={14} color={colors.textSecondary} />
@@ -625,7 +631,7 @@ function createStyles(colors) {
     // USERNAME & BIO
     username: {
       fontSize: 20,
-      fontWeight: '800',
+      fontFamily: fonts.heading,
       color: colors.text,
       marginBottom: 4,
     },
@@ -664,7 +670,7 @@ function createStyles(colors) {
       alignItems: 'center',
     },
     stat: { flex: 1, alignItems: 'center', paddingHorizontal: 2 },
-    statNumber: { fontSize: 18, fontWeight: '800', color: colors.text },
+    statNumber: { fontSize: 18, fontFamily: fonts.heading, color: colors.text },
     statLabel: { fontSize: 10, color: colors.textSecondary, marginTop: 3, letterSpacing: 0.8, fontWeight: '700' },
     statDivider: { width: 1, height: 22, backgroundColor: colors.border },
 
@@ -718,9 +724,11 @@ function createStyles(colors) {
       alignItems: 'center',
       marginBottom: 8,
     },
-    postEventName: { fontSize: 13, color: colors.primary, fontWeight: '700', flex: 1 },
+    postHeaderInfo: { flex: 1, gap: 2, marginRight: 8 },
+    postEventName: { fontSize: 13, color: colors.primary, fontWeight: '700' },
     postDate: { fontSize: 11, color: colors.textSecondary },
     postContent: { fontSize: 14, color: colors.text, lineHeight: 20, marginBottom: 12 },
+    postImage: { width: '100%', height: 180, borderRadius: 12, marginBottom: 12, backgroundColor: colors.cardAlt },
     postFooter: { flexDirection: 'row', gap: 14 },
     postStatItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     postStat: { fontSize: 13, color: colors.textSecondary },

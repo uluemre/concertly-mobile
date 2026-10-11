@@ -73,13 +73,14 @@ Backend requires a local PostgreSQL instance: database `concertly_mobile`, user 
 - `ThemeProvider` + `useTheme()` hook expose `{ themeMode, colors, setThemeMode }`.
 - Two palettes: `dark` (default) and `light`, both in `themePalettes`.
 - Screens that need theme-aware styles use the pattern: `const styles = useMemo(() => createStyles(colors), [colors])`.
+- Headings use `fonts.heading` / `fonts.headingBold` (Bricolage Grotesque, loaded in `App.js`) **instead of** `fontWeight`; body text stays on the system font. Use `colors.accent` / `colors.secondary` rather than hardcoded `#00D4AA` / `#F5A623` for text on theme surfaces (the light palette has darker, readable variants).
 
 **API client** (`src/services/api.js`):
 - Axios instance. `getBaseUrl()` picks the host automatically:
   - production builds (and dev when `USE_PROD_IN_DEV = true`) → the configured production server, defaulting to `https://concertly-api.onrender.com/api`.
   - dev with `USE_PROD_IN_DEV = false` → the LAN IP from Expo's `hostUri` on port 8082 (override with `EXPO_PUBLIC_DEV_API_PORT` in the gitignored `mobile/.env.local`, matching the backend's port), so a phone on the same network hits the local backend. To test against the local backend, flip `USE_PROD_IN_DEV` to `false`.
 - JWT is attached automatically by a request interceptor reading a module-level `_authToken` (set by `AuthContext`).
-- **Refresh-token rotation**: on `401`, the response interceptor calls `/auth/refresh` once, queues concurrent requests while refreshing, retries them with the new token, and on failure invokes the session-expired handler (logout + navigate to Login).
+- **Access-token refresh** (no rotation: the server returns the same refresh token): on `401`, the response interceptor calls `/auth/refresh` once, queues concurrent requests while refreshing and retries them with the new token. Only a `401`/`403` from `/auth/refresh` ends the session (logout + Login); a network error, timeout or 5xx just fails the request, so offline launches don't log the user out.
 - **Image URLs are stored relative** (`/uploads/<file>`) and absolutized to `SERVER_ORIGIN` in the response interceptor so they survive host changes. `uploadImage()` posts multipart to `/media/upload` and stores back the relative path.
 
 
@@ -125,11 +126,11 @@ Every call falls back to AsyncStorage so a Keychain failure can never lock a use
 - `config/` — `WebConfig` (static/uploads serving)
 - `exception/` — `GlobalExceptionHandler`, custom exceptions
 
-The app is feature-rich: events (with Ticketmaster import), posts/feed, comments/replies, follows, communities (visibility tiers + roles + invites + admin approval), messaging, concert-buddy matching, badges/passport, setlist predictions, Spotify recommendations, "Wrapped", and several games (quiz, bingo, blind rank, daily song).
+The app is feature-rich: events (with Ticketmaster import), posts/feed (text / image / poll), comments, follows, communities (visibility tiers + roles + invites + admin approval), messaging, concert-buddy matching, badges/passport, setlist predictions, Spotify recommendations, "Wrapped", and several games (quiz, bingo, blind rank, daily song).
 
 **Auth flow**: `POST /api/auth/login` returns an `AuthResponse`: `{ accessToken, refreshToken, tokenType, userId, username, email, city, favoriteGenres, onboardingCompleted, isAdmin }`. Protected endpoints expect `Authorization: Bearer <accessToken>`. `POST /api/auth/refresh` exchanges a refresh token for a fresh access token; there are also `/auth/register`, `/auth/logout`, `/auth/forgot-password`, `/auth/reset-password`.
 
-**Security** (`security/SecurityConfig.java`): stateless, CSRF disabled, CORS open (`allowedOriginPatterns("*")`, credentials off — fine for the mobile client). Unauthenticated/expired tokens return `401` (so the client's refresh flow triggers). Public routes include auth endpoints, `GET /api/events/**`, public profiles, `GET /api/communities/**`, `GET /uploads/**`, and `GET /legal/**`. Costly/admin actions (`/api/admin/**`, `/api/events/sync`, `/api/events/enrich`, `/api/demo/**`, direct event creation/approval, artist enrich) require `ROLE_ADMIN`.
+**Security** (`security/SecurityConfig.java`): stateless, CSRF disabled, CORS open (`allowedOriginPatterns("*")`, credentials off — fine for the mobile client). Unauthenticated/expired tokens return `401` (so the client's refresh flow triggers). Public routes include auth endpoints, `GET /api/events/**` (except `GET /api/events/*/buddies`, which needs login), public profiles, `GET /api/communities/**`, `GET /uploads/**`, and `GET /legal/**`. Costly/admin actions (`/api/admin/**`, `/api/events/sync`, `/api/events/enrich`, `/api/demo/**`, direct event creation/approval, artist enrich) require `ROLE_ADMIN`.
 
 **Push delivery** (`service/ExpoPushService.java`, `PushMessageFactory`,
 `model/PushToken.java`): every notification written by `NotificationService` is
@@ -152,8 +153,15 @@ profiles and artist pages without deleting it. Admins work the queue at
 `/api/admin/moderation/reports` (with a preview of the reported content) and
 hide/unhide via `/api/admin/moderation/hide`. `MessagePrivacy` on the user
 (`EVERYONE | FOLLOWING | NOBODY`) gates new conversations — existing threads
-always continue. `ContentLimitService` caps posts/comments/messages per day for
+continue, except after a concert-buddy unmatch (`buddy_swipes.unmatched_at`): then
+neither side can send (`403 BUDDY_UNMATCHED`); `GET /api/messages/status/{id}` tells
+the chat screen whether to show the composer. Post owners may delete any comment on
+their post. `ContentLimitService` caps posts/comments/messages per day for
 accounts younger than `NEW_ACCOUNT_HOURS` and answers `429` with a reason code.
+On mobile, every report goes through `useReport()` (`components/ReportSheet.js`, a
+bottom sheet — Android `Alert` drops a 4th button) and post menus through
+`components/feed/usePostActions.js`; list screens stay in sync via
+`services/postUpdates.js` (patch / remove / hide-user / create events).
 
 **Event data channels**: `POST /api/events/suggest` lets users report missing
 concerts. `EventSuggestionService` rejects past dates and cities outside the

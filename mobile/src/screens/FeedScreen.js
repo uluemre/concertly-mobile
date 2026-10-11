@@ -2,12 +2,12 @@ import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import {
   View, Text, TouchableOpacity, StyleSheet,
   ActivityIndicator, Animated,
-  RefreshControl,
+  RefreshControl, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { FlashList } from '@shopify/flash-list';
 import API, { getErrorMessage } from '../services/api';
-import { useTheme } from '../theme';
+import { useTheme, fonts } from '../theme';
 import { ListSkeletonPage } from '../components/SkeletonLoader';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -25,15 +25,23 @@ export default function FeedScreen({ navigation }) {
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState('following');
   const [posts, setPosts] = useState([]);
-  // PostDetail'de değişen beğeni / yorum sayıları geri dönünce burada da görünsün
-  usePostUpdates(setPosts);
+  // Yeni paylaşım listenin başına eklenir (Takip akışı artık kendi gönderilerini de içeriyor)
+  const activeTabRef = useRef(activeTab);
+  activeTabRef.current = activeTab;
+  const onPostCreated = useCallback((post) => {
+    if (activeTabRef.current !== 'following') return; // Trend sırası sunucuda hesaplanır
+    setPosts(prev => [post, ...prev.filter(p => p.id !== post.id)]);
+  }, []);
+  // PostDetail'de değişen beğeni / yorum / metin, silme ve engelleme burada da görünsün
+  usePostUpdates(setPosts, { onCreated: onPostCreated });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
+  // Liste doluyken sonraki sayfa düşerse: listenin altında "tekrar dene"
+  const [loadMoreError, setLoadMoreError] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const tabIndicator = useRef(new Animated.Value(1)).current;
   const isMounted = useRef(true);
-  const autoSwitchedRef = useRef(false);
   const pageRef = useRef(0);
   const hasMoreRef = useRef(true);
   // Sekme değişimi / yenileme yeni bir "nesil" başlatır; eski neslin geç dönen
@@ -59,19 +67,25 @@ export default function FeedScreen({ navigation }) {
       if (!isMounted.current || gen !== feedGen.current) return { switched: false, stale: true };
       const data = res.data || [];
 
-      // 5.2: takip akışı ilk sayfada boşsa bir kez otomatik trending'e geç
-      if (reset && activeT === 'following' && data.length === 0 && !autoSwitchedRef.current) {
-        autoSwitchedRef.current = true;
-        switchTab('trending');
-        return { switched: true };
-      }
-
-      setPosts(prev => reset ? data : [...prev, ...data]);
+      // Takip akışı boşsa sessizce Trend'e geçilmez: boş durum nedenini söyler ve
+      // tek dokunuşla Trend'e geçirir (kullanıcı neden sekme değiştiğini anlamıyordu).
+      // Offset sayfalamada sayfa sınırına yeni gönderi düşerse aynı kayıt iki kez
+      // gelebilir; kimliğe göre tekilleştirilir.
+      setPosts(prev => {
+        if (reset) return data;
+        const seen = new Set(prev.map(p => p.id));
+        return [...prev, ...data.filter(p => !seen.has(p.id))];
+      });
       setError(null);
+      setLoadMoreError(false);
       pageRef.current = page + 1;
       hasMoreRef.current = data.length === PAGE_SIZE;
     } catch (err) {
-      if (isMounted.current && gen === feedGen.current) setError(getErrorMessage(err));
+      if (isMounted.current && gen === feedGen.current) {
+        if (reset) setError(getErrorMessage(err));
+        else setLoadMoreError(true);
+      }
+      return { switched: false, failed: true };
     }
     return { switched: false };
   }, [activeTab, session.userId]);
@@ -95,16 +109,30 @@ export default function FeedScreen({ navigation }) {
     feedGen.current++;
     pageRef.current = 0;
     hasMoreRef.current = true;
-    await loadFeed({ reset: true });
-    if (isMounted.current) setRefreshing(false);
-  }, [loadFeed]);
+    const hadPosts = posts.length > 0;
+    const r = await loadFeed({ reset: true });
+    if (isMounted.current) {
+      setRefreshing(false);
+      // Liste doluyken hata paneli görünmez; yenilemenin düştüğü söylenmeli
+      if (hadPosts && r.failed) Alert.alert('', t('load_failed'));
+    }
+  }, [loadFeed, posts.length, t]);
 
+  // Hata sonrası otomatik tekrar denenmez (aksi hâlde kaydırdıkça istek yağar);
+  // kullanıcı alttaki "tekrar dene"ye basar.
   const onEndReached = useCallback(async () => {
-    if (loadingMore || !hasMoreRef.current || loading || error) return;
+    if (loadingMore || !hasMoreRef.current || loading || loadMoreError) return;
     setLoadingMore(true);
     await loadFeed({ reset: false });
     if (isMounted.current) setLoadingMore(false);
-  }, [loadFeed, loadingMore, loading, error]);
+  }, [loadFeed, loadingMore, loading, loadMoreError]);
+
+  const retryLoadMore = useCallback(async () => {
+    setLoadMoreError(false);
+    setLoadingMore(true);
+    await loadFeed({ reset: false });
+    if (isMounted.current) setLoadingMore(false);
+  }, [loadFeed]);
 
   const switchTab = (tab) => {
     // Aynı sekme: activeTab değişmeyeceği için yükleme effect'i çalışmaz;
@@ -112,6 +140,7 @@ export default function FeedScreen({ navigation }) {
     if (tab === activeTab) return;
     setActiveTab(tab);
     setLoading(true);
+    setLoadMoreError(false);
     Animated.spring(tabIndicator, {
       toValue: tab === 'trending' ? 0 : 1,
       tension: 70, friction: 10, useNativeDriver: false,
@@ -148,7 +177,13 @@ export default function FeedScreen({ navigation }) {
     <View style={styles.container}>
       <View style={styles.header}>
         {/* Akış yığına itilen bir ekran; geri dönüş yolu olmalı (N-29) */}
-        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.backButton} accessibilityRole="button">
+        <TouchableOpacity
+          onPress={() => goBackOrFallback(navigation)}
+          style={styles.backButton}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          accessibilityRole="button"
+          accessibilityLabel={t('a11y_back')}
+        >
           <Text style={styles.backText}>{t('back')}</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('feed_title')}</Text>
@@ -202,7 +237,13 @@ export default function FeedScreen({ navigation }) {
           onEndReached={onEndReached}
           onEndReachedThreshold={0.5}
           ListFooterComponent={
-            loadingMore ? <ActivityIndicator color={colors.primary} style={{ marginVertical: 20 }} /> : null
+            loadingMore ? <ActivityIndicator color={colors.primary} style={{ marginVertical: 20 }} />
+              : loadMoreError ? (
+                <TouchableOpacity style={styles.footerRetry} onPress={retryLoadMore} accessibilityRole="button">
+                  <Ionicons name="refresh" size={16} color={colors.primary} />
+                  <Text style={styles.footerRetryText}>{t('feed_load_more_failed')}</Text>
+                </TouchableOpacity>
+              ) : null
           }
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
@@ -261,7 +302,7 @@ function createStyles(colors) {
     backButton: { alignSelf: 'flex-start', marginBottom: 12 },
     backText: { color: colors.textSecondary, fontSize: 15, fontWeight: '700' },
     headerTitle: {
-      fontSize: 26, fontWeight: 'bold', color: colors.text,
+      fontSize: 26, fontFamily: fonts.headingBold, color: colors.text,
       marginBottom: 16, letterSpacing: -0.5,
     },
     tabBar: {
@@ -278,9 +319,14 @@ function createStyles(colors) {
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
     loadingText: { color: colors.textSecondary, fontSize: 14 },
     listContent: { padding: 16, paddingBottom: 32 },
+    footerRetry: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+      minHeight: 48, marginVertical: 8,
+    },
+    footerRetryText: { color: colors.primary, fontSize: 14, fontWeight: '700' },
     empty: { alignItems: 'center', paddingVertical: 60, paddingHorizontal: 32 },
     emptyEmoji: { marginBottom: 16 },
-    emptyTitle: { fontSize: 17, fontWeight: 'bold', color: colors.text, marginBottom: 8, textAlign: 'center' },
+    emptyTitle: { fontSize: 17, fontFamily: fonts.headingBold, color: colors.text, marginBottom: 8, textAlign: 'center' },
     emptySubtext: { fontSize: 13, color: colors.textSecondary, textAlign: 'center', lineHeight: 20 },
     emptyCtaWrap: { marginTop: 20 },
     emptyCta: { paddingVertical: 12, paddingHorizontal: 28, borderRadius: 14, alignItems: 'center', backgroundColor: colors.primary },

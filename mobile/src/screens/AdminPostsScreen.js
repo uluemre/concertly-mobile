@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, FlatList,
-  Alert, ActivityIndicator, TextInput, RefreshControl,
+  Alert, ActivityIndicator, TextInput, RefreshControl, Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../theme';
+import { useTheme, fonts } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
 import { formatTimeAgo } from '../utils/time';
@@ -109,6 +109,9 @@ export default function AdminPostsScreen({ navigation }) {
             {item.content}
           </Text>
         ) : null}
+        {!!item.imageUrl && (
+          <Image source={{ uri: item.imageUrl }} style={styles.postImage} resizeMode="cover" accessibilityIgnoresInvertColors />
+        )}
 
         {/* FOOTER */}
         <View style={styles.cardFooter}>
@@ -218,7 +221,7 @@ function createStyles(colors) {
     header: { paddingTop: 56, paddingBottom: 16, paddingHorizontal: 20, gap: 10 },
     backText: { fontSize: 16, fontWeight: '600', marginBottom: 4 },
     headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    headerTitle: { fontSize: 26, fontWeight: '900' },
+    headerTitle: { fontSize: 26, fontFamily: fonts.heading },
     headerSub: { fontSize: 12, marginTop: 2 },
     totalBadge: {
       paddingHorizontal: 12, paddingVertical: 6,
@@ -254,6 +257,7 @@ function createStyles(colors) {
     eventName: { fontSize: 12, marginBottom: 2 },
     postTime: { fontSize: 11 },
     content: { fontSize: 14, lineHeight: 20, marginBottom: 12, opacity: 0.85 },
+    postImage: { width: '100%', height: 160, borderRadius: 10, marginBottom: 12 },
     cardFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     stats: { flexDirection: 'row', gap: 14 },
     stat: { fontSize: 12, fontWeight: '600' },

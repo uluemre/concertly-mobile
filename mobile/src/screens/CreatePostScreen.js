@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, TextInput,
   TouchableOpacity, ActivityIndicator,
@@ -8,10 +8,11 @@ import { KeyboardAwareScrollView } from '../components/keyboard';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import API, { uploadImage } from '../services/api';
-import { useTheme } from '../theme';
+import { useTheme, fonts } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import { apiErrorMessage } from '../utils/communityErrors';
 import { goBackOrFallback } from '../navigation/navHelpers';
+import { publishPostCreated } from '../services/postUpdates';
 
 export default function CreatePostScreen({ route, navigation }) {
   const { colors } = useTheme();
@@ -31,6 +32,32 @@ export default function CreatePostScreen({ route, navigation }) {
   const [imageUri, setImageUri] = useState(null);
   const [pollOptions, setPollOptions] = useState(['', '']);
   const [loading, setLoading] = useState(false);
+  // Aynı karede iki dokunuş iki gönderi oluşturmasın (state güncellenmeden ikinci çağrı gelebilir)
+  const submittingRef = useRef(false);
+  // Başarılı paylaşımdan sonra çıkışta "taslağı at?" sorulmaz
+  const submittedRef = useRef(false);
+
+  const filledOptions = pollOptions.filter(o => o.trim().length > 0);
+  const isValid = postType === 'IMAGE'
+    ? !!imageUri
+    : postType === 'POLL'
+      ? content.trim().length > 0 && filledOptions.length >= 2
+      : content.trim().length > 0;
+  const isDirty = content.trim().length > 0 || !!imageUri || filledOptions.length > 0;
+
+  // Dolu formdan (geri tuşu, kenardan kaydırma, Vazgeç) çıkarken onay iste
+  useEffect(() => {
+    const unsub = navigation.addListener('beforeRemove', (e) => {
+      // Oturum sonu Login'e reset eder: o çıkış engellenmez
+      if (!isDirty || submittedRef.current || e.data?.action?.type === 'RESET') return;
+      e.preventDefault();
+      Alert.alert(t('post_discard_title'), t('post_discard_msg'), [
+        { text: t('post_discard_keep'), style: 'cancel' },
+        { text: t('post_discard_confirm'), style: 'destructive', onPress: () => navigation.dispatch(e.data.action) },
+      ]);
+    });
+    return unsub;
+  }, [navigation, isDirty, t]);
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -65,6 +92,7 @@ export default function CreatePostScreen({ route, navigation }) {
   };
 
   const handlePost = async () => {
+    if (submittingRef.current) return;
     if (!content.trim() && postType !== 'IMAGE') {
       Alert.alert(t('error'), t('post_empty_content'));
       return;
@@ -81,6 +109,7 @@ export default function CreatePostScreen({ route, navigation }) {
       }
     }
 
+    submittingRef.current = true;
     setLoading(true);
     try {
       // Fotoğraf önce sunucuya yüklenir — cihazdaki yerel yol başka
@@ -90,20 +119,23 @@ export default function CreatePostScreen({ route, navigation }) {
         serverImageUrl = await uploadImage(imageUri);
       }
 
-      await API.post('/posts', {
+      const res = await API.post('/posts', {
         eventId: event ? event.id : null,
         content: content.trim(),
         postType,
         imageUrl: serverImageUrl,
-        pollOptions: postType === 'POLL' ? pollOptions.filter(o => o.trim()) : undefined,
+        pollOptions: postType === 'POLL' ? pollOptions.map(o => o.trim()).filter(Boolean) : undefined,
       });
+      submittedRef.current = true;
+      // Akış listesi yeni gönderiyi başa eklesin (yeniden yüklemeden)
+      publishPostCreated(res.data);
       Alert.alert(t('post_success_title'), t('post_success_msg'), [
         { text: t('confirm'), onPress: () => goBackOrFallback(navigation) }
       ]);
     } catch (err) {
       Alert.alert(t('error'), apiErrorMessage(err, t, 'post_error_msg'));
-      console.log(err.message);
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   };
@@ -113,7 +145,7 @@ export default function CreatePostScreen({ route, navigation }) {
       <KeyboardAwareScrollView bottomOffset={24} keyboardShouldPersistTaps="handled" style={styles.container}>
         {/* HEADER */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => goBackOrFallback(navigation)} accessibilityRole="button">
+          <TouchableOpacity style={styles.backButton} onPress={() => goBackOrFallback(navigation)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} accessibilityRole="button">
             <Text style={styles.backText}>{t('post_cancel')}</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{t('post_header')}</Text>
@@ -203,10 +235,10 @@ export default function CreatePostScreen({ route, navigation }) {
                     placeholderTextColor={colors.textSecondary}
                     value={opt}
                     onChangeText={text => updatePollOption(text, i)}
-                    maxLength={80}
+                    maxLength={60}
                   />
                   {pollOptions.length > 2 && (
-                    <TouchableOpacity onPress={() => removePollOption(i)} style={styles.pollRemove} accessibilityRole="button" accessibilityLabel={t('delete')}>
+                    <TouchableOpacity onPress={() => removePollOption(i)} style={styles.pollRemove} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }} accessibilityRole="button" accessibilityLabel={t('delete')}>
                       <Ionicons name="close" size={16} color={colors.textSecondary} />
                     </TouchableOpacity>
                   )}
@@ -227,7 +259,10 @@ export default function CreatePostScreen({ route, navigation }) {
                 <TouchableOpacity
                   key={emoji}
                   style={styles.emojiBtn}
-                  onPress={() => setContent(prev => prev + emoji)}
+                  onPress={() => setContent(prev => (prev + emoji).slice(0, 500))}
+                  hitSlop={{ top: 4, bottom: 4, left: 2, right: 2 }}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('a11y_add_emoji', { emoji })}
                 >
                   <Text style={styles.emojiText}>{emoji}</Text>
                 </TouchableOpacity>
@@ -239,8 +274,14 @@ export default function CreatePostScreen({ route, navigation }) {
           {loading ? (
             <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 24 }} />
           ) : (
-            <TouchableOpacity onPress={handlePost} style={{ marginTop: 24 }} accessibilityRole="button">
-              <View style={[styles.submitButton, { backgroundColor: colors.primary }]}>
+            <TouchableOpacity
+              onPress={handlePost}
+              disabled={!isValid}
+              style={{ marginTop: 24 }}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: !isValid }}
+            >
+              <View style={[styles.submitButton, { backgroundColor: colors.primary, opacity: isValid ? 1 : 0.45 }]}>
                 <Text style={styles.submitText}>{t('post_share')}</Text>
               </View>
             </TouchableOpacity>
@@ -257,7 +298,7 @@ function createStyles(colors) {
     header: { paddingTop: 60, paddingBottom: 24, paddingHorizontal: 24 },
     backButton: { marginBottom: 16 },
     backText: { color: colors.textSecondary, fontSize: 15 },
-    headerTitle: { fontSize: 24, fontWeight: 'bold', color: colors.text },
+    headerTitle: { fontSize: 24, fontFamily: fonts.headingBold, color: colors.text },
     headerSub: { fontSize: 13, color: colors.textSecondary, marginTop: 4 },
     inlineRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 },
     typeBtnRow: { flexDirection: 'row', justifyContent: 'center', gap: 6 },

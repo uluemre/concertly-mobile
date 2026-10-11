@@ -8,15 +8,16 @@ import { Ionicons } from '@expo/vector-icons';
 import EventCard from '../components/EventCard';
 import API from '../services/api';
 import DeepLinkLoader from '../components/DeepLinkLoader';
-import { useTheme } from '../theme';
+import { useTheme, fonts } from '../theme';
 import { ProfileSkeletonPage } from '../components/SkeletonLoader';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { parseEventDate, dateLocale } from '../utils/time';
 import { goBackOrFallback, openEvent } from '../navigation/navHelpers';
 import { hapticLight } from '../utils/haptics';
-import { usePostUpdates } from '../services/postUpdates';
+import { usePostUpdates, publishUserHidden } from '../services/postUpdates';
 import { apiErrorMessage, isPrivateAccountError } from '../utils/communityErrors';
+import { useReport, confirmBlock } from '../components/ReportSheet';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2;
@@ -30,6 +31,9 @@ function UserProfileContent({ route, navigation }) {
 
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
+  // Gönderiler yüklenemediyse "henüz gönderi yok" yerine hata gösterilir
+  const [postsFailed, setPostsFailed] = useState(false);
+  const { openReport, reportSheet } = useReport();
   // PostDetail'de değişen beğeni / yorum sayıları geri dönünce burada da görünsün
   usePostUpdates(setPosts);
   const [events, setEvents] = useState([]);
@@ -80,6 +84,7 @@ function UserProfileContent({ route, navigation }) {
       setFollowStatus(profileData.followStatus || (profileData.isFollowedByCurrentUser ? 'ACCEPTED' : 'NONE'));
       setLocked(isLocked);
       setPosts(postsRes.status === 'fulfilled' ? postsRes.value.data : []);
+      setPostsFailed(postsRes.status === 'rejected' && !isPrivateAccountError(postsRes.reason));
       setEvents(eventsRes.status === 'fulfilled' ? eventsRes.value.data : []);
       setFollowedArtists(artistsRes.status === 'fulfilled' ? artistsRes.value.data : []);
 
@@ -143,40 +148,12 @@ function UserProfileContent({ route, navigation }) {
     }
   };
 
-  const submitReport = async (reason) => {
-    try {
-      await API.post('/reports', { targetType: 'USER', targetId: userId, reason });
-      Alert.alert(t('mod_reported_title'), t('mod_reported_msg'));
-    } catch {
-      Alert.alert('', t('mod_error'));
-    }
-  };
-
   const handleModeration = () => {
     Alert.alert(t('mod_options_title'), profile ? `@${profile.username}` : null, [
+      { text: t('mod_report'), onPress: () => openReport('USER', userId) },
       {
-        text: t('mod_report'), onPress: () => Alert.alert(t('mod_reason_title'), null, [
-          { text: t('mod_reason_spam'), onPress: () => submitReport('SPAM') },
-          { text: t('mod_reason_harassment'), onPress: () => submitReport('HARASSMENT') },
-          { text: t('mod_reason_inappropriate'), onPress: () => submitReport('INAPPROPRIATE') },
-          { text: t('mod_cancel'), style: 'cancel' },
-        ]),
-      },
-      {
-        text: t('mod_block'), style: 'destructive', onPress: () => Alert.alert(t('mod_block_title'), t('mod_block_msg'), [
-          { text: t('mod_cancel'), style: 'cancel' },
-          {
-            text: t('mod_block'), style: 'destructive', onPress: async () => {
-              try {
-                await API.post(`/users/${userId}/block`);
-                Alert.alert('', t('mod_blocked_msg'));
-                goBackOrFallback(navigation);
-              } catch {
-                Alert.alert('', t('mod_error'));
-              }
-            },
-          },
-        ]),
+        text: t('mod_block'), style: 'destructive',
+        onPress: () => confirmBlock(t, userId, () => { publishUserHidden(userId); goBackOrFallback(navigation); }),
       },
       { text: t('mod_cancel'), style: 'cancel' },
     ]);
@@ -384,8 +361,8 @@ function UserProfileContent({ route, navigation }) {
         {activeTab === 'posts' ? (
           posts.length === 0 ? (
             <View style={styles.empty}>
-              <Ionicons name="document-text-outline" size={52} color={colors.textSecondary} style={styles.emptyEmoji} />
-              <Text style={styles.emptyText}>{t('userprofile_no_posts')}</Text>
+              <Ionicons name={postsFailed ? 'cloud-offline-outline' : 'document-text-outline'} size={52} color={colors.textSecondary} style={styles.emptyEmoji} />
+              <Text style={styles.emptyText}>{postsFailed ? t('load_failed') : t('userprofile_no_posts')}</Text>
             </View>
           ) : (
             posts.map((item, index) => (
@@ -431,7 +408,10 @@ function UserProfileContent({ route, navigation }) {
                 </View>
 
                 {/* İÇERİK */}
-                <Text style={styles.postContent}>{item.content}</Text>
+                {!!item.content && <Text style={styles.postContent}>{item.content}</Text>}
+                {!!item.imageUrl && (
+                  <Image source={{ uri: item.imageUrl }} style={styles.postImage} resizeMode="cover" accessibilityIgnoresInvertColors />
+                )}
 
                 {/* ALT KISIM */}
                 <View style={styles.postFooter}>
@@ -470,6 +450,7 @@ function UserProfileContent({ route, navigation }) {
 
       </View>
       </>)}
+      {reportSheet}
     </Animated.ScrollView>
   );
 }
@@ -499,7 +480,7 @@ function createStyles(colors) {
     },
     avatarLetter: { fontSize: 44, fontWeight: '900', color: colors.text },
 
-    username: { fontSize: 22, fontWeight: 'bold', color: colors.text, marginBottom: 6, lineHeight: 27 },
+    username: { fontSize: 22, fontFamily: fonts.headingBold, color: colors.text, marginBottom: 6, lineHeight: 27 },
     bio: { fontSize: 13, color: colors.textSecondary, lineHeight: 18, marginBottom: 8 },
     bioEmpty: { fontSize: 13, color: colors.textSecondary, lineHeight: 18, marginBottom: 8, fontStyle: 'italic' },
 
@@ -511,7 +492,7 @@ function createStyles(colors) {
       borderWidth: 1, borderColor: colors.border, width: '100%',
     },
     stat: { alignItems: 'center', flex: 1 },
-    statNumber: { fontSize: 20, fontWeight: 'bold', color: colors.text },
+    statNumber: { fontSize: 20, fontFamily: fonts.headingBold, color: colors.text },
     statLabel: { fontSize: 11, color: colors.textSecondary, marginTop: 3 },
     statDivider: { width: 1, height: 32, backgroundColor: colors.border },
 
@@ -594,6 +575,7 @@ function createStyles(colors) {
       fontSize: 14, color: colors.text,
       lineHeight: 20, marginBottom: 12,
     },
+    postImage: { width: '100%', height: 200, borderRadius: 12, marginBottom: 12, backgroundColor: colors.cardAlt },
     postFooter: { flexDirection: 'row', gap: 14 },
     postStat: { fontSize: 13, color: colors.textSecondary },
 
@@ -655,7 +637,7 @@ export default function UserProfileScreen({ route, navigation }) {
   }, [lookupName, resolvedId]);
 
   if (!resolvedId) {
-    return <DeepLinkLoader error={failed || !lookupName} onBack={() => navigation.navigate('MainApp')} />;
+    return <DeepLinkLoader variant="profile" error={failed || !lookupName} onBack={() => navigation.navigate('MainApp')} />;
   }
   return (
     <UserProfileContent

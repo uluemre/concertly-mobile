@@ -8,11 +8,21 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../theme';
+import { ChatSkeletonPage } from '../components/SkeletonLoader';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { apiErrorMessage } from '../utils/communityErrors';
 import API from '../services/api';
 import { goBackOrFallback } from '../navigation/navHelpers';
+import { useReport, confirmBlock } from '../components/ReportSheet';
+import { publishUserHidden } from '../services/postUpdates';
+
+// Sunucunun mesajlaşmayı kapattığı durumlar → kullanıcıya gösterilen açıklama
+const CLOSED_REASON_KEYS = {
+  BUDDY_UNMATCHED: 'chat_closed_unmatched',
+  BLOCKED: 'chat_closed_blocked',
+  PRIVACY: 'chat_closed_privacy',
+};
 
 function formatClock(dateStr, lang) {
   if (!dateStr) return '';
@@ -41,21 +51,51 @@ export default function ChatScreen({ navigation, route }) {
     return () => { shown.remove(); hidden.remove(); };
   }, []);
   const [sending, setSending] = useState(false);
+  // İlk yükleme başarısızsa "henüz mesaj yok" yerine hata + tekrar dene
+  const [loadError, setLoadError] = useState(false);
+  // Sohbet kapalıysa (eşleşme kaldırıldı / engel / gizlilik) yazma alanı yerine açıklama
+  const [closedReason, setClosedReason] = useState(null);
   const pollRef = useRef(null);
+  const messageCountRef = useRef(0);
+  messageCountRef.current = messages.length;
+  const { openReport, reportSheet } = useReport();
 
   const fetchMessages = useCallback(async () => {
     try {
       const res = await API.get(`/messages/with/${userId}`);
-      setMessages(res.data);
-    } catch (err) {
-      console.log('Chat error:', err.message);
+      const server = Array.isArray(res.data) ? res.data : [];
+      setLoadError(false);
+      setMessages(prev => {
+        // Değişiklik yoksa state'e dokunma (4 sn'de bir gereksiz yeniden çizim olmasın)
+        if (prev.length === server.length && prev[prev.length - 1]?.id === server[server.length - 1]?.id) {
+          return prev;
+        }
+        // İstek uçuştayken gönderilmiş ve henüz bu cevapta olmayan mesaj kaybolmasın
+        const serverIds = new Set(server.map(m => m.id));
+        const lastServerId = server.length ? server[server.length - 1].id : 0;
+        const pending = prev.filter(m => !serverIds.has(m.id) && m.id > lastServerId);
+        return pending.length ? [...server, ...pending] : server;
+      });
+    } catch {
+      // Ekranda mesaj varken düşen bir yoklama sessiz geçer; hiç mesaj yoksa hata göster
+      if (messageCountRef.current === 0) setLoadError(true);
     } finally {
       setLoading(false);
     }
   }, [userId]);
 
+  const fetchStatus = useCallback(async () => {
+    try {
+      const res = await API.get(`/messages/status/${userId}`);
+      setClosedReason(res.data?.canMessage === false ? (res.data.reason || 'PRIVACY') : null);
+    } catch {
+      // Durum alınamazsa yazma alanı açık kalır; gönderimde sunucu yine karar verir
+    }
+  }, [userId]);
+
   useFocusEffect(useCallback(() => {
     fetchMessages();
+    fetchStatus();
     const startPolling = () => {
       clearInterval(pollRef.current);
       if (AppState.currentState === 'active') {
@@ -68,7 +108,7 @@ export default function ChatScreen({ navigation, route }) {
       else clearInterval(pollRef.current);
     });
     return () => { clearInterval(pollRef.current); sub.remove(); };
-  }, [fetchMessages]));
+  }, [fetchMessages, fetchStatus]));
 
   const handleSend = async () => {
     const content = text.trim();
@@ -80,46 +120,23 @@ export default function ChatScreen({ navigation, route }) {
       setMessages(prev => [...prev, res.data]);
     } catch (err) {
       setText(content); // geri koy, kullanıcı tekrar denesin
-      Alert.alert(t('error'), apiErrorMessage(err, t, 'chat_send_error'));
+      const code = err?.response?.data?.message;
+      if (err?.response?.status === 403 && CLOSED_REASON_KEYS[code]) {
+        setClosedReason(code); // sohbet kapandı: yazma alanı açıklamaya döner
+      } else {
+        Alert.alert(t('error'), apiErrorMessage(err, t, 'chat_send_error'));
+      }
     } finally {
       setSending(false);
     }
   };
 
-  const submitReport = async (reason) => {
-    try {
-      await API.post('/reports', { targetType: 'USER', targetId: userId, reason });
-      Alert.alert(t('mod_reported_title'), t('mod_reported_msg'));
-    } catch {
-      Alert.alert('', t('mod_error'));
-    }
-  };
-
   const handleModeration = () => {
     Alert.alert(t('mod_options_title'), `@${username}`, [
+      { text: t('mod_report'), onPress: () => openReport('USER', userId) },
       {
-        text: t('mod_report'), onPress: () => Alert.alert(t('mod_reason_title'), null, [
-          { text: t('mod_reason_spam'), onPress: () => submitReport('SPAM') },
-          { text: t('mod_reason_harassment'), onPress: () => submitReport('HARASSMENT') },
-          { text: t('mod_reason_inappropriate'), onPress: () => submitReport('INAPPROPRIATE') },
-          { text: t('mod_cancel'), style: 'cancel' },
-        ]),
-      },
-      {
-        text: t('mod_block'), style: 'destructive', onPress: () => Alert.alert(t('mod_block_title'), t('mod_block_msg'), [
-          { text: t('mod_cancel'), style: 'cancel' },
-          {
-            text: t('mod_block'), style: 'destructive', onPress: async () => {
-              try {
-                await API.post(`/users/${userId}/block`);
-                Alert.alert('', t('mod_blocked_msg'));
-                goBackOrFallback(navigation);
-              } catch {
-                Alert.alert('', t('mod_error'));
-              }
-            },
-          },
-        ]),
+        text: t('mod_block'), style: 'destructive',
+        onPress: () => confirmBlock(t, userId, () => { publishUserHidden(userId); goBackOrFallback(navigation); }),
       },
       { text: t('mod_cancel'), style: 'cancel' },
     ]);
@@ -162,7 +179,7 @@ export default function ChatScreen({ navigation, route }) {
     >
       {/* HEADER */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel={t('back')}>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel={t('a11y_back')}>
           <Ionicons name="chevron-back" size={28} color={colors.primary} />
         </TouchableOpacity>
         <TouchableOpacity
@@ -198,7 +215,7 @@ export default function ChatScreen({ navigation, route }) {
 
       {/* MESSAGES */}
       {loading ? (
-        <ActivityIndicator size="large" color={colors.primary} style={{ flex: 1 }} />
+        <ChatSkeletonPage />
       ) : (
         <FlatList
           data={inverted}
@@ -207,17 +224,41 @@ export default function ChatScreen({ navigation, route }) {
           renderItem={renderMessage}
           contentContainerStyle={{ padding: 16, paddingBottom: 24 }}
           ListEmptyComponent={
-            <View style={styles.empty}>
-              {/* inverted liste empty bileşenini ters çevirir */}
-              <Text style={[styles.emptyText, { color: colors.textSecondary, transform: [{ scaleY: -1 }] }]}>
-                {t('chat_empty')}
-              </Text>
-            </View>
+            // inverted liste empty bileşenini ters çevirir
+            loadError ? (
+              <View style={[styles.empty, { transform: [{ scaleY: -1 }] }]}>
+                <Ionicons name="cloud-offline-outline" size={48} color={colors.textSecondary} style={{ marginBottom: 12 }} />
+                <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t('load_failed')}</Text>
+                <TouchableOpacity
+                  onPress={() => { setLoading(true); fetchMessages(); }}
+                  style={[styles.retryBtn, { backgroundColor: colors.primary }]}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.retryText}>{t('retry')}</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={[styles.empty, { transform: [{ scaleY: -1 }] }]}>
+                <Ionicons name="chatbubbles-outline" size={48} color={colors.textSecondary} style={{ marginBottom: 12 }} />
+                <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+                  {t('chat_empty')}
+                </Text>
+              </View>
+            )
           }
         />
       )}
 
-      {/* MESAJ YAZMA ALANI: tek hap biçimli kutu, gönder butonu kutunun içinde */}
+      {/* Kapalı sohbet: geçmiş okunur, yeni mesaj gönderilemez */}
+      {closedReason ? (
+        <View style={[styles.closedBar, { backgroundColor: colors.card, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 12) }]} accessibilityRole="text">
+          <Ionicons name="lock-closed-outline" size={16} color={colors.textSecondary} />
+          <Text style={[styles.closedText, { color: colors.textSecondary }]}>
+            {t(CLOSED_REASON_KEYS[closedReason] || 'chat_closed_privacy')}
+          </Text>
+        </View>
+      ) : (
+      /* MESAJ YAZMA ALANI: tek hap biçimli kutu, gönder butonu kutunun içinde */
       <View style={[styles.inputBar, { backgroundColor: colors.background, paddingBottom: composerBottom }]}>
         <View style={[styles.composer, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <TextInput
@@ -248,6 +289,8 @@ export default function ChatScreen({ navigation, route }) {
           <Text style={[styles.counter, { color: colors.textSecondary }]}>{text.length}/1000</Text>
         )}
       </View>
+      )}
+      {reportSheet}
     </KeyboardAvoidingView>
   );
 }
@@ -285,7 +328,7 @@ function createStyles(colors) {
     bubbleTimeTheirs: { fontSize: 10, marginTop: 4, alignSelf: 'flex-end' },
 
     empty: { paddingVertical: 60, alignItems: 'center' },
-    emptyText: { fontSize: 15 },
+    emptyText: { fontSize: 15, textAlign: 'center' },
 
     inputBar: { paddingHorizontal: 12, paddingTop: 8 },
     composer: {
@@ -303,5 +346,12 @@ function createStyles(colors) {
       justifyContent: 'center', alignItems: 'center',
     },
     counter: { fontSize: 11, textAlign: 'right', marginTop: 4, marginRight: 6 },
+    closedBar: {
+      flexDirection: 'row', alignItems: 'center', gap: 8,
+      paddingHorizontal: 20, paddingTop: 14, borderTopWidth: 1,
+    },
+    closedText: { flex: 1, fontSize: 13, lineHeight: 18 },
+    retryBtn: { marginTop: 14, minHeight: 44, paddingHorizontal: 22, borderRadius: 12, justifyContent: 'center' },
+    retryText: { color: '#fff', fontWeight: '700', fontSize: 14 },
   });
 }

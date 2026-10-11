@@ -7,7 +7,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import API, { getErrorMessage } from '../services/api';
-import { useTheme } from '../theme';
+import { useTheme, fonts } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { HomeSkeletonPage } from '../components/SkeletonLoader';
@@ -390,7 +390,7 @@ export default function HomeScreen({ navigation }) {
 
       {/* ŞEHİR MODAL */}
       <Modal visible={cityModalVisible} transparent animationType="slide">
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setCityModalVisible(false)} />
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setCityModalVisible(false)} accessibilityRole="button" accessibilityLabel={t('close')} />
         <View style={[styles.cityModal, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Text style={[styles.cityModalTitle, { color: colors.text }]}>{t('home_city_select')}</Text>
           <ScrollView showsVerticalScrollIndicator={false}>
@@ -439,7 +439,7 @@ function createStyles(colors) {
     loadingText: { color: colors.textSecondary, fontSize: 14 },
     header: { paddingTop: 60, paddingBottom: 22, paddingHorizontal: 20 },
     headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-    headerBrand: { fontSize: 30, fontWeight: '900', color: colors.text, letterSpacing: -0.5 },
+    headerBrand: { fontSize: 30, fontFamily: fonts.heading, color: colors.text, letterSpacing: -0.5 },
     cityRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4, alignSelf: 'flex-start' },
     cityRowText: { fontSize: 13, color: colors.textSecondary, fontWeight: '600' },
     dmBtn: {
@@ -466,7 +466,7 @@ function createStyles(colors) {
     sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
     sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     sectionAccent: { width: 4, height: 18, borderRadius: 2 },
-    sectionTitle: { fontSize: 17, fontWeight: '800', color: colors.text, letterSpacing: 0.2 },
+    sectionTitle: { fontSize: 17, fontFamily: fonts.heading, color: colors.text, letterSpacing: 0.2 },
     seeAllBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, backgroundColor: colors.cardAlt, borderWidth: 1, borderColor: colors.border },
     seeAllText: { fontSize: 13, fontWeight: '700' },
     featuredList: { paddingRight: 20, gap: 14, paddingBottom: 4 },
@@ -495,7 +495,7 @@ function createStyles(colors) {
     emptyText: { color: colors.textSecondary, fontSize: 14 },
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' },
     cityModal: { borderTopLeftRadius: 24, borderTopRightRadius: 24, borderWidth: 1, padding: 24, paddingBottom: 40, maxHeight: '60%' },
-    cityModalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 16 },
+    cityModalTitle: { fontSize: 18, fontFamily: fonts.headingBold, marginBottom: 16 },
     cityOption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, paddingHorizontal: 12, borderRadius: 10, marginBottom: 4 },
     cityOptionText: { fontSize: 15 },
     cityOptionLead: { flexDirection: 'row', alignItems: 'center', gap: 8 },

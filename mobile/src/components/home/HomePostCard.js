@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { useTheme } from '../../theme';
 import { formatTimeAgo } from '../../utils/time';
 import { useLanguage } from '../../context/LanguageContext';
@@ -21,7 +22,8 @@ export default React.memo(function HomePostCard({ item, index, navigation }) {
       <View style={styles.inner}>
         <View style={styles.header}>
           <View style={[styles.avatar, { backgroundColor: accent + '28', borderColor: accent + '50' }]}>
-            <Text style={{ color: accent, fontWeight: '800', fontSize: 15 }}>
+            {/* Harf tema rengiyle: sarı/turkuaz vurgular açık temada okunmuyordu */}
+            <Text style={{ color: colors.text, fontWeight: '800', fontSize: 15 }}>
               {item.username?.charAt(0).toUpperCase() || '?'}
             </Text>
           </View>
@@ -42,7 +44,11 @@ export default React.memo(function HomePostCard({ item, index, navigation }) {
           </View>
           <Text style={styles.time}>{formatTimeAgo(item.createdAt, lang)}</Text>
         </View>
-        <Text style={styles.content} numberOfLines={3}>{item.content}</Text>
+        {!!item.content && <Text style={styles.content} numberOfLines={3}>{item.content}</Text>}
+        {/* Yalnız görsel paylaşılan gönderide kart boş kalmasın */}
+        {!!item.imageUrl && (
+          <Image source={{ uri: item.imageUrl }} style={styles.image} contentFit="cover" transition={150} accessibilityIgnoresInvertColors />
+        )}
         <View style={styles.footer}>
           <View style={styles.statItem}>
             <Ionicons name="heart-outline" size={14} color={colors.textSecondary} />
@@ -78,7 +84,8 @@ function createStyles(colors) {
     eventRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     event: { fontSize: 11, color: colors.textSecondary, flexShrink: 1 },
     time: { fontSize: 11, color: colors.textSecondary },
-    content: { fontSize: 14, color: colors.text, lineHeight: 20, marginBottom: 12, opacity: 0.75 },
+    content: { fontSize: 14, color: colors.text, lineHeight: 20, marginBottom: 12 },
+    image: { width: '100%', height: 160, borderRadius: 12, marginBottom: 12, backgroundColor: colors.cardAlt },
     footer: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     statItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     stat: { fontSize: 13, color: colors.textSecondary, fontWeight: '600' },

@@ -45,6 +45,7 @@ console.log('### CONCERTLY API URL ###', BASE_URL);
 // 15 sn'de vazgeçince uygulama boş ekranla açılıyordu. (İnternet yoksa axios
 // zaten hemen "Network Error" verir; bu süre yalnızca yavaş yanıtı bekler.)
 export const API_TIMEOUT_MS = 100000;
+const REFRESH_TIMEOUT_MS = 60000;
 
 const API = axios.create({
   baseURL: BASE_URL,
@@ -168,6 +169,7 @@ API.interceptors.response.use(
           return new Promise((resolve, reject) => {
             _refreshQueue.push({ resolve, reject });
           }).then(token => {
+            originalRequest._retry = true; // yeni jetonla da 401 gelirse tekrar yenileme döngüsüne girmesin
             originalRequest.headers.Authorization = `Bearer ${token}`;
             return API(originalRequest);
           });
@@ -177,9 +179,11 @@ API.interceptors.response.use(
         _isRefreshing = true;
 
         try {
+          // Ayrı zaman aşımı: global axios varsayılanı sınırsız. Render free soğuk
+          // başlangıcı ~50 sn sürebildiği için 60 sn (15 sn uyanan sunucuyu keserdi).
           const res = await axios.post(`${BASE_URL}/auth/refresh`, {
             refreshToken: _refreshToken,
-          });
+          }, { timeout: REFRESH_TIMEOUT_MS });
 
           const newAccessToken = res.data.accessToken;
           _authToken = newAccessToken;
@@ -191,8 +195,18 @@ API.interceptors.response.use(
           return API(originalRequest);
         } catch (refreshError) {
           processQueue(refreshError, null);
-          if (_onSessionExpired) _onSessionExpired();
-          return Promise.reject(refreshError);
+          // Oturum yalnızca sunucu refresh token'ı reddederse biter (401 geçersiz/süresi
+          // dolmuş, 403 hesap kapatılmış). Ağ yok, zaman aşımı ya da 5xx'te kullanıcı
+          // Login'e atılmaz: istek hata verir, bağlantı gelince bir sonraki istek yeniden dener.
+          const refreshStatus = refreshError.response?.status;
+          if (refreshStatus === 401 || refreshStatus === 403) {
+            if (_onSessionExpired) _onSessionExpired();
+            return Promise.reject(refreshError);
+          }
+          if (!error.userMessage) {
+            error.userMessage = 'Sunucuya ulaşılamıyor. İnternet bağlantını kontrol et.';
+          }
+          return Promise.reject(error);
         } finally {
           _isRefreshing = false;
         }
