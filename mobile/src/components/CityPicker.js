@@ -4,7 +4,8 @@ import {
   Modal, TextInput, FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { TURKISH_CITIES, isLaunchCity, useLaunchCities } from '../constants/cities';
+import { TURKISH_CITIES, isLaunchCity, useLaunchCities } from '../constants/cities';
+import { fonts } from '../theme';
 
 // Türkçe-duyarlı normalleştirme: "ist" → "İstanbul" eşleşsin.
 const norm = (s) => (s || '').toLocaleLowerCase('tr-TR').trim();
@@ -180,7 +181,7 @@ function createStyles(colors) {
       justifyContent: 'space-between',
       marginBottom: 14,
     },
-    modalTitle: { color: colors.text, fontSize: 18, fontWeight: '800' },
+    modalTitle: { color: colors.text, fontSize: 18, fontFamily: fonts.heading },
     modalClose: { color: colors.textSecondary, fontSize: 18, fontWeight: '700' },
     search: {
       backgroundColor: colors.card,

@@ -243,7 +243,81 @@ export function ProfileSkeletonPage({ hero = false }) {
   );
 }
 
+// ── Detay iskeleti (etkinlik, topluluk, pasaport) ──────────────────────────
+// Üstte büyük görsel alanı, altında başlık, bilgi satırları ve içerik kartları.
+export function DetailSkeletonPage({ heroHeight = 300 }) {
+  const { colors } = useTheme();
+  return (
+    <ShimmerProvider>
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        <SkeletonBox w="100%" h={heroHeight} radius={0} />
+        <View style={styles.detailBody}>
+          <SkeletonBox w="80%" h={24} radius={8} style={{ marginBottom: 12 }} />
+          <SkeletonBox w="50%" h={14} radius={6} style={{ marginBottom: 20 }} />
+          <View style={styles.detailChips}>
+            {[90, 110, 80].map((w, i) => <SkeletonBox key={i} w={w} h={32} radius={16} />)}
+          </View>
+          <SkeletonBox w="100%" h={54} radius={14} style={{ marginBottom: 16 }} />
+          {[0, 1, 2].map(i => <EventRowSkeleton key={i} />)}
+        </View>
+      </View>
+    </ShimmerProvider>
+  );
+}
+
+// ── Gönderi detayı iskeleti (gönderi kartı + yorumlar) ──────────────────────
+export function PostSkeletonPage() {
+  const { colors } = useTheme();
+  return (
+    <ShimmerProvider>
+      <View style={styles.postPage}>
+        <View style={[styles.postCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <View style={styles.postHeader}>
+            <SkeletonBox w={42} h={42} radius={21} />
+            <View style={{ flex: 1, gap: 8 }}>
+              <SkeletonBox w="45%" h={13} radius={6} />
+              <SkeletonBox w="30%" h={10} radius={5} />
+            </View>
+          </View>
+          <SkeletonBox w="95%" h={12} radius={6} style={{ marginBottom: 8 }} />
+          <SkeletonBox w="80%" h={12} radius={6} style={{ marginBottom: 14 }} />
+          <SkeletonBox w="100%" h={200} radius={14} />
+        </View>
+        {[0, 1, 2].map(i => <ListRowSkeleton key={i} />)}
+      </View>
+    </ShimmerProvider>
+  );
+}
+
+// ── Sohbet iskeleti (karşılıklı mesaj balonları) ────────────────────────────
+export function ChatSkeletonPage() {
+  const rows = [['left', '62%'], ['right', '48%'], ['left', '40%'], ['right', '66%'], ['left', '54%'], ['right', '36%']];
+  return (
+    <ShimmerProvider>
+      <View style={styles.chatPage}>
+        {rows.map(([side, w], i) => (
+          <View key={i} style={{ alignItems: side === 'left' ? 'flex-start' : 'flex-end' }}>
+            <SkeletonBox w={w} h={i % 3 === 0 ? 54 : 38} radius={18} />
+          </View>
+        ))}
+      </View>
+    </ShimmerProvider>
+  );
+}
+
 const styles = StyleSheet.create({
+  // Detay
+  detailBody: { paddingHorizontal: 20, paddingTop: 20 },
+  detailChips: { flexDirection: 'row', gap: 8, marginBottom: 20 },
+
+  // Gönderi
+  postPage: { paddingTop: 8 },
+  postCard: { marginHorizontal: 16, marginBottom: 8, borderRadius: 18, borderWidth: 1, padding: 14 },
+  postHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
+
+  // Sohbet
+  chatPage: { flex: 1, paddingHorizontal: 16, paddingTop: 16, gap: 12 },
+
   // Liste
   listPage: { paddingTop: 8 },
   listRow: {

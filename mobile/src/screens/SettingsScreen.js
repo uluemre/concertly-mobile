@@ -8,7 +8,7 @@ import {
 import { Ionicons, FontAwesome } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import API from '../services/api';
-import { useTheme } from '../theme';
+import { useTheme, fonts } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useLaunchCities } from '../constants/cities';
@@ -808,7 +808,7 @@ function createStyles(colors) {
     },
     backButton: { width: 60 },
     backButtonText: { color: colors.primary, fontSize: 16, fontWeight: '600' },
-    headerTitle: { fontSize: 18, fontWeight: 'bold', color: colors.text },
+    headerTitle: { fontSize: 18, fontFamily: fonts.headingBold, color: colors.text },
     scrollContent: { padding: 20, paddingBottom: 60 },
     // Bildirim & gizlilik tercih kartları
     prefCard: {
@@ -859,7 +859,7 @@ function createStyles(colors) {
     prefLinkText: { color: colors.text, fontSize: 15, fontWeight: '700' },
     sectionTitle: {
       fontSize: 16,
-      fontWeight: 'bold',
+      fontFamily: fonts.headingBold,
       color: colors.textSecondary,
       marginBottom: 20,
       letterSpacing: 1,
@@ -992,7 +992,7 @@ function createStyles(colors) {
       borderBottomColor: colors.border,
       paddingBottom: 16,
     },
-    modalTitle: { fontSize: 18, fontWeight: 'bold', color: colors.text },
+    modalTitle: { fontSize: 18, fontFamily: fonts.headingBold, color: colors.text },
     modalCloseText: { fontSize: 16, color: colors.primary, fontWeight: '600' },
     cityListItem: {
       flexDirection: 'row',

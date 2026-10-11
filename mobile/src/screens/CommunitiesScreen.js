@@ -6,7 +6,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { useTheme } from '../theme';
+import { useTheme, fonts } from '../theme';
 import { ListSkeletonPage } from '../components/SkeletonLoader';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -403,7 +403,7 @@ function createStyles(colors) {
     backButton: { alignSelf: 'flex-start', marginBottom: 16 },
     backText: { color: colors.textSecondary, fontSize: 15, fontWeight: '700' },
     headerLabel: { color: colors.primary, fontSize: 12, fontWeight: '900', letterSpacing: 1.5, marginBottom: 6 },
-    headerTitle: { color: colors.text, fontSize: 32, fontWeight: '900', letterSpacing: -0.5, marginBottom: 8 },
+    headerTitle: { color: colors.text, fontSize: 32, fontFamily: fonts.heading, letterSpacing: -0.5, marginBottom: 8 },
     headerSub: { color: colors.textSecondary, fontSize: 14, lineHeight: 20, maxWidth: '92%' },
     statsRow: { flexDirection: 'row', gap: 10, marginTop: 20 },
     statPill: {
@@ -415,7 +415,7 @@ function createStyles(colors) {
       paddingHorizontal: 16,
       paddingVertical: 12,
     },
-    statNumber: { color: colors.text, fontSize: 22, fontWeight: '900' },
+    statNumber: { color: colors.text, fontSize: 22, fontFamily: fonts.heading },
     statLabel: { color: colors.textSecondary, fontSize: 11, marginTop: 2, fontWeight: '600' },
 
     // CREATE
@@ -502,10 +502,10 @@ function createStyles(colors) {
     cardMeta: { color: colors.textSecondary, fontSize: 12.5, marginTop: 3, fontWeight: '600' },
     tagRow: { flexDirection: 'row', marginTop: 7 },
     statusChip: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
-    statusReview: { backgroundColor: '#F5A62322', borderWidth: 1, borderColor: '#F5A62355' },
-    statusReviewText: { color: '#F5A623', fontSize: 10, fontWeight: '800' },
-    statusLive: { backgroundColor: '#00D4AA22', borderWidth: 1, borderColor: '#00D4AA55' },
-    statusLiveText: { color: '#00D4AA', fontSize: 10, fontWeight: '800' },
+    statusReview: { backgroundColor: colors.secondary + '22', borderWidth: 1, borderColor: colors.secondary + '55' },
+    statusReviewText: { color: colors.secondary, fontSize: 10, fontWeight: '800' },
+    statusLive: { backgroundColor: colors.accent + '22', borderWidth: 1, borderColor: colors.accent + '55' },
+    statusLiveText: { color: colors.accent, fontSize: 10, fontWeight: '800' },
 
     cardDescription: { color: colors.textSecondary, fontSize: 13, lineHeight: 19, marginTop: 13 },
 

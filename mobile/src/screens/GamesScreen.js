@@ -4,7 +4,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { useTheme } from '../theme';
+import { useTheme, fonts } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
 import { goBackOrFallback } from '../navigation/navHelpers';
@@ -130,7 +130,7 @@ function createStyles(colors) {
     container: { flex: 1 },
     header: { paddingTop: 56, paddingBottom: 12, paddingHorizontal: 20, gap: 10 },
     backText: { fontSize: 16, fontWeight: '600' },
-    headerTitle: { fontSize: 28, fontWeight: '900' },
+    headerTitle: { fontSize: 28, fontFamily: fonts.heading },
 
     body: { paddingHorizontal: 16, gap: 14 },
 

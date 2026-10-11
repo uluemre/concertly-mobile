@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import API from '../services/api';
-import { useTheme } from '../theme';
+import { useTheme, fonts } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { goBackOrFallback, openEvent } from '../navigation/navHelpers';
@@ -168,7 +168,7 @@ function createStyles(colors) {
       backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
     },
     backText: { color: colors.text, fontSize: 14, fontWeight: '700' },
-    title: { color: colors.text, fontSize: 24, fontWeight: '800' },
+    title: { color: colors.text, fontSize: 24, fontFamily: fonts.heading },
     subtitle: { color: colors.textSecondary, marginTop: 4 },
     notice: { color: colors.textSecondary, fontSize: 12, marginTop: 10, lineHeight: 17 },
     filterBar: { borderBottomWidth: 1, borderBottomColor: colors.border },

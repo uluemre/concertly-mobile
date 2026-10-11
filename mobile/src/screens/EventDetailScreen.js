@@ -15,7 +15,7 @@ import API from '../services/api';
 import DeepLinkLoader from '../components/DeepLinkLoader';
 import { buildShareUrl, shareWithLink } from '../services/shareLinks';
 import { resolveTicketLinks, ticketSiteHost } from '../services/concerts';
-import { useTheme } from '../theme';
+import { useTheme, fonts } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { displayGenre, displayCountry } from '../utils/text';
@@ -526,7 +526,7 @@ function EventDetailContent({ route, navigation }) {
   // Hero üstü aksiyonlar — sol: geri, sağ: bilet / takvim / kaydet (ikon butonlar)
   const heroActions = (
     <View style={styles.heroTopActions}>
-      <TouchableOpacity style={styles.backButton} onPress={() => goBackOrFallback(navigation)} accessibilityRole="button" accessibilityLabel={t('back')}>
+      <TouchableOpacity style={styles.backButton} onPress={() => goBackOrFallback(navigation)} accessibilityRole="button" accessibilityLabel={t('a11y_back')}>
         <Text style={styles.backText}>{t('back')}</Text>
       </TouchableOpacity>
       <View style={styles.heroIconRow}>
@@ -976,14 +976,14 @@ function EventDetailContent({ route, navigation }) {
             accessibilityRole="button"
           >
             <View style={styles.inlineIconRow}>
-              <Ionicons name="star" size={16} color="#F5A623" />
+              <Ionicons name="star" size={16} color={colors.secondary} />
               <Text style={styles.reviewPillText}>
                 {reviews.length > 0
                   ? t('detail_review_summary', { count: reviews.length, avg: avgRating })
                   : t('detail_review_cta')}
               </Text>
             </View>
-            <Ionicons name="arrow-down" size={18} color="#F5A623" />
+            <Ionicons name="arrow-down" size={18} color={colors.secondary} />
           </TouchableOpacity>
         )}
 
@@ -1140,7 +1140,7 @@ function EventDetailContent({ route, navigation }) {
 
     {/* BİLET SİTESİ SEÇİMİ */}
     <Modal visible={ticketSheetVisible} transparent animationType="slide" onRequestClose={() => setTicketSheetVisible(false)}>
-      <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setTicketSheetVisible(false)} />
+      <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setTicketSheetVisible(false)} accessibilityRole="button" accessibilityLabel={t('close')} />
       <View style={styles.ticketSheet}>
         <View style={styles.sheetHandle} />
         <Text style={styles.sheetTitle}>{t('detail_ticket_choose_title')}</Text>
@@ -1170,7 +1170,7 @@ function EventDetailContent({ route, navigation }) {
 
     {/* ARKADAŞLAR MODAL */}
     <Modal visible={friendsModalVisible} transparent animationType="none" onRequestClose={closeFriendsModal}>
-      <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={closeFriendsModal} />
+      <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={closeFriendsModal} accessibilityRole="button" accessibilityLabel={t('close')} />
       <Animated.View style={[styles.friendsSheet, { transform: [{ translateY: friendsSlideAnim }] }]}>
         <View style={styles.sheetHandle} />
         <Text style={styles.sheetTitle}>{t('detail_friends_title')}</Text>
@@ -1267,7 +1267,7 @@ function createStyles(colors) {
     },
     heroSourceText: { color: '#00D4AA', fontSize: 12, fontWeight: '800' },
     heroTitle: {
-      fontSize: 32, fontWeight: '900', color: '#fff',
+      fontSize: 32, fontFamily: fonts.heading, color: '#fff',
       textAlign: 'left', marginBottom: 4, letterSpacing: 0.5,
       textShadowColor: 'rgba(0,0,0,0.5)',
       textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 4,
@@ -1413,7 +1413,7 @@ function createStyles(colors) {
       backgroundColor: 'rgba(0,212,170,0.15)', borderWidth: 1, borderColor: 'rgba(0,212,170,0.4)',
       borderRadius: 8, paddingHorizontal: 6, paddingVertical: 1,
     },
-    attendedBadgeText: { color: '#00D4AA', fontSize: 10, fontWeight: '800' },
+    attendedBadgeText: { color: colors.accent, fontSize: 10, fontWeight: '800' },
     myReviewTitle: { fontSize: 14, fontWeight: '700', color: colors.text, marginBottom: 8 },
     artistHintBtn: { marginBottom: 12 },
     artistHintText: { fontSize: 12, fontWeight: '600' },
@@ -1443,7 +1443,7 @@ function createStyles(colors) {
       alignSelf: 'center', marginBottom: 16,
     },
     sheetTitle: {
-      fontSize: 17, fontWeight: '800', color: colors.text,
+      fontSize: 17, fontFamily: fonts.heading, color: colors.text,
       marginBottom: 16,
     },
     friendRow: {
@@ -1556,11 +1556,11 @@ function createStyles(colors) {
     verifyingText: { color: colors.textSecondary, fontSize: 15 },
     verifiedBadge: {
       flexDirection: 'row', alignItems: 'center',
-      backgroundColor: 'rgba(0,212,170,0.12)',
-      borderWidth: 1, borderColor: 'rgba(0,212,170,0.35)',
+      backgroundColor: colors.accent + '1F',
+      borderWidth: 1, borderColor: colors.accent + '59',
       borderRadius: 14, padding: 14, marginBottom: 12, gap: 10,
     },
-    verifiedBadgeText: { color: '#00D4AA', fontWeight: '800', fontSize: 15 },
+    verifiedBadgeText: { color: colors.accent, fontWeight: '800', fontSize: 15 },
     verifiedBadgeSub: { color: colors.textSecondary, fontSize: 12, marginTop: 2 },
 
     actionButton: {
@@ -1572,11 +1572,11 @@ function createStyles(colors) {
 
     reviewPill: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-      backgroundColor: '#F5A62322', borderWidth: 1.5, borderColor: '#F5A62366',
+      backgroundColor: colors.secondary + '22', borderWidth: 1.5, borderColor: colors.secondary + '66',
       borderRadius: 20, paddingHorizontal: 18, paddingVertical: 13,
       marginTop: 12,
     },
-    reviewPillText: { color: '#F5A623', fontSize: 15, fontWeight: '800' },
+    reviewPillText: { color: colors.secondary, fontSize: 15, fontWeight: '800' },
 
     imageLoadingOverlay: {
       position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,

@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, Animated,
+  Animated,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useTheme } from '../theme';
+import { useTheme, fonts } from '../theme';
+import { ProfileSkeletonPage } from '../components/SkeletonLoader';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { foldName, displayGenre } from '../utils/text';
@@ -168,17 +169,13 @@ export default function ConcertPassportScreen({ navigation, route }) {
   }, [passport]);
   const badges = passport?.badges || [];
 
-  if (loading) return (
-    <View style={[styles.container, styles.centered]}>
-      <ActivityIndicator size="large" color={colors.primary} />
-    </View>
-  );
+  if (loading) return <ProfileSkeletonPage />;
 
   // Gizli hesabın pasaportu: kilit mesajı
   if (locked) return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.iconBtn} hitSlop={10}>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.iconBtn} hitSlop={10} accessibilityRole="button" accessibilityLabel={t('a11y_back')}>
           <Ionicons name="chevron-back" size={22} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('profile_passport')}</Text>
@@ -208,7 +205,7 @@ export default function ConcertPassportScreen({ navigation, route }) {
     <View style={styles.container}>
       {/* BAŞLIK */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.iconBtn} hitSlop={10}>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.iconBtn} hitSlop={10} accessibilityRole="button" accessibilityLabel={t('a11y_back')}>
           <Ionicons name="chevron-back" size={22} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('profile_passport')}</Text>
@@ -511,7 +508,7 @@ function createStyles(colors) {
       width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center',
       backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
     },
-    headerTitle: { color: colors.text, fontSize: 17, fontWeight: '900' },
+    headerTitle: { color: colors.text, fontSize: 17, fontFamily: fonts.heading },
 
     // Kapak: bordo pasaport cildi, altın yazı
     cover: {
@@ -533,14 +530,14 @@ function createStyles(colors) {
     coverTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     coverLabel: { color: GOLD, fontSize: 11, fontWeight: '900', letterSpacing: 2.4 },
     coverNo: { color: GOLD + 'BB', fontSize: 11, fontWeight: '700', letterSpacing: 1 },
-    coverName: { color: '#fff', fontSize: 25, fontWeight: '900', marginTop: 8, marginBottom: 16, marginRight: 56 },
+    coverName: { color: '#fff', fontSize: 25, fontFamily: fonts.heading, marginTop: 8, marginBottom: 16, marginRight: 56 },
     statsRow: {
       flexDirection: 'row', paddingVertical: 12, borderRadius: 16,
       backgroundColor: 'rgba(0,0,0,0.28)',
     },
     stat: { flex: 1, alignItems: 'center' },
     statDivider: { borderLeftWidth: 1, borderLeftColor: GOLD + '33' },
-    statValue: { color: '#fff', fontSize: 22, fontWeight: '900' },
+    statValue: { color: '#fff', fontSize: 22, fontFamily: fonts.heading },
     statLabel: { color: GOLD + 'CC', fontSize: 11, fontWeight: '700', marginTop: 2 },
 
     goal: { marginTop: 16 },
@@ -589,14 +586,14 @@ function createStyles(colors) {
       width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center',
       backgroundColor: colors.primary + '1F', marginBottom: 12,
     },
-    emptyTitle: { color: colors.text, fontSize: 17, fontWeight: '900', marginBottom: 6 },
+    emptyTitle: { color: colors.text, fontSize: 17, fontFamily: fonts.heading, marginBottom: 6 },
     emptySub: { color: colors.textSecondary, fontSize: 13.5, lineHeight: 20, textAlign: 'center', marginBottom: 16 },
     emptyCta: { alignSelf: 'stretch', paddingVertical: 14, borderRadius: 14, alignItems: 'center', backgroundColor: colors.primary },
     emptyCtaText: { color: '#fff', fontSize: 15, fontWeight: '800' },
 
     // Bölüm
     section: { paddingHorizontal: 16, marginTop: 22 },
-    sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '900', marginBottom: 12 },
+    sectionTitle: { color: colors.text, fontSize: 17, fontFamily: fonts.heading, marginBottom: 12 },
     yearHead: { flexDirection: 'row', alignItems: 'baseline', gap: 8, marginBottom: 10 },
     yearLabel: { color: colors.text, fontSize: 22, fontWeight: '900' },
     yearCount: { color: colors.textSecondary, fontSize: 13, fontWeight: '700' },

@@ -6,7 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import API from '../services/api';
-import { useTheme } from '../theme';
+import { useTheme, fonts } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import { goBackOrFallback } from '../navigation/navHelpers';
 
@@ -155,8 +155,8 @@ const createStyles = (colors) =>
     },
     backText: { fontSize: 14, color: colors.text, fontWeight: '700' },
     chipRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-    headerTitle: { fontSize: 24, fontWeight: '900', color: '#fff' },
-    headerSub: { fontSize: 13, color: 'rgba(255,255,255,0.85)', marginTop: 4 },
+    headerTitle: { fontSize: 24, fontFamily: fonts.heading, color: colors.text },
+    headerSub: { fontSize: 13, color: colors.textSecondary, marginTop: 4 },
     listContent: { padding: 16, paddingBottom: 40 },
     card: {
       backgroundColor: colors.card, borderRadius: 16, padding: 16, marginBottom: 14,

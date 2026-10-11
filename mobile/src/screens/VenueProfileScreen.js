@@ -7,7 +7,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import API from '../services/api';
-import { useTheme } from '../theme';
+import { useTheme, fonts } from '../theme';
 import { ProfileSkeletonPage } from '../components/SkeletonLoader';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -175,7 +175,7 @@ function VenueProfileContent({ route, navigation }) {
     <>
       {/* YORUM MODALI */}
       <Modal visible={reviewModal} transparent animationType="slide" onRequestClose={() => setReviewModal(false)}>
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setReviewModal(false)} />
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setReviewModal(false)} accessibilityRole="button" accessibilityLabel={t('close')} />
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalWrapper}>
           <View style={[styles.modalSheet, { backgroundColor: colors.card }]}>
             <Text style={[styles.modalTitle, { color: colors.text }]}>{t('venue_rate_title')}</Text>
@@ -218,7 +218,7 @@ function VenueProfileContent({ route, navigation }) {
             <View style={[styles.headerImage, { backgroundColor: '#22223A' }]} />
           )}
           <LinearGradient colors={['transparent', 'rgba(0,0,0,0.85)']} style={styles.headerGradient} />
-          <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.backBtn} accessibilityRole="button" accessibilityLabel={t('back')}>
+          <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.backBtn} accessibilityRole="button" accessibilityLabel={t('a11y_back')}>
             <Ionicons name="arrow-back" size={20} color="#fff" />
           </TouchableOpacity>
           <View style={styles.headerInfo}>
@@ -297,11 +297,11 @@ function VenueProfileContent({ route, navigation }) {
         {/* TAKVİM */}
         <View style={styles.section}>
           <View style={styles.calHeader}>
-            <TouchableOpacity onPress={prevMonth} style={styles.calNavBtn} accessibilityRole="button">
+            <TouchableOpacity onPress={prevMonth} style={styles.calNavBtn} accessibilityRole="button" accessibilityLabel={t('a11y_prev_month')}>
               <Ionicons name="chevron-back" size={24} color={colors.primary} />
             </TouchableOpacity>
             <Text style={styles.calTitle}>{MONTHS[calMonth]} {calYear}</Text>
-            <TouchableOpacity onPress={nextMonth} style={styles.calNavBtn} accessibilityRole="button">
+            <TouchableOpacity onPress={nextMonth} style={styles.calNavBtn} accessibilityRole="button" accessibilityLabel={t('a11y_next_month')}>
               <Ionicons name="chevron-forward" size={24} color={colors.primary} />
             </TouchableOpacity>
           </View>
@@ -469,7 +469,7 @@ function createStyles(colors) {
     },
     inlineRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
     headerInfo: { position: 'absolute', bottom: 16, left: 16, right: 16 },
-    venueName: { fontSize: 22, fontWeight: '900', color: '#fff', marginBottom: 4 },
+    venueName: { fontSize: 22, fontFamily: fonts.heading, color: '#fff', marginBottom: 4 },
     venueLocation: { fontSize: 13, color: 'rgba(255,255,255,0.85)', marginBottom: 2 },
     venueAddress: { fontSize: 12, color: 'rgba(255,255,255,0.65)' },
 
@@ -500,13 +500,13 @@ function createStyles(colors) {
       padding: 16, borderWidth: 1, borderColor: colors.border,
     },
     statBox: { flex: 1, alignItems: 'center' },
-    statValue: { fontSize: 20, fontWeight: '800', color: colors.text },
+    statValue: { fontSize: 20, fontFamily: fonts.heading, color: colors.text },
     statLabel: { fontSize: 11, color: colors.textSecondary, marginTop: 3, letterSpacing: 0.6 },
     statDivider: { width: 1, backgroundColor: colors.border },
 
     // SECTION
     section: { marginTop: 16, paddingHorizontal: 16 },
-    sectionTitle: { fontSize: 16, fontWeight: '800', color: colors.text, marginBottom: 12 },
+    sectionTitle: { fontSize: 16, fontFamily: fonts.heading, color: colors.text, marginBottom: 12 },
 
     // TAKVİM
     calHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
@@ -571,7 +571,7 @@ function createStyles(colors) {
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' },
     modalWrapper: { position: 'absolute', bottom: 0, left: 0, right: 0 },
     modalSheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
-    modalTitle: { fontSize: 18, fontWeight: '800', textAlign: 'center', marginBottom: 4 },
+    modalTitle: { fontSize: 18, fontFamily: fonts.heading, textAlign: 'center', marginBottom: 4 },
     modalVenueName: { fontSize: 13, textAlign: 'center', marginBottom: 8 },
     commentInput: {
       borderWidth: 1, borderRadius: 12, padding: 12,

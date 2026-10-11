@@ -4,7 +4,7 @@ import {
   ActivityIndicator, Alert, Image,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { useTheme } from '../theme';
+import { useTheme, fonts } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import API from '../services/api';
@@ -134,7 +134,7 @@ function createStyles(colors) {
     header: { paddingTop: 56, paddingBottom: 18, paddingHorizontal: 20 },
     backButton: { alignSelf: 'flex-start', marginBottom: 14 },
     backText: { color: colors.textSecondary, fontSize: 14, fontWeight: '700' },
-    headerTitle: { color: colors.text, fontSize: 24, fontWeight: 'bold' },
+    headerTitle: { color: colors.text, fontSize: 24, fontFamily: fonts.headingBold },
     headerSub: { color: colors.textSecondary, fontSize: 14, marginTop: 4 },
     hint: { color: colors.textSecondary, fontSize: 12.5, lineHeight: 18, marginTop: 12 },
     empty: { color: colors.textSecondary, fontSize: 13, marginHorizontal: 18, marginTop: 12 },

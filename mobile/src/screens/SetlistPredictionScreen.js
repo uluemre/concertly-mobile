@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../theme';
+import { useTheme, fonts } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
@@ -298,10 +298,10 @@ export default function SetlistPredictionScreen({ navigation, route }) {
             </Text>
             <View style={styles.playedWrap}>
               {board.playedSetlist.map(titleItem => (
-                <View key={titleItem} style={[styles.playedChip, { backgroundColor: '#00D4AA18', borderColor: '#00D4AA50' }]}>
+                <View key={titleItem} style={[styles.playedChip, { backgroundColor: colors.accent + '18', borderColor: colors.accent + '50' }]}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                    <Ionicons name="musical-notes" size={12} color="#00D4AA" />
-                    <Text style={[styles.playedChipText, { color: '#00D4AA' }]}>{titleItem}</Text>
+                    <Ionicons name="musical-notes" size={12} color={colors.accent} />
+                    <Text style={[styles.playedChipText, { color: colors.accent }]}>{titleItem}</Text>
                   </View>
                 </View>
               ))}
@@ -321,7 +321,7 @@ export default function SetlistPredictionScreen({ navigation, route }) {
                       { backgroundColor: colors.card, borderColor: isMe ? colors.primary : colors.border },
                     ]}
                   >
-                    <Text style={[styles.boardRank, { color: i < 3 ? '#F5A623' : colors.textSecondary }]}>
+                    <Text style={[styles.boardRank, { color: i < 3 ? colors.secondary : colors.textSecondary }]}>
                       {i < 3 ? MEDALS[i] : `${i + 1}.`}
                     </Text>
                     <Text style={[styles.boardName, { color: isMe ? colors.primary : colors.text }]} numberOfLines={1}>
@@ -352,7 +352,7 @@ function createStyles(colors) {
 
     header: { paddingTop: 56, paddingBottom: 18, paddingHorizontal: 20, gap: 6 },
     backText: { fontSize: 16, fontWeight: '600', marginBottom: 4 },
-    headerTitle: { fontSize: 24, fontWeight: '900' },
+    headerTitle: { fontSize: 24, fontFamily: fonts.heading },
     headerSub: { fontSize: 13, lineHeight: 19 },
 
     infoRow: {

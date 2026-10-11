@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { KeyboardAwareScrollView } from '../components/keyboard';
 import API, { getErrorMessage } from '../services/api';
-import { useTheme } from '../theme';
+import { useTheme, fonts } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import { goBackOrFallback } from '../navigation/navHelpers';
 
@@ -128,7 +128,7 @@ function createStyles(colors) {
     },
     backButton: { width: 60 },
     backButtonText: { color: colors.primary, fontSize: 16, fontWeight: '600' },
-    headerTitle: { fontSize: 18, fontWeight: 'bold', color: colors.text },
+    headerTitle: { fontSize: 18, fontFamily: fonts.headingBold, color: colors.text },
     scrollContent: { padding: 20, paddingBottom: 60 },
     inputGroup: { marginBottom: 20 },
     label: { fontSize: 13, color: colors.textSecondary, marginBottom: 8, fontWeight: '600' },

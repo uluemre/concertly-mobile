@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { useTheme } from '../theme';
+import { useTheme, fonts } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import API from '../services/api';
@@ -422,7 +422,7 @@ function createStyles(colors) {
       paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, marginBottom: 10,
     },
     headerBadgeText: { color: colors.primary, fontSize: 11, fontWeight: '800', letterSpacing: 1.5 },
-    headerTitle: { fontSize: 30, fontWeight: '900', color: colors.text, letterSpacing: -0.5, marginTop: 10 },
+    headerTitle: { fontSize: 30, fontFamily: fonts.heading, color: colors.text, letterSpacing: -0.5, marginTop: 10 },
     headerSub: { fontSize: 13, color: colors.textSecondary, marginTop: 6 },
     inlineRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     appBtn: {
@@ -456,7 +456,7 @@ function createStyles(colors) {
       backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
     },
     statIcon: { marginBottom: 8 },
-    statValue: { fontSize: 28, fontWeight: '900', color: colors.text, lineHeight: 32 },
+    statValue: { fontSize: 28, fontFamily: fonts.heading, color: colors.text, lineHeight: 32 },
     statLabel: { fontSize: 11, color: colors.textSecondary, marginTop: 4, lineHeight: 15 },
 
     // QUICK ACTIONS
@@ -500,7 +500,7 @@ function createStyles(colors) {
       borderRadius: 16, borderWidth: 1, paddingVertical: 16,
     },
     summaryItem: { flex: 1, alignItems: 'center' },
-    summaryNum: { fontSize: 20, fontWeight: '800', color: colors.text },
+    summaryNum: { fontSize: 20, fontFamily: fonts.heading, color: colors.text },
     summaryLabel: { fontSize: 10, marginTop: 3, letterSpacing: 0.8 },
     summaryDivider: { width: 1, marginVertical: 4 },
   });

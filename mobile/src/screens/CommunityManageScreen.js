@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { useTheme } from '../theme';
+import { useTheme, fonts } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import { buildShareUrl, shareWithLink } from '../services/shareLinks';
 import API from '../services/api';
@@ -325,7 +325,7 @@ function createStyles(colors) {
     header: { paddingTop: 56, paddingBottom: 22, paddingHorizontal: 20 },
     backButton: { alignSelf: 'flex-start', marginBottom: 14 },
     backText: { color: colors.textSecondary, fontSize: 14, fontWeight: '700' },
-    headerTitle: { color: colors.text, fontSize: 24, fontWeight: 'bold' },
+    headerTitle: { color: colors.text, fontSize: 24, fontFamily: fonts.headingBold },
     headerSub: { color: colors.textSecondary, fontSize: 14, marginTop: 4 },
     sectionTitle: {
       color: colors.textSecondary, fontSize: 11, fontWeight: '800',

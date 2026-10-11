@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { useTheme } from '../theme';
+import { useTheme, fonts } from '../theme';
 import { ListSkeletonPage } from '../components/SkeletonLoader';
 import { useLanguage } from '../context/LanguageContext';
 import API, { getErrorMessage } from '../services/api';
@@ -167,7 +167,7 @@ function createStyles(colors) {
     container: { flex: 1 },
     header: { paddingTop: 56, paddingBottom: 18, paddingHorizontal: 20, gap: 6 },
     backText: { fontSize: 16, fontWeight: '600', marginBottom: 4 },
-    headerTitle: { fontSize: 26, fontWeight: '900' },
+    headerTitle: { fontSize: 26, fontFamily: fonts.heading },
     headerSub: { fontSize: 12 },
 
     row: {
@@ -196,7 +196,7 @@ function createStyles(colors) {
 
     empty: { alignItems: 'center', paddingVertical: 70, paddingHorizontal: 32 },
     emptyEmoji: { marginBottom: 16 },
-    emptyTitle: { fontSize: 19, fontWeight: '900', marginBottom: 8, textAlign: 'center' },
+    emptyTitle: { fontSize: 19, fontFamily: fonts.heading, marginBottom: 8, textAlign: 'center' },
     emptySub: { fontSize: 14, textAlign: 'center', lineHeight: 20, marginBottom: 24 },
     buddyBtn: { paddingHorizontal: 24, paddingVertical: 14, borderRadius: 16, backgroundColor: colors.primary },
     buddyBtnText: { color: '#fff', fontSize: 15, fontWeight: '800' },

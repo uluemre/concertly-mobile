@@ -6,7 +6,7 @@ import {
 // Spotify logosu Ionicons'ta yok: o ikon FontAwesome
 import { Ionicons, FontAwesome } from '@expo/vector-icons';
 import API from '../services/api';
-import { useTheme } from '../theme';
+import { useTheme, fonts } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { goBackOrFallback } from '../navigation/navHelpers';
@@ -203,17 +203,17 @@ function createStyles(colors) {
     },
     backBtn: { width: 60 },
     backBtnText: { color: colors.primary, fontSize: 16, fontWeight: '600' },
-    headerTitle: { fontSize: 17, fontWeight: 'bold', color: colors.text },
+    headerTitle: { fontSize: 17, fontFamily: fonts.headingBold, color: colors.text },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12, padding: 32 },
     loadingText: { marginTop: 12, fontSize: 14 },
-    emptyTitle: { fontSize: 20, fontWeight: 'bold', marginTop: 8 },
+    emptyTitle: { fontSize: 20, fontFamily: fonts.headingBold, marginTop: 8 },
     emptyDesc: { fontSize: 14, textAlign: 'center', lineHeight: 20 },
     listContent: { paddingBottom: 40 },
     listHeader: { padding: 16, gap: 12 },
     heroBanner: {
       borderRadius: 16, padding: 20, alignItems: 'center', gap: 6,
     },
-    heroTitle: { fontSize: 18, fontWeight: '800', color: '#fff' },
+    heroTitle: { fontSize: 18, fontFamily: fonts.heading, color: '#fff' },
     heroSubtitle: { fontSize: 13, color: 'rgba(255,255,255,0.8)' },
     bulkBtn: { borderRadius: 14, overflow: 'hidden' },
     bulkBtnGradient: { padding: 16, alignItems: 'center' },

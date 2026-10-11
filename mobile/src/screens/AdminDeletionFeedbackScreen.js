@@ -4,7 +4,7 @@ import {
   StyleSheet, ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../theme';
+import { useTheme, fonts } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
 import { goBackOrFallback } from '../navigation/navHelpers';
@@ -81,7 +81,7 @@ export default function AdminDeletionFeedbackScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => goBackOrFallback(navigation, 'Admin')} style={styles.backBtn} accessibilityRole="button" accessibilityLabel={t('back')}>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation, 'Admin')} style={styles.backBtn} accessibilityRole="button" accessibilityLabel={t('a11y_back')}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('admin_nav_deletion_title')}</Text>
@@ -139,7 +139,7 @@ function createStyles(colors) {
       borderBottomColor: colors.border,
     },
     backBtn: { width: 40, alignItems: 'center' },
-    headerTitle: { fontSize: 18, fontWeight: '700', color: colors.text },
+    headerTitle: { fontSize: 18, fontFamily: fonts.headingBold, color: colors.text },
 
     summary: {
       flexDirection: 'row', flexWrap: 'wrap', gap: 8,

@@ -3,7 +3,7 @@ import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../theme';
+import { useTheme, fonts } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import { LEGAL_CONTENT } from '../constants/legalContent';
 import { goBackOrFallback } from '../navigation/navHelpers';
@@ -19,7 +19,7 @@ export default function LegalScreen({ navigation, route }) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.backBtn} accessibilityRole="button" accessibilityLabel={t('back')}>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.backBtn} accessibilityRole="button" accessibilityLabel={t('a11y_back')}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>{content.title}</Text>
@@ -55,7 +55,7 @@ function createStyles(colors) {
       borderBottomColor: colors.border,
     },
     backBtn: { width: 40, alignItems: 'center' },
-    headerTitle: { flex: 1, textAlign: 'center', fontSize: 18, fontWeight: '700', color: colors.text },
+    headerTitle: { flex: 1, textAlign: 'center', fontSize: 18, fontFamily: fonts.headingBold, color: colors.text },
 
     body: { padding: 20 },
     updated: { fontSize: 12, color: colors.textSecondary, marginBottom: 20, fontStyle: 'italic' },

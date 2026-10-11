@@ -11,7 +11,7 @@ import ImageMarker from '../components/map/ImageMarker';
 import EventImage from '../components/EventImage';
 import { Ionicons } from '@expo/vector-icons';
 import API from '../services/api';
-import { useTheme } from '../theme';
+import { useTheme, fonts } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import { parseEventDate, dateLocale } from '../utils/time';
 import { openEvent } from '../navigation/navHelpers';
@@ -518,8 +518,8 @@ function createStyles(colors) {
       alignItems: 'center',
       marginBottom: 12,
     },
-    headerTitle: { fontSize: 22, fontWeight: '900', color: colors.text },
-    headerSub: { fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 2 },
+    headerTitle: { fontSize: 22, fontFamily: fonts.heading, color: colors.text },
+    headerSub: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
     locateBtn: {
       backgroundColor: colors.primary,
       paddingHorizontal: 14,
@@ -572,7 +572,7 @@ function createStyles(colors) {
     sheetInfo: { flex: 1, gap: 4 },
     genreChip: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
     genreChipText: { fontSize: 11, fontWeight: '800' },
-    sheetTitle: { fontSize: 17, fontWeight: '800', color: colors.text, lineHeight: 22 },
+    sheetTitle: { fontSize: 17, fontFamily: fonts.heading, color: colors.text, lineHeight: 22 },
     sheetArtist: { fontSize: 13, color: colors.textSecondary, fontWeight: '600' },
     sheetClose: {
       width: 30, height: 30, borderRadius: 15,

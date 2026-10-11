@@ -6,7 +6,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { useTheme } from '../theme';
+import { useTheme, fonts } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import { communityTypeLabel } from '../utils/communityType';
 import API, { getErrorMessage } from '../services/api';
@@ -131,7 +131,7 @@ function createStyles(colors) {
     header: { paddingTop: 60, paddingBottom: 24, paddingHorizontal: 22 },
     backButton: { alignSelf: 'flex-start', marginBottom: 12 },
     backText: { color: colors.textSecondary, fontSize: 14, fontWeight: '700' },
-    headerTitle: { color: colors.text, fontSize: 26, fontWeight: '900' },
+    headerTitle: { color: colors.text, fontSize: 26, fontFamily: fonts.heading },
     empty: { color: colors.textSecondary, fontSize: 14, textAlign: 'center', marginTop: 60 },
     card: {
       marginHorizontal: 16, marginTop: 14, padding: 14,

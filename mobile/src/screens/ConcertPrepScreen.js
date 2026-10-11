@@ -12,7 +12,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import API from '../services/api';
-import { useTheme } from '../theme';
+import { useTheme, fonts } from '../theme';
 import { hapticSelection } from '../utils/haptics';
 import { useLanguage } from '../context/LanguageContext';
 import { stopPlayer } from '../utils/audio';
@@ -182,7 +182,7 @@ function Hero({ data, receivedAt, t, lang, styles, navigation }) {
     <ImageBackground source={data.imageUrl ? { uri: data.imageUrl } : undefined} style={styles.hero}>
       {/* Fotoğraf karartması (yazı okunsun diye) — nötr koyu */}
       <LinearGradient colors={['rgba(10,10,20,0.35)', 'rgba(10,10,20,0.85)', '#0A0A14']} style={styles.heroOverlay}>
-        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.back} accessibilityRole="button" accessibilityLabel={t('back')}>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.back} accessibilityRole="button" accessibilityLabel={t('a11y_back')}>
           <Ionicons name="chevron-back" size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.heroKicker}>{headline}</Text>
@@ -323,6 +323,7 @@ function Warmup({ tracks, artistName, t, styles, colors }) {
           onPress={() => (playingIndex >= 0 ? stop() : play(0))}
           style={[styles.playAll, { backgroundColor: colors.primary }]}
           accessibilityRole="button"
+          accessibilityLabel={playingIndex >= 0 ? t('a11y_stop') : t('a11y_play_all')}
           accessibilityState={{ selected: playingIndex >= 0 }}
         >
           <Ionicons name={playingIndex >= 0 ? 'stop' : 'play'} size={18} color="#fff" />
@@ -391,12 +392,12 @@ function createStyles(colors) {
     heroOverlay: { flex: 1, paddingHorizontal: 20, paddingTop: 56, paddingBottom: 24, justifyContent: 'flex-end' },
     back: { position: 'absolute', top: 48, left: 16, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center' },
     heroKicker: { color: '#F5A623', fontSize: 13, fontWeight: '900', letterSpacing: 1.4, marginBottom: 6 },
-    heroTitle: { color: '#fff', fontSize: 34, fontWeight: '900' },
+    heroTitle: { color: '#fff', fontSize: 34, fontFamily: fonts.heading },
     heroMeta: { color: 'rgba(255,255,255,0.82)', fontSize: 14, marginTop: 4 },
     heroMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
     bigCount: { flexDirection: 'row', gap: 10, marginTop: 18 },
     bigBox: { flex: 1, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 14, paddingVertical: 12, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' },
-    bigNum: { color: '#fff', fontSize: 30, fontWeight: '900', fontVariant: ['tabular-nums'] },
+    bigNum: { color: '#fff', fontSize: 30, fontFamily: fonts.heading, fontVariant: ['tabular-nums'] },
     bigLbl: { color: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: '700', marginTop: 2 },
 
     body: { paddingHorizontal: 16, gap: 14, marginTop: 4 },
@@ -419,7 +420,7 @@ function createStyles(colors) {
 
     section: { backgroundColor: colors.card, borderRadius: 18, padding: 16, borderWidth: 1, borderColor: colors.border },
     sectionHead: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-    sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '900' },
+    sectionTitle: { color: colors.text, fontSize: 17, fontFamily: fonts.heading },
     sectionSub: { color: colors.textSecondary, fontSize: 12, marginTop: 2 },
 
     friend: { alignItems: 'center', width: 64 },

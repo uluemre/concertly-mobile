@@ -90,6 +90,15 @@ export function useTheme() {
   return useContext(ThemeContext);
 }
 
+// Başlık fontu (Bricolage Grotesque; Türkçe harflerin hepsi var). Gövde metni
+// sistem fontunda kalır. Özel fontta kalınlık fontun kendisindedir: başlık
+// stillerinde fontWeight yerine bu adlar kullanılır (Android'de fontWeight +
+// özel font sahte kalınlık üretir). Yükleme App.js'te (useFonts).
+export const fonts = {
+  heading: 'BricolageGrotesque_800ExtraBold',
+  headingBold: 'BricolageGrotesque_700Bold',
+};
+
 export const gradients = {
   card1: ['#E94560', '#7C3AED'],
   card2: ['#F5A623', '#E94560'],

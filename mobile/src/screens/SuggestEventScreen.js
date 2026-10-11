@@ -4,7 +4,7 @@ import {
 } from 'react-native';
 import { KeyboardAwareScrollView } from '../components/keyboard';
 import API from '../services/api';
-import { useTheme } from '../theme';
+import { useTheme, fonts } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import CityPicker from '../components/CityPicker';
 import { goBackOrFallback } from '../navigation/navHelpers';
@@ -164,14 +164,14 @@ const createStyles = (colors) =>
     header: { paddingTop: 56, paddingBottom: 28, paddingHorizontal: 20, marginBottom: 24 },
     backButton: {
       alignSelf: 'flex-start',
-      backgroundColor: 'rgba(255,255,255,0.15)',
+      backgroundColor: colors.card,
       paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20,
-      borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
+      borderWidth: 1, borderColor: colors.border,
       marginBottom: 18,
     },
-    backText: { fontSize: 14, color: '#fff', fontWeight: '700' },
-    headerTitle: { fontSize: 26, fontWeight: '900', color: '#fff', marginBottom: 6 },
-    headerSub: { fontSize: 14, color: 'rgba(255,255,255,0.85)', lineHeight: 20 },
+    backText: { fontSize: 14, color: colors.text, fontWeight: '700' },
+    headerTitle: { fontSize: 26, fontFamily: fonts.heading, color: colors.text, marginBottom: 6 },
+    headerSub: { fontSize: 14, color: colors.textSecondary, lineHeight: 20 },
     field: { paddingHorizontal: 20, marginBottom: 18 },
     label: { color: colors.textSecondary, fontSize: 13, fontWeight: '700', marginBottom: 8 },
     input: {

@@ -1,10 +1,13 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { Animated, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../theme';
 
 export default function GenreChip({ genre, emoji, selected, onToggle, index, accentColor }) {
   const scale = useRef(new Animated.Value(0)).current;
   const pulse = useRef(new Animated.Value(1)).current;
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   useEffect(() => {
     Animated.spring(scale, {
@@ -42,7 +45,7 @@ export default function GenreChip({ genre, emoji, selected, onToggle, index, acc
           </Animated.View>
         ) : (
           <Animated.View style={[styles.chip, styles.chipUnselected]}>
-            <Ionicons name="add" size={16} color="#A0A0B0" />
+            <Ionicons name="add" size={16} color={colors.textSecondary} />
             <Text style={[styles.label, styles.labelMuted]}>{genre}</Text>
           </Animated.View>
         )}
@@ -51,7 +54,7 @@ export default function GenreChip({ genre, emoji, selected, onToggle, index, acc
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -63,12 +66,12 @@ const styles = StyleSheet.create({
     margin: 4,
   },
   chipUnselected: {
-    backgroundColor: '#1A1A2E',
-    borderColor: '#2A2A3E',
+    backgroundColor: colors.card,
+    borderColor: colors.border,
   },
   chipSelected: {
     borderColor: 'rgba(255,255,255,0.2)',
   },
   label: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  labelMuted: { color: '#A0A0B0' },
+  labelMuted: { color: colors.textSecondary },
 });

@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../theme';
+import { useTheme, fonts } from '../theme';
 import { ListSkeletonPage } from '../components/SkeletonLoader';
 import API, { getErrorMessage } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -491,7 +491,7 @@ function createStyles(colors) {
     deleteBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
     checkbox: { marginRight: 10 },
     avatarLogo: { backgroundColor: '#0F0F1A' },
-    headerTitle: { fontSize: 26, fontWeight: '900', color: colors.text, letterSpacing: 0.2 },
+    headerTitle: { fontSize: 26, fontFamily: fonts.heading, color: colors.text, letterSpacing: 0.2 },
     listContent: { paddingHorizontal: 16, paddingBottom: 32 },
 
     // Kart satırlar: okunmamış bildirim renkli kenarlık ve hafif vurguyla öne çıkar
@@ -550,7 +550,7 @@ function createStyles(colors) {
     emptyContainer: { flex: 1 },
     empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 100, paddingHorizontal: 40 },
     emptyIcon: { marginBottom: 16 },
-    emptyTitle: { fontSize: 17, fontWeight: '700', color: colors.text, marginBottom: 8 },
+    emptyTitle: { fontSize: 17, fontFamily: fonts.headingBold, color: colors.text, marginBottom: 8 },
     emptySub: { fontSize: 13, color: colors.textSecondary, textAlign: 'center', lineHeight: 20 },
     retryBtn: { marginTop: 18, backgroundColor: colors.primary, paddingHorizontal: 28, paddingVertical: 12, borderRadius: 14 },
     retryBtnText: { color: '#fff', fontSize: 14, fontWeight: '800' },

@@ -6,7 +6,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
-import { useTheme } from '../theme';
+import { useTheme, fonts } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
 import { stopPlayer } from '../utils/audio';
@@ -337,7 +337,7 @@ function createStyles(colors) {
 
     header: { paddingTop: 56, paddingBottom: 18, paddingHorizontal: 20, gap: 8 },
     backText: { fontSize: 16, fontWeight: '600', marginBottom: 4 },
-    headerTitle: { fontSize: 26, fontWeight: '900' },
+    headerTitle: { fontSize: 26, fontFamily: fonts.heading },
     headerSub: { fontSize: 13 },
     searchBar: {
       flexDirection: 'row', alignItems: 'center', gap: 10,
@@ -351,7 +351,7 @@ function createStyles(colors) {
     },
     artistImg: { width: 52, height: 52, borderRadius: 26 },
     artistImgFallback: { backgroundColor: '#7C3AED33', justifyContent: 'center', alignItems: 'center' },
-    artistName: { flex: 1, fontSize: 16, fontWeight: '700' },
+    artistName: { flex: 1, fontSize: 16, fontFamily: fonts.headingBold },
 
     empty: { alignItems: 'center', paddingVertical: 60, paddingHorizontal: 32 },
     emptyEmoji: { marginBottom: 12 },
@@ -385,7 +385,7 @@ function createStyles(colors) {
     // SONUÇ
     resultHeader: { paddingTop: 70, paddingBottom: 24, paddingHorizontal: 24, alignItems: 'center' },
     resultEmoji: { fontSize: 50, marginBottom: 8 },
-    resultTitle: { fontSize: 24, fontWeight: '900' },
+    resultTitle: { fontSize: 24, fontFamily: fonts.heading },
     resultSub: { fontSize: 14, marginTop: 4 },
     resultBtns: { flexDirection: 'row', gap: 12, marginTop: 22, width: '100%' },
     resultBtn: { paddingVertical: 14, borderRadius: 14, alignItems: 'center' },

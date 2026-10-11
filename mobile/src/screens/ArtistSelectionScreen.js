@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CommonActions } from '@react-navigation/native';
-import { useTheme } from '../theme';
+import { useTheme, fonts } from '../theme';
 import API from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -206,9 +206,9 @@ function createStyles(colors) {
     backBtn: { marginBottom: 24 },
     backText: { color: colors.textSecondary, fontSize: 15, fontWeight: '600' },
     stepIndicator: { flexDirection: 'row', gap: 8, marginBottom: 24 },
-    stepDot: { width: 32, height: 4, borderRadius: 2, backgroundColor: '#2A2A3E' },
+    stepDot: { width: 32, height: 4, borderRadius: 2, backgroundColor: colors.border },
     stepDotActive: { backgroundColor: '#E94560', width: 48 },
-    title: { color: colors.text, fontSize: 28, fontWeight: 'bold', marginBottom: 8, lineHeight: 36 },
+    title: { color: colors.text, fontSize: 28, fontFamily: fonts.headingBold, marginBottom: 8, lineHeight: 36 },
     subtitle: { color: colors.textSecondary, fontSize: 14, lineHeight: 20, marginBottom: 16 },
     searchBox: {
       flexDirection: 'row',
@@ -227,7 +227,7 @@ function createStyles(colors) {
     artistRow: { gap: 10, justifyContent: 'space-between' },
     emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 60 },
     emoji: { marginBottom: 12 },
-    emptyTitle: { color: colors.text, fontSize: 16, fontWeight: '800', marginBottom: 6 },
+    emptyTitle: { color: colors.text, fontSize: 16, fontFamily: fonts.heading, marginBottom: 6 },
     emptyText: { color: colors.textSecondary, fontSize: 13, textAlign: 'center', lineHeight: 20 },
     bottomBar: {
       paddingHorizontal: 20,

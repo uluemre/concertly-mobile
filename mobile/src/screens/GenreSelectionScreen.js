@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, Animated, ScrollView
 } from 'react-native';
 import { prefetchRecommendedArtists } from '../services/artists';
-import { useTheme } from '../theme';
+import { useTheme, fonts } from '../theme';
 import GenreChip from '../components/GenreChip';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -135,7 +135,7 @@ export default function GenreSelectionScreen({ navigation, route }) {
               });
             }}
           >
-            <View style={[styles.button, { backgroundColor: canContinue ? '#E94560' : '#2A2A3E' }, !canContinue && styles.buttonDisabled]}>
+            <View style={[styles.button, { backgroundColor: canContinue ? colors.primary : colors.border }, !canContinue && styles.buttonDisabled]}>
               <Text style={[styles.buttonText, !canContinue && styles.buttonTextDisabled]}>
                 {canContinue ? t('genre_continue') : t('genre_need_more')}
               </Text>
@@ -183,7 +183,7 @@ function createStyles(colors) {
       width: 32,
       height: 4,
       borderRadius: 2,
-      backgroundColor: '#2A2A3E',
+      backgroundColor: colors.border,
     },
     stepDotActive: {
       backgroundColor: '#E94560',
@@ -192,7 +192,7 @@ function createStyles(colors) {
     title: {
       color: colors.text,
       fontSize: 32,
-      fontWeight: 'bold',
+      fontFamily: fonts.headingBold,
       marginBottom: 8,
       lineHeight: 40,
     },

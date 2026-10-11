@@ -1,13 +1,16 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../theme';
 
 export default function ArtistCard({ artist, selected, onToggle, index }) {
   const translateY = useRef(new Animated.Value(20)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(1)).current;
   const [imageFailed, setImageFailed] = useState(false);
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   // Giriş animasyonu yalnızca ilk ekrandaki kartlarda sıralı. Eskiden gecikme
   // index * 70 ms'ydi: listenin 50. sanatçısı, veri gelmiş olsa bile ~3,5 sn
@@ -81,11 +84,11 @@ export default function ArtistCard({ artist, selected, onToggle, index }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   card: {
-    backgroundColor: '#1A1A2E',
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: '#2A2A3E',
+    borderColor: colors.border,
     borderRadius: 16,
     padding: 12,
     alignItems: 'center',
@@ -115,14 +118,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 8,
   },
-  avatarFlat: { backgroundColor: '#22223A' },
+  avatarFlat: { backgroundColor: colors.cardAlt },
   avatarText: {
     color: '#E94560',
     fontSize: 28,
     fontWeight: '900',
   },
   name: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 13,
     fontWeight: '800',
     textAlign: 'center',

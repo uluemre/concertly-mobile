@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity,
-  StyleSheet, ActivityIndicator, Image, Alert,
+  StyleSheet, Image, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../theme';
+import { useTheme, fonts } from '../theme';
+import { ListSkeletonPage } from '../components/SkeletonLoader';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useFocusEffect } from '@react-navigation/native';
@@ -167,8 +168,8 @@ export default function FollowListScreen({ route, navigation }) {
 
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={colors.primary} />
+      <View style={[styles.container, { paddingTop: 56 }]}>
+        <ListSkeletonPage rows={8} />
       </View>
     );
   }
@@ -176,7 +177,7 @@ export default function FollowListScreen({ route, navigation }) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.backBtn} accessibilityRole="button" accessibilityLabel={t('back')}>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation)} style={styles.backBtn} accessibilityRole="button" accessibilityLabel={t('a11y_back')}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{title}</Text>
@@ -220,7 +221,7 @@ function createStyles(colors) {
       borderBottomColor: colors.border,
     },
     backBtn: { width: 40, alignItems: 'center' },
-    headerTitle: { fontSize: 18, fontWeight: '700', color: colors.text },
+    headerTitle: { fontSize: 18, fontFamily: fonts.headingBold, color: colors.text },
 
     row: {
       flexDirection: 'row',

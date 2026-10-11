@@ -4,7 +4,7 @@ import {
   Alert, ActivityIndicator, TextInput, RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../theme';
+import { useTheme, fonts } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
 import { goBackOrFallback } from '../navigation/navHelpers';
@@ -129,14 +129,14 @@ export default function AdminUsersScreen({ navigation }) {
                 <Text style={[styles.username, { color: colors.text }]}>@{item.username}</Text>
                 <View style={styles.badges}>
                   {item.isAdmin && (
-                    <View style={[styles.badge, { backgroundColor: '#7C3AED22' }]}>
-                      <Text style={[styles.badgeText, { color: '#7C3AED' }]}>{t('admin_badge_admin')}</Text>
+                    <View style={[styles.badge, { backgroundColor: colors.purple + '22' }]}>
+                      <Text style={[styles.badgeText, { color: colors.purple }]}>{t('admin_badge_admin')}</Text>
                     </View>
                   )}
                   <View style={[styles.badge, {
-                    backgroundColor: isBanned ? '#E9456022' : '#00D4AA22',
+                    backgroundColor: isBanned ? colors.primary + '22' : colors.accent + '22',
                   }]}>
-                    <Text style={[styles.badgeText, { color: isBanned ? '#E94560' : '#00D4AA' }]}>
+                    <Text style={[styles.badgeText, { color: isBanned ? colors.primary : colors.accent }]}>
                       {isBanned ? t('admin_status_banned') : t('admin_status_active')}
                     </Text>
                   </View>
@@ -162,8 +162,8 @@ export default function AdminUsersScreen({ navigation }) {
             <TouchableOpacity
               onPress={() => handleBan(item)}
               style={[styles.actionBtn, {
-                backgroundColor: isBanned ? '#00D4AA18' : '#E9456018',
-                borderColor: isBanned ? '#00D4AA50' : '#E9456050',
+                backgroundColor: isBanned ? colors.accent + '18' : colors.primary + '18',
+                borderColor: isBanned ? colors.accent + '50' : colors.primary + '50',
               }]}
             >
               <Text style={[styles.actionBtnText, { color: isBanned ? '#00D4AA' : '#E94560' }]}>
@@ -173,16 +173,16 @@ export default function AdminUsersScreen({ navigation }) {
             {item.isAdmin ? (
               <TouchableOpacity
                 onPress={() => handleRemoveAdmin(item)}
-                style={[styles.actionBtn, { backgroundColor: '#7C3AED18', borderColor: '#7C3AED50' }]}
+                style={[styles.actionBtn, { backgroundColor: colors.purple + '18', borderColor: colors.purple + '50' }]}
               >
-                <Text style={[styles.actionBtnText, { color: '#7C3AED' }]}>{t('admin_action_remove_admin')}</Text>
+                <Text style={[styles.actionBtnText, { color: colors.purple }]}>{t('admin_action_remove_admin')}</Text>
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
                 onPress={() => handleMakeAdmin(item)}
-                style={[styles.actionBtn, { backgroundColor: '#7C3AED18', borderColor: '#7C3AED50' }]}
+                style={[styles.actionBtn, { backgroundColor: colors.purple + '18', borderColor: colors.purple + '50' }]}
               >
-                <Text style={[styles.actionBtnText, { color: '#7C3AED' }]}>{t('admin_action_make_admin')}</Text>
+                <Text style={[styles.actionBtnText, { color: colors.purple }]}>{t('admin_action_make_admin')}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -270,7 +270,7 @@ function createStyles(colors) {
     container: { flex: 1 },
     header: { paddingTop: 56, paddingBottom: 16, paddingHorizontal: 20, gap: 8 },
     backText: { fontSize: 16, fontWeight: '600', marginBottom: 4 },
-    headerTitle: { fontSize: 26, fontWeight: '900' },
+    headerTitle: { fontSize: 26, fontFamily: fonts.heading },
     headerSub: { fontSize: 12 },
     searchBar: {
       flexDirection: 'row', alignItems: 'center', gap: 10,

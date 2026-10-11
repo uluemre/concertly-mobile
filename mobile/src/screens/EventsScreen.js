@@ -7,7 +7,7 @@ import {
 import { FlashList } from '@shopify/flash-list';
 import { Ionicons } from '@expo/vector-icons';
 import { fetchAllConcerts } from '../services/concerts';
-import { useTheme } from '../theme';
+import { useTheme, fonts } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import AnimatedListItem from '../components/AnimatedListItem';
@@ -373,7 +373,7 @@ export default function EventsScreen({ navigation, route }) {
 
       {/* FİLTRE MODAL */}
       <Modal visible={filterModalVisible} transparent animationType="slide">
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setFilterModalVisible(false)} />
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setFilterModalVisible(false)} accessibilityRole="button" accessibilityLabel={t('close')} />
         <View style={[styles.cityModal, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
             <Text style={[styles.cityModalTitle, { color: colors.text, marginBottom: 0 }]}>{t('events_filter')}</Text>
@@ -439,9 +439,9 @@ export default function EventsScreen({ navigation, route }) {
                 <TouchableOpacity
                   key={opt.key}
                   onPress={() => setSortKey(opt.key)}
-                  style={[styles.chip, { borderColor: active ? '#F5A623' : colors.border, backgroundColor: active ? '#F5A62322' : colors.background }]}
+                  style={[styles.chip, { borderColor: active ? colors.secondary : colors.border, backgroundColor: active ? colors.secondary + '22' : colors.background }]}
                 >
-                  <Text style={[styles.chipText, { color: active ? '#F5A623' : colors.textSecondary }]}>{opt.label}</Text>
+                  <Text style={[styles.chipText, { color: active ? colors.secondary : colors.textSecondary }]}>{opt.label}</Text>
                 </TouchableOpacity>
               );
             })}
@@ -458,7 +458,7 @@ export default function EventsScreen({ navigation, route }) {
 
       {/* ŞEHİR MODAL */}
       <Modal visible={cityModalVisible} transparent animationType="slide">
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setCityModalVisible(false)} />
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setCityModalVisible(false)} accessibilityRole="button" accessibilityLabel={t('close')} />
         <View style={[styles.cityModal, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Text style={[styles.cityModalTitle, { color: colors.text }]}>{t('events_city_select')}</Text>
           <ScrollView showsVerticalScrollIndicator={false}>
@@ -503,7 +503,7 @@ function createStyles(colors) {
     // Dar ekranda (320 px) düğmeler alt satıra iner, taşmaz (N-36)
     headerRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', rowGap: 10, columnGap: 8, marginBottom: 12 },
     headerTitleWrap: { flexShrink: 1 },
-    headerTitle: { fontSize: 22, fontWeight: 'bold', color: colors.text },
+    headerTitle: { fontSize: 22, fontFamily: fonts.headingBold, color: colors.text },
     headerSub: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
 
     headerBtns: { flexDirection: 'row', gap: 8 },
@@ -521,7 +521,7 @@ function createStyles(colors) {
     togglePill: {
       height: 38, paddingHorizontal: 14, borderRadius: 19,
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-      backgroundColor: 'rgba(255,255,255,0.1)',
+      backgroundColor: colors.input,
     },
     toggleText: { fontSize: 13.5, fontWeight: '800', lineHeight: 18, textAlignVertical: 'center', includeFontPadding: false },
 
@@ -555,7 +555,7 @@ function createStyles(colors) {
 
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' },
     cityModal: { borderTopLeftRadius: 24, borderTopRightRadius: 24, borderWidth: 1, padding: 24, paddingBottom: 40, maxHeight: '60%' },
-    cityModalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 16 },
+    cityModalTitle: { fontSize: 18, fontFamily: fonts.headingBold, marginBottom: 16 },
     cityOption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 13, paddingHorizontal: 10, borderRadius: 10, marginBottom: 3 },
     cityOptionText: { fontSize: 15 },
   });

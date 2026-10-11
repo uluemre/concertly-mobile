@@ -6,7 +6,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
-import { useTheme } from '../theme';
+import { useTheme, fonts } from '../theme';
 import { hapticSuccess, hapticError } from '../utils/haptics';
 import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
@@ -210,7 +210,7 @@ export default function DailySongScreen({ navigation }) {
             </Text>
           </View>
           {game.streak > 0 && (
-            <View style={[styles.streakPill, { backgroundColor: '#F5A62322', borderColor: '#F5A62360' }]}>
+            <View style={[styles.streakPill, { backgroundColor: colors.secondary + '22', borderColor: colors.secondary + '60' }]}>
               <Text style={styles.streakText}>{t('daily_streak', { count: game.streak })}</Text>
             </View>
           )}
@@ -226,11 +226,11 @@ export default function DailySongScreen({ navigation }) {
               styles.attemptBox,
               { borderColor: colors.border, backgroundColor: colors.card },
               s === 'wrong' && { backgroundColor: '#E9456030', borderColor: '#E94560' },
-              s === 'solved' && { backgroundColor: '#00D4AA30', borderColor: '#00D4AA' },
+              s === 'solved' && { backgroundColor: colors.accent + '30', borderColor: colors.accent },
             ]}
           >
             {s === 'wrong' ? <Ionicons name="close" size={16} color="#E94560" />
-              : s === 'solved' ? <Ionicons name="checkmark" size={16} color="#00D4AA" /> : null}
+              : s === 'solved' ? <Ionicons name="checkmark" size={16} color={colors.accent} /> : null}
           </View>
         ))}
       </View>
@@ -370,10 +370,10 @@ function createStyles(colors) {
     header: { paddingTop: 56, paddingBottom: 18, paddingHorizontal: 20, gap: 10 },
     backText: { fontSize: 16, fontWeight: '600' },
     headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    headerTitle: { fontSize: 24, fontWeight: '900' },
+    headerTitle: { fontSize: 24, fontFamily: fonts.heading },
     headerDay: { fontSize: 13, marginTop: 2 },
     streakPill: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, borderWidth: 1 },
-    streakText: { color: '#F5A623', fontSize: 13, fontWeight: '800' },
+    streakText: { color: colors.secondary, fontSize: 13, fontWeight: '800' },
 
     attemptRow: { flexDirection: 'row', justifyContent: 'center', gap: 10, marginTop: 22 },
     attemptBox: {
@@ -413,7 +413,7 @@ function createStyles(colors) {
 
     resultArea: { alignItems: 'center', paddingHorizontal: 24, marginTop: 26, gap: 14 },
     resultEmoji: { fontSize: 54 },
-    resultTitle: { fontSize: 24, fontWeight: '900' },
+    resultTitle: { fontSize: 24, fontFamily: fonts.heading },
     resultSub: { fontSize: 14, marginTop: -6 },
     answerCard: {
       flexDirection: 'row', alignItems: 'center', gap: 14,

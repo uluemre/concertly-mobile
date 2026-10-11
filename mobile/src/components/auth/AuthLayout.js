@@ -7,7 +7,7 @@ import {
 import { KeyboardAwareScrollView } from '../keyboard';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTheme } from '../../theme';
+import { useTheme, fonts } from '../../theme';
 
 export default function AuthLayout({
   title, subtitle, icon, showLogo = false, onBack, backLabel, children, footer,
@@ -100,7 +100,7 @@ function createStyles(colors) {
       backgroundColor: colors.primary,
     },
     title: {
-      fontSize: 26, fontWeight: '800', color: colors.text,
+      fontSize: 26, fontFamily: fonts.heading, color: colors.text,
       textAlign: 'center', marginBottom: 6,
     },
     subtitle: {

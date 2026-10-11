@@ -6,7 +6,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
-import { useTheme } from '../theme';
+import { useTheme, fonts } from '../theme';
 import { hapticSuccess, hapticError } from '../utils/haptics';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -481,7 +481,7 @@ export default function SongQuizScreen({ navigation }) {
               styles.lbRow,
               { backgroundColor: colors.card, borderColor: isMe ? colors.primary : colors.border },
             ]}>
-              <Text style={[styles.lbRank, { color: index < 3 ? '#F5A623' : colors.textSecondary }]}>
+              <Text style={[styles.lbRank, { color: index < 3 ? colors.secondary : colors.textSecondary }]}>
                 {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`}
               </Text>
               <Text style={[styles.lbName, { color: isMe ? colors.primary : colors.text }]} numberOfLines={1}>
@@ -507,7 +507,7 @@ function createStyles(colors) {
 
     header: { paddingTop: 56, paddingBottom: 18, paddingHorizontal: 20, gap: 8 },
     backText: { fontSize: 16, fontWeight: '600', marginBottom: 4 },
-    headerTitle: { fontSize: 26, fontWeight: '900' },
+    headerTitle: { fontSize: 26, fontFamily: fonts.heading },
     headerSub: { fontSize: 13 },
     searchBar: {
       flexDirection: 'row', alignItems: 'center', gap: 10,
@@ -521,7 +521,7 @@ function createStyles(colors) {
     },
     artistImg: { width: 52, height: 52, borderRadius: 26 },
     artistImgFallback: { backgroundColor: '#7C3AED33', justifyContent: 'center', alignItems: 'center' },
-    artistName: { flex: 1, fontSize: 16, fontWeight: '700' },
+    artistName: { flex: 1, fontSize: 16, fontFamily: fonts.headingBold },
 
     empty: { alignItems: 'center', paddingVertical: 60, paddingHorizontal: 32 },
     emptyEmoji: { marginBottom: 12 },
@@ -552,7 +552,7 @@ function createStyles(colors) {
     // SONUÇ
     resultHeader: { paddingTop: 70, paddingBottom: 26, paddingHorizontal: 24, alignItems: 'center' },
     resultEmoji: { fontSize: 52, marginBottom: 8 },
-    resultTitle: { fontSize: 24, fontWeight: '900' },
+    resultTitle: { fontSize: 24, fontFamily: fonts.heading },
     resultArtist: { fontSize: 14, marginTop: 4 },
     resultScore: { fontSize: 56, fontWeight: '900', marginTop: 14, letterSpacing: -1 },
     resultRank: { fontSize: 16, fontWeight: '700', marginTop: 4 },

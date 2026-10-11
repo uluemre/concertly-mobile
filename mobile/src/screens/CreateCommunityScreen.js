@@ -6,7 +6,7 @@ import {
 import { KeyboardAwareScrollView } from '../components/keyboard';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../theme';
+import { useTheme, fonts } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import { communityTypeLabel } from '../utils/communityType';
 import { useAuth } from '../context/AuthContext';
@@ -310,7 +310,7 @@ function createStyles(colors) {
     backButton: { alignSelf: 'flex-start', marginBottom: 8 },
     backText: { color: '#fff', fontSize: 14, fontWeight: '800' },
     heroEmoji: { fontSize: 48, marginBottom: 8 },
-    heroTitle: { color: '#fff', fontSize: 22, fontWeight: '900', textAlign: 'center' },
+    heroTitle: { color: '#fff', fontSize: 22, fontFamily: fonts.heading, textAlign: 'center' },
     label: {
       color: colors.textSecondary, fontSize: 12, fontWeight: '800',
       letterSpacing: 0.5,

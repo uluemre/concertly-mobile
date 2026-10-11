@@ -5,7 +5,7 @@ import {
   RefreshControl, KeyboardAvoidingView, Platform, Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../theme';
+import { useTheme, fonts } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
 import { parseEventDate } from '../utils/time';
@@ -215,8 +215,8 @@ export default function AdminEventsScreen({ navigation, route }) {
     const status = item.cancelled
       ? { color: colors.primary, label: t('event_cancelled_badge') }
       : item.isApproved
-        ? { color: '#00D4AA', label: t('admin_status_approved_label') }
-        : { color: '#F5A623', label: t('admin_status_pending_label') };
+        ? { color: colors.accent, label: t('admin_status_approved_label') }
+        : { color: colors.secondary, label: t('admin_status_pending_label') };
     return (
     <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
       {/* STATUS STRIP */}
@@ -253,9 +253,9 @@ export default function AdminEventsScreen({ navigation, route }) {
           {!item.isApproved && !item.cancelled && (
             <TouchableOpacity
               onPress={() => handleApprove(item)}
-              style={[styles.actionBtn, { backgroundColor: '#00D4AA20', borderColor: '#00D4AA50' }]}
+              style={[styles.actionBtn, { backgroundColor: colors.accent + '20', borderColor: colors.accent + '50' }]}
             >
-              <Text style={[styles.actionBtnText, { color: '#00D4AA' }]}>{t('admin_action_approve')}</Text>
+              <Text style={[styles.actionBtnText, { color: colors.accent }]}>{t('admin_action_approve')}</Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity
@@ -269,7 +269,7 @@ export default function AdminEventsScreen({ navigation, route }) {
               onPress={() => handleCancelToggle(item)}
               style={[styles.actionBtn, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}
             >
-              <Text style={[styles.actionBtnText, { color: item.cancelled ? '#00D4AA' : '#F5A623' }]}>
+              <Text style={[styles.actionBtnText, { color: item.cancelled ? colors.accent : colors.secondary }]}>
                 {item.cancelled ? t('admin_uncancel_event') : t('admin_cancel_event')}
               </Text>
             </TouchableOpacity>
@@ -419,7 +419,7 @@ function createStyles(colors) {
     header: { paddingTop: 56, paddingBottom: 16, paddingHorizontal: 20, gap: 12 },
     backText: { fontSize: 16, fontWeight: '600', marginBottom: 4 },
     headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    headerTitle: { fontSize: 26, fontWeight: '900' },
+    headerTitle: { fontSize: 26, fontFamily: fonts.heading },
     headerSub: { fontSize: 12, marginTop: 2 },
     addBtn: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12 },
     addBtnText: { color: '#fff', fontWeight: '800', fontSize: 14 },
@@ -471,7 +471,7 @@ function createStyles(colors) {
       borderWidth: 1, padding: 24, maxHeight: '92%',
     },
     modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-    modalTitle: { fontSize: 19, fontWeight: '800' },
+    modalTitle: { fontSize: 19, fontFamily: fonts.heading },
     fieldLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 0.5, marginBottom: 6, marginTop: 12 },
     input: { borderWidth: 1, borderRadius: 12, padding: 13, fontSize: 14 },
     modalBtns: { flexDirection: 'row', gap: 12, marginTop: 24, marginBottom: 8 },
