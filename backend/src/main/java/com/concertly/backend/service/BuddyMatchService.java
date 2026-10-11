@@ -28,6 +28,10 @@ import java.util.stream.Collectors;
 public class BuddyMatchService {
 
     static final int MAX_CARDS = 50;
+    static final int MAX_CARD_CONCERTS = 6;
+    static final int MAX_CARD_ARTISTS = 10;
+    /** Kaydırmayı geri alma penceresi (dakika). */
+    static final int UNDO_WINDOW_MINUTES = 10;
     private static final int MAX_MY_EVENTS = 30;
     private static final int MAX_REASON_ITEMS = 3;
 
@@ -87,7 +91,8 @@ public class BuddyMatchService {
         // Konser başına arkadaş arayan diğer kişiler (sayaç + kart adayları)
         List<ConcertBuddy> others = myEventsById.isEmpty() ? List.of()
                 : buddyRepository.findForEvents(myEventsById.keySet()).stream()
-                .filter(b -> !b.getUser().getId().equals(myId) && !hidden.contains(b.getUser().getId()))
+                .filter(b -> !b.getUser().getId().equals(myId) && !hidden.contains(b.getUser().getId())
+                        && isActive(b.getUser()))
                 .toList();
         Map<Long, Long> lookingCount = others.stream()
                 .collect(Collectors.groupingBy(b -> b.getEvent().getId(), Collectors.counting()));
@@ -145,6 +150,15 @@ public class BuddyMatchService {
             card.put("sharedGenres", c.sharedGenres);
             card.put("sameCity", c.sameCity);
             card.put("pastConcertsTogether", c.pastConcertsTogether);
+            // Tam ekran kartın detayları: son gittiği konserler ve sevdiği sanatçılar
+            // (gizli hesapta boş; Profile.EMPTY)
+            card.put("recentConcerts", them.wentEvents.stream()
+                    .filter(e -> e.getEventDate() != null && e.listedPublicly())
+                    .sorted(Comparator.comparing(Event::getEventDate).reversed())
+                    .limit(MAX_CARD_CONCERTS)
+                    .map(this::eventMap)
+                    .toList());
+            card.put("topArtists", topArtists(them, c.sharedArtists));
             cards.add(card);
         }
         // Beni beğenenler önce (eşleşme şansı yüksek), sonra uyum, sonra ortak konser sayısı
@@ -178,7 +192,16 @@ public class BuddyMatchService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "BUDDY_NOT_ELIGIBLE");
         }
 
+        // Aynı çift için işlem boyunca kilit: karşılıklı eşzamanlı beğenide ikinci istek birincinin
+        // kaydını görür; tam bir taraf matched=true alır ve bildirim bir kez gider. Aynı kişinin
+        // yinelenen isteği de burada sıralanır (upsert tek satırda kalır).
+        swipeRepository.lockPair(pairLockKey(myId, targetId));
+        if (liked && swipeRepository.existsUnmatchedBetween(myId, targetId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "BUDDY_UNMATCHED");
+        }
+
         BuddySwipe swipe = swipeRepository.findBySwiperIdAndTargetId(myId, targetId).orElse(new BuddySwipe());
+        boolean alreadyLiked = swipe.isLiked();
         swipe.setSwiperId(myId);
         swipe.setTargetId(targetId);
         swipe.setLiked(liked);
@@ -196,16 +219,28 @@ public class BuddyMatchService {
                 m.put("sharedEvents", sharedLookingEvents(myId, targetId).stream().map(this::eventMap).toList());
                 result.put("matchedUser", m);
             });
-            // Önce beğenen taraf eşleşmeyi bilmiyordu: ona bildirim (uygulama kapalıysa push)
-            notificationService.send(targetId, myId, "buddy_match", "buddy", myId);
+            // Önce beğenen taraf eşleşmeyi bilmiyordu: ona bildirim (uygulama kapalıysa push).
+            // Aynı beğeninin tekrarında yeniden bildirim gitmez.
+            if (!alreadyLiked) {
+                notificationService.send(targetId, myId, "buddy_match", "buddy", myId);
+            }
         }
         return result;
     }
 
-    /** Son kaydırmayı geri alır; kurulmuş eşleşme geri alınamaz (eşleşmeyi kaldır kullanılır). */
+    /**
+     * Son kaydırmayı geri alır; kurulmuş eşleşme geri alınamaz (eşleşmeyi kaldır kullanılır).
+     * Yalnız son 10 dakikadaki ve kaldırılmamış kaydırma: aksi halde kaldırma işareti undo ile
+     * silinip sohbet yeniden açılabilirdi → 400 UNDO_EXPIRED.
+     */
     @Transactional
     public void undo(Long myId, Long targetId) {
         swipeRepository.findBySwiperIdAndTargetId(myId, targetId).ifPresent(s -> {
+            boolean expired = s.getCreatedAt() == null
+                    || s.getCreatedAt().isBefore(LocalDateTime.now().minusMinutes(UNDO_WINDOW_MINUTES));
+            if (s.getUnmatchedAt() != null || expired || swipeRepository.existsUnmatchedBetween(myId, targetId)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "UNDO_EXPIRED");
+            }
             if (s.isLiked() && swipeRepository.existsBySwiperIdAndTargetIdAndLikedTrue(targetId, myId)) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "BUDDY_ALREADY_MATCHED");
             }
@@ -213,10 +248,18 @@ public class BuddyMatchService {
         });
     }
 
-    /** Eşleşmeyi kaldırır: benim beğenim geri çekilir, kişi desteye de dönmez. */
+    /**
+     * Eşleşmeyi kaldırır: benim beğenim geri çekilir, kişi desteye de dönmez. Kurulmuş bir eşleşme
+     * kaldırılıyorsa çift kalıcı olarak "kaldırıldı" işaretlenir (sohbet iki yönde kapanır,
+     * geçmiş mesajlar silinmez; kaydırma geri alınamaz).
+     */
     @Transactional
     public void unmatch(Long myId, Long targetId) {
         swipeRepository.findBySwiperIdAndTargetId(myId, targetId).ifPresent(s -> {
+            if (s.getUnmatchedAt() == null && s.isLiked()
+                    && swipeRepository.existsBySwiperIdAndTargetIdAndLikedTrue(targetId, myId)) {
+                s.setUnmatchedAt(LocalDateTime.now());
+            }
             s.setLiked(false);
             swipeRepository.save(s);
         });
@@ -236,7 +279,8 @@ public class BuddyMatchService {
             Long uid = theirs.getSwiperId();
             BuddySwipe mine = iLiked.get(uid);
             if (mine == null || uid.equals(myId) || hidden.contains(uid)) continue;
-            userRepository.findById(uid).ifPresent(u -> {
+            if (mine.getUnmatchedAt() != null || theirs.getUnmatchedAt() != null) continue;
+            userRepository.findById(uid).filter(BuddyMatchService::isActive).ifPresent(u -> {
                 Map<String, Object> m = new LinkedHashMap<>();
                 m.put("userId", u.getId());
                 m.put("username", u.getUsername());
@@ -257,8 +301,13 @@ public class BuddyMatchService {
     // ── Uyum ─────────────────────────────────────────────────────────────────
 
     /** Bir kişinin uyum hesabında kullanılan bilgileri. */
-    record Profile(Map<Long, String> artists, Set<String> genres, String cityKey, Set<Long> wentEventIds) {
+    record Profile(Map<Long, String> artists, Set<String> genres, String cityKey, Set<Long> wentEventIds,
+                   List<Event> wentEvents) {
         static final Profile EMPTY = new Profile(Map.of(), Set.of(), null, Set.of());
+
+        Profile(Map<Long, String> artists, Set<String> genres, String cityKey, Set<Long> wentEventIds) {
+            this(artists, genres, cityKey, wentEventIds, List.of());
+        }
     }
 
     record Compatibility(int score, List<String> sharedArtists, List<String> sharedGenres,
@@ -288,6 +337,15 @@ public class BuddyMatchService {
                 sameCity, together);
     }
 
+    /** Önce ortak sanatçılar, sonra diğerleri alfabetik; en çok MAX_CARD_ARTISTS. */
+    static List<String> topArtists(Profile p, List<String> shared) {
+        List<String> out = new ArrayList<>(shared);
+        p.artists.values().stream().distinct().sorted()
+                .filter(n -> !out.contains(n))
+                .forEach(out::add);
+        return out.subList(0, Math.min(MAX_CARD_ARTISTS, out.size()));
+    }
+
     private Profile profileOf(User u) {
         if (u == null) return Profile.EMPTY;
         Map<Long, String> artists = new HashMap<>();
@@ -295,13 +353,14 @@ public class BuddyMatchService {
             if (f.getArtist() != null) artists.put(f.getArtist().getId(), f.getArtist().getName());
         });
         Set<Long> went = new HashSet<>();
+        List<Event> wentEvents = new ArrayList<>();
         attendanceRepository.findByUserIdAndStatus(u.getId(), AttendanceStatus.WENT).forEach(ea -> {
             Event e = ea.getEvent();
-            if (e == null) return;
-            went.add(e.getId());
+            if (e == null || !went.add(e.getId())) return;
+            wentEvents.add(e);
             if (e.getArtist() != null) artists.putIfAbsent(e.getArtist().getId(), e.getArtist().getName());
         });
-        return new Profile(artists, genresOf(u.getFavoriteGenres()), ConcertAttendanceService.cityKey(u.getCity()), went);
+        return new Profile(artists, genresOf(u.getFavoriteGenres()), ConcertAttendanceService.cityKey(u.getCity()), went, wentEvents);
     }
 
     static Set<String> genresOf(String csv) {
@@ -313,6 +372,17 @@ public class BuddyMatchService {
     }
 
     // ── Yardımcılar ──────────────────────────────────────────────────────────
+
+    /** Pasif (yasaklı/kapatılmış) hesaplar deste ve eşleşmelerde görünmez. */
+    static boolean isActive(User u) {
+        return u != null && !Boolean.FALSE.equals(u.getIsActive());
+    }
+
+    /** İki kullanıcı için simetrik danışma kilidi anahtarı. */
+    static long pairLockKey(Long a, Long b) {
+        long lo = Math.min(a, b), hi = Math.max(a, b);
+        return (lo << 32) ^ hi;
+    }
 
     /** İkisinin de arkadaş aradığı yaklaşan konserler. */
     private List<Event> sharedLookingEvents(Long a, Long b) {

@@ -446,8 +446,10 @@ class PrivateAccountTest {
         verify(votes, never()).delete(any());
         verify(notifications, never()).send(any(), any(), eq("like"), any(), any());
 
+        // Beğeni artık yarış güvenli tek INSERT ... ON CONFLICT DO NOTHING ile yazılır (save yerine)
+        when(likes.insertIfAbsent((long) FOLLOWER, 100L)).thenReturn(1);
         s.likePost(FOLLOWER, 100L); // kabul edilmiş takipçi beğenebilir
-        verify(likes).save(any(Like.class));
+        verify(likes).insertIfAbsent((long) FOLLOWER, 100L);
         verify(notifications).send(eq((long) OWNER), eq((long) FOLLOWER), eq("like"), eq("post"), eq(100L));
     }
 

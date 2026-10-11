@@ -24,9 +24,22 @@ public class MessageController {
     @ResponseStatus(HttpStatus.CREATED)
     public MessageResponse send(@RequestBody Map<String, Object> body) {
         Long myId = JwtUtil.getCurrentUserId();
-        Long receiverId = Long.valueOf(body.get("receiverId").toString());
+        Object rawReceiver = body == null ? null : body.get("receiverId");
+        if (rawReceiver == null) throw new IllegalArgumentException("receiverId zorunlu.");
+        Long receiverId;
+        try {
+            receiverId = Long.valueOf(rawReceiver.toString());
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Geçersiz receiverId.");
+        }
         String content = body.get("content") != null ? body.get("content").toString() : null;
         return messageService.send(myId, receiverId, content);
+    }
+
+    /** Sohbet bu kişiyle açık mı? { canMessage, reason: BUDDY_UNMATCHED | BLOCKED | PRIVACY | null } */
+    @GetMapping("/status/{otherId}")
+    public Map<String, Object> status(@PathVariable Long otherId) {
+        return messageService.status(JwtUtil.getCurrentUserId(), otherId);
     }
 
     @GetMapping("/conversations")

@@ -80,6 +80,8 @@ public class SecurityConfig {
                         // Kendi önerilerim — kullanıcıya özel, genel GET /api/events/**
                         // permitAll kuralından ÖNCE gelmeli.
                         .requestMatchers(HttpMethod.GET, "/api/events/suggestions/me").authenticated()
+                        // Konser arkadaşı listesi (kullanıcı adı/şehir/mesaj) anonim kazınamaz
+                        .requestMatchers(HttpMethod.GET, "/api/events/*/buddies").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/events/**").permitAll()
                         // Spotify OAuth dönüşü tarayıcıdan gelir, Bearer taşımaz; kullanıcı imzalı
                         // state ile doğrulanır (SpotifyUserService.verifyState).

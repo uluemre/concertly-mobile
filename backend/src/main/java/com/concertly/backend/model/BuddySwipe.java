@@ -24,6 +24,10 @@ public class BuddySwipe {
 
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    /** Eşleşme kaldırıldı (kalıcı): çift bundan sonra mesajlaşamaz, kaydırma geri alınamaz. */
+    @Column(name = "unmatched_at")
+    private LocalDateTime unmatchedAt;
+
     public Long getId() { return id; }
     public Long getSwiperId() { return swiperId; }
     public void setSwiperId(Long swiperId) { this.swiperId = swiperId; }
@@ -32,4 +36,6 @@ public class BuddySwipe {
     public boolean isLiked() { return liked; }
     public void setLiked(boolean liked) { this.liked = liked; }
     public LocalDateTime getCreatedAt() { return createdAt; }
+    public LocalDateTime getUnmatchedAt() { return unmatchedAt; }
+    public void setUnmatchedAt(LocalDateTime unmatchedAt) { this.unmatchedAt = unmatchedAt; }
 }

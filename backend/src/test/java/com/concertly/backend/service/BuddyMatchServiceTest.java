@@ -163,6 +163,15 @@ class BuddyMatchServiceTest {
         assertEquals(Set.of("rock", "pop"), BuddyMatchService.genresOf(" Rock, Pop ,"));
     }
 
+    @Test
+    void topArtistsListSharedFirstThenAlphabetical() {
+        BuddyMatchService.Profile b = new BuddyMatchService.Profile(
+                Map.of(1L, "Duman", 3L, "Mor ve Ötesi", 4L, "Tarkan", 5L, "Athena"), Set.of(), null, Set.of());
+        assertEquals(List.of("Mor ve Ötesi", "Athena", "Duman", "Tarkan"),
+                BuddyMatchService.topArtists(b, List.of("Mor ve Ötesi")));
+        assertEquals(List.of(), BuddyMatchService.topArtists(BuddyMatchService.Profile.EMPTY, List.of()));
+    }
+
     // ── Kaydırma ─────────────────────────────────────────────────────────────
 
     @Test

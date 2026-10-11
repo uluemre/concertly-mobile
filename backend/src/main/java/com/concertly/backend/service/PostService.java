@@ -36,6 +36,14 @@ public class PostService {
     private final ContentLimitService contentLimitService;
     private final PrivacyService privacyService;
 
+    /** Yapılandırılmışsa R2 public adresi (görsel adresi doğrulamasında kabul edilen ikinci önek). */
+    @org.springframework.beans.factory.annotation.Value("${app.storage.r2.public-url:}")
+    private String r2PublicUrl = "";
+
+    /** Akış sayfa boyutu üst sınırı. */
+    static final int MAX_FEED_SIZE = 50;
+    static final java.util.Set<String> POST_TYPES = java.util.Set.of("TEXT", "IMAGE", "POLL");
+
     public PostService(PostRepository postRepository,
                        UserRepository userRepository,
                        EventRepository eventRepository,
@@ -134,6 +142,8 @@ public class PostService {
     @Transactional
     public PostResponse createPost(Long userId, CreatePostRequest request) {
         ContentLimits.check(request.getContent(), ContentLimits.POST_MAX);
+        String postType = request.getPostType() != null ? request.getPostType() : "TEXT";
+        validateNewPost(postType, request);
         contentLimitService.checkPost(userId);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -149,10 +159,10 @@ public class PostService {
         }
 
         Post post = new Post();
-        post.setContent(request.getContent());
+        post.setContent(request.getContent() != null ? request.getContent() : "");
         post.setUser(user);
         post.setEvent(event);
-        post.setPostType(request.getPostType() != null ? request.getPostType() : "TEXT");
+        post.setPostType(postType);
 
         if ("IMAGE".equals(post.getPostType())) {
             post.setImageUrl(request.getImageUrl());
@@ -173,6 +183,48 @@ public class PostService {
 
         badgeService.checkAndAwardBadges(userId);
         return toResponse(saved, userId);
+    }
+
+    /**
+     * Gönderi türü, anket ve görsel kuralları (sunucuda zorlanır; mobil doğrulaması tek başına yetmez).
+     * Yazısız görsel gönderisi geçerlidir; TEXT ve POLL için içerik zorunlu.
+     */
+    private void validateNewPost(String postType, CreatePostRequest request) {
+        if (!POST_TYPES.contains(postType)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "POST_TYPE_INVALID");
+        }
+        boolean blank = request.getContent() == null || request.getContent().isBlank();
+        if (blank && !"IMAGE".equals(postType)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "CONTENT_EMPTY");
+        }
+        if ("POLL".equals(postType)) {
+            List<String> filled = request.getPollOptions() == null ? List.of()
+                    : request.getPollOptions().stream().filter(o -> o != null && !o.isBlank()).toList();
+            if (filled.size() < 2) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "POLL_TOO_FEW_OPTIONS");
+            }
+            if (filled.size() > ContentLimits.POLL_OPTIONS_MAX) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "POLL_TOO_MANY_OPTIONS");
+            }
+            for (String o : filled) {
+                if (o.trim().length() > ContentLimits.POLL_OPTION_TEXT_MAX) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "POLL_OPTION_TOO_LONG");
+                }
+            }
+        }
+        if ("IMAGE".equals(postType) && !isAllowedImageUrl(request.getImageUrl())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "INVALID_IMAGE_URL");
+        }
+    }
+
+    /** Yalnız /media/upload'dan dönen göreli yol ya da yapılandırılmış R2 public adresi. */
+    boolean isAllowedImageUrl(String url) {
+        if (url == null || url.isBlank() || url.contains("..")) return false;
+        if (url.startsWith("/uploads/")) return true;
+        String r2 = r2PublicUrl == null ? "" : r2PublicUrl.trim();
+        if (r2.isEmpty()) return false;
+        String prefix = r2.endsWith("/") ? r2 : r2 + "/";
+        return url.startsWith(prefix);
     }
 
     /**
@@ -226,6 +278,7 @@ public class PostService {
     @Transactional(readOnly = true)
     public List<PostResponse> getTrendingFeed(Long currentUserId, int page, int size) {
         if (page < 0 || size <= 0) return List.of();
+        size = Math.min(size, MAX_FEED_SIZE);
         Set<Long> hidden = moderationService.getHiddenUserIds(currentUserId);
         // Özel hesapların gönderileri (izleyici kabul edilmiş takipçi/kendisi/admin değilse) sorguda elenir;
         // aday penceresi (TRENDING_WINDOW) yalnızca görünebilir gönderilerle dolar, sayfalar kısalmaz.
@@ -237,6 +290,7 @@ public class PostService {
         List<Post> candidates = windowPosts
                 .stream()
                 .filter(p -> !p.getIsHidden())
+                .filter(p -> p.getUser() == null || !Boolean.FALSE.equals(p.getUser().getIsActive()))
                 .filter(p -> p.getUser() == null || !hidden.contains(p.getUser().getId()))
                 .toList();
         if (candidates.isEmpty()) return List.of();
@@ -268,6 +322,7 @@ public class PostService {
             throw new ResourceNotFoundException("Kullanıcı bulunamadı: " + userId);
         }
 
+        size = Math.min(size, MAX_FEED_SIZE);
         Set<Long> hidden = new java.util.HashSet<>(moderationService.getHiddenUserIds(userId));
         hidden.add(-1L); // boş NOT IN listesi olmasın
         List<Post> posts = postRepository.getFollowingFeed(userId, hidden, PageRequest.of(page, size));
@@ -279,24 +334,24 @@ public class PostService {
     public List<PollOptionDto> votePoll(Long userId, Long postId, Long optionId) {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new ResourceNotFoundException("Kullanıcı bulunamadı: " + userId));
+        // Gizli / engelli / özel hesabın göremediği gönderiye oy verilemez (SEC-05)
+        Post post = postRepository.findById(postId)
+            .orElseThrow(() -> new ResourceNotFoundException("Post bulunamadı: " + postId));
+        requireViewable(post, userId);
         PollOption option = pollOptionRepository.findById(optionId)
             .orElseThrow(() -> new ResourceNotFoundException("Seçenek bulunamadı: " + optionId));
-        // Gizli / engelli / özel hesabın göremediği gönderiye oy verilemez (SEC-05)
-        Post votedPost = postRepository.findById(postId)
-            .orElseThrow(() -> new ResourceNotFoundException("Post bulunamadı: " + postId));
-        requireViewable(votedPost, userId);
+        // Seçenek bu gönderiye ait olmalı ve gönderi anket olmalı (başka gönderinin seçeneğiyle oy atılamaz)
+        if (!"POLL".equals(post.getPostType()) || option.getPost() == null
+                || !postId.equals(option.getPost().getId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "POLL_OPTION_INVALID");
+        }
 
-        // Önceki oyu sil
-        pollVoteRepository.findByUserIdAndPostId(userId, postId).ifPresent(pollVoteRepository::delete);
-
-        PollVote vote = new PollVote();
+        // Upsert: kullanıcı başına gönderi başına tek oy; varsa seçeneği değişir
+        PollVote vote = pollVoteRepository.findByUserIdAndPostId(userId, postId).orElseGet(PollVote::new);
         vote.setUser(user);
         vote.setPollOption(option);
         vote.setPostId(postId);
         pollVoteRepository.save(vote);
-
-        Post post = postRepository.findById(postId)
-            .orElseThrow(() -> new ResourceNotFoundException("Post bulunamadı: " + postId));
 
         return post.getPollOptions().stream()
             .map(o -> PollOptionDto.of(
@@ -308,7 +363,8 @@ public class PostService {
             .collect(Collectors.toList());
     }
 
-    // ✅ LIKE
+    // ✅ LIKE — idempotent: zaten beğenilmişse (ya da yarışta kaybedildiyse) sessizce 204
+    @Transactional
     public void likePost(Long userId, Long postId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -320,14 +376,12 @@ public class PostService {
         requireViewable(post, userId); // reddedilirse bildirim de gitmez
 
         if (likeRepository.findByUserIdAndPostId(userId, postId).isPresent()) {
-            throw new AlreadyExistsException("Bu postu zaten beğendiniz.");
+            return;
         }
-
-        Like like = new Like();
-        like.setUser(user);
-        like.setPost(post);
-
-        likeRepository.save(like);
+        // Eşzamanlı iki istekte unique ihlali fırlatmadan tek kayıt: 0 dönerse bu istek kaybetti
+        if (likeRepository.insertIfAbsent(user.getId(), post.getId()) == 0) {
+            return;
+        }
         notificationService.send(post.getUser().getId(), userId, "like", "post", postId);
     }
 
@@ -353,25 +407,24 @@ public class PostService {
         if (!post.getUser().getId().equals(userId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bu postu düzenleyemezsiniz.");
         }
+        // Metin/anket gönderisi boşaltılamaz; yazısız görsel gönderisinin metni boşaltılabilir
+        if (content == null || (content.isBlank() && !"IMAGE".equals(post.getPostType()))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "CONTENT_EMPTY");
+        }
         ContentLimits.check(content, ContentLimits.POST_MAX);
         post.setContent(content);
         post.setUpdatedAt(LocalDateTime.now());
         return toResponse(postRepository.save(post), userId);
     }
 
-    // ✅ UNLIKE
+    // ✅ UNLIKE — idempotent: beğeni yoksa da 204
+    @Transactional
     public void unlikePost(Long userId, Long postId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Post bulunamadı: " + postId));
         requireViewable(post, userId);
 
-        Like like = likeRepository.findByUserIdAndPostId(userId, postId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Bu post daha önce beğenilmemiş."));
-
-        likeRepository.delete(like);
-
-        // ❌ likeCount yok artık
+        likeRepository.findByUserIdAndPostId(userId, postId).ifPresent(likeRepository::delete);
     }
 }

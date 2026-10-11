@@ -5,6 +5,7 @@ import com.concertly.backend.dto.response.BlockedUserResponse;
 import com.concertly.backend.security.JwtUtil;
 import com.concertly.backend.service.CommunityService;
 import com.concertly.backend.service.ModerationService;
+import com.concertly.backend.service.ReportTargetValidator;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,10 +18,13 @@ public class ModerationController {
 
     private final ModerationService moderationService;
     private final CommunityService communityService;
+    private final ReportTargetValidator reportTargetValidator;
 
-    public ModerationController(ModerationService moderationService, CommunityService communityService) {
+    public ModerationController(ModerationService moderationService, CommunityService communityService,
+                                ReportTargetValidator reportTargetValidator) {
         this.moderationService = moderationService;
         this.communityService = communityService;
+        this.reportTargetValidator = reportTargetValidator;
     }
 
     // POST /api/reports  { targetType, targetId, reason }
@@ -33,6 +37,8 @@ public class ModerationController {
         // Tür bir kez trim+büyük harf yapılır; doğrulama ve kayıt aynı değeri kullanır
         String targetType = request.getTargetType() == null ? null
                 : request.getTargetType().trim().toUpperCase(java.util.Locale.ROOT);
+        // Tür beyaz listesi + hedef varlığı (404) + neden uzunluğu
+        reportTargetValidator.validate(targetType, request.getTargetId(), request.getReason());
         communityService.requireCanReportCommunityContent(reporterId, targetType, request.getTargetId());
         moderationService.report(reporterId, targetType, request.getTargetId(), request.getReason());
     }

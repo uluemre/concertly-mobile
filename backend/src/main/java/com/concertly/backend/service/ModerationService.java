@@ -54,6 +54,11 @@ public class ModerationService {
      * mevcut konuşmalarından kopmasın. Yeni sohbet ise alıcının tercihine bağlı.
      */
     public void requireCanMessage(Long senderId, User receiver) {
+        // Kaldırılmış Konser Arkadaşı eşleşmesi kalıcı olarak sohbeti kapatır; geçmiş sohbet
+        // kısa devresinden ÖNCE bakılır (aksi halde "devam eden sohbet" kuralı kapıyı açık bırakırdı)
+        if (buddySwipeRepository.existsUnmatchedBetween(senderId, receiver.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "BUDDY_UNMATCHED");
+        }
         if (messageRepository.conversationExists(senderId, receiver.getId())) return;
         // Konser Arkadaşı eşleşmesi: iki taraf da birbirini seçti, ilk mesaj her zaman gönderilebilir
         if (buddySwipeRepository.existsBySwiperIdAndTargetIdAndLikedTrue(senderId, receiver.getId())
@@ -65,6 +70,20 @@ public class ModerationService {
         if (privacy == MessagePrivacy.FOLLOWING
                 && !followRepository.isAcceptedFollower(receiver.getId(), senderId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "DM_FOLLOWING_ONLY");
+        }
+    }
+
+    /**
+     * Gönderen bu alıcıya yeni mesaj yazabilir mi? Yazamıyorsa nedeni:
+     * BUDDY_UNMATCHED | BLOCKED | PRIVACY; yazabiliyorsa null. Kural requireCanMessage ile aynıdır.
+     */
+    public String messageBlockReason(Long senderId, User receiver) {
+        if (isBlockedEitherWay(senderId, receiver.getId())) return "BLOCKED";
+        try {
+            requireCanMessage(senderId, receiver);
+            return null;
+        } catch (ResponseStatusException e) {
+            return "BUDDY_UNMATCHED".equals(e.getReason()) ? "BUDDY_UNMATCHED" : "PRIVACY";
         }
     }
 

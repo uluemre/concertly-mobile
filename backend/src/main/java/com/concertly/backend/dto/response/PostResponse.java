@@ -9,6 +9,7 @@ public class PostResponse {
     private Long id;
     private String content;
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
     private long likeCount;
     private long commentCount;
@@ -31,6 +32,7 @@ public class PostResponse {
         dto.id = post.getId();
         dto.content = post.getContent();
         dto.createdAt = post.getCreatedAt();
+        dto.updatedAt = post.getUpdatedAt();
 
         dto.likeCount = likeCount;
         dto.commentCount = commentCount;
@@ -64,6 +66,7 @@ public class PostResponse {
     public Long getId() { return id; }
     public String getContent() { return content; }
     public LocalDateTime getCreatedAt() { return createdAt; }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
     public long getLikeCount() { return likeCount; }
     public long getCommentCount() { return commentCount; }
     public boolean isLikedByMe() { return likedByMe; }

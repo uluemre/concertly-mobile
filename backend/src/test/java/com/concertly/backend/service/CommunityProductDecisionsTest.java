@@ -409,7 +409,8 @@ class CommunityProductDecisionsTest {
         contentFixture();
         ModerationService moderation = mock(ModerationService.class);
         com.concertly.backend.controller.ModerationController controller =
-                new com.concertly.backend.controller.ModerationController(moderation, service);
+                new com.concertly.backend.controller.ModerationController(moderation, service,
+                        mock(com.concertly.backend.service.ReportTargetValidator.class));
         com.concertly.backend.dto.request.ReportRequest r = new com.concertly.backend.dto.request.ReportRequest();
         r.setTargetType("  community_post ");
         r.setTargetId(POST);

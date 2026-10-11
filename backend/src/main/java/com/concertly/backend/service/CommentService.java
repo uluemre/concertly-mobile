@@ -94,7 +94,8 @@ public class CommentService {
         assertPostVisible(post, viewerId);
         Set<Long> hidden = moderationService.getHiddenUserIds(viewerId);
 
-        return commentRepository.findByPostIdOrderByCreatedAtDesc(postId)
+        // Eskiden yeniye (konuşma düzeni)
+        return commentRepository.findByPostIdOrderByCreatedAtAscIdAsc(postId)
                 .stream()
                 .filter(c -> !c.getIsHidden())
                 .filter(c -> c.getUser() == null || !hidden.contains(c.getUser().getId()))
@@ -102,16 +103,24 @@ public class CommentService {
                 .toList();
     }
 
-    // ✅ YORUM SİL
+    // ✅ YORUM SİL — yorum sahibi ya da gönderi sahibi; yorum başka gönderiye aitse 404
     @Transactional
-    public void deleteComment(Long commentId, Long userId) {
+    public void deleteComment(Long postId, Long commentId, Long userId) {
 
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Yorum bulunamadı: " + commentId));
 
-        if (!comment.getUser().getId().equals(userId)) {
-            throw new IllegalArgumentException("Bu yorumu silme yetkiniz yok.");
+        if (comment.getPost() == null || !comment.getPost().getId().equals(postId)) {
+            throw new ResourceNotFoundException("Yorum bulunamadı: " + commentId);
+        }
+
+        boolean commentOwner = comment.getUser() != null && comment.getUser().getId().equals(userId);
+        boolean postOwner = comment.getPost().getUser() != null
+                && comment.getPost().getUser().getId().equals(userId);
+        if (!commentOwner && !postOwner) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.FORBIDDEN, "COMMENT_DELETE_FORBIDDEN");
         }
 
         commentRepository.delete(comment);

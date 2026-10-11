@@ -18,10 +18,12 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     @EntityGraph(attributePaths = {"user", "event"})
     @Query("""
                 SELECT p FROM Post p
-                JOIN Follow f ON p.user.id = f.following.id
-                WHERE f.follower.id = :userId
-                  AND (f.status IS NULL OR f.status = 'ACCEPTED')
+                WHERE (p.user.id = :userId
+                       OR EXISTS (SELECT f.id FROM Follow f
+                                  WHERE f.follower.id = :userId AND f.following.id = p.user.id
+                                    AND (f.status IS NULL OR f.status = 'ACCEPTED')))
                   AND (p.isHidden IS NULL OR p.isHidden = false)
+                  AND (p.user.isActive IS NULL OR p.user.isActive = true)
                   AND p.user.id NOT IN :hiddenUserIds
                 ORDER BY p.createdAt DESC, p.id DESC
             """)
@@ -38,7 +40,8 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     @EntityGraph(attributePaths = {"user", "event"})
     @Query("""
                 SELECT p FROM Post p
-                WHERE (p.user.privateAccount IS NULL OR p.user.privateAccount = false
+                WHERE (p.user.isActive IS NULL OR p.user.isActive = true)
+                  AND (p.user.privateAccount IS NULL OR p.user.privateAccount = false
                        OR p.user.id = :viewerId
                        OR EXISTS (SELECT f.id FROM Follow f
                                   WHERE f.follower.id = :viewerId AND f.following.id = p.user.id

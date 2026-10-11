@@ -205,7 +205,7 @@ class SecurityFixesNPhaseTest {
     void sec03_readHiddenPostIs404ButOwnerCanRead() {
         post(1L, user(2, "yazar"), true);
         when(moderation.getHiddenUserIds(any())).thenReturn(Set.of());
-        when(comments.findByPostIdOrderByCreatedAtDesc(1L)).thenReturn(List.of());
+        when(comments.findByPostIdOrderByCreatedAtAscIdAsc(1L)).thenReturn(List.of());
         assertThrows(ResourceNotFoundException.class, () -> commentService.getCommentsByPost(1L, null));
         assertThrows(ResourceNotFoundException.class, () -> commentService.getCommentsByPost(1L, 3L));
         assertDoesNotThrow(() -> commentService.getCommentsByPost(1L, 2L));
@@ -228,7 +228,7 @@ class SecurityFixesNPhaseTest {
         Comment blocked = new Comment();
         blocked.setUser(user(4, "engelli"));
         blocked.setContent("b");
-        when(comments.findByPostIdOrderByCreatedAtDesc(1L)).thenReturn(List.of(ok, blocked));
+        when(comments.findByPostIdOrderByCreatedAtAscIdAsc(1L)).thenReturn(List.of(ok, blocked));
         List<CommentResponse> res = commentService.getCommentsByPost(1L, 3L);
         assertEquals(1, res.size());
         assertEquals("iyi", res.get(0).getUsername());
@@ -238,7 +238,7 @@ class SecurityFixesNPhaseTest {
     void sec03_anonymousReadWorksOnVisiblePost() {
         post(1L, user(2, "yazar"), false);
         when(moderation.getHiddenUserIds(null)).thenReturn(Set.of());
-        when(comments.findByPostIdOrderByCreatedAtDesc(1L)).thenReturn(List.of());
+        when(comments.findByPostIdOrderByCreatedAtAscIdAsc(1L)).thenReturn(List.of());
         assertTrue(commentService.getCommentsByPost(1L, null).isEmpty());
     }
 
@@ -252,17 +252,16 @@ class SecurityFixesNPhaseTest {
     }
 
     @Test
-    void sec04_anonymousBuddyListHasNoCityOrMessage() {
+    void sec04_anonymousBuddyListIsRejectedWith401() {
+        // Karar (11 Eki 2026): konser arkadaşı listesi artık giriş gerektirir; kullanıcı adı/şehir/mesaj
+        // anonim kazınamaz. Eskiden anonim yalnız şehir ve mesajsız liste alıyordu.
         ConcertBuddyRepository repo = mock(ConcertBuddyRepository.class);
-        when(repo.findByEventIdOrderByCreatedAtDesc(1L)).thenReturn(List.of(buddy(user(5, "ali"), "gizli not")));
         ConcertBuddyController c = new ConcertBuddyController(repo, mock(EventRepository.class),
-                mock(UserRepository.class), moderation);
-        when(moderation.getHiddenUserIds(null)).thenReturn(Set.of());
-        List<Map<String, Object>> res = c.getBuddies(1L);
-        assertEquals(1, res.size());
-        assertEquals("ali", res.get(0).get("username"));
-        assertFalse(res.get(0).containsKey("city"));
-        assertFalse(res.get(0).containsKey("message"));
+                mock(UserRepository.class), moderation, mock(PrivacyService.class));
+        org.springframework.web.server.ResponseStatusException ex = assertThrows(
+                org.springframework.web.server.ResponseStatusException.class, () -> c.getBuddies(1L));
+        assertEquals(401, ex.getStatusCode().value());
+        verifyNoInteractions(repo);
     }
 
     @Test
@@ -271,7 +270,7 @@ class SecurityFixesNPhaseTest {
         when(repo.findByEventIdOrderByCreatedAtDesc(1L)).thenReturn(List.of(
                 buddy(user(5, "ali"), "selam"), buddy(user(6, "engelli"), "x")));
         ConcertBuddyController c = new ConcertBuddyController(repo, mock(EventRepository.class),
-                mock(UserRepository.class), moderation);
+                mock(UserRepository.class), moderation, mock(PrivacyService.class));
         loginAs(3L);
         when(moderation.getHiddenUserIds(3L)).thenReturn(Set.of(6L));
         List<Map<String, Object>> res = c.getBuddies(1L);

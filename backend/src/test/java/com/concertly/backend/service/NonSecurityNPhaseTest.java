@@ -154,7 +154,7 @@ class NonSecurityNPhaseTest {
         ConcertBuddyRepository repo = mock(ConcertBuddyRepository.class);
         ConcertBuddyController c = new ConcertBuddyController(repo,
                 mock(com.concertly.backend.repository.EventRepository.class), mock(UserRepository.class),
-                mock(ModerationService.class));
+                mock(ModerationService.class), mock(PrivacyService.class));
         Map<String, Object> r = c.myStatus(5L);
         assertEquals(false, r.get("joined"));
         assertEquals("", r.get("message"));

@@ -3,7 +3,8 @@ package com.concertly.backend.model;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "poll_votes")
+@Table(name = "poll_votes",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "post_id"}))
 public class PollVote {
 
     @Id
@@ -18,6 +19,7 @@ public class PollVote {
     @JoinColumn(name = "poll_option_id", nullable = false)
     private PollOption pollOption;
 
+    @Column(name = "post_id")
     private Long postId;
 
     public Long getId() { return id; }

@@ -41,6 +41,6 @@ public class CommentController {
             @PathVariable Long commentId
     ) {
         Long userId = JwtUtil.getCurrentUserId();
-        commentService.deleteComment(commentId, userId);
+        commentService.deleteComment(postId, commentId, userId);
     }
 }

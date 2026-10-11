@@ -127,4 +127,11 @@ class SecurityRoutesTest {
             assertNotEquals(403, s, path);
         }
     }
+
+    // ── Konser arkadaşı listesi giriş ister (anonim kazıma kapalı) ───────────
+
+    @Test
+    void eventBuddiesListWithoutTokenIs401() throws Exception {
+        getAs("/api/events/1/buddies", null).andExpect(status().isUnauthorized());
+    }
 }

@@ -3,6 +3,7 @@ package com.concertly.backend.service;
 import com.concertly.backend.dto.response.ConversationResponse;
 import com.concertly.backend.dto.response.MessageResponse;
 import com.concertly.backend.exception.ResourceNotFoundException;
+import com.concertly.backend.model.ContentLimits;
 import com.concertly.backend.model.Message;
 import com.concertly.backend.model.User;
 import com.concertly.backend.repository.MessageRepository;
@@ -38,9 +39,13 @@ public class MessageService {
 
     @Transactional
     public MessageResponse send(Long senderId, Long receiverId, String content) {
-        if (content == null || content.trim().isEmpty()) {
-            throw new IllegalArgumentException("Mesaj boş olamaz");
+        if (receiverId == null) {
+            throw new IllegalArgumentException("receiverId zorunlu.");
         }
+        if (content == null || content.trim().isEmpty()) {
+            throw new IllegalArgumentException("CONTENT_EMPTY");
+        }
+        ContentLimits.check(content.trim(), ContentLimits.MESSAGE_MAX);
         if (senderId.equals(receiverId)) {
             throw new IllegalArgumentException("Kendine mesaj gönderemezsin");
         }
@@ -64,6 +69,18 @@ public class MessageService {
         notificationService.send(receiverId, senderId, "message", "user", senderId);
 
         return MessageResponse.from(message);
+    }
+
+    /** Bu kişiye yeni mesaj yazılabilir mi? { canMessage, reason } — kural gönderme ile aynı. */
+    @Transactional(readOnly = true)
+    public Map<String, Object> status(Long myId, Long otherId) {
+        User other = userRepository.findById(otherId)
+                .orElseThrow(() -> new ResourceNotFoundException("Kullanıcı bulunamadı: " + otherId));
+        String reason = moderationService.messageBlockReason(myId, other);
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("canMessage", reason == null);
+        m.put("reason", reason);
+        return m;
     }
 
     /** Sohbeti döner ve karşı taraftan gelen okunmamış mesajları okundu işaretler. */

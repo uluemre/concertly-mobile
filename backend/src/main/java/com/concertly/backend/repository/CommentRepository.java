@@ -12,13 +12,18 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
 
     // Post'a ait yorumları en yeniden en eskiye sırala
     List<Comment> findByPostIdOrderByCreatedAtDesc(Long postId);
+
+    // Konuşma düzeni: eskiden yeniye (id eşit zamanlarda sırayı sabitler)
+    List<Comment> findByPostIdOrderByCreatedAtAscIdAsc(Long postId);
     long countByPostId(Long postId);
 
     // Yeni hesap spam limiti
     long countByUserIdAndCreatedAtAfter(Long userId, java.time.LocalDateTime since);
     void deleteByPostId(Long postId);
 
-    // Toplu yorum sayımı — feed'deki N+1'i önlemek için (postId, count)
-    @Query("SELECT c.post.id, COUNT(c) FROM Comment c WHERE c.post.id IN :postIds GROUP BY c.post.id")
+    // Toplu yorum sayımı — feed'deki N+1'i önlemek için (postId, count).
+    // Gizlenen (moderasyon) yorumlar sayılmaz: sayaç listede görünen yorumlarla tutarlı olsun.
+    @Query("SELECT c.post.id, COUNT(c) FROM Comment c WHERE c.post.id IN :postIds " +
+           "AND (c.isHidden IS NULL OR c.isHidden = false) GROUP BY c.post.id")
     List<Object[]> countByPostIdIn(@Param("postIds") Collection<Long> postIds);
 }

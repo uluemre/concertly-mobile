@@ -11,6 +11,7 @@ public class CommentResponse {
     private Long postId;
     private Long userId;
     private String username;
+    private String userProfileImageUrl;
 
     public static CommentResponse from(Comment comment) {
         CommentResponse dto = new CommentResponse();
@@ -26,6 +27,7 @@ public class CommentResponse {
         if (comment.getUser() != null) {
             dto.userId = comment.getUser().getId();
             dto.username = comment.getUser().getUsername();
+            dto.userProfileImageUrl = comment.getUser().getProfileImageUrl();
         }
 
         return dto;
@@ -37,4 +39,5 @@ public class CommentResponse {
     public Long getPostId() { return postId; }
     public Long getUserId() { return userId; }
     public String getUsername() { return username; }
+    public String getUserProfileImageUrl() { return userProfileImageUrl; }
 }
