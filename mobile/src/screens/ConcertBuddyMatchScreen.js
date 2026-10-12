@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ActivityIndicator,
-  Animated, Dimensions, ScrollView, PanResponder, Switch, Alert, Platform, StatusBar,
+  Animated, Dimensions, ScrollView, Switch, Alert, Platform, StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import Reanimated, {
-  useSharedValue, useAnimatedStyle, withTiming, withSpring, interpolate, Extrapolation,
+  useSharedValue, useAnimatedStyle, withTiming, withSpring, withDecay, cancelAnimation,
+  interpolate, Extrapolation,
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -56,22 +58,22 @@ function Avatar({ user, size, styles, ring }) {
 }
 
 // ── Kaydırılabilir kart kabuğu ──────────────────────────────────────────────
-// Her kart kendi konumunu tutar. Parmak hareketi PanResponder ile JS'de alınır ve
-// Reanimated paylaşımlı değerlerine yazılır; dönüş/eğim/etiket stilleri ile bırakma
-// animasyonları UI thread'inde çalışır (JS yalnızca dokunma olaylarını taşır).
+// Her kart kendi konumunu tutar. Parmak hareketi gesture-handler ile alınır ve
+// Reanimated paylaşımlı değerlerine yazılır; sürükleme, dönüş/eğim/etiket stilleri ve
+// bırakma animasyonları UI thread'inde çalışır.
 // Öndeki kart sürüklenir; arkadaki kart `dragX`'e göre büyür. Kart değişince yeni
 // öndeki kartın konumu zaten sıfırdır, geri alınan kart da sıfırdan açılır.
 // Ekran genişliği modül yüklenirken alınır: uygulama yalnızca dikey (app.json).
 const SPRING_BACK = { damping: 15, stiffness: 180 };
 
-function SwipeShell({ isBack, dragX, flyRef, onFling, style, tags, children }) {
+function SwipeShell({ isBack, dragX, flyRef, onPan, onFling, style, tags, children }) {
   const x = useSharedValue(0);
   const y = useSharedValue(0);
   const onFlingRef = useRef(onFling);
   onFlingRef.current = onFling;
   // Uçuş başladıktan sonra yeni sürükleme alınmaz: pan x'e yazınca withTiming iptal
   // olur, done hiç çağrılmaz ve deste "swiping" durumunda kilitli kalırdı.
-  const flyingRef = useRef(false);
+  const flying = useSharedValue(false);
 
   const springBack = useCallback(() => {
     x.value = withSpring(0, SPRING_BACK);
@@ -81,14 +83,14 @@ function SwipeShell({ isBack, dragX, flyRef, onFling, style, tags, children }) {
 
   const fly = useCallback((liked, done) => {
     const to = liked ? width * 1.5 : -width * 1.5;
-    flyingRef.current = true;
+    flying.value = true;
     dragX.value = withTiming(liked ? width : -width, { duration: 280 });
     y.value = withTiming(30, { duration: 280 });
     // done animasyon kesilse bile çağrılır: kayıt gönderilir, deste kilitlenmez
     x.value = withTiming(to, { duration: 280 }, () => {
       scheduleOnRN(done);
     });
-  }, [x, y, dragX]);
+  }, [x, y, dragX, flying]);
 
   useEffect(() => {
     if (isBack) return undefined;
@@ -96,24 +98,74 @@ function SwipeShell({ isBack, dragX, flyRef, onFling, style, tags, children }) {
     return () => { if (flyRef.current === fly) flyRef.current = null; };
   }, [isBack, fly, flyRef]);
 
-  const panResponder = useMemo(() => PanResponder.create({
-    onStartShouldSetPanResponder: () => false,
-    // Kartın içi dikey kaydırılır (detaylar). Yatay hareketi yakalama aşamasında kart
-    // alır ki içteki ScrollView ondan önce davranmasın; dikey hareket ScrollView'da kalır.
-    onMoveShouldSetPanResponderCapture: (_, g) => !flyingRef.current && Math.abs(g.dx) > 10 && Math.abs(g.dx) > Math.abs(g.dy) * 1.4,
-    onPanResponderTerminationRequest: () => false,
-    onPanResponderMove: (_, g) => {
-      x.value = g.dx;
-      y.value = g.dy;
-      dragX.value = g.dx;
-    },
-    onPanResponderRelease: (_, { dx, vx }) => {
-      const far = Math.abs(dx) > SWIPE_THRESHOLD || Math.abs(vx) > SWIPE_VELOCITY;
-      // Ekran başka bir kaydırmayı bitirirken gelen fırlatma reddedilir: kart yerine döner
-      if (!far || !onFlingRef.current?.(dx > 0)) springBack();
-    },
-    onPanResponderTerminate: springBack,
-  }), [x, y, dragX, springBack]);
+  // Kart hareketi react-native-gesture-handler ile native tanıyıcıda alınır ve UI
+  // thread'inde işlenir. (PanResponder + içteki ScrollView iOS'ta dokunuşu kaybediyordu:
+  // kart ne yana gidiyor ne içerik kayıyordu.) Yön ilk harekette kilitlenir:
+  // yatay → kart sürüklenir/fırlatılır, dikey → kartın içi (detaylar) kaydırılır.
+  const scrollY = useSharedValue(0);
+  const maxScroll = useSharedValue(0);
+  const viewH = useRef(0);
+  const contentH = useRef(0);
+  const updateMax = () => { maxScroll.value = Math.max(0, contentH.current - viewH.current); };
+  const axis = useSharedValue(0);          // 0 henüz yok, 1 yatay, 2 dikey, -1 uçuşta
+  const scrollStart = useSharedValue(0);
+
+  // Fırlatma isteği JS'e gider: deste reddederse (ör. önceki kayıt sürüyor) kart yerine döner
+  const requestFling = useCallback((liked) => {
+    if (!onFlingRef.current?.(liked)) springBack();
+  }, [springBack]);
+
+  const pan = useMemo(() => Gesture.Pan()
+    .enabled(!isBack)
+    .minDistance(8)
+    .onStart(() => {
+      // Yön burada seçilmez: başlangıç olayında öteleme 0 gelebiliyor (her hareket
+      // "dikey" sayılıyor, kart yana hiç gitmiyordu). İlk gerçek harekette seçilir.
+      axis.value = flying.value ? -1 : 0;
+    })
+    .onUpdate((e) => {
+      if (axis.value === 0) {
+        if (Math.max(Math.abs(e.translationX), Math.abs(e.translationY)) < 6) return;
+        axis.value = Math.abs(e.translationX) > Math.abs(e.translationY) ? 1 : 2;
+        if (axis.value === 2) {
+          cancelAnimation(scrollY);
+          // Seçime kadarki dikey yol da sayılsın, içerik zıplamasın
+          scrollStart.value = scrollY.value - e.translationY;
+        }
+      }
+      if (axis.value === 2) {
+        scrollY.value = Math.min(0, Math.max(-maxScroll.value, scrollStart.value + e.translationY));
+      } else if (axis.value === 1) {
+        x.value = e.translationX;
+        y.value = e.translationY * 0.3;
+        dragX.value = e.translationX;
+      }
+    })
+    .onEnd((e) => {
+      if (axis.value === 2) {
+        scrollY.value = withDecay({ velocity: e.velocityY, clamp: [-maxScroll.value, 0] });
+      } else if (axis.value === 1) {
+        const far = Math.abs(e.translationX) > SWIPE_THRESHOLD || Math.abs(e.velocityX) > SWIPE_VELOCITY * 1000;
+        if (far) {
+          scheduleOnRN(requestFling, e.translationX > 0);
+        } else {
+          x.value = withSpring(0, SPRING_BACK);
+          y.value = withSpring(0, SPRING_BACK);
+          dragX.value = withSpring(0, SPRING_BACK);
+        }
+      }
+      axis.value = 0;
+    }), [isBack, flying, axis, scrollY, scrollStart, maxScroll, x, y, dragX, requestFling]);
+
+  // Hareket destenin kabında dinlenir (aşağıda DeckGesture): iOS'ta iki kart üst üste
+  // durunca dokunuş öndeki kartın kendi algılayıcısına hiç ulaşmıyordu.
+  useEffect(() => {
+    if (isBack) return undefined;
+    onPan(pan);
+    return () => onPan(cur => (cur === pan ? null : cur));
+  }, [isBack, pan, onPan]);
+
+  const contentStyle = useAnimatedStyle(() => ({ transform: [{ translateY: scrollY.value }] }));
 
   const frontStyle = useAnimatedStyle(() => ({
     transform: [
@@ -134,8 +186,18 @@ function SwipeShell({ isBack, dragX, flyRef, onFling, style, tags, children }) {
   }));
 
   return (
-    <Reanimated.View style={[style, isBack ? backStyle : frontStyle]} {...(!isBack ? panResponder.panHandlers : {})}>
-      {children}
+    <Reanimated.View
+      pointerEvents={isBack ? 'none' : 'auto'}
+      // Kartlar üst üste durur (styles.card absoluteFill); öndeki her zaman üstte
+      style={[style, { zIndex: isBack ? 1 : 2 }, isBack ? backStyle : frontStyle]}
+      onLayout={(e) => { viewH.current = e.nativeEvent.layout.height; updateMax(); }}
+    >
+      <Reanimated.View
+        style={contentStyle}
+        onLayout={(e) => { contentH.current = e.nativeEvent.layout.height; updateMax(); }}
+      >
+        {children}
+      </Reanimated.View>
       {!isBack && tags && (
         <>
           <Reanimated.View pointerEvents="none" style={[tags.likeStyle, likeStyle]}>{tags.like}</Reanimated.View>
@@ -300,6 +362,8 @@ export default function ConcertBuddyMatchScreen({ navigation, route }) {
   // ── Kaydırma ───────────────────────────────────────────────────────────────
   const dragX = useSharedValue(0); // öndeki kartın yatay konumu (arka kartın büyümesi için)
   const flyRef = useRef(null);     // öndeki kartın fırlatma fonksiyonu
+  const [frontPan, setFrontPan] = useState(null); // öndeki kartın kaydırma hareketi
+  const idlePan = useMemo(() => Gesture.Pan().enabled(false), []);
 
   // Yeni arka kart küçük boyuna yumuşakça otursun
   useEffect(() => {
@@ -513,17 +577,12 @@ export default function ConcertBuddyMatchScreen({ navigation, route }) {
         style={styles.card}
         dragX={dragX}
         flyRef={flyRef}
+        onPan={setFrontPan}
         onFling={flyCard}
         tags={swipeTags}
       >
-        {/* Tam ekran profil: üstte fotoğraf, aşağı kaydırınca detaylar */}
-        <ScrollView
-          scrollEnabled={!isBack}
-          pointerEvents={isBack ? 'none' : 'auto'}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
-          nestedScrollEnabled
-        >
+        {/* Tam ekran profil: üstte fotoğraf, yukarı kaydırınca detaylar (SwipeShell kaydırır) */}
+        <View pointerEvents={isBack ? 'none' : 'auto'} style={{ paddingBottom: insets.bottom + 24 }}>
           <View style={[styles.hero, { height: heroH }]}>
             {card.profileImageUrl ? (
               <Image source={{ uri: card.profileImageUrl }} style={StyleSheet.absoluteFill} contentFit="cover" transition={120} />
@@ -547,7 +606,7 @@ export default function ConcertBuddyMatchScreen({ navigation, route }) {
                   ]}
                   onAccessibilityAction={(e) => flyCard(e.nativeEvent.actionName === 'like')}
                 >
-                  @{card.username}
+                  {card.fullName || `@${card.username}`}{card.age ? `, ${card.age}` : ''}
                 </Text>
                 <TouchableOpacity
                   style={[styles.compatPill, { borderColor: cColor }]}
@@ -574,6 +633,7 @@ export default function ConcertBuddyMatchScreen({ navigation, route }) {
                   </TouchableOpacity>
                 )}
               </View>
+              {card.fullName ? <Text style={styles.heroHandle} numberOfLines={1}>@{card.username}</Text> : null}
               <View style={styles.heroMetaRow}>
                 {card.city ? (
                   <View style={styles.heroMeta}>
@@ -640,7 +700,7 @@ export default function ConcertBuddyMatchScreen({ navigation, route }) {
 
             {concerts.length > 0 && section('ticket', tu('buddy_section_went'), concerts.map(eventRow))}
           </View>
-        </ScrollView>
+        </View>
       </SwipeShell>
     );
   };
@@ -706,10 +766,12 @@ export default function ConcertBuddyMatchScreen({ navigation, route }) {
       );
       return (
         <View style={{ flex: 1 }}>
-          <View style={StyleSheet.absoluteFill} onLayout={(e) => setCardH(e.nativeEvent.layout.height)}>
-            {nextCard && renderCard(nextCard, true)}
-            {renderCard(currentCard)}
-          </View>
+          <GestureDetector gesture={frontPan || idlePan}>
+            <View style={StyleSheet.absoluteFill} onLayout={(e) => setCardH(e.nativeEvent.layout.height)}>
+              {nextCard && renderCard(nextCard, true)}
+              {renderCard(currentCard)}
+            </View>
+          </GestureDetector>
 
           <View style={[styles.floatTop, { paddingTop: insets.top + 8 }]} pointerEvents="box-none">
             <View style={styles.floatBar} pointerEvents="box-none">
@@ -952,6 +1014,11 @@ export default function ConcertBuddyMatchScreen({ navigation, route }) {
 
   // Keşfet'te kart varken başlık ve sekmeler gizlenir, kart tüm ekranı kaplar
   const immersive = !loading && activeTab === 'discover' && !!currentCard && lookingEvents.length > 0;
+  // Deste açıkken iOS'un kenardan geri kaydırması kapalı: sağa kaydırma kartı beğenir,
+  // ekranı kapatmaz (çıkış üstteki geri düğmesiyle)
+  useEffect(() => {
+    navigation.setOptions({ gestureEnabled: !immersive });
+  }, [navigation, immersive]);
 
   return (
     <View style={styles.container}>
@@ -1062,7 +1129,8 @@ function createStyles(colors) {
 
     // Kart
     card: {
-      ...StyleSheet.absoluteFillObject, overflow: 'hidden',
+      // absoluteFillObject RN 0.86'da kaldırıldı (boş gelir, kartlar alt alta dizilirdi)
+      ...StyleSheet.absoluteFill, overflow: 'hidden',
       backgroundColor: colors.card,
       shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 18, elevation: 10,
     },
@@ -1072,6 +1140,7 @@ function createStyles(colors) {
     heroShade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '55%' },
     heroText: { padding: 16, paddingBottom: 12 },
     heroName: { color: '#fff', fontSize: 26, fontFamily: fonts.heading },
+    heroHandle: { color: 'rgba(255,255,255,0.8)', fontSize: 14, fontWeight: '600', marginTop: 2 },
     heroMetaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 4 },
     heroMeta: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     heroMetaText: { color: 'rgba(255,255,255,0.9)', fontSize: 13, fontWeight: '700' },
@@ -1218,7 +1287,7 @@ function createStyles(colors) {
     concertCount: { color: colors.textSecondary, fontSize: 12, fontWeight: '800', marginTop: 3 },
 
     // Eşleşme anı
-    matchOverlay: { ...StyleSheet.absoluteFillObject, zIndex: 100, justifyContent: 'center', alignItems: 'center' },
+    matchOverlay: { ...StyleSheet.absoluteFill, zIndex: 100, justifyContent: 'center', alignItems: 'center' },
     matchContent: { alignItems: 'center', paddingHorizontal: 24, width: '100%' },
     matchAvatars: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
     matchLink: {
