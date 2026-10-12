@@ -197,6 +197,9 @@ function UserProfileContent({ route, navigation }) {
           {/* Sağ: BİLGİ + BUTONLAR */}
           <View style={styles.infoCol}>
             <Text style={styles.username} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>@{profile?.username}</Text>
+            {profile?.fullName ? (
+              <Text style={styles.fullName} numberOfLines={1}>{profile.fullName}</Text>
+            ) : null}
             {profile?.bio ? (
               <Text style={styles.bio} numberOfLines={2}>{profile.bio}</Text>
             ) : (
@@ -481,6 +484,7 @@ function createStyles(colors) {
     avatarLetter: { fontSize: 44, fontWeight: '900', color: colors.text },
 
     username: { fontSize: 22, fontFamily: fonts.headingBold, color: colors.text, marginBottom: 6, lineHeight: 27 },
+    fullName: { fontSize: 14, fontWeight: '600', color: colors.text, marginBottom: 4 },
     bio: { fontSize: 13, color: colors.textSecondary, lineHeight: 18, marginBottom: 8 },
     bioEmpty: { fontSize: 13, color: colors.textSecondary, lineHeight: 18, marginBottom: 8, fontStyle: 'italic' },
 

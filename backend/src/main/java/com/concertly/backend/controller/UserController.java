@@ -1,10 +1,12 @@
 package com.concertly.backend.controller;
 
+import com.concertly.backend.dto.request.BasicInfoRequest;
 import com.concertly.backend.dto.request.DeleteAccountRequest;
 import com.concertly.backend.dto.request.RegisterRequest;
 import com.concertly.backend.dto.request.PrivacySettingsRequest;
 import com.concertly.backend.dto.request.UpdateProfileRequest;
 import com.concertly.backend.dto.response.ArtistResponse;
+import com.concertly.backend.dto.response.BasicInfoResponse;
 import com.concertly.backend.dto.response.EventResponse;
 import com.concertly.backend.dto.response.PassportResponse;
 import com.concertly.backend.dto.response.PostResponse;
@@ -93,6 +95,17 @@ public class UserController {
     @PutMapping("/me/privacy")
     public PrivacySettingsResponse updatePrivacySettings(@RequestBody PrivacySettingsRequest request) {
         return userService.updatePrivacySettings(JwtUtil.getCurrentUserId(), request);
+    }
+
+    // Ad soyad + doğum tarihi (yalnız kendisi). Eski hesaplar "profilini tamamla"da doldurur.
+    @GetMapping("/me/basic-info")
+    public BasicInfoResponse getBasicInfo() {
+        return userService.getBasicInfo(JwtUtil.getCurrentUserId());
+    }
+
+    @PutMapping("/me/basic-info")
+    public BasicInfoResponse updateBasicInfo(@RequestBody BasicInfoRequest request) {
+        return userService.updateBasicInfo(JwtUtil.getCurrentUserId(), request);
     }
 
     @GetMapping("/{id}")

@@ -138,6 +138,10 @@ public class BuddyMatchService {
             Map<String, Object> card = new LinkedHashMap<>();
             card.put("userId", u.getId());
             card.put("username", u.getUsername());
+            card.put("fullName", u.getFullName() != null ? u.getFullName() : "");
+            // Doğum tarihi verilmez, yalnız yaş; gizli hesapta şehir gibi gizli
+            Integer age = isPrivate ? null : ProfileRules.age(u.getBirthDate());
+            card.put("age", age);
             card.put("profileImageUrl", u.getProfileImageUrl() != null ? u.getProfileImageUrl() : "");
             card.put("city", !isPrivate && u.getCity() != null ? u.getCity() : "");
             card.put("bio", !isPrivate && u.getBio() != null ? u.getBio() : "");

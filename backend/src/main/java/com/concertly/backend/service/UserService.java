@@ -1,6 +1,8 @@
 package com.concertly.backend.service;
 
+import com.concertly.backend.dto.request.BasicInfoRequest;
 import com.concertly.backend.dto.request.UpdateProfileRequest;
+import com.concertly.backend.dto.response.BasicInfoResponse;
 import com.concertly.backend.dto.response.BadgeResponse;
 import com.concertly.backend.dto.response.EventResponse;
 import com.concertly.backend.dto.response.PassportResponse;
@@ -161,6 +163,31 @@ public class UserService {
         return PrivacySettingsResponse.from(user);
     }
 
+    public BasicInfoResponse getBasicInfo(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Kullanıcı bulunamadı: " + id));
+        return BasicInfoResponse.from(user);
+    }
+
+    /**
+     * Eski hesaplar için "profilini tamamla". Doğum tarihi yalnız boşken yazılır
+     * (sonradan değiştirilerek yaş sınırı aşılamasın); dolu ve farklıysa 400.
+     */
+    @Transactional
+    public BasicInfoResponse updateBasicInfo(Long id, BasicInfoRequest request) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Kullanıcı bulunamadı: " + id));
+        String fullName = ProfileRules.requireFullName(request.getFullName());
+        if (user.getBirthDate() == null) {
+            user.setBirthDate(ProfileRules.requireAdultBirthDate(request.getBirthDate()));
+        } else if (request.getBirthDate() != null && !request.getBirthDate().equals(user.getBirthDate())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "BIRTH_DATE_LOCKED");
+        }
+        user.setFullName(fullName);
+        user.setUpdatedAt(LocalDateTime.now());
+        return BasicInfoResponse.from(userRepository.save(user));
+    }
+
     // ✅ PROFİL GÜNCELLE
     @Transactional
     public UserResponse updateProfile(Long id, UpdateProfileRequest request) {
@@ -188,6 +215,9 @@ public class UserService {
 
         if (request.getBio() != null) {
             user.setBio(request.getBio());
+        }
+        if (request.getFullName() != null) {
+            user.setFullName(ProfileRules.requireFullName(request.getFullName()));
         }
         if (request.getProfileImageUrl() != null) {
             user.setProfileImageUrl(request.getProfileImageUrl());

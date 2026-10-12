@@ -97,6 +97,8 @@ class EmailRulesTest {
         r.setUsername("sim_test");
         r.setEmail(email);
         r.setPassword("abc123");
+        r.setFullName("Sim Test");
+        r.setBirthDate(java.time.LocalDate.of(2000, 1, 1));
         return r;
     }
 

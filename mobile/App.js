@@ -10,6 +10,7 @@ import { AuthProvider } from './src/context/AuthContext';
 import { LanguageProvider } from './src/context/LanguageContext';
 import { initMonitoring, wrapRoot } from './src/services/monitoring';
 import { KeyboardProvider } from './src/components/keyboard';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 initMonitoring();
 // Başlık fontu yüklenene kadar açılış ekranı kalsın (yerel dosya, birkaç ms)
@@ -27,6 +28,8 @@ function App() {
   if (!ready) return null;
 
   return (
+    // Kaydırma hareketleri (Konser Arkadaşı kartı) native tanıyıcıyla alınır
+    <GestureHandlerRootView style={{ flex: 1 }}>
     <KeyboardProvider>
       <ThemeProvider>
         <LanguageProvider>
@@ -36,6 +39,7 @@ function App() {
         </LanguageProvider>
       </ThemeProvider>
     </KeyboardProvider>
+    </GestureHandlerRootView>
   );
 }
 

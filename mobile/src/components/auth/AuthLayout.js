@@ -14,6 +14,10 @@ export default function AuthLayout({
   // İsteğe bağlı (varsayılanlar diğer ekranları değiştirmez): logo boyutu ve
   // geri butonu olmayan ekranlarda üstte bırakılan boşluk
   logoSize = 88, topGap = 44,
+  // İsteğe bağlı: başlığın üstünde gösterilen öğe (ör. kayıt adımlarının ilerleme çubuğu)
+  top,
+  // Odaktaki alanın klavyeden ne kadar yukarıda duracağı (altındaki düğme görünsün diye büyütülebilir)
+  bottomOffset = 24,
 }) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
@@ -31,7 +35,7 @@ export default function AuthLayout({
             styles.scroll,
             { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 24 },
           ]}
-          bottomOffset={24}
+          bottomOffset={bottomOffset}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
           showsVerticalScrollIndicator={false}
@@ -50,6 +54,7 @@ export default function AuthLayout({
           ) : null}
 
           <View style={[styles.body, { paddingTop: onBack ? 44 : topGap }]}>
+            {top}
             <View style={styles.header}>
               {showLogo ? (
                 <Image

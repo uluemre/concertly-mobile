@@ -12,6 +12,9 @@ public class AuthResponse {
     private String favoriteGenres;
     private Boolean onboardingCompleted;
     private Boolean isAdmin;
+    private String fullName;
+    // false → eski hesap: ad soyad / doğum tarihi eksik, uygulama bir kez sorar
+    private Boolean profileComplete;
 
     public AuthResponse(String accessToken, String refreshToken, Long userId, String username, String email,
                         String city, String favoriteGenres, Boolean onboardingCompleted, Boolean isAdmin) {
@@ -49,4 +52,12 @@ public class AuthResponse {
     public String getFavoriteGenres() { return favoriteGenres; }
     public Boolean getOnboardingCompleted() { return onboardingCompleted; }
     public Boolean getIsAdmin() { return isAdmin; }
+    public String getFullName() { return fullName; }
+    public Boolean getProfileComplete() { return profileComplete; }
+
+    public AuthResponse withProfile(String fullName, boolean profileComplete) {
+        this.fullName = fullName;
+        this.profileComplete = profileComplete;
+        return this;
+    }
 }

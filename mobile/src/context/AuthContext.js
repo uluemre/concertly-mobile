@@ -10,8 +10,12 @@ const AuthContext = createContext(null);
 // (bkz. services/secureStorage.js).
 const STORAGE_KEYS = [
   'authToken', 'refreshToken', 'userId', 'username', 'userCity',
-  'favoriteGenres', 'isAdmin', 'onboardingCompleted',
+  'favoriteGenres', 'isAdmin', 'onboardingCompleted', 'profileComplete', 'fullName',
 ];
+
+// Ad soyad / doğum tarihi tamam mı: true | false | undefined (eski oturum, bilinmiyor →
+// AppNavigator sunucuya sorar). Saklarken undefined boş metin olur.
+const toProfileComplete = (v) => (v === true || v === 'true' ? true : v === false || v === 'false' ? false : undefined);
 
 const DEFAULT_SESSION = {
   authToken: null,
@@ -22,6 +26,8 @@ const DEFAULT_SESSION = {
   favoriteGenres: null,
   isAdmin: false,
   onboardingCompleted: false,
+  profileComplete: undefined,
+  fullName: '',
 };
 
 export function AuthProvider({ children }) {
@@ -61,6 +67,8 @@ export function AuthProvider({ children }) {
             favoriteGenres: data.favoriteGenres || '',
             isAdmin: data.isAdmin === 'true',
             onboardingCompleted: data.onboardingCompleted === 'true',
+            profileComplete: toProfileComplete(data.profileComplete),
+            fullName: data.fullName || '',
           });
         }
       })
@@ -78,6 +86,8 @@ export function AuthProvider({ children }) {
       favoriteGenres: data.favoriteGenres || '',
       isAdmin: data.isAdmin === true,
       onboardingCompleted: data.onboardingCompleted || false,
+      profileComplete: toProfileComplete(data.profileComplete),
+      fullName: data.fullName || '',
     };
     // API istemcisi yeni oturumu hemen görsün (efekt bir render sonra çalışır);
     // girişten hemen sonraki yönlendirme oturumsuz sanılmasın (N-23)
@@ -96,6 +106,8 @@ export function AuthProvider({ children }) {
       ['favoriteGenres', newSession.favoriteGenres],
       ['isAdmin', String(newSession.isAdmin)],
       ['onboardingCompleted', String(newSession.onboardingCompleted)],
+      ['profileComplete', newSession.profileComplete === undefined ? '' : String(newSession.profileComplete)],
+      ['fullName', newSession.fullName],
     ]);
   }, []);
 
@@ -114,7 +126,7 @@ export function AuthProvider({ children }) {
     setSession(prev => ({ ...prev, ...patch }));
     const pairs = Object.entries(patch)
       .filter(([k]) => STORAGE_KEYS.includes(k))
-      .map(([k, v]) => [k, String(v)]);
+      .map(([k, v]) => [k, v == null ? '' : String(v)]);
     if (pairs.length) {
       try {
         await Storage.multiSet(pairs);

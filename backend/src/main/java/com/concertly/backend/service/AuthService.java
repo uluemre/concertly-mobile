@@ -94,6 +94,9 @@ public class AuthService {
         request.setUsername(UsernameRules.requireValid(request.getUsername()));
         // E-posta kuralı (N-22): kırpılır, küçük harfe çevrilir, biçimi doğrulanır
         request.setEmail(EmailRules.requireValid(request.getEmail()));
+        // Ad soyad ve doğum tarihi zorunlu; Concertly 18 yaş ve üzeri içindir
+        request.setFullName(ProfileRules.requireFullName(request.getFullName()));
+        ProfileRules.requireAdultBirthDate(request.getBirthDate());
 
         // Aynı e-postada 24 saattir doğrulanmamış bir kayıt varsa üzerine yazılabilir;
         // böylece başkasının adresiyle açılmış sahte kayıt adresi sonsuza kadar
@@ -129,6 +132,8 @@ public class AuthService {
         }
         user.setUsername(request.getUsername());
         user.setCity(request.getCity());
+        user.setFullName(request.getFullName());
+        user.setBirthDate(request.getBirthDate());
         // ✅ Plain text yerine BCrypt hash
         user.setPassword(passwordEncoder.encode(request.getPassword()));
 
@@ -209,7 +214,8 @@ public class AuthService {
                 user.getCity(),
                 user.getFavoriteGenres(),
                 user.getOnboardingCompleted(),
-                isAdmin);
+                isAdmin)
+                .withProfile(user.getFullName(), user.isProfileComplete());
     }
 
     // RefreshToken.user LAZY ve open-in-view kapalı: transaction olmadan user.getEmail()
@@ -246,7 +252,8 @@ public class AuthService {
                 user.getCity(),
                 user.getFavoriteGenres(),
                 user.getOnboardingCompleted(),
-                isAdmin);
+                isAdmin)
+                .withProfile(user.getFullName(), user.isProfileComplete());
     }
 
     @Transactional

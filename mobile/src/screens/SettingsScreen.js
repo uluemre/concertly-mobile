@@ -16,6 +16,7 @@ import { goBackOrFallback } from '../navigation/navHelpers';
 import { DOWNLOAD_URL, buildShareUrl, shareWithLink } from '../services/shareLinks';
 import { isValidUsername, normalizeUsername } from '../utils/username';
 import { isValidEmail } from '../utils/email';
+import { isValidFullName, normalizeFullName } from '../utils/profileInfo';
 
 // Hesap silme sebepleri — code backend'e (dil bağımsız) gönderilir, key UI metni.
 const DELETE_REASONS = [
@@ -51,10 +52,12 @@ export default function SettingsScreen({ navigation, route }) {
 
   // Yüklenen kullanıcı adı: kural yalnızca ad değiştirilirse uygulanır (N-21)
   const loadedUsername = useRef('');
+  const loadedFullName = useRef('');
   const loadedEmail = useRef('');
   // Kullanıcı adı / e-posta değişirken istenir (N-25)
   const [currentPassword, setCurrentPassword] = useState('');
   const [formData, setFormData] = useState({
+    fullName: '',
     username: '',
     email: '',
     phone: '',
@@ -121,8 +124,10 @@ export default function SettingsScreen({ navigation, route }) {
       const res = await API.get(`/users/${session.userId}/profile`);
       const data = res.data;
       loadedUsername.current = data.username || '';
+      loadedFullName.current = data.fullName || '';
       loadedEmail.current = data.email || '';
       setFormData({
+        fullName: data.fullName || '',
         username: data.username || '',
         email: data.email || '',
         phone: data.phone || '',
@@ -200,6 +205,13 @@ export default function SettingsScreen({ navigation, route }) {
     || (!!emailInput && emailInput.toLowerCase() !== loadedEmail.current.trim().toLowerCase());
 
   const handleSave = async () => {
+    // Ad soyad kayıtta zorunlu; boşaltılamaz (backend ProfileRules ile aynı kural).
+    // Adı hiç olmamış hesap (admin) alanı boş bırakabilir: o zaman gönderilmez.
+    const nameInput = normalizeFullName(formData.fullName);
+    if ((nameInput || loadedFullName.current) && !isValidFullName(nameInput)) {
+      Alert.alert(t('error'), t('reg_name_invalid'));
+      return;
+    }
     const newUsername = usernameInput;
     if (newUsername && newUsername !== loadedUsername.current && !isValidUsername(newUsername)) {
       Alert.alert(t('error'), t('username_rule'));
@@ -216,14 +228,18 @@ export default function SettingsScreen({ navigation, route }) {
     }
     setSaving(true);
     try {
-      const payload = identityChanging ? { ...formData, currentPassword } : formData;
+      const nameInput = normalizeFullName(formData.fullName);
+      const form = { ...formData, fullName: nameInput || undefined };
+      const payload = identityChanging ? { ...form, currentPassword } : form;
       const res = await API.put(`/users/${session.userId}/profile`, payload);
       // Oturumdaki ad da güncellenir: profil, pasaport vb. eski adı göstermesin (N-25)
       const patch = {};
       if (formData.city) patch.userCity = formData.city;
+      if (form.fullName) patch.fullName = form.fullName;
       if (res.data?.username && res.data.username !== session.username) patch.username = res.data.username;
       if (Object.keys(patch).length) await updateSession(patch);
       if (res.data?.username) loadedUsername.current = res.data.username;
+      if (form.fullName) loadedFullName.current = form.fullName;
       if (res.data?.email) loadedEmail.current = res.data.email;
       setCurrentPassword('');
       if (res.data?.emailVerificationRequired === true && res.data?.email) {
@@ -239,7 +255,8 @@ export default function SettingsScreen({ navigation, route }) {
       console.log('Ayar kayıt hatası:', status, msg);
       // Sunucunun nedeni gizlenmez (N-25): şifre yanlış/eksik, ad ya da e-posta dolu
       Alert.alert(t('error'), t(
-        msg === 'CURRENT_PASSWORD_WRONG' ? 'settings_current_password_wrong'
+        msg === 'FULL_NAME_INVALID' ? 'reg_name_invalid'
+          : msg === 'CURRENT_PASSWORD_WRONG' ? 'settings_current_password_wrong'
           : msg === 'CURRENT_PASSWORD_REQUIRED' ? 'settings_current_password_hint'
           : status === 409 && /e-?mail/i.test(msg) ? 'settings_email_taken'
           : status === 409 ? 'settings_username_taken'
@@ -365,6 +382,19 @@ export default function SettingsScreen({ navigation, route }) {
         </View>
 
         <Text style={styles.sectionTitle}>{tu('settings_personal_section')}</Text>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>{t('reg_full_name')}</Text>
+          <TextInput
+            style={styles.input}
+            value={formData.fullName}
+            onChangeText={(val) => setFormData({ ...formData, fullName: val })}
+            placeholder={t('reg_name_placeholder')}
+            autoCapitalize="words"
+            maxLength={60}
+            placeholderTextColor={colors.textSecondary}
+          />
+        </View>
 
         <View style={styles.inputGroup}>
           <Text style={styles.label}>{t('settings_username')}</Text>

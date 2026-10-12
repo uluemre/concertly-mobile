@@ -3,6 +3,7 @@ package com.concertly.backend.dto.request;
 public class UpdateProfileRequest {
 
     private String bio;
+    private String fullName;
     private String profileImageUrl;
     private String city;
     private String username;
@@ -10,6 +11,9 @@ public class UpdateProfileRequest {
     private String phone;
     // Kullanıcı adı veya e-posta değişirken zorunlu (N-25)
     private String currentPassword;
+
+    public String getFullName() { return fullName; }
+    public void setFullName(String fullName) { this.fullName = fullName; }
 
     public String getCurrentPassword() { return currentPassword; }
     public void setCurrentPassword(String currentPassword) { this.currentPassword = currentPassword; }

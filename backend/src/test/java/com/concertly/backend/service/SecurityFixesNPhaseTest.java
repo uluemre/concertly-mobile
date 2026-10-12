@@ -377,6 +377,8 @@ class SecurityFixesNPhaseTest {
         r.setUsername("emre");
         r.setEmail("yeni@test.local");
         r.setPassword("abc123");
+        r.setFullName("Sim Test");
+        r.setBirthDate(java.time.LocalDate.of(2000, 1, 1));
         assertThrows(com.concertly.backend.exception.AlreadyExistsException.class, () -> auth.register(r));
         verify(repo, never()).save(any());
     }

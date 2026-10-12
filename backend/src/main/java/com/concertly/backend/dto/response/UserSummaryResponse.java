@@ -7,6 +7,7 @@ public class UserSummaryResponse {
 
     private Long id;
     private String username;
+    private String fullName;
     private String profileImageUrl;
     private long followerCount;
     private long followingCount;
@@ -34,6 +35,7 @@ public class UserSummaryResponse {
         UserSummaryResponse dto = new UserSummaryResponse();
         dto.id = user.getId();
         dto.username = user.getUsername();
+        dto.fullName = user.getFullName();
         dto.profileImageUrl = user.getProfileImageUrl();
         dto.city = user.getCity();
         dto.bio = user.getBio();
@@ -72,6 +74,7 @@ public class UserSummaryResponse {
     }
 
     public String getBio() { return bio; }
+    public String getFullName() { return fullName; }
     public String getEmail() { return email; }
     public String getPhone() { return phone; }
     public String getFavoriteGenres() { return favoriteGenres; }

@@ -14,7 +14,8 @@ import {
   TurboModuleRegistry, KeyboardAvoidingView as RNKeyboardAvoidingView, ScrollView, View, Platform,
 } from 'react-native';
 
-const NATIVE = !!TurboModuleRegistry.get('KeyboardController');
+// Webde TurboModuleRegistry yok
+const NATIVE = !!TurboModuleRegistry?.get?.('KeyboardController');
 const KC = NATIVE ? require('react-native-keyboard-controller') : null;
 
 export const keyboardControllerAvailable = NATIVE;

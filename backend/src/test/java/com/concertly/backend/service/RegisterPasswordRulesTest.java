@@ -58,6 +58,8 @@ class RegisterPasswordRulesTest {
         r.setUsername("sim_test");
         r.setEmail("sim_test@test.local");
         r.setPassword(password);
+        r.setFullName("Sim Test");
+        r.setBirthDate(java.time.LocalDate.of(2000, 1, 1));
         return r;
     }
 

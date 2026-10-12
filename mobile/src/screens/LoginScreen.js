@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import postAuthRoute from '../navigation/postAuthRoute';
 import API from '../services/api';
 import { takePendingRoute } from '../navigation/pendingRoute';
 import { useTheme } from '../theme';
@@ -38,8 +39,11 @@ export default function LoginScreen({ navigation }) {
       const res = await API.post('/auth/login', { email: cleanEmail, password });
       const pending = takePendingRoute(res.data.userId);
       await login(res.data);
-      if (res.data.isAdmin) {
-        navigation.replace('Admin');
+      // Girişte tür seçimine yönlendirilmez (eskisi gibi); yalnız admin ve eksik profil
+      const next = postAuthRoute({ ...res.data, onboardingCompleted: true });
+      if (next !== 'MainApp') {
+        // Admin ya da eksik profil (ad soyad / doğum tarihi)
+        navigation.replace(next);
       } else {
         navigation.replace('MainApp');
         // Oturumsuz açılan link ya da oturum bitince kalınan ekran (N-23)

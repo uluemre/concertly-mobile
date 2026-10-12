@@ -11,6 +11,7 @@ import * as Notifications from 'expo-notifications';
 import API, { setSessionExpiredHandler, hasApiSession } from '../services/api';
 import { PUBLIC_SCREENS, setPendingRoute } from './pendingRoute';
 import SlideTabBar from './SlideTabBar';
+import postAuthRoute from './postAuthRoute';
 import { useAuth } from '../context/AuthContext';
 import linking from './linking';
 import {
@@ -62,6 +63,7 @@ import FollowRequestsScreen from '../screens/FollowRequestsScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
 import GenreSelectionScreen from '../screens/GenreSelectionScreen';
+import CompleteProfileScreen from '../screens/CompleteProfileScreen';
 import ArtistSelectionScreen from '../screens/ArtistSelectionScreen';
 import AdminScreen from '../screens/AdminScreen';
 import AdminEventsScreen from '../screens/AdminEventsScreen';
@@ -104,6 +106,9 @@ import { useLanguage } from '../context/LanguageContext';
 const COMPOSE_OPTIONS = { animation: 'slide_from_bottom' };
 
 const Stack = createNativeStackNavigator();
+
+// Profil tamamlanmadan açılabilen ekranlar (yasal metinler okunabilsin)
+const PROFILE_GATE_ALLOWED = new Set(['CompleteProfile', 'Legal', 'Login', 'Register', 'VerifyEmail']);
 const Tab = createBottomTabNavigator();
 
 function TabNavigator() {
@@ -192,7 +197,7 @@ function TabNavigator() {
 }
 
 export default function AppNavigator() {
-  const { session, isReady, logout, notificationCount } = useAuth();
+  const { session, isReady, logout, updateSession, notificationCount } = useAuth();
   const { lang } = useLanguage();
   const navigationRef = useRef(null);
 
@@ -269,6 +274,29 @@ export default function AppNavigator() {
     }
   }, [session.authToken]);
 
+  // Ad soyad / doğum tarihi eksik hesap uygulamaya geçemez. Eski oturumda bilgi yoksa
+  // (undefined) sunucuya bir kez sorulur; eksikse her ekran değişiminde CompleteProfile'a
+  // dönülür (link, bildirim, giriş sonrası yönlendirme dahil). Admin hesapları hariç.
+  const profileCompleteRef = useRef(session.profileComplete);
+  profileCompleteRef.current = session.profileComplete;
+  const isAdminRef = useRef(session.isAdmin);
+  isAdminRef.current = session.isAdmin;
+  const guardProfile = useCallback(() => {
+    if (!authTokenRef.current || isAdminRef.current || profileCompleteRef.current !== false) return;
+    const nav = navigationRef.current;
+    const route = nav?.getCurrentRoute();
+    if (!route || PROFILE_GATE_ALLOWED.has(route.name)) return;
+    nav.reset({ index: 0, routes: [{ name: 'CompleteProfile' }] });
+  }, []);
+  useEffect(() => {
+    if (!session.authToken || session.isAdmin || session.profileComplete !== undefined) return;
+    API.get('/users/me/basic-info')
+      .then(({ data }) => updateSession({ profileComplete: !!data?.profileComplete, fullName: data?.fullName || '' }))
+      .catch(() => {});   // çevrimdışı: bir sonraki açılışta tekrar sorulur
+  }, [session.authToken, session.isAdmin, session.profileComplete, updateSession]);
+  useEffect(() => { guardProfile(); }, [session.profileComplete, session.authToken, guardProfile]);
+  const guardAll = useCallback(() => { guardRoute(); guardProfile(); }, [guardRoute, guardProfile]);
+
   // Aynı kontrol link çözülürken de yapılır: giriş gerektiren ekran oturumsuz hiç
   // açılmaz (açılsaydı istekleri 401 alıp hata uyarısı gösterirdi).
   const guardedLinking = useMemo(() => ({
@@ -296,9 +324,8 @@ export default function AppNavigator() {
     // Kayıttan sonra tür/sanatçı seçimini bitirmeden uygulamayı kapatan kullanıcı
     // bir dahaki açılışta oraya döner (eskiden doğrudan ana sayfaya düşüyordu).
     // Eski oturumlarda alan hiç yok (undefined) → ana sayfa.
-    initialRoute = session.isAdmin ? 'Admin'
-      : (session.onboardingCompleted === false && !session.favoriteGenres) ? 'GenreSelection'
-      : 'MainApp';
+    // Ad soyad / doğum tarihi eksik eski hesap önce "Profilini tamamla"ya gider.
+    initialRoute = postAuthRoute(session);
   } else if (showOnboarding) {
     initialRoute = 'Onboarding';
   }
@@ -312,7 +339,7 @@ export default function AppNavigator() {
   }
 
   return (
-    <NavigationContainer ref={navigationRef} linking={guardedLinking} onReady={guardRoute} onStateChange={guardRoute}>
+    <NavigationContainer ref={navigationRef} linking={guardedLinking} onReady={guardAll} onStateChange={guardAll}>
       <Stack.Navigator
         initialRouteName={initialRoute}
         screenOptions={{ headerShown: false }}
@@ -321,6 +348,13 @@ export default function AppNavigator() {
         <Stack.Screen
           name="Onboarding"
           component={OnboardingScreen}
+        />
+
+        {/* Eski hesaplar: ad soyad + doğum tarihi bir kez sorulur (geri hareketi kapalı) */}
+        <Stack.Screen
+          name="CompleteProfile"
+          component={CompleteProfileScreen}
+          options={{ gestureEnabled: false }}
         />
 
         {/* NEW ONBOARDING FLOW */}

@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, Alert,
 } from 'react-native';
+import postAuthRoute from '../navigation/postAuthRoute';
 import API from '../services/api';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
@@ -51,7 +52,7 @@ export default function VerifyEmailScreen({ navigation, route }) {
       const res = await API.post('/auth/verify-email', { email, code: value });
       const onboarded = !!res.data.onboardingCompleted;
       await login({ ...res.data, onboardingCompleted: onboarded });
-      navigation.reset({ index: 0, routes: [{ name: onboarded ? 'MainApp' : 'GenreSelection' }] });
+      navigation.reset({ index: 0, routes: [{ name: postAuthRoute({ ...res.data, onboardingCompleted: onboarded }) }] });
     } catch (err) {
       const reason = err?.response?.data?.message;
       const key = reason === 'CODE_EXPIRED' ? 'verify_code_expired'

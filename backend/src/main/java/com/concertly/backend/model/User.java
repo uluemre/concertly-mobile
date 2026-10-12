@@ -2,6 +2,7 @@ package com.concertly.backend.model;
 
 import jakarta.persistence.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Set;
 
@@ -25,6 +26,13 @@ public class User {
     private String password;
 
     private String bio;
+
+    /** Ad soyad: kayıtta zorunlu, profil başlığında görünür. */
+    @Column(length = 60)
+    private String fullName;
+
+    /** Doğum tarihi: yalnız yaş için (18+ kuralı, Konser Arkadaşı kartı); kendisi dışarı verilmez. */
+    private LocalDate birthDate;
 
     private String profileImageUrl;
 
@@ -81,6 +89,16 @@ public class User {
 
     public Long getId() {
         return id;
+    }
+
+    public String getFullName() { return fullName; }
+    public void setFullName(String fullName) { this.fullName = fullName; }
+    public LocalDate getBirthDate() { return birthDate; }
+    public void setBirthDate(LocalDate birthDate) { this.birthDate = birthDate; }
+
+    /** Eski hesaplarda ad ya da doğum tarihi yok: uygulama bir kez sorar. */
+    public boolean isProfileComplete() {
+        return fullName != null && !fullName.isBlank() && birthDate != null;
     }
 
     public String getUsername() {

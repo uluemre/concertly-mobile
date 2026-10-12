@@ -235,6 +235,9 @@ export default function ProfileScreen({ navigation, route }) {
 
               <View style={styles.heroInfo}>
                 <Text style={styles.username} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>@{profile?.username || 'Kullanıcı'}</Text>
+                {profile?.fullName ? (
+                  <Text style={styles.fullName} numberOfLines={1}>{profile.fullName}</Text>
+                ) : null}
                 {profile?.bio ? (
                   <Text style={styles.bioText} numberOfLines={3}>{profile.bio}</Text>
                 ) : (
@@ -635,6 +638,7 @@ function createStyles(colors) {
       color: colors.text,
       marginBottom: 4,
     },
+    fullName: { fontSize: 14, fontWeight: '600', color: colors.text, marginBottom: 4 },
     bioText: {
       color: colors.textSecondary,
       fontSize: 13,
