@@ -9,20 +9,10 @@ import { useTheme, fonts } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import API from '../services/api';
+import AdminDashboard from '../components/admin/AdminDashboard';
 
 const { width } = Dimensions.get('window');
 
-// tint: tema rengi anahtarı — kartlar düz, rengi ikon taşır
-const STAT_CARDS = [
-  { key: 'totalUsers',       labelKey: 'admin_stat_total_users',    icon: 'people',           tint: 'accent' },
-  { key: 'activeUsers',      labelKey: 'admin_stat_active_users',   icon: 'checkmark-circle', tint: 'accent' },
-  { key: 'bannedUsers',      labelKey: 'admin_stat_banned_users',   icon: 'ban',              tint: 'primary' },
-  { key: 'newUsersThisWeek', labelKey: 'admin_stat_new_week',       icon: 'person-add',       tint: 'accent' },
-  { key: 'totalEvents',      labelKey: 'admin_stat_total_events',   icon: 'musical-notes',    tint: 'secondary' },
-  { key: 'pendingEvents',    labelKey: 'admin_stat_pending_events', icon: 'hourglass',        tint: 'secondary' },
-  { key: 'totalPosts',       labelKey: 'admin_stat_total_posts',    icon: 'document-text',    tint: 'purple' },
-  { key: 'totalAttendance',  labelKey: 'admin_stat_attendance',     icon: 'ticket',           tint: 'primary' },
-];
 
 const NAV_ITEMS = [
   {
@@ -138,6 +128,8 @@ export default function AdminScreen({ navigation }) {
   const [syncing, setSyncing] = useState(false);
   const [enriching, setEnriching] = useState(false);
   const [creatingConcert, setCreatingConcert] = useState(false);
+  // Çekince / sayfaya dönünce panel de yeniden yüklensin
+  const [refreshTick, setRefreshTick] = useState(0);
 
   // Test için: bulunulan şehre koordinatsız (geofence'siz) sahte konser oluşturur,
   // böylece "konserde post" akışı yerinde olmadan denenebilir.
@@ -230,7 +222,7 @@ export default function AdminScreen({ navigation }) {
     }
   }, [t]);
 
-  useFocusEffect(useCallback(() => { fetchStats(); }, [fetchStats]));
+  useFocusEffect(useCallback(() => { fetchStats(); setRefreshTick(n => n + 1); }, [fetchStats]));
 
   return (
     <ScrollView
@@ -239,7 +231,7 @@ export default function AdminScreen({ navigation }) {
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
-          onRefresh={() => { setRefreshing(true); fetchStats(); }}
+          onRefresh={() => { setRefreshing(true); fetchStats(); setRefreshTick(n => n + 1); }}
           tintColor={colors.primary}
         />
       }
@@ -275,17 +267,9 @@ export default function AdminScreen({ navigation }) {
         </View>
       ) : (
         <>
-          {/* STAT GRID */}
+          {/* GENEL BAKIŞ: bekleyen işler, ana sayılar, grafik, şehirler, popülerler */}
           <Text style={styles.sectionTitle}>{t('admin_overview')}</Text>
-          <View style={styles.statsGrid}>
-            {STAT_CARDS.map(card => (
-              <View key={card.key} style={styles.statCard} accessible accessibilityLabel={`${t(card.labelKey)}: ${stats?.[card.key] ?? 0}`}>
-                <Ionicons name={card.icon} size={22} color={colors[card.tint] || colors.primary} style={styles.statIcon} />
-                <Text style={styles.statValue}>{stats?.[card.key] ?? 0}</Text>
-                <Text style={styles.statLabel}>{t(card.labelKey)}</Text>
-              </View>
-            ))}
-          </View>
+          <AdminDashboard navigation={navigation} refreshKey={refreshTick} />
 
           {/* QUICK ACTIONS */}
           <Text style={styles.sectionTitle}>{t('admin_quick_actions')}</Text>

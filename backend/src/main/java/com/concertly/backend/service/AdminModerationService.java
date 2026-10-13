@@ -124,6 +124,7 @@ public class AdminModerationService {
         Report report = reportRepository.findById(reportId)
                 .orElseThrow(() -> new ResourceNotFoundException("Şikayet bulunamadı: " + reportId));
         report.setResolved(true);
+        if (report.getResolvedAt() == null) report.setResolvedAt(java.time.LocalDateTime.now());
         reportRepository.save(report);
     }
 

@@ -53,4 +53,21 @@ public class Report {
     public void setResolved(boolean resolved) { this.resolved = resolved; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
+
+    /** Kapanış kararı: DISMISS, HIDE, HIDE_WARN, HIDE_BAN, WARN, BAN (eski kayıtlarda boş). */
+    @Column(length = 20)
+    private String resolution;
+
+    @Column(name = "resolved_by")
+    private String resolvedBy;
+
+    @Column(name = "resolved_at")
+    private LocalDateTime resolvedAt;
+
+    public String getResolution() { return resolution; }
+    public void setResolution(String resolution) { this.resolution = resolution; }
+    public String getResolvedBy() { return resolvedBy; }
+    public void setResolvedBy(String resolvedBy) { this.resolvedBy = resolvedBy; }
+    public LocalDateTime getResolvedAt() { return resolvedAt; }
+    public void setResolvedAt(LocalDateTime resolvedAt) { this.resolvedAt = resolvedAt; }
 }
