@@ -1,5 +1,8 @@
 # CLAUDE.md
 
+> **İLK İŞ: `DEVAM_ET.md` dosyasını oku.** En son nerede kaldığımız, sıradaki işler ve canlıya
+> çıkış sırası orada. Okuduktan sonra Emre'ye kısaca özetle ve ne yapmak istediğini sor.
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
