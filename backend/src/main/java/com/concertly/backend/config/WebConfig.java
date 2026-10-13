@@ -2,6 +2,7 @@ package com.concertly.backend.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -13,11 +14,25 @@ public class WebConfig implements WebMvcConfigurer {
 
     private final String uploadDir;
     private final String storageType;
+    private final FeatureGateInterceptor featureGate;
+    private final AdminAuditInterceptor adminAudit;
 
     public WebConfig(@Value("${app.upload.dir:uploads}") String uploadDir,
-                     @Value("${app.storage.type:local}") String storageType) {
+                     @Value("${app.storage.type:local}") String storageType,
+                     FeatureGateInterceptor featureGate,
+                     AdminAuditInterceptor adminAudit) {
         this.uploadDir = uploadDir;
         this.storageType = storageType;
+        this.featureGate = featureGate;
+        this.adminAudit = adminAudit;
+    }
+
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        // Bakım modu ve özellik anahtarları (adminler muaf)
+        registry.addInterceptor(featureGate).addPathPatterns("/api/**");
+        // Admin işlem kaydı
+        registry.addInterceptor(adminAudit).addPathPatterns("/api/admin/**");
     }
 
     @Override

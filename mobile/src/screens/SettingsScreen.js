@@ -600,6 +600,20 @@ export default function SettingsScreen({ navigation, route }) {
           <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
         </TouchableOpacity>
 
+        {/* Organizatör / mekân / menajer hesabı: başvuru ya da panel */}
+        <TouchableOpacity
+          style={[styles.privacyRow, { marginTop: 12 }]}
+          onPress={() => navigation.navigate('Organizer')}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+        >
+          <View style={styles.rowLead}>
+            <Ionicons name="business-outline" size={18} color={colors.textSecondary} />
+            <Text style={styles.privacyRowText}>{t('settings_organizer')}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+        </TouchableOpacity>
+
         <Text style={styles.sectionTitle}>{tu('settings_spotify')}</Text>
         <View style={styles.spotifyCard}>
           <View style={styles.spotifyRow}>

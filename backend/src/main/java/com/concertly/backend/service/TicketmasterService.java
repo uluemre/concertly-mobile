@@ -956,6 +956,10 @@ public class TicketmasterService {
                     if (venue.getId() != null && !venueExternalId.equals(venue.getExternalId())) {
                         return fillVenueBlanks(venue, v, fallbackCity);
                     }
+                    // Admin panelinden düzeltilmiş mekânın bilgisi ezilmez
+                    if (venue.getId() != null && venue.isAdminEdited()) {
+                        return fillVenueBlanks(venue, v, fallbackCity);
+                    }
                     venue.setExternalId(venueExternalId);
                 }
 
@@ -1081,7 +1085,9 @@ public class TicketmasterService {
             boolean changed = false;
 
             // Görsel: Deezer (API key yok, rate limit yok)
-            boolean needsImage = isBlank(artist.getImageUrl()) || !isSpotifyImage(artist.getImageUrl());
+            // Admin panelinden konan fotoğrafa dokunulmaz
+            boolean needsImage = !ArtistPhotoService.SOURCE_ADMIN.equals(artist.getImageSource())
+                    && (isBlank(artist.getImageUrl()) || !isSpotifyImage(artist.getImageUrl()));
             if (needsImage) {
                 DeezerService.DeezerArtistData dd = deezerService.searchArtist(artist.getName());
                 if (dd != null && dd.imageUrl != null) {

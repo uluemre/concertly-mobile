@@ -43,6 +43,12 @@ public class SuggestEventRequest {
     public String getArtistGenre() { return artistGenre; }
     public void setArtistGenre(String artistGenre) { this.artistGenre = artistGenre; }
 
+    /** Organizatör paneli: listeden seçilen kayıtlı mekân (doluysa ad/şehir buradan gelir). */
+    private Long venueId;
+
+    public Long getVenueId() { return venueId; }
+    public void setVenueId(Long venueId) { this.venueId = venueId; }
+
     public String getVenueName() { return venueName; }
     public void setVenueName(String venueName) { this.venueName = venueName; }
 

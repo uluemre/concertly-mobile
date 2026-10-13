@@ -1,322 +1,240 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, FlatList,
-  Alert, ActivityIndicator, TextInput, RefreshControl,
+  View, Text, StyleSheet, TouchableOpacity, FlatList, ScrollView,
+  ActivityIndicator, TextInput, RefreshControl,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, fonts } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
 import { goBackOrFallback } from '../navigation/navHelpers';
+import { accountAge } from '../utils/adminOrganizer';
 
 const FILTERS = [
-  { key: 'all',    labelKey: 'admin_filter_all' },
-  { key: 'active', labelKey: 'admin_filter_active' },
-  { key: 'banned', labelKey: 'admin_filter_banned' },
-  { key: 'admin',  labelKey: 'admin_filter_admin' },
+  ['all', 'admin_filter_all'],
+  ['reported', 'adm_user_filter_reported'],
+  ['new', 'adm_user_filter_new'],
+  ['banned', 'admin_filter_banned'],
+  ['admin', 'admin_filter_admin'],
 ];
 
+/**
+ * Admin kullanıcı listesi: sunucuda arama (kullanıcı adı, ad, e-posta) ve süzgeç; şikâyetli
+ * kullanıcılar açık şikâyet sayısına göre sıralanır. Satıra dokununca kullanıcı detayı açılır.
+ */
 export default function AdminUsersScreen({ navigation }) {
   const { colors } = useTheme();
   const { t } = useLanguage();
+  const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
-  const [users, setUsers] = useState([]);
+  const [query, setQuery] = useState('');
+  const [filter, setFilter] = useState('all');
+  const [items, setItems] = useState([]);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [search, setSearch] = useState('');
-  const [activeFilter, setActiveFilter] = useState('all');
+  const [error, setError] = useState(false);
+  const requestId = useRef(0);
 
-  const fetchUsers = useCallback(async () => {
+  const load = useCallback(async (q, f, nextPage, append) => {
+    const id = ++requestId.current;
     try {
-      const res = await API.get('/admin/users');
-      setUsers(res.data);
-    } catch (err) {
-      console.log('Admin users error:', err.message);
+      const res = await API.get('/admin/users/search', { params: { q: q || undefined, filter: f, page: nextPage } });
+      if (id !== requestId.current) return;
+      const rows = res.data || [];
+      setItems(prev => (append ? [...prev, ...rows] : rows));
+      setPage(nextPage);
+      setHasMore(rows.length >= 40);
+      setError(false);
+    } catch {
+      if (id === requestId.current && !append) setError(true);
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (id === requestId.current) {
+        setLoading(false);
+        setLoadingMore(false);
+        setRefreshing(false);
+      }
     }
   }, []);
 
-  useEffect(() => { fetchUsers(); }, []);
+  useEffect(() => {
+    const timer = setTimeout(() => load(query.trim(), filter, 0, false), query ? 300 : 0);
+    return () => clearTimeout(timer);
+  }, [query, filter, load]);
 
-  const filtered = useMemo(() => {
-    let list = users;
-    if (activeFilter === 'active') list = list.filter(u => u.isActive !== false);
-    else if (activeFilter === 'banned') list = list.filter(u => u.isActive === false);
-    else if (activeFilter === 'admin') list = list.filter(u => u.isAdmin);
+  // Detaydan dönünce (yasak, uyarı...) liste tazelensin
+  const first = useRef(true);
+  useFocusEffect(useCallback(() => {
+    if (first.current) { first.current = false; return; }
+    load(query.trim(), filter, 0, false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [load]));
 
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      list = list.filter(u =>
-        u.username?.toLowerCase().includes(q) ||
-        u.email?.toLowerCase().includes(q) ||
-        u.city?.toLowerCase().includes(q)
-      );
-    }
-    return list;
-  }, [users, search, activeFilter]);
-
-  const handleBan = (user) => {
-    const isBanned = user.isActive === false;
-    const msg = isBanned ? t('admin_unban_msg', { username: user.username }) : t('admin_ban_msg', { username: user.username });
-    Alert.alert(t('admin_confirm_title'), msg, [
-      { text: t('cancel'), style: 'cancel' },
-      {
-        text: isBanned ? t('admin_unban_btn') : t('admin_ban_btn'),
-        style: isBanned ? 'default' : 'destructive',
-        onPress: async () => {
-          try {
-            const ep = isBanned ? `/admin/users/${user.id}/unban` : `/admin/users/${user.id}/ban`;
-            await API.patch(ep);
-            fetchUsers();
-          } catch { Alert.alert(t('error'), t('admin_op_failed')); }
-        },
-      },
-    ]);
+  const changeFilter = (f) => {
+    if (f === filter) return;
+    setLoading(true);
+    setFilter(f);
   };
 
-  const handleMakeAdmin = (user) => {
-    Alert.alert(t('admin_make_admin_title'), t('admin_make_admin_msg', { username: user.username }), [
-      { text: t('cancel'), style: 'cancel' },
-      {
-        text: t('admin_make_admin_title'), onPress: async () => {
-          try {
-            await API.patch(`/admin/users/${user.id}/make-admin`);
-            fetchUsers();
-          } catch { Alert.alert(t('error'), t('admin_op_failed')); }
-        },
-      },
-    ]);
+  const loadMore = () => {
+    if (!hasMore || loadingMore || loading) return;
+    setLoadingMore(true);
+    load(query.trim(), filter, page + 1, true);
   };
 
-  const handleRemoveAdmin = (user) => {
-    Alert.alert(t('admin_remove_admin_title'), t('admin_remove_admin_msg', { username: user.username }), [
-      { text: t('cancel'), style: 'cancel' },
-      {
-        text: t('admin_remove_btn'), style: 'destructive', onPress: async () => {
-          try {
-            await API.patch(`/admin/users/${user.id}/remove-admin`);
-            fetchUsers();
-          } catch { Alert.alert(t('error'), t('admin_op_failed')); }
-        },
-      },
-    ]);
-  };
-
-  const renderUser = ({ item }) => {
-    const isBanned = item.isActive === false;
+  const renderItem = ({ item }) => {
+    const banned = item.isActive === false;
     return (
-      <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        {/* Sol renkli şerit */}
-        <View style={[styles.cardStrip, {
-          backgroundColor: item.isAdmin ? '#7C3AED' : isBanned ? '#E94560' : '#00D4AA',
-        }]} />
-
-        <View style={styles.cardBody}>
-          <View style={styles.cardTop}>
-            {/* Avatar */}
-            <View style={[styles.avatar, { backgroundColor: item.isAdmin ? '#7C3AED' : isBanned ? '#E94560' : '#00A383' }]}>
-              <Text style={styles.avatarText}>
-                {item.username?.charAt(0).toUpperCase() || '?'}
-              </Text>
-            </View>
-
-            {/* Bilgiler */}
-            <View style={styles.userInfo}>
-              <View style={styles.usernameRow}>
-                <Text style={[styles.username, { color: colors.text }]}>@{item.username}</Text>
-                <View style={styles.badges}>
-                  {item.isAdmin && (
-                    <View style={[styles.badge, { backgroundColor: colors.purple + '22' }]}>
-                      <Text style={[styles.badgeText, { color: colors.purple }]}>{t('admin_badge_admin')}</Text>
-                    </View>
-                  )}
-                  <View style={[styles.badge, {
-                    backgroundColor: isBanned ? colors.primary + '22' : colors.accent + '22',
-                  }]}>
-                    <Text style={[styles.badgeText, { color: isBanned ? colors.primary : colors.accent }]}>
-                      {isBanned ? t('admin_status_banned') : t('admin_status_active')}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-              <Text style={[styles.email, { color: colors.textSecondary }]}>{item.email}</Text>
-              <View style={styles.metaRow}>
-                {item.city && (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-                    <Ionicons name="location-outline" size={12} color={colors.textSecondary} />
-                    <Text style={[styles.meta, { color: colors.textSecondary }]}>{item.city}</Text>
-                  </View>
-                )}
-                {item.postCount != null && (
-                  <Text style={[styles.meta, { color: colors.textSecondary }]}>{t('admin_post_count', { count: item.postCount })}</Text>
-                )}
-              </View>
-            </View>
-          </View>
-
-          {/* Aksiyonlar */}
-          <View style={styles.actions}>
-            <TouchableOpacity
-              onPress={() => handleBan(item)}
-              style={[styles.actionBtn, {
-                backgroundColor: isBanned ? colors.accent + '18' : colors.primary + '18',
-                borderColor: isBanned ? colors.accent + '50' : colors.primary + '50',
-              }]}
-            >
-              <Text style={[styles.actionBtnText, { color: isBanned ? '#00D4AA' : '#E94560' }]}>
-                {isBanned ? t('admin_action_unban') : t('admin_action_ban')}
-              </Text>
-            </TouchableOpacity>
-            {item.isAdmin ? (
-              <TouchableOpacity
-                onPress={() => handleRemoveAdmin(item)}
-                style={[styles.actionBtn, { backgroundColor: colors.purple + '18', borderColor: colors.purple + '50' }]}
-              >
-                <Text style={[styles.actionBtnText, { color: colors.purple }]}>{t('admin_action_remove_admin')}</Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                onPress={() => handleMakeAdmin(item)}
-                style={[styles.actionBtn, { backgroundColor: colors.purple + '18', borderColor: colors.purple + '50' }]}
-              >
-                <Text style={[styles.actionBtnText, { color: colors.purple }]}>{t('admin_action_make_admin')}</Text>
-              </TouchableOpacity>
-            )}
-          </View>
+      <TouchableOpacity
+        style={styles.row}
+        onPress={() => navigation.navigate('AdminUserDetail', { id: item.id })}
+        activeOpacity={0.85}
+        accessibilityRole="button"
+        accessibilityLabel={`@${item.username}`}
+      >
+        <View style={styles.avatar}>
+          {item.profileImageUrl
+            ? <Image source={{ uri: item.profileImageUrl }} style={StyleSheet.absoluteFill} contentFit="cover" />
+            : <Text style={styles.avatarText}>{item.username?.charAt(0).toUpperCase() || '?'}</Text>}
         </View>
-      </View>
+        <View style={{ flex: 1 }}>
+          <View style={styles.nameRow}>
+            <Text style={styles.username} numberOfLines={1}>@{item.username}</Text>
+            {item.isAdmin ? <Tag text={t('admin_badge_admin')} color={colors.purple} styles={styles} /> : null}
+            {banned ? <Tag text={item.bannedUntil ? t('adm_user_banned_until_short') : t('admin_status_banned')} color={colors.primary} styles={styles} /> : null}
+          </View>
+          <Text style={styles.meta} numberOfLines={1}>
+            {[item.fullName, item.email].filter(Boolean).join(' · ')}
+          </Text>
+          <Text style={styles.meta} numberOfLines={1}>
+            {[item.city, accountAge(item.createdAt).label(t)].filter(Boolean).join(' · ')}
+          </Text>
+        </View>
+        {item.openReports > 0 ? (
+          <View style={styles.reportBadge} accessibilityLabel={t('adm_org_reports_n', { count: item.openReports })}>
+            <Ionicons name="flag" size={11} color="#fff" />
+            <Text style={styles.reportText}>{item.openReports}</Text>
+          </View>
+        ) : null}
+        <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+      </TouchableOpacity>
     );
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* HEADER */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => goBackOrFallback(navigation, 'Admin')} accessibilityRole="button">
-          <Text style={[styles.backText, { color: colors.primary }]}>{t('back')}</Text>
+    <View style={styles.container}>
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+        <TouchableOpacity onPress={() => goBackOrFallback(navigation, 'Admin')} style={styles.backBtn} accessibilityRole="button" accessibilityLabel={t('a11y_back')}>
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>{t('admin_users_title')}</Text>
-        <Text style={[styles.headerSub, { color: colors.textSecondary }]}>
-          {t('admin_users_count', { shown: filtered.length, total: users.length })}
-        </Text>
-
-        {/* SEARCH */}
-        <View style={[styles.searchBar, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Ionicons name="search" size={17} color={colors.textSecondary} />
-          <TextInput
-            style={[styles.searchInput, { color: colors.text }]}
-            placeholder={t('admin_users_search')}
-            placeholderTextColor={colors.textSecondary}
-            value={search}
-            onChangeText={setSearch}
-          />
-          {search.length > 0 && (
-            <TouchableOpacity onPress={() => setSearch('')} accessibilityRole="button" accessibilityLabel={t('close')} hitSlop={8}>
-              <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
-            </TouchableOpacity>
-          )}
-        </View>
+        <Text style={styles.headerTitle}>{t('admin_nav_users_title')}</Text>
+        <View style={styles.backBtn} />
       </View>
 
-      {/* FILTERS */}
-      <View style={[styles.filtersWrap, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-        {FILTERS.map(f => (
-          <TouchableOpacity
-            key={f.key}
-            onPress={() => setActiveFilter(f.key)}
-            accessibilityRole="button"
-            accessibilityState={{ selected: activeFilter === f.key }}
-            style={[
-              styles.filterBtn,
-              activeFilter === f.key && { backgroundColor: colors.primary + '22', borderColor: colors.primary },
-            ]}
-          >
-            <Text style={[
-              styles.filterBtnText,
-              { color: activeFilter === f.key ? colors.primary : colors.textSecondary },
-            ]}>
-              {t(f.labelKey)}
-            </Text>
+      <View style={styles.search}>
+        <Ionicons name="search" size={16} color={colors.textSecondary} />
+        <TextInput
+          value={query}
+          onChangeText={setQuery}
+          placeholder={t('adm_user_search')}
+          placeholderTextColor={colors.textSecondary}
+          style={styles.searchInput}
+          autoCorrect={false}
+          autoCapitalize="none"
+        />
+        {query ? (
+          <TouchableOpacity onPress={() => setQuery('')} hitSlop={10} accessibilityRole="button" accessibilityLabel={t('close')}>
+            <Ionicons name="close-circle" size={16} color={colors.textSecondary} />
           </TouchableOpacity>
-        ))}
+        ) : null}
+      </View>
+      <View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+          {FILTERS.map(([key, label]) => (
+            <TouchableOpacity key={key} onPress={() => changeFilter(key)} style={[styles.chip, filter === key && styles.chipOn]} accessibilityRole="tab" accessibilityState={{ selected: filter === key }}>
+              <Text style={[styles.chipText, filter === key && styles.chipTextOn]}>{t(label)}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
 
       {loading ? (
-        <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 48 }} />
+        <View style={styles.center}><ActivityIndicator size="large" color={colors.primary} /></View>
       ) : (
         <FlatList
-          data={filtered}
-          keyExtractor={item => String(item.id)}
-          renderItem={renderUser}
-          contentContainerStyle={{ padding: 16, paddingBottom: 48 }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchUsers(); }} tintColor={colors.primary} />}
-          ListEmptyComponent={
+          data={items}
+          keyExtractor={(u) => String(u.id)}
+          renderItem={renderItem}
+          keyboardShouldPersistTaps="handled"
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          contentContainerStyle={[items.length === 0 && styles.emptyContainer, { paddingBottom: insets.bottom + 24 }]}
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.4}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(query.trim(), filter, 0, false); }} tintColor={colors.primary} />}
+          ListFooterComponent={loadingMore ? <ActivityIndicator style={{ margin: 16 }} color={colors.primary} /> : null}
+          ListEmptyComponent={(
             <View style={styles.empty}>
-              <Ionicons name="people-outline" size={48} color={colors.textSecondary} style={styles.emptyEmoji} />
-              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t('admin_users_empty')}</Text>
+              <Ionicons name={error ? 'cloud-offline-outline' : 'people-outline'} size={44} color={colors.textSecondary} />
+              <Text style={styles.emptyText}>{error ? t('adm_org_load_error') : t('adm_user_empty')}</Text>
             </View>
-          }
+          )}
         />
       )}
     </View>
   );
 }
 
+function Tag({ text, color, styles }) {
+  return (
+    <View style={[styles.tag, { backgroundColor: `${color}22` }]}>
+      <Text style={[styles.tagText, { color }]}>{text}</Text>
+    </View>
+  );
+}
+
 function createStyles(colors) {
   return StyleSheet.create({
-    container: { flex: 1 },
-    header: { paddingTop: 56, paddingBottom: 16, paddingHorizontal: 20, gap: 8 },
-    backText: { fontSize: 16, fontWeight: '600', marginBottom: 4 },
-    headerTitle: { fontSize: 26, fontFamily: fonts.heading },
-    headerSub: { fontSize: 12 },
-    searchBar: {
-      flexDirection: 'row', alignItems: 'center', gap: 10,
-      borderWidth: 1, borderRadius: 14,
-      paddingHorizontal: 14, paddingVertical: 11, marginTop: 4,
+    container: { flex: 1, backgroundColor: colors.background },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingBottom: 14, paddingHorizontal: 16,
+      backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.border,
     },
-    searchInput: { flex: 1, fontSize: 14 },
-
-    filtersWrap: {
-      flexDirection: 'row', paddingHorizontal: 12, paddingVertical: 10,
-      gap: 8, borderBottomWidth: 1,
+    backBtn: { width: 40, alignItems: 'center' },
+    headerTitle: { fontSize: 18, fontFamily: fonts.headingBold, color: colors.text },
+    search: {
+      flexDirection: 'row', alignItems: 'center', gap: 8, margin: 16, marginBottom: 4,
+      backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 12,
     },
-    filterBtn: {
-      paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20,
-      borderWidth: 1, borderColor: 'transparent',
-    },
-    filterBtnText: { fontSize: 12, fontWeight: '700' },
-
-    // CARD
-    card: {
-      flexDirection: 'row', borderRadius: 16, borderWidth: 1,
-      marginBottom: 12, overflow: 'hidden',
-    },
-    cardStrip: { width: 4 },
-    cardBody: { flex: 1, padding: 14 },
-    cardTop: { flexDirection: 'row', gap: 12, marginBottom: 12 },
+    searchInput: { flex: 1, paddingVertical: 10, color: colors.text, fontSize: 14 },
+    chips: { paddingHorizontal: 16, paddingVertical: 10, gap: 8 },
+    chip: { borderRadius: 999, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, paddingHorizontal: 12, paddingVertical: 6 },
+    chipOn: { backgroundColor: colors.text, borderColor: colors.text },
+    chipText: { fontSize: 12, fontWeight: '700', color: colors.textSecondary },
+    chipTextOn: { color: colors.background },
+    row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 10 },
     avatar: {
-      width: 48, height: 48, borderRadius: 24,
-      justifyContent: 'center', alignItems: 'center',
+      width: 46, height: 46, borderRadius: 23, overflow: 'hidden',
+      backgroundColor: `${colors.primary}22`, alignItems: 'center', justifyContent: 'center',
     },
-    avatarText: { color: '#fff', fontWeight: '900', fontSize: 20 },
-    userInfo: { flex: 1 },
-    usernameRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 4 },
-    username: { fontSize: 15, fontWeight: '800' },
-    badges: { flexDirection: 'row', gap: 5 },
-    badge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 },
-    badgeText: { fontSize: 10, fontWeight: '800' },
-    email: { fontSize: 12, marginBottom: 4 },
-    metaRow: { flexDirection: 'row', gap: 12 },
-    meta: { fontSize: 11 },
-    actions: { flexDirection: 'row', gap: 8 },
-    actionBtn: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10, borderWidth: 1 },
-    actionBtnText: { fontSize: 12, fontWeight: '700' },
-
-    empty: { alignItems: 'center', paddingVertical: 80 },
-    emptyEmoji: { marginBottom: 12 },
-    emptyText: { fontSize: 15 },
+    avatarText: { color: colors.primary, fontFamily: fonts.headingBold, fontSize: 18 },
+    nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    username: { flexShrink: 1, fontSize: 15, fontWeight: '700', color: colors.text },
+    meta: { fontSize: 12, color: colors.textSecondary, marginTop: 1 },
+    tag: { borderRadius: 6, paddingHorizontal: 6, paddingVertical: 1 },
+    tagText: { fontSize: 10, fontWeight: '800' },
+    reportBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: colors.primary, borderRadius: 999, paddingHorizontal: 7, paddingVertical: 3 },
+    reportText: { color: '#fff', fontSize: 11, fontWeight: '800' },
+    separator: { height: 1, backgroundColor: colors.border, marginLeft: 74 },
+    emptyContainer: { flexGrow: 1, justifyContent: 'center' },
+    empty: { alignItems: 'center', paddingVertical: 60, gap: 12 },
+    emptyText: { fontSize: 14, color: colors.textSecondary, textAlign: 'center', paddingHorizontal: 32 },
   });
 }

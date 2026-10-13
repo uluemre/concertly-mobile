@@ -22,6 +22,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -57,6 +58,22 @@ class ContentLimitServiceTest {
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                 () -> service(48).checkPost(1L));
         assertEquals(HttpStatus.TOO_MANY_REQUESTS, ex.getStatusCode());
+    }
+
+    /** Admin panelindeki değer ayar dosyasındakini ezer: tavan 10'dan 3'e iner, süre 1 saate. */
+    @Test
+    void adminSettingsOverrideConfiguredLimits() {
+        userCreated(LocalDateTime.now().minusHours(2));
+        when(postRepository.countByUserIdAndCreatedAtAfter(eq(1L), any())).thenReturn(3L);
+        AppSettingsService settings = mock(AppSettingsService.class);
+        when(settings.getLong(eq(AppSettingsService.NEW_ACCOUNT_HOURS), anyLong())).thenReturn(48L);
+        when(settings.getLong(eq(AppSettingsService.NEW_ACCOUNT_MAX_POSTS), anyLong())).thenReturn(3L);
+        ContentLimitService limited = service(48);
+        limited.setSettings(settings);
+        assertThrows(ResponseStatusException.class, () -> limited.checkPost(1L));
+
+        when(settings.getLong(eq(AppSettingsService.NEW_ACCOUNT_HOURS), anyLong())).thenReturn(1L);
+        assertDoesNotThrow(() -> limited.checkPost(1L), "2 saatlik hesap artık yeni sayılmaz");
     }
 
     @Test

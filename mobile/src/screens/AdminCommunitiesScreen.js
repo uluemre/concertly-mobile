@@ -1,6 +1,6 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput,
   ActivityIndicator, Alert, RefreshControl,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -27,6 +27,32 @@ export default function AdminCommunitiesScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [busyId, setBusyId] = useState(null);
+  // "Tümü": gizli, reddedilmiş ve arşivlenmiş dahil bütün topluluklar (içeriğine girilebilir)
+  const [tab, setTab] = useState('pending');
+  const [query, setQuery] = useState('');
+  const [all, setAll] = useState([]);
+  const [allLoading, setAllLoading] = useState(false);
+
+  const fetchAll = useCallback(async (q) => {
+    setAllLoading(true);
+    try {
+      const res = await API.get('/admin/communities/all', { params: { q: q || undefined } });
+      setAll(res.data || []);
+    } catch (err) {
+      Alert.alert(t('error'), getErrorMessage(err));
+    } finally {
+      setAllLoading(false);
+      setRefreshing(false);
+    }
+  }, [t]);
+
+  useEffect(() => {
+    if (tab !== 'all') return undefined;
+    const timer = setTimeout(() => fetchAll(query.trim()), query ? 300 : 0);
+    return () => clearTimeout(timer);
+  }, [tab, query, fetchAll]);
+
+  const openCommunity = (id) => navigation.navigate('CommunityDetail', { communityId: id });
 
   const fetchPending = useCallback(async () => {
     try {
@@ -60,7 +86,11 @@ export default function AdminCommunitiesScreen({ navigation }) {
       style={styles.container}
       contentContainerStyle={{ paddingBottom: 48 }}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchPending(); }} tintColor={colors.primary} />
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={() => { setRefreshing(true); if (tab === 'all') fetchAll(query.trim()); else fetchPending(); }}
+          tintColor={colors.primary}
+        />
       }
     >
       <View style={styles.header}>
@@ -68,15 +98,76 @@ export default function AdminCommunitiesScreen({ navigation }) {
           <Text style={styles.backText}>{t('back')}</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('admin_communities_title')}</Text>
+        <View style={styles.tabs}>
+          {[['pending', t('admin_communities_tab_pending', { count: pending.length })], ['all', t('admin_communities_tab_all')]].map(([key, label]) => (
+            <TouchableOpacity
+              key={key}
+              onPress={() => setTab(key)}
+              style={[styles.tab, tab === key && styles.tabOn]}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: tab === key }}
+            >
+              <Text style={[styles.tabText, tab === key && styles.tabTextOn]}>{label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
 
-      {loading ? (
+      {tab === 'all' ? (
+        <>
+          <View style={styles.search}>
+            <Ionicons name="search" size={16} color={colors.textSecondary} />
+            <TextInput
+              value={query}
+              onChangeText={setQuery}
+              placeholder={t('admin_communities_search')}
+              placeholderTextColor={colors.textSecondary}
+              style={styles.searchInput}
+              autoCorrect={false}
+            />
+          </View>
+          <Text style={styles.hint}>{t('admin_communities_all_hint')}</Text>
+          {allLoading && all.length === 0 ? (
+            <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
+          ) : all.length === 0 ? (
+            <Text style={styles.empty}>{t('admin_communities_all_empty')}</Text>
+          ) : all.map(c => (
+            <TouchableOpacity
+              key={c.id}
+              style={styles.row}
+              onPress={() => openCommunity(c.id)}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+            >
+              <View style={styles.rowEmoji}><Text style={{ fontSize: 22 }}>{c.emoji || '🎵'}</Text></View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.name} numberOfLines={1}>{c.name}</Text>
+                <Text style={styles.meta} numberOfLines={1}>
+                  {[
+                    t(`admin_communities_vis_${String(c.visibility || 'PUBLIC').toLowerCase()}`),
+                    t('admin_communities_members', { count: c.members }),
+                    t('admin_communities_posts', { count: c.posts }),
+                  ].join(' · ')}
+                </Text>
+                <Text style={styles.by} numberOfLines={1}>
+                  {[
+                    c.ownerUsername ? `@${c.ownerUsername}` : null,
+                    c.approvalStatus && c.approvalStatus !== 'APPROVED' ? t(`admin_communities_status_${String(c.approvalStatus).toLowerCase()}`) : null,
+                    c.archivedAt ? t('admin_communities_archived') : null,
+                  ].filter(Boolean).join(' · ')}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+            </TouchableOpacity>
+          ))}
+        </>
+      ) : loading ? (
         <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 60 }} />
       ) : pending.length === 0 ? (
         <Text style={styles.empty}>{t('admin_communities_empty')}</Text>
       ) : pending.map(c => (
         <View key={c.id} style={styles.card}>
-          <View style={styles.cardTop}>
+          <TouchableOpacity style={styles.cardTop} onPress={() => openCommunity(c.id)} activeOpacity={0.8} accessibilityRole="button" accessibilityHint={t('admin_communities_open_hint')}>
             <LinearGradient colors={[c.gradientStart || '#7C3AED', c.gradientEnd || '#E94560']} style={styles.art}>
               <Text style={styles.emoji}>{c.emoji}</Text>
             </LinearGradient>
@@ -89,7 +180,8 @@ export default function AdminCommunitiesScreen({ navigation }) {
                 {c.ownerUsername ? t('admin_communities_by', { user: c.ownerUsername }) : ''} · {waitingLabel(c.createdAt, t)}
               </Text>
             </View>
-          </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+          </TouchableOpacity>
 
           {!!c.description && <Text style={styles.desc} numberOfLines={3}>{c.description}</Text>}
 
@@ -150,5 +242,21 @@ function createStyles(colors) {
     approveText: { color: '#fff', fontSize: 14, fontWeight: '800' },
     rejectBtn: { backgroundColor: 'transparent', borderColor: '#E94560' },
     rejectText: { color: '#E94560', fontSize: 14, fontWeight: '800' },
+    tabs: { flexDirection: 'row', gap: 8, marginTop: 16 },
+    tab: { borderRadius: 999, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 14, paddingVertical: 7, backgroundColor: colors.card },
+    tabOn: { backgroundColor: colors.primary, borderColor: colors.primary },
+    tabText: { color: colors.textSecondary, fontWeight: '700', fontSize: 13 },
+    tabTextOn: { color: '#fff' },
+    search: {
+      flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 16,
+      backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 12,
+    },
+    searchInput: { flex: 1, paddingVertical: 10, color: colors.text, fontSize: 14 },
+    hint: { color: colors.textSecondary, fontSize: 12, marginHorizontal: 18, marginTop: 8, marginBottom: 4, lineHeight: 17 },
+    row: {
+      flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: 16, marginTop: 10, padding: 12,
+      backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: 14,
+    },
+    rowEmoji: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.cardAlt },
   });
 }

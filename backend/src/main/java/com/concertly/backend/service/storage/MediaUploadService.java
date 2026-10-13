@@ -2,9 +2,11 @@ package com.concertly.backend.service.storage;
 
 import com.concertly.backend.model.MediaUpload;
 import com.concertly.backend.repository.MediaUploadRepository;
+import com.concertly.backend.service.AppSettingsService;
 import com.concertly.backend.service.ContentLimitService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -65,10 +67,22 @@ public class MediaUploadService {
         this.maxDeletesPerRun = maxDeletesPerRun;
     }
 
+    // Admin panelindeki kota ayar dosyasındakini ezer
+    private AppSettingsService settings;
+
+    @Autowired(required = false)
+    void setSettings(AppSettingsService settings) {
+        this.settings = settings;
+    }
+
     /** Tavan 0 ise kota kapalıdır. */
     public void checkQuota(Long userId) {
         if (userId == null || isAdmin()) return;
-        long limit = contentLimitService.isNewAccount(userId) ? newAccountMaxPerDay : maxPerDay;
+        boolean fresh = contentLimitService.isNewAccount(userId);
+        long limit = settings == null
+                ? (fresh ? newAccountMaxPerDay : maxPerDay)
+                : (fresh ? settings.getLong(AppSettingsService.NEW_ACCOUNT_UPLOADS_PER_DAY, newAccountMaxPerDay)
+                        : settings.getLong(AppSettingsService.UPLOADS_PER_DAY, maxPerDay));
         if (limit <= 0) return;
         if (repository.countByUserIdAndCreatedAtAfter(userId, LocalDateTime.now().minusDays(1)) >= limit) {
             throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "UPLOAD_LIMIT");

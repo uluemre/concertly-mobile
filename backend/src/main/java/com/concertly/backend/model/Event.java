@@ -74,6 +74,18 @@ public class Event {
     @Column(length = 40)
     private String delistedReason;
 
+    /** Etkinliği düzenleyen organizatör hesabı (organizers.id); bilet sitesi kayıtlarında boş. */
+    @Column(name = "organizer_id")
+    private Long organizerId;
+
+    /** Etkinlik sayfasının açılma sayısı (organizatör paneli istatistiği). */
+    @Column(name = "view_count")
+    private Long viewCount;
+
+    public Long getOrganizerId() { return organizerId; }
+    public void setOrganizerId(Long organizerId) { this.organizerId = organizerId; }
+    public long getViewCount() { return viewCount == null ? 0 : viewCount; }
+
     /** Öneriyi destekleyen bağlantı (Instagram gönderisi, mekan sitesi, bilet linki). */
     @Column(length = 500)
     private String sourceUrl;

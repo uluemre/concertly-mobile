@@ -97,6 +97,18 @@ import ChangePasswordScreen from '../screens/ChangePasswordScreen';
 import BlockedUsersScreen from '../screens/BlockedUsersScreen';
 import LegalScreen from '../screens/LegalScreen';
 import NotFoundScreen from '../screens/NotFoundScreen';
+import AdminSettingsScreen from '../screens/AdminSettingsScreen';
+import AdminAuditLogScreen from '../screens/AdminAuditLogScreen';
+import AdminCatalogScreen from '../screens/AdminCatalogScreen';
+import AdminCatalogEditScreen from '../screens/AdminCatalogEditScreen';
+import OrganizerScreen from '../screens/OrganizerScreen';
+import AdminOrganizerRequestScreen from '../screens/AdminOrganizerRequestScreen';
+import AdminOrganizerDetailScreen from '../screens/AdminOrganizerDetailScreen';
+import AdminUserDetailScreen from '../screens/AdminUserDetailScreen';
+import OrganizerEventFormScreen from '../screens/OrganizerEventFormScreen';
+import MaintenanceView from '../components/MaintenanceView';
+import { withFeature } from '../components/FeatureGate';
+import { useAppConfig } from '../context/AppConfigContext';
 
 import { useTheme } from '../theme';
 import { Ionicons } from '@expo/vector-icons';
@@ -104,6 +116,22 @@ import { useLanguage } from '../context/LanguageContext';
 
 // iOS'ta kenardan kaydırıp geri dönme olduğu gibi kalır (yalnızca açılış animasyonu değişir)
 const COMPOSE_OPTIONS = { animation: 'slide_from_bottom' };
+
+// Admin panelinden kapatılabilen özellikler: kapalıyken ekran yerine "şu an kapalı" açılır
+const BuddyGated = withFeature('buddy', ConcertBuddyMatchScreen);
+const GamesGated = withFeature('games', GamesScreen);
+const SongQuizGated = withFeature('games', SongQuizScreen);
+const DailySongGated = withFeature('games', DailySongScreen);
+const BlindRankGated = withFeature('games', BlindRankScreen);
+const SetlistPredictionGated = withFeature('games', SetlistPredictionScreen);
+const ConcertBingoGated = withFeature('games', ConcertBingoScreen);
+const CommunitiesGated = withFeature('communities', CommunitiesScreen);
+const CommunityDetailGated = withFeature('communities', CommunityDetailScreen);
+const CreateCommunityGated = withFeature('communities', CreateCommunityScreen);
+const CommunityManageGated = withFeature('communities', CommunityManageScreen);
+const TransferOwnershipGated = withFeature('communities', TransferOwnershipScreen);
+const CreatePostGated = withFeature('posting', CreatePostScreen);
+const SuggestEventGated = withFeature('eventSuggestions', SuggestEventScreen);
 
 const Stack = createNativeStackNavigator();
 
@@ -198,6 +226,9 @@ function TabNavigator() {
 
 export default function AppNavigator() {
   const { session, isReady, logout, updateSession, notificationCount } = useAuth();
+  const { maintenance } = useAppConfig();
+  // Bakımda oturumu olmayan biri "Admin girişi"ne dokunursa giriş ekranı açılır
+  const [maintenanceLogin, setMaintenanceLogin] = useState(false);
   const { lang } = useLanguage();
   const navigationRef = useRef(null);
 
@@ -338,6 +369,11 @@ export default function AppNavigator() {
     );
   }
 
+  // Bakım modu: admin dışındakiler uygulamaya giremez (sunucu da 503 döner)
+  if (maintenance.enabled && !session.isAdmin && !(maintenanceLogin && !session.authToken)) {
+    return <MaintenanceView onAdminLogin={session.authToken ? null : () => setMaintenanceLogin(true)} />;
+  }
+
   return (
     <NavigationContainer ref={navigationRef} linking={guardedLinking} onReady={guardAll} onStateChange={guardAll}>
       <Stack.Navigator
@@ -398,7 +434,7 @@ export default function AppNavigator() {
         {/* Oluşturma ekranları (gönderi, topluluk, etkinlik önerisi) alttan açılır */}
         <Stack.Screen
           name="CreatePost"
-          component={CreatePostScreen}
+          component={CreatePostGated}
           options={COMPOSE_OPTIONS}
         />
 
@@ -420,28 +456,28 @@ export default function AppNavigator() {
 
         <Stack.Screen
           name="Communities"
-          component={CommunitiesScreen}
+          component={CommunitiesGated}
         />
 
         <Stack.Screen
           name="CommunityDetail"
-          component={CommunityDetailScreen}
+          component={CommunityDetailGated}
         />
 
         <Stack.Screen
           name="CreateCommunity"
-          component={CreateCommunityScreen}
+          component={CreateCommunityGated}
           options={COMPOSE_OPTIONS}
         />
 
         <Stack.Screen
           name="CommunityManage"
-          component={CommunityManageScreen}
+          component={CommunityManageGated}
         />
 
         <Stack.Screen
           name="TransferOwnership"
-          component={TransferOwnershipScreen}
+          component={TransferOwnershipGated}
         />
 
         <Stack.Screen
@@ -483,19 +519,29 @@ export default function AppNavigator() {
         <Stack.Screen name="AdminSources" component={AdminSourcesScreen} />
         <Stack.Screen name="AdminCities" component={AdminCitiesScreen} />
         <Stack.Screen name="AdminCommunities" component={AdminCommunitiesScreen} />
+        <Stack.Screen name="AdminSettings" component={AdminSettingsScreen} />
+        <Stack.Screen name="AdminAuditLog" component={AdminAuditLogScreen} />
+        <Stack.Screen name="AdminCatalog" component={AdminCatalogScreen} />
+        <Stack.Screen name="AdminCatalogEdit" component={AdminCatalogEditScreen} />
+        {/* Organizatör hesabı: başvuru ve panel */}
+        <Stack.Screen name="Organizer" component={OrganizerScreen} />
+        <Stack.Screen name="AdminOrganizerRequest" component={AdminOrganizerRequestScreen} />
+        <Stack.Screen name="AdminOrganizerDetail" component={AdminOrganizerDetailScreen} />
+        <Stack.Screen name="AdminUserDetail" component={AdminUserDetailScreen} />
+        <Stack.Screen name="OrganizerEventForm" component={OrganizerEventFormScreen} options={COMPOSE_OPTIONS} />
         <Stack.Screen name="SpotifyRecommendations" component={SpotifyRecommendationsScreen} />
         <Stack.Screen name="VenueProfile" component={VenueProfileScreen} />
         <Stack.Screen name="PostDetail" component={PostDetailScreen} />
-        <Stack.Screen name="ConcertBuddyMatch" component={ConcertBuddyMatchScreen} />
+        <Stack.Screen name="ConcertBuddyMatch" component={BuddyGated} />
         <Stack.Screen name="ConcertPassport" component={ConcertPassportScreen} />
         <Stack.Screen name="ChatList" component={ChatListScreen} />
         <Stack.Screen name="Chat" component={ChatScreen} />
-        <Stack.Screen name="SongQuiz" component={SongQuizScreen} />
-        <Stack.Screen name="DailySong" component={DailySongScreen} />
-        <Stack.Screen name="BlindRank" component={BlindRankScreen} />
-        <Stack.Screen name="SetlistPrediction" component={SetlistPredictionScreen} />
-        <Stack.Screen name="Games" component={GamesScreen} />
-        <Stack.Screen name="ConcertBingo" component={ConcertBingoScreen} />
+        <Stack.Screen name="SongQuiz" component={SongQuizGated} />
+        <Stack.Screen name="DailySong" component={DailySongGated} />
+        <Stack.Screen name="BlindRank" component={BlindRankGated} />
+        <Stack.Screen name="SetlistPrediction" component={SetlistPredictionGated} />
+        <Stack.Screen name="Games" component={GamesGated} />
+        <Stack.Screen name="ConcertBingo" component={ConcertBingoGated} />
         <Stack.Screen name="ConcertPrep" component={ConcertPrepScreen} />
         <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
         <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
@@ -503,7 +549,7 @@ export default function AppNavigator() {
         <Stack.Screen name="BlockedUsers" component={BlockedUsersScreen} />
 
         {/* Kullanıcı etkinlik önerisi — Ticketmaster dışı veri kanalı */}
-        <Stack.Screen name="SuggestEvent" component={SuggestEventScreen} options={COMPOSE_OPTIONS} />
+        <Stack.Screen name="SuggestEvent" component={SuggestEventGated} options={COMPOSE_OPTIONS} />
 
         {/* Moderasyon & organizatör kuyruğu (admin) */}
         <Stack.Screen name="AdminReports" component={AdminReportsScreen} />

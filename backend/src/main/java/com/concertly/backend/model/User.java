@@ -47,6 +47,13 @@ public class User {
 
     private Boolean isActive = true;
 
+    /** Süreli yasağın bitişi (null = süresiz ya da yasak yok). Süre dolunca otomatik açılır. */
+    @Column(name = "banned_until")
+    private LocalDateTime bannedUntil;
+
+    public LocalDateTime getBannedUntil() { return bannedUntil; }
+    public void setBannedUntil(LocalDateTime bannedUntil) { this.bannedUntil = bannedUntil; }
+
     private String resetToken;              // şifre sıfırlama kodunun BCrypt özeti (düz kod saklanmaz)
     private LocalDateTime resetTokenExpiry;
     private Integer resetTokenAttempts;     // yanlış deneme sayısı; sınırda kod geçersizleşir

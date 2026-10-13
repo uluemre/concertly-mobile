@@ -316,6 +316,7 @@ public class AdminController {
         User user = userRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Kullanici bulunamadi: " + id));
         user.setIsActive(true);
+        user.setBannedUntil(null); // süreli yasak da kalkar
         return buildUserResponse(userRepository.save(user));
     }
 

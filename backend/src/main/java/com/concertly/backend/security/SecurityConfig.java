@@ -105,6 +105,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/search").permitAll()
                         // Açık şehir listesi: kayıt/onboarding ekranı oturumsuz da okur
                         .requestMatchers(HttpMethod.GET, "/api/cities").permitAll()
+                        // Özellik anahtarları, bakım modu ve duyuru: giriş ekranından önce okunur
+                        .requestMatchers(HttpMethod.GET, "/api/app/config").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/communities").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/communities/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/demo/**").hasRole("ADMIN")

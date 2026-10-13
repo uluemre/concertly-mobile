@@ -50,6 +50,18 @@ public class Venue {
     /** Yumusak birlestirme: doluysa bu kayit mukerrerdir ve bu kimlikli asil kayda tasinmistir (silinmez). */
     private Long mergedIntoVenueId;
 
+    /** Admin panelinden düzenlendi: bilet sitesi senkronları ad/şehir/adres/konumu ezmez, yalnız boşları doldurur. */
+    @jakarta.persistence.Column(name = "admin_edited")
+    private Boolean adminEdited;
+
+    public boolean isAdminEdited() {
+        return Boolean.TRUE.equals(adminEdited);
+    }
+
+    public void setAdminEdited(Boolean adminEdited) {
+        this.adminEdited = adminEdited;
+    }
+
     public Long getMergedIntoVenueId() {
         return mergedIntoVenueId;
     }

@@ -26,6 +26,13 @@ const STAT_CARDS = [
 
 const NAV_ITEMS = [
   {
+    titleKey: 'admin_nav_settings_title',
+    subtitleKey: 'admin_nav_settings_sub',
+    icon: 'options',
+    tint: 'secondary',
+    screen: 'AdminSettings',
+  },
+  {
     titleKey: 'admin_nav_events_title',
     subtitleKey: 'admin_nav_events_sub',
     icon: 'musical-notes',
@@ -51,6 +58,22 @@ const NAV_ITEMS = [
     screen: 'AdminPosts',
     badge: 'totalPosts',
     badgeLabelKey: 'admin_badge_posts',
+  },
+  {
+    titleKey: 'admin_nav_artists_title',
+    subtitleKey: 'admin_nav_artists_sub',
+    icon: 'mic',
+    tint: 'primary',
+    screen: 'AdminCatalog',
+    params: { kind: 'artists' },
+  },
+  {
+    titleKey: 'admin_nav_venues_title',
+    subtitleKey: 'admin_nav_venues_sub',
+    icon: 'location',
+    tint: 'accent',
+    screen: 'AdminCatalog',
+    params: { kind: 'venues' },
   },
   {
     titleKey: 'admin_nav_communities_title',
@@ -93,6 +116,13 @@ const NAV_ITEMS = [
     icon: 'map',
     tint: 'accent',
     screen: 'AdminCities',
+  },
+  {
+    titleKey: 'admin_nav_audit_title',
+    subtitleKey: 'admin_nav_audit_sub',
+    icon: 'document-text-outline',
+    tint: 'textSecondary',
+    screen: 'AdminAuditLog',
   },
 ];
 
@@ -355,8 +385,8 @@ export default function AdminScreen({ navigation }) {
           <Text style={styles.sectionTitle}>{t('admin_management')}</Text>
           {NAV_ITEMS.map(item => (
             <TouchableOpacity
-              key={item.screen}
-              onPress={() => navigation.navigate(item.screen)}
+              key={item.titleKey}
+              onPress={() => navigation.navigate(item.screen, item.params)}
               activeOpacity={0.85}
               style={styles.navCard}
               accessibilityRole="button"

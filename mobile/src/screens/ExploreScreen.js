@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme, fonts } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useAppConfig } from '../context/AppConfigContext';
 
 const { width } = Dimensions.get('window');
 const CARD_SIZE = (width - 48) / 2;
@@ -15,13 +16,13 @@ const CARD_SIZE = (width - 48) / 2;
 // tint: tema rengi anahtarı (colors[tint]) — kartlar düz, rengi yalnızca ikon taşır.
 // Mor (purple) yardımcı renk olarak tek kartta.
 const MENU_ITEM_DEFS = [
-  { id: 1, titleKey: 'menu_communities', subKey: 'menu_communities_sub', icon: 'people-outline', tint: 'accent', screen: 'Communities', available: true },
+  { id: 1, titleKey: 'menu_communities', subKey: 'menu_communities_sub', icon: 'people-outline', tint: 'accent', screen: 'Communities', available: true, feature: 'communities' },
   { id: 7, titleKey: 'menu_map_item', subKey: 'menu_map_item_sub', icon: 'map-outline', tint: 'accent', screen: 'Map', available: true },
-  { id: 4, titleKey: 'menu_buddy_item', subKey: 'menu_buddy_item_sub', icon: 'person-add-outline', tint: 'secondary', screen: 'ConcertBuddyMatch', available: true },
+  { id: 4, titleKey: 'menu_buddy_item', subKey: 'menu_buddy_item_sub', icon: 'person-add-outline', tint: 'secondary', screen: 'ConcertBuddyMatch', available: true, feature: 'buddy' },
   { id: 11, titleKey: 'menu_passport', subKey: 'menu_passport_sub', icon: 'ticket-outline', tint: 'purple', screen: 'ConcertPassport', available: true },
-  { id: 9, titleKey: 'menu_games', subKey: 'menu_games_sub', icon: 'game-controller-outline', tint: 'primary', screen: 'Games', available: true },
+  { id: 9, titleKey: 'menu_games', subKey: 'menu_games_sub', icon: 'game-controller-outline', tint: 'primary', screen: 'Games', available: true, feature: 'games' },
   // Eksik konserleri kullanıcı bildirebilsin — Ticketmaster dışı veri kanalı
-  { id: 12, titleKey: 'menu_suggest_event', subKey: 'menu_suggest_event_sub', icon: 'add-circle-outline', tint: 'secondary', screen: 'SuggestEvent', available: true },
+  { id: 12, titleKey: 'menu_suggest_event', subKey: 'menu_suggest_event_sub', icon: 'add-circle-outline', tint: 'secondary', screen: 'SuggestEvent', available: true, feature: 'eventSuggestions' },
 ];
 
 function AnimatedCard({ item, index, navigation, styles, colors, isSetupCard }) {
@@ -176,9 +177,13 @@ export default function ExploreScreen({ navigation }) {
   const headerAnim = useRef(new Animated.Value(-30)).current;
   const headerOpacity = useRef(new Animated.Value(0)).current;
 
+  const { isOn } = useAppConfig();
+  // Admin panelinden kapatılan özelliklerin kartı gizlenir (adminler hepsini görür)
   const menuItems = useMemo(() =>
-    MENU_ITEM_DEFS.map(d => ({ ...d, title: t(d.titleKey), subtitle: t(d.subKey) })),
-    [t]
+    MENU_ITEM_DEFS
+      .filter(d => !d.feature || isOn(d.feature) || session.isAdmin)
+      .map(d => ({ ...d, title: t(d.titleKey), subtitle: t(d.subKey) })),
+    [t, isOn, session.isAdmin]
   );
 
   const hasMusicProfile = !!(session.favoriteGenres?.trim());

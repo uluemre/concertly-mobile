@@ -24,6 +24,7 @@ import { detailImageCandidates } from '../utils/eventImage';
 import { formatTimeAgo, parseEventDate, dateLocale } from '../utils/time';
 import ConfettiOverlay from '../components/ConfettiOverlay';
 import { goBackOrFallback } from '../navigation/navHelpers';
+import { useAppConfig } from '../context/AppConfigContext';
 import { hapticLight, hapticSuccess } from '../utils/haptics';
 
 // Metin yıldızları (★☆) yerine ikon; boş yıldız temaya uyar
@@ -80,6 +81,8 @@ function EventDetailContent({ route, navigation }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { session } = useAuth();
+  const { isOn } = useAppConfig();
+  const buddyOn = isOn('buddy') || session.isAdmin;
   const { t, lang } = useLanguage();
   const { event } = route.params;
   const confettiRef = useRef(null);
@@ -702,8 +705,8 @@ function EventDetailContent({ route, navigation }) {
           </>
         )}
 
-        {/* KONSER ARKADAŞI */}
-        {!isClosed && (
+        {/* KONSER ARKADAŞI (admin panelinden kapatılabilir) */}
+        {!isClosed && buddyOn && (
           <View style={[styles.buddyCard, { backgroundColor: colors.card, borderColor: isBuddy ? colors.primary : colors.border }]}>
             <View style={styles.buddyCardHeader}>
               <View style={styles.buddyHeaderText}>

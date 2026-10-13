@@ -62,6 +62,24 @@ class ArtistPhotoServiceTest {
         assertNull(ArtistPhotoService.bestEventImage(List.of(), Set.of()));
     }
 
+    /** Admin panelinden konan fotoğrafı ne konser afişi ne Deezer ezer (zorla taramada bile). */
+    @Test
+    void adminPhotoIsNeverReplaced() {
+        Artist hadise = artist(2, "Hadise", "/uploads/hadise-admin.jpg", "ADMIN");
+        when(events.findUpcomingListedArtists(any())).thenReturn(List.of(hadise));
+        when(events.findSharedImages(any(), anyLong())).thenReturn(List.of());
+        when(events.findUpcomingImageSourcesByArtist(eq(2L), any()))
+                .thenReturn(List.<Object[]>of(row("https://bubilet/hadise-afis.jpg", EventSource.BUBILET, 5)));
+        when(artists.findUnverifiedDeezerPhotos()).thenReturn(List.of(hadise));
+
+        ArtistPhotoService.Result r = service.refresh(10, true);
+        assertEquals(0, r.fromEvent());
+        assertEquals("/uploads/hadise-admin.jpg", hadise.getImageUrl());
+        assertEquals("ADMIN", hadise.getImageSource());
+        verify(artists, never()).save(any());
+        verifyNoInteractions(deezer);
+    }
+
     @Test
     void refreshUsesTheConcertImageEvenWhenAnOldDeezerPhotoExists() {
         Artist goksel = artist(1, "Göksel", "https://dzcdn/yanlis-goksel.jpg", "DEEZER");

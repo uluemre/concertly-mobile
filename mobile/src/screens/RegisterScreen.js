@@ -8,6 +8,7 @@ import API from '../services/api';
 import { useTheme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useAppConfig } from '../context/AppConfigContext';
 import { isValidUsername, normalizeUsername } from '../utils/username';
 import { isValidEmail, normalizeEmail } from '../utils/email';
 import { isValidFullName, normalizeFullName, parseBirthDate, profileErrorKey } from '../utils/profileInfo';
@@ -33,6 +34,7 @@ export default function RegisterScreen({ navigation }) {
   const { colors } = useTheme();
   const { login } = useAuth();
   const { t } = useLanguage();
+  const { isOn } = useAppConfig();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [step, setStep] = useState(0);
   const [forward, setForward] = useState(true);   // giriş animasyonunun yönü
@@ -149,7 +151,9 @@ export default function RegisterScreen({ navigation }) {
         setStep(index);
         setErrors({ [field]: message });
       };
-      if (status === 409) {
+      if (status === 403 && reason === 'REGISTRATION_CLOSED') {
+        Alert.alert(t('reg_closed_title'), t('reg_closed_sub'));
+      } else if (status === 409) {
         const usernameTaken = /kullanıcı adı|username/i.test(reason);
         backTo(usernameTaken ? 'username' : 'email', usernameTaken ? 'username' : 'email',
           t(usernameTaken ? 'reg_username_taken' : 'reg_email_taken'));
@@ -286,6 +290,16 @@ export default function RegisterScreen({ navigation }) {
       <Text style={styles.progressText}>{t('reg_step_of', { n: step + 1, total: STEPS.length })}</Text>
     </View>
   );
+
+  // Admin yeni kayıtları kapattıysa form yerine bilgi gösterilir
+  if (!isOn('registration')) {
+    const leave = () => (navigation.canGoBack() ? navigation.goBack() : navigation.replace('Login'));
+    return (
+      <AuthLayout icon="lock-closed-outline" title={t('reg_closed_title')} subtitle={t('reg_closed_sub')} onBack={leave}>
+        <AuthButton title={t('reg_closed_back')} onPress={leave} style={styles.submit} />
+      </AuthLayout>
+    );
+  }
 
   return (
     <GestureDetector gesture={swipeBack}>

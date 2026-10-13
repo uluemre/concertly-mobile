@@ -10,6 +10,8 @@ import API, { getErrorMessage } from '../services/api';
 import { useTheme, fonts } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useAppConfig } from '../context/AppConfigContext';
+import AnnouncementBanner from '../components/AnnouncementBanner';
 import { HomeSkeletonPage } from '../components/SkeletonLoader';
 import SearchModal from './SearchModal';
 import FeaturedCard from '../components/home/FeaturedCard';
@@ -33,6 +35,8 @@ export default function HomeScreen({ navigation }) {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { session } = useAuth();
   const { t } = useLanguage();
+  const { isOn } = useAppConfig();
+  const gamesOn = isOn('games') || session.isAdmin;
 
   const [events, setEvents] = useState([]);
   const [posts, setPosts] = useState([]);
@@ -278,6 +282,9 @@ export default function HomeScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
+        {/* ADMİN DUYURUSU (yoksa ya da kapatıldıysa görünmez) */}
+        <AnnouncementBanner />
+
         {/* KONSER GÜNÜ — gidiyorum dediğin en yakın konser (yoksa görünmez) */}
         <NextConcertCard navigation={navigation} />
 
@@ -330,6 +337,7 @@ export default function HomeScreen({ navigation }) {
         />
 
         {/* GÜNLÜK ŞARKI WIDGET */}
+        {gamesOn && (
         <TouchableOpacity
           onPress={() => navigation.navigate('DailySong')}
           activeOpacity={0.85}
@@ -360,6 +368,7 @@ export default function HomeScreen({ navigation }) {
             </View>
           </View>
         </TouchableOpacity>
+        )}
 
         {/* TRENDING POSTLAR */}
         <View style={[styles.section, { paddingBottom: 40 }]}>

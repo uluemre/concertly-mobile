@@ -8,6 +8,7 @@ import AppNavigator from './src/navigation/AppNavigator';
 import { ThemeProvider } from './src/theme';
 import { AuthProvider } from './src/context/AuthContext';
 import { LanguageProvider } from './src/context/LanguageContext';
+import { AppConfigProvider } from './src/context/AppConfigContext';
 import { initMonitoring, wrapRoot } from './src/services/monitoring';
 import { KeyboardProvider } from './src/components/keyboard';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -34,7 +35,9 @@ function App() {
       <ThemeProvider>
         <LanguageProvider>
           <AuthProvider>
-            <AppNavigator />
+            <AppConfigProvider>
+              <AppNavigator />
+            </AppConfigProvider>
           </AuthProvider>
         </LanguageProvider>
       </ThemeProvider>

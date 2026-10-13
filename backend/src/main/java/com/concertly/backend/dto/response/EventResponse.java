@@ -54,6 +54,8 @@ public class EventResponse {
     // Konser puanı (opsiyonel — past-events endpoint'inde doldurulur)
     private Double avgRating;
     private Integer reviewCount;
+    /** Düzenleyen organizatör hesabı (bilet sitesi kayıtlarında null). */
+    private Long organizerId;
 
     public static EventResponse from(Event event) {
         EventResponse dto = new EventResponse();
@@ -65,6 +67,7 @@ public class EventResponse {
         dto.isApproved = event.getIsApproved();
         dto.source = event.getSource() != null ? event.getSource().name() : null;
         dto.isVerified = event.getIsVerified();
+        dto.organizerId = event.getOrganizerId();
         dto.cancelled = com.concertly.backend.service.EventCancellationService.isCancelled(event);
         dto.sourceUrl = event.getSourceUrl();
 
@@ -214,6 +217,7 @@ public class EventResponse {
 
     public Double getAvgRating() { return avgRating; }
     public Integer getReviewCount() { return reviewCount; }
+    public Long getOrganizerId() { return organizerId; }
 
     public void setAvgRating(Double avgRating) { this.avgRating = avgRating; }
     public void setReviewCount(Integer reviewCount) { this.reviewCount = reviewCount; }

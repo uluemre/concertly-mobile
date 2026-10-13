@@ -76,6 +76,25 @@ public class PushMessageFactory {
                        : "\"" + badgeName(extra, false) + "\" rozetini kazandın!" };
             case "community_ownership" -> new String[] {
                     en ? "Community ownership" : "Topluluk sahipliği", extra };
+            case "organizer_approved" -> new String[] {
+                    en ? "Your organizer account is live 🎉" : "Organizatör hesabın açıldı 🎉",
+                    en ? "You can now publish events from the organizer dashboard."
+                       : "Organizatör panelinden etkinliklerini yayınlayabilirsin." };
+            case "organizer_rejected" -> new String[] {
+                    en ? "Organizer application" : "Organizatör başvurusu",
+                    // Admin notu Türkçe yazılır; İngilizce cihaza genel metin gider
+                    en ? "Your application was not approved. See the details in the app." : extra };
+            case "admin_warning" -> new String[] {
+                    en ? "Warning from Concertly" : "Concertly'den uyarı",
+                    // Gerekçeyi admin Türkçe yazar; İngilizce cihaza genel metin, ayrıntı uygulamada
+                    en ? "Your account received a warning. Open the app for details." : extra };
+            case "organizer_suspended" -> new String[] {
+                    en ? "Organizer account suspended" : "Organizatör hesabın askıya alındı",
+                    en ? "Your organizer dashboard is closed for now. Contact us for details."
+                       : "Organizatör panelin şu an kapalı. Ayrıntı için bizimle iletişime geç." };
+            case "organizer_reactivated" -> new String[] {
+                    en ? "Organizer account reactivated" : "Organizatör hesabın yeniden açıldı",
+                    en ? "You can publish events again." : "Yeniden etkinlik yayınlayabilirsin." };
             default -> new String[] { "Concertly", extra };
         };
     }

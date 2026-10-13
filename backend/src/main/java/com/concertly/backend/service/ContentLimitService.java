@@ -7,6 +7,7 @@ import com.concertly.backend.repository.CommunityPostRepository;
 import com.concertly.backend.repository.MessageRepository;
 import com.concertly.backend.repository.PostRepository;
 import com.concertly.backend.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -61,12 +62,24 @@ public class ContentLimitService {
         this.maxMessages = maxMessages;
     }
 
+    // Admin panelindeki değerler ayar dosyasındakileri ezer (yoksa ayar dosyası geçerli)
+    private AppSettingsService settings;
+
+    @Autowired(required = false)
+    void setSettings(AppSettingsService settings) {
+        this.settings = settings;
+    }
+
+    private long setting(String key, long fallback) {
+        return settings == null ? fallback : settings.getLong(key, fallback);
+    }
+
     public void checkPost(Long userId) {
         if (!isNewAccount(userId)) return;
         LocalDateTime since = since();
         long count = postRepository.countByUserIdAndCreatedAtAfter(userId, since)
                 + communityPostRepository.countByUserIdAndCreatedAtAfter(userId, since);
-        if (count >= maxPosts) {
+        if (count >= setting(AppSettingsService.NEW_ACCOUNT_MAX_POSTS, maxPosts)) {
             throw tooMany("POST_LIMIT");
         }
     }
@@ -76,24 +89,25 @@ public class ContentLimitService {
         LocalDateTime since = since();
         long count = commentRepository.countByUserIdAndCreatedAtAfter(userId, since)
                 + communityPostCommentRepository.countByUserIdAndCreatedAtAfter(userId, since);
-        if (count >= maxComments) {
+        if (count >= setting(AppSettingsService.NEW_ACCOUNT_MAX_COMMENTS, maxComments)) {
             throw tooMany("COMMENT_LIMIT");
         }
     }
 
     public void checkMessage(Long userId) {
         if (!isNewAccount(userId)) return;
-        if (messageRepository.countBySenderIdAndCreatedAtAfter(userId, since()) >= maxMessages) {
+        if (messageRepository.countBySenderIdAndCreatedAtAfter(userId, since()) >= setting(AppSettingsService.NEW_ACCOUNT_MAX_MESSAGES, maxMessages)) {
             throw tooMany("MESSAGE_LIMIT");
         }
     }
 
     /** Hesap yaşı bilinmiyorsa limit uygulanmaz — eski kayıtlar cezalandırılmasın. */
     public boolean isNewAccount(Long userId) {
-        if (newAccountHours <= 0) return false;
+        long hours = setting(AppSettingsService.NEW_ACCOUNT_HOURS, newAccountHours);
+        if (hours <= 0) return false;
         User user = userRepository.findById(userId).orElse(null);
         if (user == null || user.getCreatedAt() == null) return false;
-        return user.getCreatedAt().isAfter(LocalDateTime.now().minusHours(newAccountHours));
+        return user.getCreatedAt().isAfter(LocalDateTime.now().minusHours(hours));
     }
 
     private LocalDateTime since() {

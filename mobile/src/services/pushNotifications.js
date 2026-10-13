@@ -136,6 +136,14 @@ export function routeForNotification(data) {
       // Uygulama içi bildirimle aynı kural (A3): katılma isteği → yönetim ekranı
       return communityRoute(data.type, entityId);
     case 'user':
+      // Organizatör başvurusu sonucu: entityId başvuru numarasıdır, kullanıcı değil
+      // Admin uyarısı: entityId yaptırım kaydıdır; ayrıntı bildirim listesinde açılır
+      if (data.type === 'admin_warning') {
+        return { screen: 'MainApp', params: { screen: 'Notifications' } };
+      }
+      if (typeof data.type === 'string' && data.type.startsWith('organizer_')) {
+        return { screen: 'Organizer', params: {} };
+      }
       // Mesaj bildirimi sohbeti açar, takip bildirimi profili.
       if (data.type === 'follow_request') {
         return { screen: 'FollowRequests', params: {} };

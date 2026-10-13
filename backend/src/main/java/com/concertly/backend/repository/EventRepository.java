@@ -227,4 +227,6 @@ public interface EventRepository extends JpaRepository<Event, Long> {
             HAVING COUNT(DISTINCT e.artist.id) >= :minArtists
             """)
     List<String> findSharedImages(@Param("now") java.time.LocalDateTime now, @Param("minArtists") long minArtists);
+
+    List<Event> findByOrganizerIdOrderByEventDateAsc(Long organizerId);
 }

@@ -54,6 +54,19 @@ public class OrganizerRequest {
     private LocalDateTime createdAt = LocalDateTime.now();
     private LocalDateTime reviewedAt;
 
+    /** Adminlerin kendi aralarındaki not (başvurana gösterilmez). */
+    @Column(name = "internal_note", length = 1000)
+    private String internalNote;
+
+    /** Kararı veren admin (kullanıcı adı). */
+    @Column(name = "reviewed_by")
+    private String reviewedBy;
+
+    public String getInternalNote() { return internalNote; }
+    public void setInternalNote(String internalNote) { this.internalNote = internalNote; }
+    public String getReviewedBy() { return reviewedBy; }
+    public void setReviewedBy(String reviewedBy) { this.reviewedBy = reviewedBy; }
+
     public Long getId() { return id; }
 
     public User getUser() { return user; }

@@ -2,9 +2,11 @@ package com.concertly.backend.service;
 
 import com.concertly.backend.dto.response.OrganizerRequestResponse;
 import com.concertly.backend.exception.ResourceNotFoundException;
+import com.concertly.backend.model.Organizer;
 import com.concertly.backend.model.OrganizerRequest;
 import com.concertly.backend.model.Role;
 import com.concertly.backend.model.User;
+import com.concertly.backend.repository.OrganizerRepository;
 import com.concertly.backend.repository.OrganizerRequestRepository;
 import com.concertly.backend.repository.RoleRepository;
 import com.concertly.backend.repository.UserRepository;
@@ -14,7 +16,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Organizatör hesabı başvuruları.
@@ -32,29 +36,36 @@ public class OrganizerService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final NotificationService notificationService;
+    private final OrganizerRepository organizerRepository;
 
     public OrganizerService(OrganizerRequestRepository requestRepository,
             UserRepository userRepository,
             RoleRepository roleRepository,
-            NotificationService notificationService) {
+            NotificationService notificationService,
+            OrganizerRepository organizerRepository) {
         this.requestRepository = requestRepository;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.notificationService = notificationService;
+        this.organizerRepository = organizerRepository;
     }
 
     @Transactional
     public OrganizerRequestResponse apply(Long userId, OrganizerRequest form) {
-        if (form == null || form.getOrganizationName() == null || form.getOrganizationName().isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Kurum/organizasyon adı gerekli.");
+        // Hata gerekçesi kod olarak döner; uygulama kullanıcının dilinde gösterir
+        if (form == null || form.getOrganizationName() == null || form.getOrganizationName().isBlank()
+                || form.getOrganizationName().trim().length() > 120) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "ORG_NAME_REQUIRED");
         }
         if ((form.getWebsite() == null || form.getWebsite().isBlank())
                 && (form.getInstagram() == null || form.getInstagram().isBlank())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Doğrulama için site ya da Instagram adresi gerekli.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "ORG_LINK_REQUIRED");
+        }
+        if (organizerRepository.findByOwnerId(userId).map(Organizer::isActive).orElse(false)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "ALREADY_ORGANIZER");
         }
         if (requestRepository.existsByUserIdAndStatus(userId, OrganizerRequest.Status.PENDING)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Zaten inceleme bekleyen bir başvurun var.");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "REQUEST_PENDING");
         }
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Kullanıcı bulunamadı: " + userId));
@@ -83,9 +94,18 @@ public class OrganizerService {
 
     @Transactional
     public void approve(Long requestId) {
+        approve(requestId, null);
+    }
+
+    @Transactional
+    public void approve(Long requestId, String reviewer) {
         OrganizerRequest request = load(requestId);
+        if (request.getStatus() != OrganizerRequest.Status.PENDING) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "REQUEST_ALREADY_REVIEWED");
+        }
         request.setStatus(OrganizerRequest.Status.APPROVED);
         request.setReviewedAt(LocalDateTime.now());
+        request.setReviewedBy(reviewer);
         requestRepository.save(request);
 
         User user = request.getUser();
@@ -98,28 +118,92 @@ public class OrganizerService {
         user.setIsVerified(true);
         userRepository.save(user);
 
+        // Organizatör hesabı: varsa yeniden açılır ve başvurudaki bilgilerle güncellenir
+        Organizer organizer = organizerRepository.findByOwnerId(user.getId()).orElseGet(() -> {
+            Organizer created = new Organizer();
+            created.setOwner(user);
+            return created;
+        });
+        organizer.setName(request.getOrganizationName());
+        organizer.setType(request.getType().name());
+        if (request.getWebsite() != null && !request.getWebsite().isBlank()) organizer.setWebsite(request.getWebsite().trim());
+        if (request.getInstagram() != null && !request.getInstagram().isBlank()) organizer.setInstagram(request.getInstagram().trim());
+        organizer.setActive(true);
+        organizer.setVerified(true);
+        organizerRepository.save(organizer);
+
         notificationService.sendSystem(user.getId(), "organizer_approved", "user", request.getId(),
                 request.getOrganizationName() + " organizatör hesabı onaylandı");
     }
 
     @Transactional
     public void reject(Long requestId, String note) {
+        reject(requestId, note, null);
+    }
+
+    @Transactional
+    public void reject(Long requestId, String note, String reviewer) {
         OrganizerRequest request = load(requestId);
+        if (request.getStatus() != OrganizerRequest.Status.PENDING) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "REQUEST_ALREADY_REVIEWED");
+        }
+        if (note != null && note.length() > 500) note = note.substring(0, 500);
         request.setStatus(OrganizerRequest.Status.REJECTED);
         request.setReviewNote(note);
         request.setReviewedAt(LocalDateTime.now());
+        request.setReviewedBy(reviewer);
         requestRepository.save(request);
 
         notificationService.sendSystem(request.getUser().getId(), "organizer_rejected", "user", request.getId(),
                 note != null && !note.isBlank() ? note : "Organizatör başvurun onaylanmadı");
     }
 
-    /** Etkinlik önerisi doğrudan yayına girsin mi? */
+    /** Etkinlik önerisi doğrudan yayına girsin mi? Admin ya da askıda olmayan organizatör. */
     public boolean isTrustedOrganizer(Long userId) {
         User user = userRepository.findById(userId).orElse(null);
         if (user == null || user.getRoles() == null) return false;
-        return user.getRoles().stream()
-                .anyMatch(r -> ROLE_ORGANIZER.equals(r.getName()) || "ROLE_ADMIN".equals(r.getName()));
+        if (user.getRoles().stream().anyMatch(r -> "ROLE_ADMIN".equals(r.getName()))) return true;
+        return organizerRepository.findByOwnerId(userId).map(Organizer::isActive).orElse(false);
+    }
+
+    /** Kullanıcının organizatör durumu: NONE | PENDING | REJECTED | APPROVED | SUSPENDED. */
+    public Map<String, Object> status(Long userId) {
+        Map<String, Object> out = new LinkedHashMap<>();
+        Organizer organizer = organizerRepository.findByOwnerId(userId).orElse(null);
+        List<OrganizerRequest> requests = requestRepository.findByUserIdOrderByCreatedAtDesc(userId);
+        OrganizerRequest latest = requests.isEmpty() ? null : requests.get(0);
+        String state;
+        if (organizer != null && organizer.isActive()) state = "APPROVED";
+        else if (latest != null && latest.getStatus() == OrganizerRequest.Status.PENDING) state = "PENDING";
+        else if (organizer != null) state = "SUSPENDED";
+        else if (latest != null && latest.getStatus() == OrganizerRequest.Status.REJECTED) state = "REJECTED";
+        else state = "NONE";
+        out.put("state", state);
+        out.put("request", latest != null ? OrganizerRequestResponse.from(latest) : null);
+        out.put("organizer", organizer != null ? summary(organizer) : null);
+        return out;
+    }
+
+    /** Panel işlemleri için: askıda olmayan organizatör hesabı yoksa 403 NOT_ORGANIZER. */
+    public Organizer requireOrganizer(Long userId) {
+        return organizerRepository.findByOwnerId(userId)
+                .filter(Organizer::isActive)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "NOT_ORGANIZER"));
+    }
+
+    public static Map<String, Object> summary(Organizer o) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id", o.getId());
+        m.put("name", o.getName());
+        m.put("type", o.getType());
+        m.put("bio", o.getBio());
+        m.put("logoUrl", o.getLogoUrl());
+        m.put("website", o.getWebsite());
+        m.put("instagram", o.getInstagram());
+        m.put("verified", o.isVerified());
+        m.put("canAnnounce", o.isCanAnnounce());
+        m.put("active", o.isActive());
+        return m;
     }
 
     private OrganizerRequest load(Long requestId) {

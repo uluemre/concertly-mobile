@@ -63,6 +63,15 @@ public class EventSuggestionService {
 
     @Transactional
     public EventResponse suggest(Long userId, SuggestEventRequest request, boolean trustedOrganizer) {
+        return EventResponse.from(create(userId, request, trustedOrganizer, null));
+    }
+
+    /**
+     * Öneri ve organizatör paneli ortak yolu: doğrular, mükerrere bakar, sanatçı/mekânı
+     * eşler ve kaydı açar. organizerId doluysa etkinlik o organizatöre bağlanır.
+     */
+    @Transactional
+    public Event create(Long userId, SuggestEventRequest request, boolean trustedOrganizer, Long organizerId) {
         validate(request);
 
         User user = userRepository.findById(userId)
@@ -75,7 +84,12 @@ public class EventSuggestionService {
         }
 
         Artist artist = findOrCreateArtist(request);
-        Venue venue = findOrCreateVenue(request);
+        // Organizatör listeden seçtiyse o mekân (birleştirilmişse asıl kayıt); değilse adla eşle/aç
+        Venue venue = request.getVenueId() != null
+                ? com.concertly.backend.repository.MergePointers
+                        .canonical(venueRepository.findById(request.getVenueId()), venueRepository)
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "VENUE_NOT_FOUND"))
+                : findOrCreateVenue(request);
 
         Event event = new Event();
         event.setName(request.getName().trim());
@@ -92,8 +106,9 @@ public class EventSuggestionService {
         event.setSource(trustedOrganizer ? EventSource.ORGANIZER : EventSource.USER);
         event.setIsApproved(trustedOrganizer);
         event.setIsVerified(trustedOrganizer);
+        event.setOrganizerId(organizerId);
 
-        return EventResponse.from(eventRepository.save(event));
+        return eventRepository.save(event);
     }
 
     /** Öneriyi onaylayan admin, etkinliği yayına alır ve güven rozetini verir. */
@@ -180,7 +195,7 @@ public class EventSuggestionService {
 
     // ── Yardımcılar ──────────────────────────────────────────────────────────
 
-    private void validate(SuggestEventRequest request) {
+    void validate(SuggestEventRequest request) {
         if (request == null || request.getName() == null || request.getName().isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Etkinlik adı gerekli.");
         }
@@ -199,7 +214,7 @@ public class EventSuggestionService {
         }
     }
 
-    private Artist findOrCreateArtist(SuggestEventRequest request) {
+    Artist findOrCreateArtist(SuggestEventRequest request) {
         String name = request.getArtistName() != null && !request.getArtistName().isBlank()
                 ? request.getArtistName().trim()
                 : request.getName().trim();
@@ -222,7 +237,7 @@ public class EventSuggestionService {
                 });
     }
 
-    private Venue findOrCreateVenue(SuggestEventRequest request) {
+    Venue findOrCreateVenue(SuggestEventRequest request) {
         Optional<Venue> exact = venueRepository.findFirstByNameAndCity(
                 request.getVenueName().trim(), request.getVenueCity().trim());
         if (exact.isPresent()) return exact.get();

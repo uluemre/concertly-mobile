@@ -182,12 +182,18 @@ public class AccountDeletionService {
         del("DELETE FROM SetlistSubmission s WHERE s.user.id = :uid", uid);
         del("DELETE FROM BingoCard bc WHERE bc.user.id = :uid", uid);
         del("DELETE FROM UserBadge ub WHERE ub.user.id = :uid", uid);
+        // Moderasyon geçmişi (uyarı/yasak/not) hesapla birlikte gider
+        del("DELETE FROM UserSanction us WHERE us.userId = :uid", uid);
         del("DELETE FROM SpotifyConnection sc WHERE sc.user.id = :uid", uid);
         del("DELETE FROM RefreshToken rt WHERE rt.user.id = :uid", uid);
         // Cihaz push kayıtları ve organizatör başvuruları: telefonda giriş yapan her hesapta
         // push token olduğu için bunlar yokken silme FK hatasıyla 409 dönüyordu
         del("DELETE FROM PushToken pt WHERE pt.user.id = :uid", uid);
         del("DELETE FROM OrganizerRequest o WHERE o.user.id = :uid", uid);
+        // Organizatör hesabı da kapanır; yayınladığı etkinlikler kalır, organizatör bağı boşalır
+        del("UPDATE Event e SET e.organizerId = null WHERE e.organizerId IN "
+                + "(SELECT og.id FROM Organizer og WHERE og.owner.id = :uid)", uid);
+        del("DELETE FROM Organizer og WHERE og.owner.id = :uid", uid);
 
         // 4) Karşılıklı/gelen referanslar (başkaları kullanıcıya bağlı)
         del("DELETE FROM Follow f WHERE f.follower.id = :uid OR f.following.id = :uid", uid);

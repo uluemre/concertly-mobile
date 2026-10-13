@@ -136,6 +136,17 @@ export default function NotificationsScreen({ navigation }) {
     if (isCommunityNotification(g.type) && !COMMUNITY_ACTOR_TYPES.includes(g.type)) {
       return { actor: '', text: cfg.text, icon: cfg.icon, tint: cfg.tint };
     }
+    // Admin uyarısı: gerekçe mesajın kendisidir
+    if (g.type === 'admin_warning') {
+      return { actor: '', text: t('notif_admin_warning', { reason: g.rep.message || '' }), icon: 'warning', tint: 'secondary' };
+    }
+    // Organizatör hesabı bildirimleri dile göre; ret gerekçesi (varsa) sona eklenir
+    if (g.type?.startsWith('organizer_')) {
+      const key = `notif_${g.type}`;
+      const text = t(key) !== key ? t(key) : t('notif_default');
+      const note = g.type === 'organizer_rejected' && g.rep.message ? ` ${g.rep.message}` : '';
+      return { actor: '', text: text + note, icon: 'business', tint: g.type === 'organizer_approved' || g.type === 'organizer_reactivated' ? 'accent' : 'primary' };
+    }
     if (g.type === 'badge') {
       // Tam cümle; başına aktör adı yazılmaz
       return { actor: '', text: t('notif_badge', { badge: badgeName(g.rep.message) }), icon: cfg.icon, tint: cfg.tint };
@@ -186,6 +197,16 @@ export default function NotificationsScreen({ navigation }) {
       return;
     }
     const item = g.rep;
+    // Admin uyarısı: gerekçenin tamamı açılır pencerede
+    if (item.type === 'admin_warning') {
+      Alert.alert(t('notif_admin_warning_title'), item.message || '');
+      return;
+    }
+    // Organizatör başvurusu onay/red → organizatör ekranı (panel ya da yeniden başvuru)
+    if (item.type?.startsWith('organizer_')) {
+      navigation.navigate('Organizer');
+      return;
+    }
     // Takip isteği → istekler ekranı; kabul → kabul eden kişinin profili (push ile aynı kural)
     if (item.type === 'follow_request') {
       navigation.navigate('FollowRequests');

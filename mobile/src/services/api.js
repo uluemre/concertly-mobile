@@ -111,6 +111,14 @@ export function setTokenRefreshedHandler(cb) {
   _onTokenRefreshed = cb;
 }
 
+// Sunucu "bakımda" ya da "bu özellik kapalı" dediğinde uygulama ayarları yeniden okunur
+// (AppConfigContext); ekran da bakım/kapalı görünümüne geçer.
+let _onConfigStale = null;
+export function setConfigStaleHandler(cb) {
+  _onConfigStale = cb;
+}
+const CONFIG_CODES = new Set(['MAINTENANCE', 'FEATURE_DISABLED', 'REGISTRATION_CLOSED']);
+
 // Oturum gerektirmeyen, kimlik bilgisi alan auth uçları. Buralardan gelen 401
 // oturumun bittiği anlamına gelmez. (/auth/onboarding, /auth/change-password ve
 // /auth/logout oturum ister; onlar normal 401 akışında kalır.)
@@ -218,6 +226,10 @@ API.interceptors.response.use(
 
     // 403 — yetki hatası, sadece isteği reddet; oturumu kapatma
     // (admin endpoint'lere yetkisiz erişim ekranı kendi handle eder)
+
+    if ((status === 503 || status === 403) && CONFIG_CODES.has(error.response?.data?.message) && _onConfigStale) {
+      _onConfigStale();
+    }
 
     return Promise.reject(error);
   }

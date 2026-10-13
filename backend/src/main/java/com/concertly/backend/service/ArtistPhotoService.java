@@ -37,6 +37,8 @@ public class ArtistPhotoService {
 
     public static final String SOURCE_DEEZER = "DEEZER";
     public static final String SOURCE_EVENT = "EVENT";
+    /** Admin panelinden elle konan fotoğraf: hiçbir otomatik görev değiştirmez. */
+    public static final String SOURCE_ADMIN = "ADMIN";
 
     /** Bu kadar farklı sanatçının konserinde geçen görsel genel (stok) görseldir. */
     static final long SHARED_IMAGE_MIN_ARTISTS = 3;
@@ -89,6 +91,10 @@ public class ArtistPhotoService {
             for (Artist artist : eventRepository.findUpcomingListedArtists(now)) {
                 if (artist.getMergedIntoArtistId() != null) continue;
                 artists++;
+                if (SOURCE_ADMIN.equals(artist.getImageSource())) {
+                    unchanged++;
+                    continue;
+                }
                 String poster = bestEventImage(eventRepository.findUpcomingImageSourcesByArtist(artist.getId(), now), shared);
                 String outcome;
                 if (poster != null) {
@@ -120,6 +126,7 @@ public class ArtistPhotoService {
             Set<Long> seen = new HashSet<>();
             for (Artist artist : extra) {
                 if (!seen.add(artist.getId())) continue;
+                if (SOURCE_ADMIN.equals(artist.getImageSource())) continue;
                 if (lookups >= maxDeezerLookups) break;
                 artists++;
                 lookups++;

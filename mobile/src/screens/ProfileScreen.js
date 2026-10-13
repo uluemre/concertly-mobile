@@ -8,6 +8,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useAppConfig } from '../context/AppConfigContext';
 import EventCard from '../components/EventCard';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -27,6 +28,8 @@ export default function ProfileScreen({ navigation, route }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { session, logout } = useAuth();
+  const { isOn } = useAppConfig();
+  const gamesOn = isOn('games') || session.isAdmin;
   const { t, tu, lang } = useLanguage();
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
@@ -284,8 +287,8 @@ export default function ProfileScreen({ navigation, route }) {
           </View>
         </View>
 
-        {/* OYUN BAŞARILARI */}
-        {gameStats && (
+        {/* OYUN BAŞARILARI (oyunlar admin panelinden kapatılabilir) */}
+        {gameStats && gamesOn && (
           <View style={styles.gameSection}>
             <TouchableOpacity
               style={styles.gameCard}

@@ -24,15 +24,18 @@ public class EventController {
     private final TicketmasterService ticketmasterService;
     private final EventSuggestionService suggestionService;
     private final OrganizerService organizerService;
+    private final com.concertly.backend.service.EventViewService eventViewService;
 
     public EventController(EventService eventService,
                            TicketmasterService ticketmasterService,
                            EventSuggestionService suggestionService,
-                           OrganizerService organizerService) {
+                           OrganizerService organizerService,
+                           com.concertly.backend.service.EventViewService eventViewService) {
         this.eventService = eventService;
         this.ticketmasterService = ticketmasterService;
         this.suggestionService = suggestionService;
         this.organizerService = organizerService;
+        this.eventViewService = eventViewService;
     }
 
     /**
@@ -88,8 +91,11 @@ public class EventController {
     }
 
     @GetMapping("/{id}")
-    public EventResponse getEvent(@PathVariable Long id) {
-        return eventService.getEventById(id);
+    public EventResponse getEvent(@PathVariable Long id, jakarta.servlet.http.HttpServletRequest request) {
+        EventResponse event = eventService.getEventById(id);
+        // Benzersiz görüntülenme (kişi başı bir kez; organizatörün kendisi sayılmaz)
+        eventViewService.record(id, JwtUtil.getCurrentUserId(), request);
+        return event;
     }
 
     @PatchMapping("/{id}/approve")
