@@ -84,6 +84,18 @@ public class PushMessageFactory {
                     en ? "Organizer application" : "Organizatör başvurusu",
                     // Admin notu Türkçe yazılır; İngilizce cihaza genel metin gider
                     en ? "Your application was not approved. See the details in the app." : extra };
+            case "organizer_event" -> new String[] {
+                    en ? "New event from an organizer you follow 🎶" : "Takip ettiğin organizatörden yeni etkinlik 🎶",
+                    extra };
+            case "event_announcement" -> new String[] {
+                    en ? "Event update 📣" : "Etkinlik duyurusu 📣",
+                    extra };
+            case "claim_approved" -> new String[] {
+                    en ? "Event added to your dashboard" : "Etkinlik paneline eklendi",
+                    en ? "\"" + extra + "\" is now managed by you." : "\"" + extra + "\" artık senin panelinde." };
+            case "claim_rejected" -> new String[] {
+                    en ? "Event claim not approved" : "Sahiplenme talebi onaylanmadı",
+                    en ? "Open the app for details." : (extra == null ? "Ayrıntı uygulamada." : extra) };
             case "admin_warning" -> new String[] {
                     en ? "Warning from Concertly" : "Concertly'den uyarı",
                     // Gerekçeyi admin Türkçe yazar; İngilizce cihaza genel metin, ayrıntı uygulamada

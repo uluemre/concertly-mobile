@@ -190,6 +190,13 @@ public class AccountDeletionService {
         // push token olduğu için bunlar yokken silme FK hatasıyla 409 dönüyordu
         del("DELETE FROM PushToken pt WHERE pt.user.id = :uid", uid);
         del("DELETE FROM OrganizerRequest o WHERE o.user.id = :uid", uid);
+        // Kullanıcının organizatör takipleri; kendi organizatörünün takipçileri, duyuruları ve talepleri
+        del("DELETE FROM OrganizerFollow f WHERE f.userId = :uid OR f.organizerId IN "
+                + "(SELECT og.id FROM Organizer og WHERE og.owner.id = :uid)", uid);
+        del("DELETE FROM OrganizerAnnouncement a WHERE a.organizerId IN "
+                + "(SELECT og.id FROM Organizer og WHERE og.owner.id = :uid)", uid);
+        del("DELETE FROM EventClaim c WHERE c.organizerId IN "
+                + "(SELECT og.id FROM Organizer og WHERE og.owner.id = :uid)", uid);
         // Organizatör hesabı da kapanır; yayınladığı etkinlikler kalır, organizatör bağı boşalır
         del("UPDATE Event e SET e.organizerId = null WHERE e.organizerId IN "
                 + "(SELECT og.id FROM Organizer og WHERE og.owner.id = :uid)", uid);

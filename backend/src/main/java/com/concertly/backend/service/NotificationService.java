@@ -73,6 +73,24 @@ public class NotificationService {
     }
 
     /** Aktörsüz sistem bildirimi (turne duyurusu, konser hatırlatması vb.). Aynı bildirimi tekrar göndermez. */
+    /**
+     * Tekrar engeli olmadan sistem bildirimi: aynı etkinliğe birden çok organizatör duyurusu gibi,
+     * her biri ayrı ulaşması gereken bildirimler için (oran sınırı çağıranın işidir).
+     */
+    public void sendSystemAlways(Long recipientId, String type, String entityType, Long entityId, String message) {
+        try {
+            User recipient = userRepository.findById(recipientId).orElseThrow();
+            Notification n = new Notification();
+            n.setRecipient(recipient);
+            n.setType(type);
+            n.setEntityType(entityType);
+            n.setEntityId(entityId);
+            n.setMessage(message);
+            notificationRepository.save(n);
+            push(recipient, n);
+        } catch (Exception ignored) {}
+    }
+
     public void sendSystem(Long recipientId, String type, String entityType, Long entityId, String message) {
         try {
             if (notificationRepository.existsByRecipientIdAndTypeAndEntityId(recipientId, type, entityId)) return;

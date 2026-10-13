@@ -167,6 +167,15 @@ export default function OrganizerEventFormScreen({ navigation, route }) {
     } catch (err) {
       const status = err?.response?.status;
       const code = err?.response?.data?.message;
+      // Kopya etkinlik: sunucu kayıtlı etkinliğin numarasını "(#123)" olarak döner → sahiplenmeyi öner
+      const dupId = status === 409 ? Number((String(code || '').match(/#(\d+)/) || [])[1]) : null;
+      if (dupId && !editing) {
+        Alert.alert(t('error'), t('org_err_duplicate_claim'), [
+          { text: t('cancel'), style: 'cancel' },
+          { text: t('ocl_claim'), onPress: () => { leaving.current = true; navigation.replace('OrganizerClaim', { eventId: dupId }); } },
+        ]);
+        return;
+      }
       const message = status === 409 ? t('org_err_duplicate')
         : ERROR_KEYS[code] ? t(ERROR_KEYS[code])
         : apiErrorMessage(err, t);

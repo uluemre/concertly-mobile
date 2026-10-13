@@ -876,6 +876,25 @@ function EventDetailContent({ route, navigation }) {
           </TouchableOpacity>
         )}
 
+        {/* DÜZENLEYEN ORGANİZATÖR (yalnız organizatör hesabına bağlı etkinlikte) */}
+        {event.organizerId && event.organizerName ? (
+          <TouchableOpacity
+            style={styles.infoCard}
+            onPress={() => navigation.navigate('OrganizerProfile', { organizerId: event.organizerId })}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+          >
+            <Text style={styles.sectionTitle}>{t('detail_organizer')}</Text>
+            <View style={styles.artistRow}>
+              <Text style={[styles.infoValue, { flex: 1 }]} numberOfLines={1}>
+                {event.organizerName}{event.organizerVerified ? ' ' : ''}
+                {event.organizerVerified ? <Ionicons name="checkmark-circle" size={16} color={colors.accent} /> : null}
+              </Text>
+              <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+            </View>
+          </TouchableOpacity>
+        ) : null}
+
         {/* MEKAN + INLINE HARİTA */}
         {event.venueName && (
           <View style={styles.infoCard}>

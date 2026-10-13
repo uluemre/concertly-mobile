@@ -55,6 +55,7 @@ export const linking = {
       Communities: 'communities',
       // Yenilenince / doğrudan açılınca ana sayfaya düşmesinler (N-19)
       VenueProfile: { path: 'venue/:venueId', parse: { venueId: Number }, stringify: { venueName: () => undefined } },
+      OrganizerProfile: { path: 'organizer/:organizerId', parse: { organizerId: Number } },
       Map: 'map',
       Settings: 'settings',
       ChatList: 'messages',

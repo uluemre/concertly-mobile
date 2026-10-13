@@ -39,6 +39,13 @@ public class OrganizerEventService {
     private final JdbcTemplate jdbc;
     private final VenueRepository venueRepository;
     private final AdminContentService contentService;
+    // Takipçi bildirimi isteğe bağlı bağımlılık (testlerde yok)
+    private OrganizerProfileService profileService;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    void setProfileService(OrganizerProfileService profileService) {
+        this.profileService = profileService;
+    }
 
     public OrganizerEventService(OrganizerService organizerService,
                                  EventSuggestionService suggestionService,
@@ -128,6 +135,8 @@ public class OrganizerEventService {
         request.setVenueAddress(venue.getAddress());
         request.setVenueId(venue.getId());
         Event event = suggestionService.create(userId, request, true, org.getId());
+        // Organizatörü takip edenlere "yeni etkinlik" bildirimi
+        if (profileService != null) profileService.notifyFollowers(org, event);
         return Map.of("id", event.getId());
     }
 

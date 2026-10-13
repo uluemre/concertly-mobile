@@ -18,7 +18,7 @@ public enum PushCategory {
         return switch (type) {
             case "follow", "follow_request", "follow_accepted" -> SOCIAL;
             case "message" -> MESSAGES;
-            case "event_reminder", "new_event", "event_cancelled" -> EVENTS;
+            case "event_reminder", "new_event", "event_cancelled", "organizer_event", "event_announcement" -> EVENTS;
             case "daily_song" -> GAMES;
             default -> SOCIAL;
         };

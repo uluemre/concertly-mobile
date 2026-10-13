@@ -25,12 +25,15 @@ public class EventController {
     private final EventSuggestionService suggestionService;
     private final OrganizerService organizerService;
     private final com.concertly.backend.service.EventViewService eventViewService;
+    private final com.concertly.backend.repository.OrganizerRepository organizerRepository;
 
     public EventController(EventService eventService,
                            TicketmasterService ticketmasterService,
                            EventSuggestionService suggestionService,
                            OrganizerService organizerService,
-                           com.concertly.backend.service.EventViewService eventViewService) {
+                           com.concertly.backend.service.EventViewService eventViewService,
+                           com.concertly.backend.repository.OrganizerRepository organizerRepository) {
+        this.organizerRepository = organizerRepository;
         this.eventService = eventService;
         this.ticketmasterService = ticketmasterService;
         this.suggestionService = suggestionService;
@@ -93,6 +96,12 @@ public class EventController {
     @GetMapping("/{id}")
     public EventResponse getEvent(@PathVariable Long id, jakarta.servlet.http.HttpServletRequest request) {
         EventResponse event = eventService.getEventById(id);
+        // Düzenleyen organizatör (askıdaki gösterilmez)
+        if (event.getOrganizerId() != null) {
+            organizerRepository.findById(event.getOrganizerId())
+                    .filter(com.concertly.backend.model.Organizer::isActive)
+                    .ifPresent(o -> event.setOrganizer(o.getName(), o.getLogoUrl(), o.isVerified()));
+        }
         // Benzersiz görüntülenme (kişi başı bir kez; organizatörün kendisi sayılmaz)
         eventViewService.record(id, JwtUtil.getCurrentUserId(), request);
         return event;

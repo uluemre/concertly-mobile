@@ -36,6 +36,7 @@ export default function NotificationsScreen({ navigation }) {
     comment:        { icon: 'chatbubble', tint: 'accent', text: t('notif_comment') },
     message:        { icon: 'mail', tint: 'secondary', text: t('notif_message') },
     new_event:      { icon: 'mic', tint: 'primary', text: t('notif_new_event') },
+    organizer_event: { icon: 'business', tint: 'primary', text: t('notif_organizer_event') },
     event_reminder: { icon: 'ticket', tint: 'secondary', text: t('notif_event_reminder') },
     event_cancelled: { icon: 'close-circle', tint: 'primary', text: t('notif_event_cancelled') },
     daily_song:     { icon: 'calendar', tint: 'accent', text: t('notif_daily_song') },
@@ -135,6 +136,14 @@ export default function NotificationsScreen({ navigation }) {
     // Sistem topluluk bildirimleri tam cümledir; aktör adı yazılmaz (A3)
     if (isCommunityNotification(g.type) && !COMMUNITY_ACTOR_TYPES.includes(g.type)) {
       return { actor: '', text: cfg.text, icon: cfg.icon, tint: cfg.tint };
+    }
+    // Organizatör duyurusu ve sahiplenme sonuçları: tam cümle mesajın kendisi
+    if (g.type === 'event_announcement') {
+      return { actor: '', text: g.rep.message || t('notif_default'), icon: 'megaphone', tint: 'secondary' };
+    }
+    if (g.type === 'claim_approved' || g.type === 'claim_rejected') {
+      const base = t(`notif_${g.type}`, { event: g.rep.message || '' });
+      return { actor: '', text: base, icon: 'hand-left', tint: g.type === 'claim_approved' ? 'accent' : 'primary' };
     }
     // Admin uyarısı: gerekçe mesajın kendisidir
     if (g.type === 'admin_warning') {

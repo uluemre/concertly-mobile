@@ -105,6 +105,11 @@ import OrganizerScreen from '../screens/OrganizerScreen';
 import AdminOrganizerRequestScreen from '../screens/AdminOrganizerRequestScreen';
 import AdminOrganizerDetailScreen from '../screens/AdminOrganizerDetailScreen';
 import AdminUserDetailScreen from '../screens/AdminUserDetailScreen';
+import OrganizerProfileScreen from '../screens/OrganizerProfileScreen';
+import OrganizerProfileEditScreen from '../screens/OrganizerProfileEditScreen';
+import OrganizerAnnounceScreen from '../screens/OrganizerAnnounceScreen';
+import OrganizerClaimScreen from '../screens/OrganizerClaimScreen';
+import AdminClaimsScreen from '../screens/AdminClaimsScreen';
 import OrganizerEventFormScreen from '../screens/OrganizerEventFormScreen';
 import MaintenanceView from '../components/MaintenanceView';
 import { withFeature } from '../components/FeatureGate';
@@ -528,6 +533,11 @@ export default function AppNavigator() {
         <Stack.Screen name="AdminOrganizerRequest" component={AdminOrganizerRequestScreen} />
         <Stack.Screen name="AdminOrganizerDetail" component={AdminOrganizerDetailScreen} />
         <Stack.Screen name="AdminUserDetail" component={AdminUserDetailScreen} />
+        <Stack.Screen name="AdminClaims" component={AdminClaimsScreen} />
+        <Stack.Screen name="OrganizerProfile" component={OrganizerProfileScreen} />
+        <Stack.Screen name="OrganizerProfileEdit" component={OrganizerProfileEditScreen} options={COMPOSE_OPTIONS} />
+        <Stack.Screen name="OrganizerAnnounce" component={OrganizerAnnounceScreen} options={COMPOSE_OPTIONS} />
+        <Stack.Screen name="OrganizerClaim" component={OrganizerClaimScreen} />
         <Stack.Screen name="OrganizerEventForm" component={OrganizerEventFormScreen} options={COMPOSE_OPTIONS} />
         <Stack.Screen name="SpotifyRecommendations" component={SpotifyRecommendationsScreen} />
         <Stack.Screen name="VenueProfile" component={VenueProfileScreen} />

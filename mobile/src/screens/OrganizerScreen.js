@@ -186,6 +186,19 @@ export default function OrganizerScreen({ navigation }) {
           </View>
         </View>
 
+        <View style={styles.quick}>
+          {[
+            ['person-circle-outline', t('orgp_my_profile'), () => navigation.navigate('OrganizerProfile', { organizerId: org.id })],
+            ['create-outline', t('orgp_edit'), () => navigation.navigate('OrganizerProfileEdit')],
+            ['hand-left-outline', t('ocl_title'), () => navigation.navigate('OrganizerClaim')],
+          ].map(([icon, label, onPress]) => (
+            <TouchableOpacity key={label} style={styles.quickBtn} onPress={onPress} accessibilityRole="button">
+              <Ionicons name={icon} size={18} color={colors.primary} />
+              <Text style={styles.quickText} numberOfLines={1}>{label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
         <View style={styles.totals}>
           <Total value={totals.upcoming} label={t('org_total_upcoming')} styles={styles} />
           <Total value={totals.views} label={t('org_total_views')} styles={styles} />
@@ -247,6 +260,15 @@ export default function OrganizerScreen({ navigation }) {
                   >
                     <Ionicons name="create-outline" size={16} color={cancelled ? colors.textSecondary : colors.text} />
                     <Text style={[styles.actionText, cancelled && { color: colors.textSecondary }]}>{t('org_edit')}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => navigation.navigate('OrganizerAnnounce', { event: { id: ev.id, name: ev.name } })}
+                    style={styles.actionBtn}
+                    disabled={cancelled}
+                    accessibilityRole="button"
+                  >
+                    <Ionicons name="megaphone-outline" size={16} color={cancelled ? colors.textSecondary : colors.text} />
+                    <Text style={[styles.actionText, cancelled && { color: colors.textSecondary }]}>{t('oan_short')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => toggleCancel(ev)} style={styles.actionBtn} disabled={busyId === ev.id} accessibilityRole="button">
                     {busyId === ev.id
@@ -479,6 +501,9 @@ function createStyles(colors) {
     orgLogo: { width: 52, height: 52, borderRadius: 14, overflow: 'hidden', backgroundColor: `${colors.primary}14`, alignItems: 'center', justifyContent: 'center' },
     orgNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     orgName: { flexShrink: 1, fontSize: 18, fontFamily: fonts.headingBold, color: colors.text },
+    quick: { flexDirection: 'row', gap: 8 },
+    quickBtn: { flex: 1, alignItems: 'center', gap: 4, backgroundColor: colors.card, borderRadius: 14, borderWidth: 1, borderColor: colors.border, paddingVertical: 10, paddingHorizontal: 4 },
+    quickText: { fontSize: 11, fontWeight: '700', color: colors.text },
     totals: { flexDirection: 'row', gap: 10 },
     total: { flex: 1, backgroundColor: colors.card, borderRadius: 14, borderWidth: 1, borderColor: colors.border, paddingVertical: 12, alignItems: 'center' },
     totalValue: { fontSize: 22, fontFamily: fonts.headingBold, color: colors.text },

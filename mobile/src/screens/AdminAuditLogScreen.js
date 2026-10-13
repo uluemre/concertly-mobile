@@ -35,6 +35,8 @@ const ACTIONS = [
   ['PATCH', /^\/api\/admin\/reports\/(\d+)\/resolve$/, 'admin_audit_report_resolve', 'flag-outline'],
   ['POST', /^\/api\/admin\/moderation\/hide$/, 'admin_audit_moderation_hide', 'eye-off-outline'],
   ['POST', /^\/api\/admin\/moderation\/queue\/action$/, 'admin_audit_mq_action', 'shield-checkmark-outline'],
+  ['POST', /^\/api\/admin\/claims\/(\d+)\/approve$/, 'admin_audit_claim_approve', 'hand-left-outline'],
+  ['POST', /^\/api\/admin\/claims\/(\d+)\/reject$/, 'admin_audit_claim_reject', 'hand-left-outline'],
   ['POST', /^\/api\/admin\/moderation\/queue\/bulk$/, 'admin_audit_mq_bulk', 'layers-outline'],
   ['POST', /^\/api\/admin\/communities\/(\d+)\/approve$/, 'admin_audit_community_approve', 'people-outline'],
   ['POST', /^\/api\/admin\/communities\/(\d+)\/reject$/, 'admin_audit_community_reject', 'people-outline'],

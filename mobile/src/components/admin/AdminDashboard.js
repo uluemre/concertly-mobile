@@ -21,6 +21,7 @@ const PENDING = [
   ['events', 'dash_pending_events', 'hourglass', 'AdminEvents', { filter: 'pending' }],
   ['organizers', 'dash_pending_organizers', 'business', 'AdminOrganizerRequests', undefined],
   ['communities', 'dash_pending_communities', 'people-circle', 'AdminCommunities', undefined],
+  ['claims', 'dash_pending_claims', 'hand-left', 'AdminClaims', undefined],
 ];
 
 /** Önceki döneme göre değişim: { pct, dir } — önceki 0 ise "yeni" sayılır */

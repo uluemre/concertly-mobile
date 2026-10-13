@@ -119,7 +119,8 @@ public class AdminDashboardService {
                           AND merged_into_event_id IS NULL AND event_date >= now()) AS events,
                        (SELECT count(DISTINCT (target_type, target_id)) FROM reports WHERE resolved IS NOT TRUE) AS reports,
                        (SELECT count(*) FROM organizer_requests WHERE status = 'PENDING') AS organizers,
-                       (SELECT count(*) FROM communities WHERE approval_status = 'PENDING') AS communities
+                       (SELECT count(*) FROM communities WHERE approval_status = 'PENDING') AS communities,
+                       (SELECT count(*) FROM event_claims WHERE status = 'PENDING') AS claims
                 """);
     }
 }

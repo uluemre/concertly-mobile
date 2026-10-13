@@ -19,10 +19,63 @@ public class OrganizerController {
 
     private final OrganizerService organizerService;
     private final OrganizerEventService organizerEventService;
+    private final com.concertly.backend.service.OrganizerProfileService profileService;
+    private final com.concertly.backend.service.OrganizerAnnouncementService announcementService;
+    private final com.concertly.backend.service.EventClaimService claimService;
 
-    public OrganizerController(OrganizerService organizerService, OrganizerEventService organizerEventService) {
+    public OrganizerController(OrganizerService organizerService, OrganizerEventService organizerEventService,
+                               com.concertly.backend.service.OrganizerProfileService profileService,
+                               com.concertly.backend.service.OrganizerAnnouncementService announcementService,
+                               com.concertly.backend.service.EventClaimService claimService) {
         this.organizerService = organizerService;
         this.organizerEventService = organizerEventService;
+        this.profileService = profileService;
+        this.announcementService = announcementService;
+        this.claimService = claimService;
+    }
+
+    /** Kendi profilim: { bio?, logoUrl?, website?, instagram? } (ad değişmez). */
+    @PutMapping("/profile")
+    public Map<String, Object> updateProfile(@RequestBody Map<String, Object> body) {
+        return profileService.updateOwn(JwtUtil.getCurrentUserId(), body);
+    }
+
+    // ── Katılımcılara duyuru ─────────────────────────────────────────────────
+
+    @GetMapping("/events/{id}/announcements")
+    public Map<String, Object> announcements(@PathVariable Long id) {
+        return announcementService.overview(JwtUtil.getCurrentUserId(), id);
+    }
+
+    /** Gövde: { message, audience: GOING | GOING_INTERESTED } — etkinlik başına 24 saatte bir. */
+    @PostMapping("/events/{id}/announce")
+    public Map<String, Object> announce(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        return announcementService.announce(JwtUtil.getCurrentUserId(), id, body.get("message"), body.get("audience"));
+    }
+
+    // ── Etkinlik sahiplenme ──────────────────────────────────────────────────
+
+    @GetMapping("/claimable")
+    public List<Map<String, Object>> claimable(@RequestParam(required = false) String q) {
+        return claimService.claimable(JwtUtil.getCurrentUserId(), q);
+    }
+
+    @GetMapping("/claims")
+    public List<Map<String, Object>> myClaims() {
+        return claimService.myClaims(JwtUtil.getCurrentUserId());
+    }
+
+    /** Gövde: { eventId, message? } */
+    @PostMapping("/claims")
+    public Map<String, Object> claim(@RequestBody Map<String, Object> body) {
+        Long eventId;
+        try {
+            eventId = Long.valueOf(String.valueOf(body.get("eventId")));
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("INVALID_EVENT");
+        }
+        return claimService.claim(JwtUtil.getCurrentUserId(), eventId,
+                body.get("message") == null ? null : String.valueOf(body.get("message")));
     }
 
     @PostMapping("/requests")

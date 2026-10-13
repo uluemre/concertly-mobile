@@ -219,6 +219,21 @@ public class EventResponse {
     public Integer getReviewCount() { return reviewCount; }
     public Long getOrganizerId() { return organizerId; }
 
+    /** Etkinlik detayında "Düzenleyen" satırı (yalnız aktif organizatörde dolu). */
+    private String organizerName;
+    private String organizerLogoUrl;
+    private Boolean organizerVerified;
+
+    public String getOrganizerName() { return organizerName; }
+    public String getOrganizerLogoUrl() { return organizerLogoUrl; }
+    public Boolean getOrganizerVerified() { return organizerVerified; }
+
+    public void setOrganizer(String name, String logoUrl, boolean verified) {
+        this.organizerName = name;
+        this.organizerLogoUrl = logoUrl;
+        this.organizerVerified = verified;
+    }
+
     public void setAvgRating(Double avgRating) { this.avgRating = avgRating; }
     public void setReviewCount(Integer reviewCount) { this.reviewCount = reviewCount; }
     public String getSource() { return source; }

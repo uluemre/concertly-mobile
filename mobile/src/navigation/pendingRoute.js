@@ -11,7 +11,7 @@
 // (GET /api/events/** public); giriş gerektiren eylemler ekranın içinde kalır.
 export const PUBLIC_SCREENS = new Set([
   'Onboarding', 'Login', 'Register', 'VerifyEmail', 'ForgotPassword', 'ResetPassword',
-  'Legal', 'NotFound', 'EventDetail',
+  'Legal', 'NotFound', 'EventDetail', 'OrganizerProfile',
 ]);
 
 const TAB_SCREENS = new Set(['Home', 'Events', 'Explore', 'Notifications', 'Profile']);

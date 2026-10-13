@@ -87,6 +87,13 @@ const NAV_ITEMS = [
     screen: 'AdminOrganizerRequests',
   },
   {
+    titleKey: 'admin_nav_claims_title',
+    subtitleKey: 'admin_nav_claims_sub',
+    icon: 'hand-left',
+    tint: 'secondary',
+    screen: 'AdminClaims',
+  },
+  {
     titleKey: 'admin_nav_deletion_title',
     subtitleKey: 'admin_nav_deletion_sub',
     icon: 'file-tray',
