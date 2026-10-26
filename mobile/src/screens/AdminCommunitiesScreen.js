@@ -11,6 +11,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { communityTypeLabel } from '../utils/communityType';
 import API, { getErrorMessage } from '../services/api';
 import { goBackOrFallback } from '../navigation/navHelpers';
+import AdminBulkReviewBar from '../components/admin/AdminBulkReviewBar';
 
 function waitingLabel(createdAt, t) {
   if (!createdAt) return '';
@@ -27,6 +28,7 @@ export default function AdminCommunitiesScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [busyId, setBusyId] = useState(null);
+  const [bulkBusy, setBulkBusy] = useState(false);
   // "Tümü": gizli, reddedilmiş ve arşivlenmiş dahil bütün topluluklar (içeriğine girilebilir)
   const [tab, setTab] = useState('pending');
   const [query, setQuery] = useState('');
@@ -81,6 +83,33 @@ export default function AdminCommunitiesScreen({ navigation }) {
     }
   };
 
+  const bulkReview = (action) => {
+    const targets = pending.slice();
+    if (!targets.length || bulkBusy) return;
+    const approve = action === 'approve';
+    Alert.alert(
+      t(approve ? 'admin_bulk_approve_title' : 'admin_bulk_reject_title', { count: targets.length }),
+      t(approve ? 'admin_bulk_approve_msg' : 'admin_bulk_reject_msg', { count: targets.length }),
+      [
+        { text: t('cancel'), style: 'cancel' },
+        {
+          text: t(approve ? 'admin_bulk_approve_all' : 'admin_bulk_reject_all'),
+          style: approve ? 'default' : 'destructive',
+          onPress: async () => {
+            setBulkBusy(true);
+            let success = 0;
+            for (const item of targets) {
+              try { await API.post(`/admin/communities/${item.id}/${action}`); success++; } catch { /* continue */ }
+            }
+            await fetchPending();
+            Alert.alert(t('success'), t('admin_bulk_done', { success, total: targets.length }));
+            setBulkBusy(false);
+          },
+        },
+      ],
+    );
+  };
+
   return (
     <ScrollView
       style={styles.container}
@@ -112,6 +141,10 @@ export default function AdminCommunitiesScreen({ navigation }) {
           ))}
         </View>
       </View>
+
+      {tab === 'pending' && !loading ? (
+        <AdminBulkReviewBar count={pending.length} busy={bulkBusy} colors={colors} t={t} onApprove={() => bulkReview('approve')} onReject={() => bulkReview('reject')} />
+      ) : null}
 
       {tab === 'all' ? (
         <>

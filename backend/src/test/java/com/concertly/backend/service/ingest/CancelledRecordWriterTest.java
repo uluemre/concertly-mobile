@@ -66,6 +66,35 @@ class CancelledRecordWriterTest {
     }
 
     @Test
+    void organizerOwnedEventIsNotOverwrittenBySourceSync() {
+        EventRepository events = mock(EventRepository.class);
+        ArtistRepository artists = mock(ArtistRepository.class);
+        VenueRepository venues = mock(VenueRepository.class);
+        EventSourceLinkService links = mock(EventSourceLinkService.class);
+        Event existing = new Event();
+        existing.setOrganizerId(42L);
+        existing.setName("Organizatörün başlığı");
+        existing.setEventDate(LocalDateTime.of(2026, 11, 3, 20, 0));
+        EventSourceLink link = new EventSourceLink();
+        link.setEvent(existing);
+        when(links.find(eq(EventSource.BUBILET), anyString())).thenReturn(Optional.of(link));
+
+        BiletinialRecordWriter writer = new BiletinialRecordWriter(events, artists, venues, links);
+        RawConcertData raw = new RawConcertData("BUBILET", "hadise@seans3", "Hadise", "Kaynak başlığı",
+                LocalDateTime.of(2026, 11, 4, 21, 0), "Kaynak mekanı", null, "Ankara",
+                null, null, "https://x", null);
+
+        assertFalse(writer.upsert(raw));
+
+        assertEquals("Organizatörün başlığı", existing.getName());
+        assertEquals(LocalDateTime.of(2026, 11, 3, 20, 0), existing.getEventDate());
+        verify(events, never()).save(any());
+        verifyNoInteractions(artists, venues);
+        verify(links).upsert(existing, EventSource.BUBILET, "bubilet:hadise@seans3",
+                "https://x", "https://x", false);
+    }
+
+    @Test
     void ticketmasterStatusCodeIsRead() {
         assertEquals("cancelled", TicketmasterService.statusCode(
                 Map.<String, Object>of("dates", Map.of("status", Map.of("code", "cancelled")))));

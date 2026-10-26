@@ -109,7 +109,10 @@ export default function MapScreen({ navigation }) {
   const bottomAnim = useRef(new Animated.Value(SHEET_HIDDEN_Y)).current;
 
   useEffect(() => {
-    Promise.all([fetchEvents(), requestLocation()]).finally(() => setLoading(false));
+    // Haritayı GPS yanıtına bağlama. Konum servisleri yavaş yanıt verse bile
+    // etkinlikler geldikten sonra harita açılmalı; konum sonradan eklenir.
+    requestLocation();
+    fetchEvents().finally(() => setLoading(false));
   }, []);
 
   const fetchEvents = async () => {

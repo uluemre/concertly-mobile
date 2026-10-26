@@ -594,6 +594,14 @@ public class TicketmasterService {
 
                 String ticketUrl = (String) e.get("url");
 
+                // Organizatörün sahiplendiği etkinlikte bilet kaynağı alanları
+                // ezmemeli; yalnızca kaynağın son görülme bilgisini tazele.
+                if (event.getOrganizerId() != null) {
+                    sourceLinks.upsert(event, EventSource.TICKETMASTER, externalId,
+                            ticketUrl, ticketUrl, false);
+                    continue;
+                }
+
                 String genre = extractGenre(e);
 
                 // =========================

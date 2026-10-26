@@ -61,6 +61,10 @@ export default function AdminEventsScreen({ navigation, route }) {
   const [editingEvent, setEditingEvent] = useState(null);
   const [form, setForm] = useState(INITIAL_FORM);
   const [saving, setSaving] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+
+  useEffect(() => { setSelectedIds(new Set()); }, [search, activeTab]);
 
   const fetchEvents = useCallback(async () => {
     try {
@@ -84,6 +88,7 @@ export default function AdminEventsScreen({ navigation, route }) {
   }, []);
 
   const switchTab = (tab, idx) => {
+    setSelectedIds(new Set());
     setActiveTab(tab);
     Animated.spring(tabAnim, { toValue: idx, tension: 70, friction: 10, useNativeDriver: false }).start();
   };
@@ -173,6 +178,50 @@ export default function AdminEventsScreen({ navigation, route }) {
     ]);
   };
 
+  const toggleEvent = (id) => setSelectedIds(prev => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
+
+  const toggleAllVisible = () => {
+    const ids = filtered.filter(event => !event.isApproved && !event.cancelled).map(event => event.id);
+    const allSelected = ids.length > 0 && ids.every(id => selectedIds.has(id));
+    setSelectedIds(allSelected ? new Set() : new Set(ids));
+  };
+
+  const bulkEvents = (action) => {
+    const targets = filtered.filter(event => selectedIds.has(event.id) && !event.isApproved && !event.cancelled);
+    if (!targets.length || bulkBusy) return;
+    const deleting = action === 'delete';
+    Alert.alert(
+      t(deleting ? 'admin_bulk_delete_title' : 'admin_bulk_approve_title', { count: targets.length }),
+      t(deleting ? 'admin_bulk_delete_msg' : 'admin_bulk_approve_msg', { count: targets.length }),
+      [
+        { text: t('cancel'), style: 'cancel' },
+        {
+          text: t(deleting ? 'delete' : 'admin_action_approve'),
+          style: deleting ? 'destructive' : 'default',
+          onPress: async () => {
+            setBulkBusy(true);
+            let succeeded = 0;
+            for (const event of targets) {
+              try {
+                if (deleting) await API.delete(`/admin/events/${event.id}`);
+                else await API.patch(`/admin/events/${event.id}/approve`);
+                succeeded++;
+              } catch { /* Keep going; report partial completion below. */ }
+            }
+            setSelectedIds(new Set());
+            await fetchEvents();
+            Alert.alert(t('success'), t('admin_bulk_done', { success: succeeded, total: targets.length }));
+            setBulkBusy(false);
+          },
+        },
+      ],
+    );
+  };
+
   // İptal: konser ve listedeki kopyaları keşiften düşer, katılımcılara bildirim gider.
   // Geri alma bildirim göndermez.
   const handleCancelToggle = (ev) => {
@@ -224,6 +273,17 @@ export default function AdminEventsScreen({ navigation, route }) {
 
       <View style={styles.cardBody}>
         <View style={styles.cardHeader}>
+          {activeTab === 'pending' && !item.isApproved && !item.cancelled ? (
+            <TouchableOpacity
+              onPress={() => toggleEvent(item.id)}
+              style={styles.selectCheck}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: selectedIds.has(item.id) }}
+              accessibilityLabel={t('admin_bulk_select_event', { name: item.name })}
+            >
+              <Ionicons name={selectedIds.has(item.id) ? 'checkbox' : 'square-outline'} size={22} color={selectedIds.has(item.id) ? colors.primary : colors.textSecondary} />
+            </TouchableOpacity>
+          ) : null}
           <View style={{ flex: 1 }}>
             <Text style={[styles.cardName, { color: colors.text }]} numberOfLines={1}>{item.name}</Text>
             <Text style={[styles.cardMeta, { color: colors.textSecondary }]}>
@@ -338,21 +398,42 @@ export default function AdminEventsScreen({ navigation, route }) {
       {loading ? (
         <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 48 }} />
       ) : (
-        <FlatList
-          data={filtered}
-          keyExtractor={item => String(item.id)}
-          renderItem={renderEvent}
-          contentContainerStyle={{ padding: 16, paddingBottom: 48 }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchEvents(); }} tintColor={colors.primary} />}
-          ListEmptyComponent={
-            <View style={styles.empty}>
-              <Ionicons name="calendar-outline" size={48} color={colors.textSecondary} style={styles.emptyEmoji} />
-              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-                {search ? t('admin_no_search_results') : t('admin_events_empty')}
-              </Text>
+        <>
+          {activeTab === 'pending' && filtered.some(event => !event.isApproved && !event.cancelled) ? (
+            <View style={styles.bulkToolbar}>
+              <TouchableOpacity style={styles.selectAllBtn} onPress={toggleAllVisible} accessibilityRole="button">
+                <Ionicons name={filtered.filter(event => !event.isApproved && !event.cancelled).every(event => selectedIds.has(event.id)) ? 'checkbox' : 'square-outline'} size={18} color={colors.primary} />
+                <Text style={[styles.bulkLabel, { color: colors.text }]}>{t('admin_bulk_select_all')}</Text>
+              </TouchableOpacity>
+              {selectedIds.size > 0 ? (
+                <>
+                  <Text style={[styles.selectedCount, { color: colors.textSecondary }]}>{t('admin_bulk_selected', { count: selectedIds.size })}</Text>
+                  <TouchableOpacity disabled={bulkBusy} onPress={() => bulkEvents('approve')} style={[styles.bulkBtn, { backgroundColor: colors.accent }]} accessibilityRole="button">
+                    {bulkBusy ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.bulkBtnText}>{t('admin_bulk_approve')}</Text>}
+                  </TouchableOpacity>
+                  <TouchableOpacity disabled={bulkBusy} onPress={() => bulkEvents('delete')} style={[styles.bulkBtn, { backgroundColor: colors.primary }]} accessibilityRole="button">
+                    {bulkBusy ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.bulkBtnText}>{t('admin_bulk_delete')}</Text>}
+                  </TouchableOpacity>
+                </>
+              ) : null}
             </View>
-          }
-        />
+          ) : null}
+          <FlatList
+            data={filtered}
+            keyExtractor={item => String(item.id)}
+            renderItem={renderEvent}
+            contentContainerStyle={{ padding: 16, paddingBottom: 48 }}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchEvents(); }} tintColor={colors.primary} />}
+            ListEmptyComponent={
+              <View style={styles.empty}>
+                <Ionicons name="calendar-outline" size={48} color={colors.textSecondary} style={styles.emptyEmoji} />
+                <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+                  {search ? t('admin_no_search_results') : t('admin_events_empty')}
+                </Text>
+              </View>
+            }
+          />
+        </>
       )}
 
       {/* FORM MODAL */}
@@ -457,6 +538,13 @@ function createStyles(colors) {
     genrePill: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
     genrePillText: { fontSize: 11, fontWeight: '700' },
     cardActions: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+    selectCheck: { paddingRight: 8, paddingTop: 2 },
+    bulkToolbar: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: colors.border },
+    selectAllBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+    bulkLabel: { fontSize: 12, fontWeight: '700' },
+    selectedCount: { flex: 1, fontSize: 11, textAlign: 'right' },
+    bulkBtn: { minWidth: 54, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 10, alignItems: 'center' },
+    bulkBtnText: { color: '#fff', fontSize: 11, fontWeight: '800' },
     actionBtn: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10, borderWidth: 1 },
     actionBtnText: { fontSize: 12, fontWeight: '700' },
 

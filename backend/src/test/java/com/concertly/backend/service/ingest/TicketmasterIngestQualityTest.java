@@ -117,6 +117,24 @@ class TicketmasterIngestQualityTest {
     }
 
     @Test
+    void organizerOwnedEventIsNotOverwrittenByTicketmasterSync() {
+        Event existing = new Event();
+        existing.setExternalId("TM-OWNED");
+        existing.setOrganizerId(42L);
+        existing.setName("Organizatörün başlığı");
+        existing.setEventDate(LocalDateTime.of(2026, 11, 3, 20, 0));
+        when(events.findByExternalId("TM-OWNED")).thenReturn(Optional.of(existing));
+
+        sync(tmEvent("TM-OWNED", LocalDate.now().plusDays(10), VENUE, POP));
+
+        assertEquals("Organizatörün başlığı", existing.getName());
+        assertEquals(LocalDateTime.of(2026, 11, 3, 20, 0), existing.getEventDate());
+        verify(events, never()).save(any());
+        verify(sourceLinks).upsert(existing, EventSource.TICKETMASTER, "TM-OWNED",
+                "https://www.biletix.com/TM-OWNED", "https://www.biletix.com/TM-OWNED", false);
+    }
+
+    @Test
     void undefinedSubGenreFallsBackToGenre() {
         sync(tmEvent("TM-GEN", LocalDate.now().plusDays(10), VENUE, Map.of(
                 "segment", Map.of("name", "Music"),

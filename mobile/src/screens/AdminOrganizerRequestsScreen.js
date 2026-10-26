@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput,
-  ActivityIndicator, RefreshControl,
+  ActivityIndicator, RefreshControl, Alert,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,6 +11,7 @@ import { useTheme, fonts } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
 import API from '../services/api';
 import { goBackOrFallback } from '../navigation/navHelpers';
+import AdminBulkReviewBar from '../components/admin/AdminBulkReviewBar';
 import { accountAge, orgTypeKey } from '../utils/adminOrganizer';
 
 const STATUSES = [['PENDING', 'adm_org_status_pending'], ['APPROVED', 'adm_org_status_approved'], ['REJECTED', 'adm_org_status_rejected']];
@@ -34,6 +35,7 @@ export default function AdminOrganizerRequestsScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const loadRequests = useCallback(async (s) => {
     try {
@@ -84,6 +86,36 @@ export default function AdminOrganizerRequestsScreen({ navigation }) {
     if (next === status) return;
     setLoading(true);
     setStatus(next);
+  };
+
+  const bulkReview = (approve) => {
+    const targets = requests.slice();
+    if (!targets.length || bulkBusy || tab !== 'requests' || status !== 'PENDING') return;
+    Alert.alert(
+      t(approve ? 'admin_bulk_approve_title' : 'admin_bulk_reject_title', { count: targets.length }),
+      t(approve ? 'admin_bulk_approve_msg' : 'admin_bulk_reject_msg', { count: targets.length }),
+      [
+        { text: t('cancel'), style: 'cancel' },
+        {
+          text: t(approve ? 'admin_bulk_approve_all' : 'admin_bulk_reject_all'),
+          style: approve ? 'default' : 'destructive',
+          onPress: async () => {
+            setBulkBusy(true);
+            let success = 0;
+            for (const item of targets) {
+              try {
+                if (approve) await API.post(`/admin/organizer-requests/${item.id}/approve`);
+                else await API.post(`/admin/organizer-requests/${item.id}/reject`, { note: null });
+                success++;
+              } catch { /* continue */ }
+            }
+            await loadRequests(status);
+            Alert.alert(t('success'), t('admin_bulk_done', { success, total: targets.length }));
+            setBulkBusy(false);
+          },
+        },
+      ],
+    );
   };
 
   const avatar = (uri, fallbackIcon, round = true) => (
@@ -194,6 +226,10 @@ export default function AdminOrganizerRequestsScreen({ navigation }) {
           />
         </View>
       )}
+
+      {tab === 'requests' && status === 'PENDING' && !loading ? (
+        <AdminBulkReviewBar count={requests.length} busy={bulkBusy} colors={colors} t={t} onApprove={() => bulkReview(true)} onReject={() => bulkReview(false)} />
+      ) : null}
 
       {loading ? (
         <View style={styles.center}><ActivityIndicator size="large" color={colors.primary} /></View>

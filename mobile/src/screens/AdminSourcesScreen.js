@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity,
-  StyleSheet, ActivityIndicator, RefreshControl,
+  StyleSheet, ActivityIndicator, RefreshControl, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, fonts } from '../theme';
@@ -30,6 +30,7 @@ export default function AdminSourcesScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   const fetchHealth = useCallback(async () => {
     try {
@@ -49,6 +50,22 @@ export default function AdminSourcesScreen({ navigation }) {
   const statusColor = (status) => (
     status === 'OK' ? colors.accent : status === 'WARN' ? colors.secondary : colors.primary
   );
+
+  const runSync = async () => {
+    if (syncing || report?.running) return;
+    setSyncing(true);
+    try {
+      const res = await API.post('/admin/sources/sync', null, { timeout: 600000 });
+      const results = Array.isArray(res.data) ? res.data : [];
+      const failed = results.filter(result => result.failed).length;
+      Alert.alert(t('success'), t('src_sync_summary', { count: results.length, failed }));
+    } catch {
+      Alert.alert(t('error'), t('admin_sync_error'));
+    } finally {
+      setSyncing(false);
+      fetchHealth();
+    }
+  };
 
   const shortDate = (iso) => {
     try {
@@ -115,7 +132,17 @@ export default function AdminSourcesScreen({ navigation }) {
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('admin_nav_sources_title')}</Text>
-        <View style={styles.backBtn} />
+        <TouchableOpacity
+          style={styles.syncBtn}
+          onPress={runSync}
+          disabled={syncing || report?.running}
+          accessibilityRole="button"
+          accessibilityLabel={t('src_sync_now')}
+        >
+          {syncing || report?.running
+            ? <ActivityIndicator size="small" color={colors.primary} />
+            : <Ionicons name="sync-outline" size={20} color={colors.primary} />}
+        </TouchableOpacity>
       </View>
 
       {report?.running && (
@@ -165,6 +192,7 @@ function createStyles(colors) {
       borderBottomColor: colors.border,
     },
     backBtn: { width: 40, alignItems: 'center' },
+    syncBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
     headerTitle: { fontSize: 18, fontFamily: fonts.headingBold, color: colors.text },
 
     runningBar: {

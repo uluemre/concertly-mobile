@@ -10,6 +10,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { goBackOrFallback, openEvent } from '../navigation/navHelpers';
 import { dateLocale, parseEventDate } from '../utils/time';
 import { openInstagram, openWebsite } from '../utils/adminOrganizer';
+import AdminBulkReviewBar from '../components/admin/AdminBulkReviewBar';
 
 const STATUSES = [['PENDING', 'adm_org_status_pending'], ['APPROVED', 'adm_org_status_approved'], ['REJECTED', 'adm_org_status_rejected']];
 const REJECT_TEMPLATES = ['acl_tpl_unverified', 'acl_tpl_other_org', 'acl_tpl_wrong_event'];
@@ -28,6 +29,7 @@ export default function AdminClaimsScreen({ navigation }) {
   const [busyId, setBusyId] = useState(null);
   const [rejecting, setRejecting] = useState(null);
   const [note, setNote] = useState('');
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -60,6 +62,36 @@ export default function AdminClaimsScreen({ navigation }) {
     } finally {
       setBusyId(null);
     }
+  };
+
+  const bulkReview = (approve) => {
+    const targets = items.slice();
+    if (!targets.length || bulkBusy || status !== 'PENDING') return;
+    Alert.alert(
+      t(approve ? 'admin_bulk_approve_title' : 'admin_bulk_reject_title', { count: targets.length }),
+      t(approve ? 'admin_bulk_approve_msg' : 'admin_bulk_reject_msg', { count: targets.length }),
+      [
+        { text: t('cancel'), style: 'cancel' },
+        {
+          text: t(approve ? 'admin_bulk_approve_all' : 'admin_bulk_reject_all'),
+          style: approve ? 'default' : 'destructive',
+          onPress: async () => {
+            setBulkBusy(true);
+            let success = 0;
+            for (const item of targets) {
+              try {
+                if (approve) await API.post(`/admin/claims/${item.id}/approve`);
+                else await API.post(`/admin/claims/${item.id}/reject`, { note: null });
+                success++;
+              } catch { /* continue */ }
+            }
+            await load();
+            Alert.alert(t('success'), t('admin_bulk_done', { success, total: targets.length }));
+            setBulkBusy(false);
+          },
+        },
+      ],
+    );
   };
 
   const approve = (c) => Alert.alert(t('acl_approve_title'), t('acl_approve_msg', { org: c.organizerName, event: c.eventName }), [
@@ -131,6 +163,9 @@ export default function AdminClaimsScreen({ navigation }) {
           </TouchableOpacity>
         ))}
       </View>
+      {status === 'PENDING' && !loading ? (
+        <AdminBulkReviewBar count={items.length} busy={bulkBusy} colors={colors} t={t} onApprove={() => bulkReview(true)} onReject={() => bulkReview(false)} />
+      ) : null}
       {loading ? <View style={styles.center}><ActivityIndicator size="large" color={colors.primary} /></View> : (
         <FlatList
           data={items}

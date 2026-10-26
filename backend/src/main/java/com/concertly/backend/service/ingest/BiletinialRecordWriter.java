@@ -99,6 +99,14 @@ public class BiletinialRecordWriter {
             return false;
         }
 
+        // Organizatörün sahiplendiği etkinliğin alanları bilet sitesi senkronuyla
+        // ezilmemeli. Kaynak bağlantısını yine tazele, etkinlik alanlarını koru.
+        if (event != null && event.getOrganizerId() != null) {
+            sourceLinks.upsert(event, source, externalId,
+                    raw.ticketUrl(), raw.ticketUrl(), false);
+            return false;
+        }
+
         boolean isNew = event == null;
         // Aynı seansın 3 saat kaymış ikizi (saat dilimi hatası): yeni kayıt açılmaz
         if (isNew && isTimeShiftedCopy(source, externalId, raw.startsAt())) return false;

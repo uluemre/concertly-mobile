@@ -135,6 +135,7 @@ export default function AdminScreen({ navigation }) {
   const [syncing, setSyncing] = useState(false);
   const [enriching, setEnriching] = useState(false);
   const [creatingConcert, setCreatingConcert] = useState(false);
+  const [overviewOpen, setOverviewOpen] = useState(false);
   // Çekince / sayfaya dönünce panel de yeniden yüklensin
   const [refreshTick, setRefreshTick] = useState(0);
 
@@ -274,9 +275,26 @@ export default function AdminScreen({ navigation }) {
         </View>
       ) : (
         <>
-          {/* GENEL BAKIŞ: bekleyen işler, ana sayılar, grafik, şehirler, popülerler */}
-          <Text style={styles.sectionTitle}>{t('admin_overview')}</Text>
-          <AdminDashboard navigation={navigation} refreshKey={refreshTick} />
+          {/* GENEL BAKIŞ RAPORLARI: kapalı klasör, dokununca açılır */}
+          <View style={styles.overviewFolder}>
+            <TouchableOpacity
+              style={styles.overviewFolderHeader}
+              onPress={() => setOverviewOpen(open => !open)}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityState={{ expanded: overviewOpen }}
+            >
+              <View style={[styles.overviewFolderIcon, { backgroundColor: `${colors.primary}22` }]}>
+                <Ionicons name={overviewOpen ? 'folder-open' : 'folder'} size={22} color={colors.primary} />
+              </View>
+              <View style={styles.overviewFolderInfo}>
+                <Text style={styles.overviewFolderTitle}>{t('admin_overview')}</Text>
+                <Text style={styles.overviewFolderSubtitle}>{t('admin_overview_folder_sub')}</Text>
+              </View>
+              <Ionicons name={overviewOpen ? 'chevron-up' : 'chevron-down'} size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
+            {overviewOpen ? <AdminDashboard navigation={navigation} refreshKey={refreshTick} /> : null}
+          </View>
 
           {/* QUICK ACTIONS */}
           <Text style={styles.sectionTitle}>{t('admin_quick_actions')}</Text>
@@ -464,6 +482,20 @@ function createStyles(colors) {
       color: colors.textSecondary,
       marginHorizontal: 20, marginTop: 28, marginBottom: 14,
     },
+    overviewFolder: {
+      marginHorizontal: 16,
+      marginTop: 28,
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 18,
+      overflow: 'hidden',
+    },
+    overviewFolderHeader: { minHeight: 76, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
+    overviewFolderIcon: { width: 44, height: 44, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+    overviewFolderInfo: { flex: 1, gap: 3 },
+    overviewFolderTitle: { color: colors.text, fontSize: 15, fontFamily: fonts.headingBold },
+    overviewFolderSubtitle: { color: colors.textSecondary, fontSize: 11 },
 
     // STATS GRID
     statsGrid: {

@@ -63,6 +63,31 @@ public class ConcertSyncScheduler {
         syncAllAs(BY_SCHEDULE);
     }
 
+    /**
+     * Ücretsiz web servisleri boşta uykuya geçtiği için 04:00 cron'u kaçabilir.
+     * Servis yeniden açıldığında son koşu 30 saati geçmişse, ilk dakikadan sonra
+     * bir kez telafi senkronu başlat; servis çalışırken de 15 dakikada bir kontrol et.
+     */
+    @Scheduled(initialDelayString = "${app.sources.catch-up-delay-ms:60000}",
+            fixedDelayString = "${app.sources.catch-up-check-ms:900000}")
+    public void catchUpIfStale() {
+        if (runRepository == null) return;
+        try {
+            LocalDateTime staleBefore = LocalDateTime.now().minus(SourceHealthService.STALE_AFTER);
+            boolean stale = enabledSources().stream().anyMatch(code -> {
+                List<SourceSyncRun> recent = runRepository.findTop10BySourceOrderByStartedAtDesc(code);
+                return recent.isEmpty() || recent.get(0).getStartedAt() == null
+                        || recent.get(0).getStartedAt().isBefore(staleBefore);
+            });
+            if (stale) {
+                log.info("Kaynak senkronizasyonu gecikmis; servis acikken telafi kosusu baslatiliyor");
+                syncAllAs(BY_SCHEDULE);
+            }
+        } catch (Exception e) {
+            log.warn("Kaynak senkronizasyonu gecikme kontrolu yapilamadi: {}", e.getMessage());
+        }
+    }
+
     /** Tum acik kaynaklari sirayla calistirir ve sonuclari dondurur. */
     public List<SourceSyncResult> syncAll() {
         return syncAllAs(BY_ADMIN);

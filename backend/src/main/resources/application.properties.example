@@ -66,6 +66,8 @@ app.share.app-scheme=${APP_SCHEME:concertly}
 # Konser veri kaynaklari (ConcertSource) ve zamanlanmis senkronizasyon.
 # Kaynaklar tek zamanlayicidan calisir; biri hata verirse digerleri devam eder.
 app.sources.sync-cron=${SOURCES_SYNC_CRON:0 0 4 * * *}
+app.sources.catch-up-delay-ms=${SOURCES_CATCH_UP_DELAY_MS:60000}
+app.sources.catch-up-check-ms=${SOURCES_CATCH_UP_CHECK_MS:900000}
 app.sources.ticketmaster.enabled=${TICKETMASTER_SOURCE_ENABLED:true}
 app.sources.biletinial.enabled=${BILETINIAL_SOURCE_ENABLED:true}
 # Biletinial nezaket ayarlari: istekler arasi bekleme ve kendini tanitan User-Agent.
